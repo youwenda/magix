@@ -21,8 +21,13 @@ KISSY.add('apiapp/vanim', function(S, Router, Magix) {
     }, {
         from: /^\/home$/,
         to: /^\/(?:kissy|seajs|requirejs)\/1\.[01]\/\w+$/,
-        aAnim: 'slideTop',
-        bAnim: 'slideBottom'
+        aAnim: 'slideLeft',
+        bAnim: 'slideRight'
+    }, {
+        from: /^\/(?:kissy|seajs|requirejs)\/1\.[01]\/\w+$/,
+        to: /^\/(?:kissy|seajs|requirejs)\/1\.[01]\/\w+$/,
+        aAnim: 'fade',
+        bAnim: 'fade'
     }];
     var RulesCache = Magix.cache();
 
@@ -31,7 +36,7 @@ KISSY.add('apiapp/vanim', function(S, Router, Magix) {
         getAnimRule: function(e) {
             var me = VAnim;
             var rule = {
-                root: 'magix_vf_root'
+                root: 'magix_vf_main'
             };
             var changed = e.changed;
             if (changed.isPathname()) {
@@ -86,32 +91,34 @@ KISSY.add('apiapp/vanim', function(S, Router, Magix) {
                 }
             }
         },
-        /*fade: function(root) {
+        fade: function(root) {
             var me = VAnim;
             me.processRoot(root);
             var rootNode = S.one('#' + root);
-            rootNode.before('<div id="' + root + '"></div>');
-            rootNode.attr('id', '');
-            var newRoot = S.one('#' + root);
-            newRoot.css({
+            var tId = S.guid('temp');
+            rootNode.after('<div id="' + tId + '"></div>');
+            var newRoot = S.one('#' + tId);
+
+            newRoot.append(rootNode.children());
+            rootNode.css({
                 display: 'none',
                 opacity: 0
-            }).append(rootNode.clone(true).children());
+            });
             me.animCounter++;
-            new S.Anim(rootNode, {
+            new S.Anim(newRoot, {
                 opacity: 0
             }, 0.5, 'easeNone', function() {
-                rootNode.remove();
-                newRoot.css({
+                newRoot.remove();
+                rootNode.css({
                     display: 'block'
                 });
-                new S.Anim(newRoot, {
+                new S.Anim(rootNode, {
                     opacity: 1
                 }, 0.5, 'easeNone', function() {
                     me.animCounter--;
                 }).run();
             }).run();
-        },*/
+        },
         slide: function(root, dir) {
             var me = VAnim;
             me.stopAnims();
@@ -122,52 +129,53 @@ KISSY.add('apiapp/vanim', function(S, Router, Magix) {
                 me.$bakPosition = parent.css('position');
                 me.$bakOverflow = parent.css('overflow');
             }
+            var outerWidth = parent.outerWidth();
+            var outerHeight = parent.outerHeight();
             parent.css({
                 position: 'relative',
                 overflow: 'hidden'
             });
-            rootNode.before('<div id="' + root + '"></div>');
-            rootNode.attr('id', '');
-            var newRoot = S.one('#' + root);
-
-            var newRootIniAnimAttrs = {};
-            var oldRootIniAnimAttrs = {
-                position: 'absolute',
-                width: rootNode.outerWidth(),
-                height: rootNode.outerHeight(),
+            var tId = S.guid('temp');
+            rootNode.after('<div id="' + tId + '"></div>');
+            var newRoot = S.one('#' + tId);
+            var newRootIniAnimAttrs = {
+                position: 'fixed',
+                width: outerWidth,
+                height: outerHeight,
                 left: 0,
-                top: 0
+                top: parent.offset().top
+            };
+            var oldRootIniAnimAttrs = {
+
             };
             if (dir == Dirs.LEFT) {
-                newRootIniAnimAttrs = {
-                    position: 'absolute',
-                    left: rootNode.outerWidth(),
+                oldRootIniAnimAttrs = {
+                    position: 'relative',
+                    left: outerWidth,
                     top: 0
                 };
             } else if (dir == Dirs.TOP) {
-                newRootIniAnimAttrs = {
-                    position: 'absolute',
+                oldRootIniAnimAttrs = {
+                    position: 'relative',
                     left: 0,
-                    top: Math.max(rootNode.outerHeight(), S.DOM.docHeight())
+                    top: Math.max(outerHeight, S.DOM.docHeight())
                 };
             } else if (dir == Dirs.RIGHT) {
-                newRootIniAnimAttrs = {
-                    position: 'absolute',
-                    left: -rootNode.outerWidth(),
+                oldRootIniAnimAttrs = {
+                    position: 'relative',
+                    left: -outerWidth,
                     top: 0
                 };
             } else if (dir == Dirs.BOTTOM) {
-                newRootIniAnimAttrs = {
-                    position: 'absolute',
+                oldRootIniAnimAttrs = {
+                    position: 'relative',
                     left: 0,
-                    top: -Math.max(rootNode.outerHeight(), S.DOM.docHeight())
+                    top: -Math.max(outerHeight, S.DOM.docHeight())
                 };
             }
-            newRootIniAnimAttrs.width = oldRootIniAnimAttrs.width;
-            newRootIniAnimAttrs.height = oldRootIniAnimAttrs.height;
 
 
-            newRoot.css(newRootIniAnimAttrs).append(rootNode.clone(true).children());
+            newRoot.css(newRootIniAnimAttrs).append(rootNode.children());
 
             rootNode.css(oldRootIniAnimAttrs);
 
@@ -176,23 +184,23 @@ KISSY.add('apiapp/vanim', function(S, Router, Magix) {
             var newRootAnimAttrs = {};
 
             if (dir == Dirs.LEFT) {
-                oldRootAnimAttrs.left = -rootNode.outerWidth();
-                newRootAnimAttrs.left = 0;
+                newRootAnimAttrs.left = -outerWidth;
+                oldRootAnimAttrs.left = 0;
             } else if (dir == Dirs.TOP) {
-                oldRootAnimAttrs.top = -Math.max(rootNode.outerHeight(), S.DOM.docHeight());
-                newRootAnimAttrs.top = 0;
+                oldRootAnimAttrs.top = 0;
+                newRootAnimAttrs.top = -Math.max(outerHeight, S.DOM.docHeight());
             } else if (dir == Dirs.RIGHT) {
-                oldRootAnimAttrs.left = rootNode.outerWidth();
-                newRootAnimAttrs.left = 0;
+                oldRootAnimAttrs.left = 0;
+                newRootAnimAttrs.left = outerWidth;
             } else if (dir == Dirs.BOTTOM) {
-                oldRootAnimAttrs.top = Math.max(rootNode.outerHeight(), S.DOM.docHeight());
-                newRootAnimAttrs.top = 0;
+                oldRootAnimAttrs.top = 0;
+                newRootAnimAttrs.top = Math.max(outerHeight, S.DOM.docHeight());
             }
             me.animCounter++;
-            me.registerAnim('slideOld', new S.Anim(rootNode, oldRootAnimAttrs, 0.8, 'easeOut').run());
-            me.registerAnim('slideNew', new S.Anim(newRoot, newRootAnimAttrs, 0.8, 'easeOut', function() {
-                rootNode.remove();
-                newRoot.css({
+            me.registerAnim('slideOld', new S.Anim(rootNode, oldRootAnimAttrs, 0.5, 'easeOut').run());
+            me.registerAnim('slideNew', new S.Anim(newRoot, newRootAnimAttrs, 0.5, 'easeOut', function() {
+                newRoot.remove();
+                rootNode.css({
                     position: 'static',
                     width: 'auto',
                     height: 'auto'

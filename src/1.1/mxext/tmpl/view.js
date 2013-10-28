@@ -14,6 +14,7 @@ var SafeExec = Magix.safeExec;
 var Has = Magix.has;
 
 /**
+ * 内置的view扩展，提供资源管理等
  * @name MxView
  * @namespace
  * @constructor
@@ -113,16 +114,16 @@ var MxView = View.extend({
     },
     /**
      * 移除托管的资源
-     * @param {String|Object} param 托管时标识key或托管的对象
+     * @key {String|Object} key 托管时标识key或托管的对象
      * @return {Object} 返回移除的资源
      */
-    removeManaged: function(param) {
+    removeManaged: function(key) {
         var me = this,
             res = null;
         var cache = me.$res;
-        if (cache && Has(cache, param)) {
-            res = cache[param].res;
-            delete cache[param];
+        if (cache && Has(cache, key)) {
+            res = cache[key].res;
+            delete cache[key];
         }
         return res;
     },
@@ -158,6 +159,7 @@ var MxView = View.extend({
         }
     },
     /**
+     * 销毁托管的MRequest对象
      * @private
      */
     destroyMRequest: function() {

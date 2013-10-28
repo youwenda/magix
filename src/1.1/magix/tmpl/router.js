@@ -32,10 +32,10 @@ var IsParam = function(params, r, ps) {
     return r;
 };
 var IsPathname = function() {
-    return Has(this, PATHNAME);
+    return this[PATHNAME];
 };
 var IsView = function() {
-    return Has(this, 'view');
+    return this.view;
 };
 
 
@@ -58,6 +58,7 @@ var Path = function(path) {
 //var PathTrimFileParamsReg=/(\/)?[^\/]*[=#]$/;//).replace(,'$1').replace(,EMPTY);
 //var PathTrimSearch=/\?.*$/;
 /**
+ * 路由对象，操作URL
  * @name Router
  * @namespace
  * @borrows Event.on as on
@@ -247,8 +248,10 @@ var Router = Mix({
         if (!result) {
             var hasChanged, from, to;
             result = {
-                params: {}
+                params: {},
+                view: to
             };
+            result[PATHNAME] = to;
             from = oldLocation[PATHNAME];
             to = newLocation[PATHNAME];
             if (from != to) {

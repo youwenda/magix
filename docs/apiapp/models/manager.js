@@ -5,6 +5,9 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
     var MM = MManager.create(Model);
     var InfosCache = Magix.cache();
     var SearchCache = Magix.cache(40);
+    var ColorKeywords = function(name) {
+        return name.replace(this.replaceReg, this.replaceExp).replace(/\(/g, '<span style="color:red">').replace(/\)/g, '</span>');
+    };
     MM.registerModels([{
         name: 'Class_List',
         url: 'index.json',
@@ -39,6 +42,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
         after: function(m) {
             var isa = m.get('isa');
             if (isa == 'CONSTRUCTOR') {
+                m.set('isClass', true);
                 var methods = m.get('methods');
                 var staticMethods = [];
                 var ms = [];
@@ -69,6 +73,12 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
                     m.set('properties', ps);
                     m.set('staticProperties', staticProperties);
                 }
+
+
+            }
+            var inherits = m.get('inherits');
+            if (inherits) {
+                m.set('inheritsMap', Magix.listToMap(inherits, 'as'));
             }
         }
     }]);
@@ -116,6 +126,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
                         };
                         InfosCache.set(key, result);
                         callback(e, result);
+                        return result;
                     }
                 });
             });
@@ -125,6 +136,9 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
             var temp = {
                 stopped: 0,
                 stop: function() {
+                    this.stopped = 1;
+                },
+                destroy: function() {
                     this.stopped = 1;
                 }
             };
@@ -154,6 +168,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
                 replaceReg: testReg,
                 replaceExp: replacer.join(''),
                 key: key,
+                color: ColorKeywords,
                 nsGrouped: []
             };
             if (findIn) {
@@ -230,7 +245,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
                             list = a;
                         }
                         if (list && list.length) {
-                            walker(results.list, 0, results.list.length - 1);
+                            walker(list, 0, list.length - 1);
                         } else {
                             callback(null, searchResults);
                         }

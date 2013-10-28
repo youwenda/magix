@@ -53,8 +53,8 @@ var NodeIn = function(a, b, r) {
     }
     return r;
 };
-var ScriptsReg = /<script[^>]*>[\s\S]*?<\/script>/ig;
-var RefLoc;
+//var ScriptsReg = /<script[^>]*>[\s\S]*?<\/script>/ig;
+var RefLoc, RefChged;
 /**
  * Vframe类
  * @name Vframe
@@ -91,9 +91,10 @@ Mix(Vframe, {
      * @return {Vframe}
      * @private
      */
-    root: function(owner, refLoc) {
+    root: function(owner, refLoc, refChged) {
         if (!RootVframe) {
             RefLoc = refLoc;
+            RefChged = refChged;
             var e = $(RootId);
             if (!e) {
                 e = D.createElement(TagName);
@@ -190,7 +191,7 @@ Mix(Mix(Vframe.prototype, Event), {
         var node = $(me.id);
         if (!node._bak) {
             node._bak = 1;
-            node._tmpl = node.innerHTML.replace(ScriptsReg, '');
+            node._tmpl = node.innerHTML; //.replace(ScriptsReg, '');
         } else {
             node._chgd = 1;
         }
@@ -261,7 +262,7 @@ Mix(Mix(Vframe.prototype, Event), {
                         });
                     }, 0);
                     viewInitParams = viewInitParams || {};
-                    view.load(Mix(viewInitParams, path.params, viewInitParams));
+                    view.load(Mix(viewInitParams, path.params, viewInitParams), RefChged);
                 }
             });
         }
@@ -301,7 +302,9 @@ Mix(Mix(Vframe.prototype, Event), {
      * @return {Vframe} vframe对象
      * @example
      * //html
-     * <div id="magix_vf_defer"></div>
+     * &lt;div id="magix_vf_defer"&gt;&lt;/div&gt;
+     *
+     *
      * //js
      * view.owner.mountVframe('magix_vf_defer','app/views/list',{page:2})
      * //注意：动态向某个节点渲染view时，该节点无须是vframe标签
@@ -498,11 +501,9 @@ Mix(Mix(Vframe.prototype, Event), {
     },
     /**
      * 通知当前vframe，地址栏发生变化
-     * @param {Object} loc window.location.href解析出来的对象
-     * @param {Object} chged 包含有哪些变化的对象
      * @private
      */
-    locChged: function(loc, chged) {
+    locChged: function() {
         var me = this;
         var view = me.view;
         /*
@@ -543,15 +544,15 @@ Mix(Mix(Vframe.prototype, Event), {
         if (view && view.sign > 0) {
             //view.location=loc;
             if (view.rendered) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的window.location.href对象，对于销毁的也不需要广播
-                var isChanged = view.olChanged(chged);
+                var isChanged = view.olChanged(RefChged);
                 /**
                  * 事件对象
                  * @type {Object}
                  * @ignore
                  */
                 var args = {
-                    location: loc,
-                    changed: chged,
+                    location: RefLoc,
+                    changed: RefChged,
                     /**
                      * 阻止向所有的子view传递
                      * @ignore
@@ -582,7 +583,7 @@ Mix(Mix(Vframe.prototype, Event), {
                 for (var i = 0, j = cs.length, vom = me.owner, vf; i < j; i++) {
                     vf = vom.get(cs[i]);
                     if (vf) {
-                        vf.locChged(loc, chged);
+                        vf.locChged();
                     }
                 }
             }

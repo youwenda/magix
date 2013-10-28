@@ -204,7 +204,7 @@ var SafeExec = function(fns, args, context, i, r, e) {
 
 
 /**
- * Magix全局对象
+ * Magix对象，提供常用方法
  * @name Magix
  * @namespace
  */

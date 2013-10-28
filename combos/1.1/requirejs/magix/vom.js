@@ -12,7 +12,7 @@ var LastPercent = 0;
 var FirstReady = 0;
 var Vframes = {};
 var Loc = {};
-
+var Chged = {};
 /**
  * VOM对象
  * @name VOM
@@ -82,12 +82,6 @@ var VOM = Magix.mix({
         }
     },
     /**
-     * 获取根vframe对象
-     */
-    root: function() {
-        return Vframe.root(VOM, Loc);
-    },
-    /**
      * 向vframe通知地址栏发生变化
      * @param {Object} e 事件对象
      * @param {Object} e.location window.location.href解析出来的对象
@@ -104,12 +98,12 @@ var VOM = Magix.mix({
         }
         Mix(Loc, loc);
         if (!hack) {
-            var vf = VOM.root();
-            var chged = e.changed;
-            if (chged.isView()) {
+            Mix(Chged, e.changed);
+            var vf = Vframe.root(VOM, Loc, Chged);
+            if (Chged.isView()) {
                 vf.mountView(loc.view);
             } else {
-                vf.locChged(loc, chged);
+                vf.locChged();
             }
         }
     }
@@ -118,7 +112,7 @@ var VOM = Magix.mix({
      * @name VOM.progress
      * @event
      * @param {Object} e
-     * @param {Object} e.precent 百分比
+     * @param {Float} e.precent 百分比
      */
     /**
      * 注册vframe对象时触发

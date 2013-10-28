@@ -1,7 +1,7 @@
 /*
     author:xinglie.lkf@taobao.com
  */
-KISSY.add('apiapp/mviews/index', function(S, View, Magix) {
+KISSY.add('apiapp/mviews/partials/home', function(S, View) {
     return View.extend({
         render: function() {
             var me = this;
@@ -9,5 +9,5 @@ KISSY.add('apiapp/mviews/index', function(S, View, Magix) {
         }
     });
 }, {
-    requires: ['magix/view', 'magix/magix']
+    requires: ['mxext/view']
 });

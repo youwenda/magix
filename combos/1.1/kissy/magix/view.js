@@ -204,6 +204,7 @@ Mix(Mix(View.prototype, Event), {
     /**
      * 初始化方法，供最终的view开发人员进行覆盖
      * @param {Object} extra 初始化时，外部传递的参数
+     * @param {Object} locChanged 地址栏变化的相关信息，比如从某个pathname过来的
      * @function
      */
     init: Noop,
@@ -213,7 +214,7 @@ Mix(Mix(View.prototype, Event), {
      */
     hasTmpl: true,
     /**
-     * 是否启用DOM事件(test&lt;click,mousedown&gt;事件是否生效)
+     * 是否启用DOM事件(test<click,mousedown>事件是否生效)
      * @default true
      * @example
      * 该属性在做浏览器兼容时有用：支持pushState的浏览器阻止a标签的默认行为，转用pushState，不支持时直接a标签跳转，view不启用事件
@@ -275,7 +276,7 @@ Mix(Mix(View.prototype, Event), {
      */
     beginUpdate: function() {
         var me = this;
-        if (me.sign && me.rendered) {
+        if (me.sign > 0 && me.rendered) {
             me.fire('refresh', 0, 1);
             me.fire('prerender');
         }
@@ -285,7 +286,7 @@ Mix(Mix(View.prototype, Event), {
      */
     endUpdate: function() {
         var me = this;
-        if (me.sign) {
+        if (me.sign > 0) {
             /*if(me.rendered&&me.enableAnim){
                 var owner=me.owner;
                 SafeExec(owner.newViewCreated,EMPTY_ARRAY,owner);
@@ -304,7 +305,7 @@ Mix(Mix(View.prototype, Event), {
      */
     notifyUpdate: function() {
         var me = this;
-        if (me.sign) {
+        if (me.sign > 0) {
             me.sign++;
             me.fire('rendercall');
         }
@@ -313,6 +314,7 @@ Mix(Mix(View.prototype, Event), {
     /**
      * 包装mx-event，自动添加vframe id,用于事件发生时，调用该view处理
      * @param {String} html html字符串
+     * @returns {String} 返回处理后的字符串
      */
     wrapMxEvent: function(html) {
         return String(html).replace(MxEvt, '$&' + this.id + MxEvtSplit);
@@ -342,7 +344,7 @@ Mix(Mix(View.prototype, Event), {
         var me = this,
             n;
         me.beginUpdate();
-        if (me.sign) {
+        if (me.sign > 0) {
             n = me.$(me.id);
             if (n) n.innerHTML = html;
         }
@@ -500,7 +502,7 @@ Mix(Mix(View.prototype, Event), {
      */
     processEvent: function(e) {
         var me = this;
-        if (me.enableEvent && me.sign) {
+        if (me.enableEvent && me.sign > 0) {
             var info = e.info;
             var domEvent = e.se;
 

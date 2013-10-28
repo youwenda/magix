@@ -1,43 +1,34 @@
 /*
     author:xinglie.lkf@taobao.com
  */
-KISSY.add('apiapp/mviews/partials/search', function(S, View, MM) {
+KISSY.add('apiapp/mviews/partials/search', function(S, View, MM, Crox, Magix) {
     return View.extend({
-        render: function() {
-            this.setViewHTML(this.template);
+        init: function() {
+            this.observeLocation('q');
         },
-        'doSearch<keyup>': function(e) {
+        render: function() {
             var me = this;
-            var last = me.$last;
-            var val = me.$(e.currentId).value;
-            if (last != val) {
-                me.$last = val;
+            var loc = me.location;
+            var val = loc.get('q');
+            if (val) {
                 if (me.$lastSearch) {
                     me.$lastSearch.stop();
                 }
-                if (val) {
-                    me.$lastSearch = MM.searchInfos(val, function(e, m) {
-                        var vf = me.vom.get('J_apiapp_s_result');
-                        if (vf) {
-                            vf.invokeView('showResults', e, m);
-                        }
-                    }, me);
-                } else {
-                    console.log('nothing');
-                }
+                me.$lastSearch = MM.searchInfos(val, function(e, m) {
+                    if (e) {
+                        me.setViewHTML(e.msg);
+                    } else {
+                        me.setViewHTML(Crox.render(me.template, {
+                            search: m,
+                            infos: Magix.local('APIPathInfo')
+                        }));
+                    }
+                }, me);
+            } else {
+                me.setViewHTML('多少搜点东西吧~');
             }
-        },
-        'showSearch<focusin>': function(e) {
-            this.$('abc').style.display = 'block';
-            this.$('J_apiapp_s_result').style.display = 'block';
-            this['doSearch<keyup>'](e);
-        },
-        'hideSearch<touchstart>': function(e) {
-            this.$('abc').style.display = 'none';
-            this.$('J_apiapp_s_result').style.display = 'none';
-            this.$('def').focus();
         }
     });
 }, {
-    requires: ['mxext/view', 'apiapp/models/manager']
+    requires: ['mxext/view', 'apiapp/models/manager', 'apiapp/helpers/crox', 'magix/magix']
 });

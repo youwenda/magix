@@ -1,4 +1,44 @@
-<div style="width:100%;height:100%;background-color:#000;opacity:.3;position:fixed;left:0;top:0;display:none" id="abc" mx-touchstart="hideSearch"></div>
-<input type="text" style="width:200px;line-height:25px;height:25px;font-size:16px;position:relative;" mx-keyup="doSearch" mx-focusin="showSearch" />
-<input type="text" readonly="true" style="position:absolute;left:-9999px;top:-9999px;" id="def" />
-<vframe mx-view="apiapp/mviews/partials/search-result" id="J_apiapp_s_result" style="position:relative;display:none"></vframe>
+{{search=data.search}}
+{{infos=data.infos}}
+{{if search.nsGrouped.length}}
+<div class="content">
+    {{each search.nsGrouped as group}}
+        {{each group.properties as property}}
+        <div class="list">
+            <a href="#!/{{infos.loader}}/{{infos.ver}}/{{group.name.toLowerCase()}}?focus=p_{{property._name}}"><span class="item">{{{search.color(property._name)}}}</span></a>{{if property.isPrivate}}<span class="mark">P</span>{{/if}}<span class="mark">Property</span><span class="mark">{{group.name}}</span>
+            <div class="desc">{{property.desc}}</div>
+        </div>
+        {{/each}}
+
+        {{each group.staticProperties as property}}
+        <div class="list">
+            <a href="#!/{{infos.loader}}/{{infos.ver}}/{{group.name.toLowerCase()}}?focus=sp_{{property._name}}"><span class="item">{{{search.color(property._name)}}}</span></a>{{if property.isPrivate}}<span class="mark">P</span>{{/if}}<span class="mark">StaticProperty</span><span class="mark">{{group.name}}</span>
+            <div class="desc">{{property.desc}}</div>
+        </div>
+        {{/each}}
+
+        {{each group.methods as method}}
+        <div class="list">
+            <a href="#!/{{infos.loader}}/{{infos.ver}}/{{group.name.toLowerCase()}}?focus=m_{{method._name}}"><span class="item">{{{search.color(method._name)}}}</span></a>{{if method.isPrivate}}<span class="mark">P</span>{{/if}}<span class="mark">Method</span><span class="mark">{{group.name}}</span>
+            <div class="desc">{{method.desc}}</div>
+        </div>
+        {{/each}}
+
+        {{each group.staticMethods as method}}
+        <div class="list">
+            <a href="#!/{{infos.loader}}/{{infos.ver}}/{{group.name.toLowerCase()}}?focus=sm_{{method._name}}"><span class="item">{{{search.color(method._name)}}}</span></a>{{if method.isPrivate}}<span class="mark">P</span>{{/if}}<span class="mark">StaticMethod</span><span class="mark">{{group.name}}</span>
+            <div class="desc">{{method.desc}}</div>
+        </div>
+        {{/each}}
+
+        {{each group.events as event}}
+        <div class="list">
+            <a href="#!/{{infos.loader}}/{{infos.ver}}/{{group.name.toLowerCase()}}?focus=e_{{event._name}}"><span class="item">{{{search.color(event._name)}}}</span></a>{{if event.isPrivate}}<span class="mark">P</span>{{/if}}<span class="mark">Event</span><span class="mark">{{group.name}}</span>
+            <div class="desc">{{event.desc}}</div>
+        </div>
+        {{/each}}
+    {{/each}}
+</div>
+{{else}}
+    未找到您搜索的{{search.key}}
+{{/if}}

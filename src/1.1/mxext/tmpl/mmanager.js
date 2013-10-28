@@ -92,7 +92,7 @@ var FetchFlags = {
 };
 
 /**
- * model请求类
+ * 辅助MManager
  * @name MRequest
  * @class
  * @namespace
@@ -450,17 +450,19 @@ Mix(Mix(MManager.prototype, Event), {
         }
         for (var i = 0, model, name; i < models.length; i++) {
             model = models[i];
-            name = model.name;
-            if (model && !name) {
-                throw Error('miss name attribute');
-            } else if (metas[name]) {
-                throw Error('already exist:' + name);
+            if (model) {
+                name = model.name;
+                if (!name) {
+                    throw Error('miss name attribute');
+                } else if (metas[name]) {
+                    throw Error('already exist:' + name);
+                }
+                if (model.cache) {
+                    if (!model.cacheKey) model.cacheKey = name;
+                    if (!model.cacheTime) model.cacheTime = DefaultCacheTime;
+                }
+                metas[name] = model;
             }
-            if (model.cache) {
-                if (!model.cacheKey) model.cacheKey = name;
-                if (!model.cacheTime) model.cacheTime = DefaultCacheTime;
-            }
-            metas[name] = model;
         }
     },
     /**
