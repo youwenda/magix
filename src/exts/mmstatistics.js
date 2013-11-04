@@ -18,7 +18,7 @@ KISSY.add('exts/mmstatistics', function(S, MM) {
         MS[mm.id] = {
 
         };
-        mm.on('init', OnInit);
+        mm.on('inited', OnInit);
         mm.on('done', OnDone);
         return mm;
     };

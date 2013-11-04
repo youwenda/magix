@@ -72,7 +72,7 @@ var Event = {
      *
      * T.on('done',function(e){
      *
-     * },true)//触发后即删除该监听
+     * },true);//触发后即删除该监听
      *
      * T.fire('done',{
      *     data:'test'

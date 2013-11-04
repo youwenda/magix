@@ -31,7 +31,7 @@ var WrapFn = function(fn) {
 var EvtInfoCache = Magix.cache(40);
 
 
-var MxEvt = /\smx-(?!view|defer|owner)[a-z]+\s*=\s*"/g;
+var MxEvt = /\smx-(?!view|defer|owner|vframe)[a-z]+\s*=\s*"/g;
 var MxEvtSplit = String.fromCharCode(26);
 var DefaultLocationChange = function() {
     this.render();
@@ -148,6 +148,34 @@ View.prepare = function(oView) {
     }
 };
 
+/**
+ * 扩展View
+ * @param  {Object} props 扩展到原型上的方法
+ * @param  {Function} ctor  在初始化view时进行调用的方法
+ * @example
+ * KISSY.add('app/tview',function(S,View){
+ *     return View.mixin({
+ *         test:function(){
+ *             alert(this.$attr);
+ *         }
+ *     },function(){
+ *          this.$attr='test';
+ *     });
+ * },{
+ *     requires:['magix/view']
+ * });
+ * //加入Magix.start的extensions中
+ *
+ *  Magix.start({
+ *      //...
+ *      extensions:['app/tview']
+ *
+ *  });
+ *
+ * //这样完成后，所有的view对象都会有一个$attr属性和test方法
+ * //当前上述功能也可以用继承实现，但继承层次太多时，可以考虑使用扩展来消除多层次的继承
+ *
+ */
 View.mixin = function(props, ctor) {
     View.ms.push(ctor);
     Mix(View.prototype, props);
@@ -455,30 +483,15 @@ Mix(Mix(View.prototype, Event), {
      * 销毁当前view
      * @private
      */
-    destroy: function() {
+    oust: function() {
         var me = this;
         if (me.sign > 0) {
             me.sign = 0;
+            me.fire('refresh', 0, 1);
+            me.fire('destroy', 0, 1, 1);
+            me.delegateEvents(1);
         }
         me.sign--;
-
-        //me.fire('refresh', null, true, true); //先清除绑定在上面的app中的刷新
-        me.fire('refresh', 0, 1);
-        me.fire('destroy', 0, 1, 1); //同上
-
-        me.delegateEvents(1);
-        //if(!keepContent){
-        //me.destroyFrames();
-        //var node=$(me.vfId);
-        //if(node._dataBak){
-        //node.innerHTML=node._dataTmpl;
-        //}
-        //}
-
-        //me.un('prerender',null,true); 销毁的话也就访问不到view对象了，这些事件不解绑也没问题
-        //me.un('rendered',null,true);
-
-        //
     },
     /**
      * 获取渲染当前view的父view
@@ -497,7 +510,7 @@ Mix(Mix(View.prototype, Event), {
     },*/
     /**
      * 处理dom事件
-     * @param {Event} e dom事件对象
+     * @param {Object} e 事件信息对象
      * @private
      */
     processEvent: function(e) {

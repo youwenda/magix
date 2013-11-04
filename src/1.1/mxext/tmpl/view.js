@@ -27,12 +27,11 @@ var MxView = View.extend({
      */
     /**
      * 调用magix/router的navigate方法
+     * @function
      */
-    navigate: function() {
-        Router.navigate.apply(Router, arguments);
-    },
+    navigate: Router.navigate,
     /**
-     * 让view帮你管理资源，<b>强烈建议对组件等进行托管</b>
+     * 让view帮你管理资源，强烈建议对组件等进行托管
      * @param {String|Object} key 托管的资源或要共享的资源标识key
      * @param {Object} res 要托管的资源
      * @return {Object} 返回传入的资源，对于函数会自动进行一次包装
@@ -100,32 +99,29 @@ var MxView = View.extend({
     /**
      * 获取托管的资源
      * @param {String} key 托管资源时传入的标识key
+     * @param {Boolean} [remove] 获取后是否从缓存中移除
      * @return {Object}
      */
-    getManaged: function(key) {
+    getManaged: function(key, remove) {
         var me = this;
         var cache = me.$res;
+        var res = null;
         if (cache && Has(cache, key)) {
             var wrapObj = cache[key];
-            var resource = wrapObj.res;
-            return resource;
+            res = wrapObj.res;
+            if (remove) {
+                delete cache[key];
+            }
         }
-        return null;
+        return res;
     },
     /**
      * 移除托管的资源
-     * @key {String|Object} key 托管时标识key或托管的对象
+     * @param {String|Object} key 托管时标识key或托管的对象
      * @return {Object} 返回移除的资源
      */
     removeManaged: function(key) {
-        var me = this,
-            res = null;
-        var cache = me.$res;
-        if (cache && Has(cache, key)) {
-            res = cache[key].res;
-            delete cache[key];
-        }
-        return res;
+        return this.getManaged(key, 1);
     },
     /**
      * 销毁托管的资源

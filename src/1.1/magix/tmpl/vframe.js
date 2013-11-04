@@ -1,18 +1,24 @@
 var D = document;
+var B = D.body;
 var VframeIdCounter = 1 << 16;
 
 var SafeExec = Magix.safeExec;
-var Slice = [].slice;
+var EmptyArr = [];
+var Slice = EmptyArr.slice;
 
 
 var Mix = Magix.mix;
 
 var TagName = Magix.config('tagName');
 var RootId = Magix.config('rootId');
-var IsDefaultTagName = !Magix.config('tagNameChanged');
+var TagNameChanged = Magix.config('!tnc');
 var Has = Magix.has;
-var MxView = 'mx-view';
-var MxBuild = IsDefaultTagName ? 'mx-defer' : 'mx-vframe';
+
+var MxBuild = TagNameChanged ? 'mx-vframe' : 'mx-defer';
+var SupportContains = B.contains;
+
+var UseQSA = TagNameChanged && B.querySelectorAll;
+var Selector = ' ' + TagName + '[mx-vframe]';
 
 var Alter = 'alter';
 var Created = 'created';
@@ -22,14 +28,18 @@ var GlobalAlter;
 var $ = function(id) {
     return typeof id == 'object' ? id : D.getElementById(id);
 };
-var $$ = function(id, tag, node) {
+var $$ = function(id, node, arr) {
     node = $(id);
-    return node ? node.getElementsByTagName(tag) : [];
+    if (node) {
+        arr = UseQSA ? D.querySelectorAll('#' + node.id + Selector) : node.getElementsByTagName(TagName);
+    }
+    return arr || EmptyArr;
 };
 
 var IdIt = function(dom) {
     return dom.id || (dom.id = 'magix_vf_' + (VframeIdCounter--));
 };
+
 
 var NodeIn = function(a, b, r) {
     a = $(a);
@@ -37,7 +47,7 @@ var NodeIn = function(a, b, r) {
     if (a && b) {
         if (a !== b) {
             try {
-                r = b.contains ? b.contains(a) : b.compareDocumentPosition(a) & 16;
+                r = SupportContains ? b.contains(a) : b.compareDocumentPosition(a) & 16;
             } catch (e) {
                 r = 0;
             }
@@ -93,7 +103,7 @@ Mix(Vframe, {
             if (!e) {
                 e = D.createElement(TagName);
                 e.id = RootId;
-                D.body.insertBefore(e, D.body.firstChild);
+                B.insertBefore(e, B.firstChild);
             }
             RootVframe = new Vframe(RootId);
             owner.add(RootVframe);
@@ -126,7 +136,7 @@ Mix(Vframe, {
         while(pv){
             if(pv.tagName&&pv.tagName.toLowerCase()==Vframe.tagName){
                 vframeId=pv.id;
-                vframeViewName=pv.getAttribute(MxView);
+                vframeViewName=pv.getAttribute('mx-view');
                 pNode.removeChild(pv);
                 break;
             }else{
@@ -142,7 +152,7 @@ Mix(Vframe, {
             rVf.id=vframeId;
         }
         if(vframeViewName){
-            rVf.setAttribute(MxView,vframeViewName);
+            rVf.setAttribute('mx-view',vframeViewName);
         }
     }
 }());*/
@@ -176,9 +186,9 @@ Mix(Mix(Vframe.prototype, Event), {
     //newViewCreated:Magix.noop,
     /**
      * 加载对应的view
-     * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的名称
-     * @param {Object|Null} viewInitParams view在调用init时传递的参数
-     * @param {Function} callback view加载完成并触发inited事件时的回调
+     * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的view路径
+     * @param {Object|Null} viewInitParams 调用view的init方法时传递的参数
+     * @param {Function} callback view在触发inited事件后的回调
      */
     mountView: function(viewPath, viewInitParams, callback) {
         var me = this;
@@ -233,11 +243,11 @@ Mix(Mix(Vframe.prototype, Event), {
                                 node.innerHTML = node._tmpl;
                             }
 
-                            me.mountZoneVframes(0, 0, 1);
+                            me.mountZoneVframes(0, 0);
                         }
                         view.on('rendered', function() { //再绑定rendered
                             //console.log('xxxxxxxxxxx',view.path);
-                            me.mountZoneVframes(0, 0, 1);
+                            me.mountZoneVframes(0, 0);
                         });
                         view.on('prerender', function() {
                             if (!me.unmountZoneVframes(0, 1)) {
@@ -270,21 +280,17 @@ Mix(Mix(Vframe.prototype, Event), {
             if (!GlobalAlter) {
                 GlobalAlter = {};
             }
-            me.unmountZoneVframes(0, 1); //子view中存在!autoMounted的节点
+            me.unmountZoneVframes(0, 1);
             me.cAlter(GlobalAlter);
-            me.view.destroy();
+            me.view.oust();
             var node = $(me.id);
             if (node && node._bak) {
                 node.innerHTML = node._tmpl;
             }
-            /*if(useAnim&&isOutermostView){//在动画启用的情况下才调用相关接口
-                me.oldViewDestroy();
-            }*/
             delete me.view;
             delete me.viewInited;
             GlobalAlter = 0;
             me.fire('viewUnmounted');
-
         }
         me.sign--;
     },
@@ -293,6 +299,7 @@ Mix(Mix(Vframe.prototype, Event), {
      * @param  {String} id             节点id
      * @param  {String} viewPath       view路径
      * @param  {Object} viewInitParams 传递给view init方法的参数
+     * @param {Function} callback view在触发inited事件后的回调
      * @return {Vframe} vframe对象
      * @example
      * //html
@@ -303,7 +310,7 @@ Mix(Mix(Vframe.prototype, Event), {
      * view.owner.mountVframe('magix_vf_defer','app/views/list',{page:2})
      * //注意：动态向某个节点渲染view时，该节点无须是vframe标签
      */
-    mountVframe: function(id, viewPath, viewInitParams) {
+    mountVframe: function(id, viewPath, viewInitParams, callback) {
         var me = this;
         var vom = me.owner;
         var vf = vom.get(id);
@@ -318,47 +325,41 @@ Mix(Mix(Vframe.prototype, Event), {
             me.cM[id] = 1;
             vom.add(vf);
         }
-        vf.mountView(viewPath, viewInitParams);
+        vf.mountView(viewPath, viewInitParams, callback);
         return vf;
     },
     /**
      * 加载当前view下面的子view，因为view的持有对象是vframe，所以是加载vframes
      * @param {zoneId} HTMLElement|String 节点对象或id
-     * @param  {Object} viewInitParams 传递给view init方法的参数
+     * @param {Object} viewInitParams 传递给view init方法的参数
+     * @param {Function} callback view在触发inited事件后的回调
      */
-    mountZoneVframes: function(zoneId, viewInitParams) {
+    mountZoneVframes: function(zoneId, viewInitParams, callback) {
         var me = this;
-        //var owner=me.owner;
+
         var node = zoneId || me.id;
         me.unmountZoneVframes(node, 1);
-        /* if(!zoneId){
-            node=me.id;
-        }else{
-            node=zoneId;
-        }*/
-        var vframes = $$(node, TagName);
+
+        var vframes = $$(node);
         var count = vframes.length;
         var subs = {};
+
         if (count) {
             for (var i = 0, vframe, key, mxView, mxBuild; i < count; i++) {
                 vframe = vframes[i];
 
                 key = IdIt(vframe);
                 if (!Has(subs, key)) {
-                    mxView = vframe.getAttribute(MxView);
+                    mxView = vframe.getAttribute('mx-view');
                     mxBuild = !vframe.getAttribute(MxBuild);
-                    mxBuild = mxBuild == IsDefaultTagName;
+                    mxBuild = mxBuild != TagNameChanged;
+
                     if (mxBuild || mxView) {
-                        me.mountVframe(key, mxView, viewInitParams);
-                        var svs = $$(vframe, TagName);
+                        me.mountVframe(key, mxView, viewInitParams, callback);
+                        var svs = $$(vframe);
                         for (var j = 0, c = svs.length, temp; j < c; j++) {
                             temp = svs[j];
-                            mxView = temp.getAttribute(MxView);
-                            mxBuild = !temp.getAttribute(MxBuild);
-                            mxBuild = mxBuild == IsDefaultTagName;
-                            if (!mxBuild && !mxView) {
-                                subs[IdIt(temp)] = 1;
-                            }
+                            subs[IdIt(temp)] = 1;
                         }
                     }
                 }
@@ -371,6 +372,7 @@ Mix(Mix(Vframe.prototype, Event), {
     /**
      * 销毁vframe
      * @param  {String} [id]      节点id
+     * @param {Boolean} [inner] 内部调用时传递
      */
     unmountVframe: function(id, inner) { //inner 标识是否是由内部调用，外部不应该传递该参数
         var me = this;
@@ -381,7 +383,6 @@ Mix(Mix(Vframe.prototype, Event), {
             var fcc = vf.fcc;
             vf.unmountView();
             vom.remove(id, fcc);
-            me.fire('destroy');
             var p = vom.get(vf.pId);
             if (p && Has(p.cM, id)) {
                 delete p.cM[id];
@@ -395,6 +396,7 @@ Mix(Mix(Vframe.prototype, Event), {
     /**
      * 销毁某个区域下面的所有子vframes
      * @param {HTMLElement|String} [zoneId]节点对象或id
+     * @param {Boolean} [inner] 内部调用时传递
      */
     unmountZoneVframes: function(zoneId, inner) {
         var me = this;
@@ -552,7 +554,7 @@ Mix(Mix(Vframe.prototype, Event), {
                      * @ignore
                      */
                     prevent: function() {
-                        this.cs = [];
+                        this.cs = EmptyArr;
                     },
                     /**
                      * 向特定的子view传递
@@ -560,7 +562,7 @@ Mix(Mix(Vframe.prototype, Event), {
                      * @ignore
                      */
                     toChildren: function(c) {
-                        c = c || [];
+                        c = c || EmptyArr;
                         if (Magix.isString(c)) {
                             c = c.split(',');
                         }
@@ -630,6 +632,7 @@ Mix(Mix(Vframe.prototype, Event), {
      * view卸载时触发，由于vframe可以渲染不同的view，因此该事件可能被触发多次
      * @name Vframe#viewUnmounted
      * @event
+     * @param {Object} e
      */
 
     /**
@@ -650,6 +653,7 @@ Mix(Mix(Vframe.prototype, Event), {
      * vframe销毁时触发
      * @name Vframe#destroy
      * @event
+     * @param {Object} e
      */
 });
 

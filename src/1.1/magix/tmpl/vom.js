@@ -40,7 +40,7 @@ var VOM = Magix.mix({
     /**
      * 根据vframe的id获取vframe对象
      * @param {String} id vframe的id
-     * @return {Vframe|null} vframe对象
+     * @return {Vframe|Null} vframe对象
      */
     get: function(id) {
         return Vframes[id];
@@ -48,6 +48,7 @@ var VOM = Magix.mix({
     /**
      * 删除已注册的vframe对象
      * @param {String} id vframe对象的id
+     * @param {Boolean} fcc 内部使用
      */
     remove: function(id, fcc) {
         var vf = Vframes[id];

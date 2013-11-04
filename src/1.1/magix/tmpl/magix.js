@@ -1,4 +1,4 @@
-var PathRelativeReg = /\/\.\/|\/[^\/]+?\/\.{2}\/|([^:\/])\/\/+/;
+var PathRelativeReg = /\/\.\/|\/[^\/.]+?\/\.{2}\/|([^:\/])\/\/+|\.{2}\//; // ./|/x/../|(b)///
 var PathTrimFileReg = /\/[^\/]*$/;
 var PathTrimParamsReg = /[#?].*$/;
 var EMPTY = '';
@@ -255,7 +255,7 @@ var Magix = {
      */
     libRequire: Unimpl,
     /**
-     * 通过xhr同步获取文件的内容，仅开发magix时使用
+     * 通过xhr同步获取文件的内容，仅开发magix自身时使用
      * @function
      * @param {String} path 文件路径
      * @return {String} 文件内容
@@ -268,6 +268,20 @@ var Magix = {
      * @param  {Object} aim    要mix的目标对象
      * @param  {Object} src    mix的来源对象
      * @param  {Object} [ignore] 在复制时，需要忽略的key
+     * @example
+     *   var o1={
+     *       a:10
+     *   };
+     *   var o2={
+     *       b:20,
+     *       c:30
+     *   };
+     *
+     *   Magix.mix(o1,o2);//{a:10,b:20,c:30}
+     *
+     *   Magix.mix(o1,o2,{c:true});//{a:10,b:20}
+     *
+     *
      * @return {Object}
      */
     mix: Mix,
@@ -283,6 +297,17 @@ var Magix = {
      * @function
      * @param  {Object}  owner 检测对象
      * @param  {String}  prop  属性
+     * @example
+     *   var obj={
+     *       key1:undefined,
+     *       key2:0
+     *   }
+     *
+     *   Magix.has(obj,'key1');//true
+     *   Magix.has(obj,'key2');//true
+     *   Magix.has(obj,'key3');//false
+     *
+     *
      * @return {Boolean} 是否拥有prop属性
      */
     has: Has,
@@ -323,12 +348,12 @@ var Magix = {
      * @example
      * Magix.config({
      *      naviveHistory:true,
-     *      appRoot:'./test/app'
+     *      rootId:'J_app_main'
      * });
      *
      * var config=Magix.config();
      *
-     * S.log(config.appRoot);
+     * S.log(config.rootId);
      */
     config: GSObj(Cfg),
     /**
@@ -346,7 +371,7 @@ var Magix = {
      * @example
      * Magix.start({
      *      useHistoryState:true,
-     *      appRoot:'http://etao.com/srp/app/',
+     *      rootId:'J_app_main',
      *      iniFile:'',//是否有ini配置文件
      *      defaultView:'app/views/layouts/default',//默认加载的view
      *      defaultPathname:'/home',
@@ -360,7 +385,7 @@ var Magix = {
         Mix(Cfg, cfg);
         me.libRequire(Cfg.iniFile, function(I) {
             Cfg = Mix(Cfg, I, cfg);
-            Cfg.tagNameChanged = Cfg.tagName != DefaultTagName;
+            Cfg['!tnc'] = Cfg.tagName != DefaultTagName;
 
             var progress = Cfg.progress;
             me.libRequire(['magix/router', 'magix/vom'], function(R, V) {
@@ -377,6 +402,15 @@ var Magix = {
      * 获取对象的keys
      * @function
      * @param  {Object} obj 要获取key的对象
+     * @example
+     *    var obj={
+     *        key1:20,
+     *        key2:60,
+     *        a:3
+     *    };
+     *
+     *    Magix.keys(obj);//['key1','key2','a']
+     *
      * @return {Array}
      */
     keys: Object.keys || function(obj) {
@@ -414,10 +448,10 @@ var Magix = {
      * @param  {String} part 相对参考地址的片断
      * @return {String}
      * @example
-     * http://www.a.com/a/b.html?a=b#!/home?e=f   /
-     * http://www.a.com/a/b.html?a=b#!/home?e=f   ./
-     * http://www.a.com/a/b.html?a=b#!/home?e=f   ../../
-     * http://www.a.com/a/b.html?a=b#!/home?e=f   ./../
+     * http://www.a.com/a/b.html?a=b#!/home?e=f   /   => http://www.a.com/
+     * http://www.a.com/a/b.html?a=b#!/home?e=f   ./     =>http://www.a.com/a/
+     * http://www.a.com/a/b.html?a=b#!/home?e=f   ../../    => http://www.a.com/
+     * http://www.a.com/a/b.html?a=b#!/home?e=f   ./../  => http://www.a.com/
      */
     path: function(url, part) {
         var key = url + '\n' + part;
@@ -442,7 +476,7 @@ var Magix = {
                     result = url + part;
                 }
             }
-            //console.log('url',url,'part',part,'result',result);
+            console.log('url', url, 'part', part, 'result', result);
             while (PathRelativeReg.test(result)) {
                 //console.log(result);
                 result = result.replace(PathRelativeReg, '$1/');

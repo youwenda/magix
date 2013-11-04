@@ -24,8 +24,21 @@ define("mxext/mmanager", ["magix/magix", "magix/event"], function(require) {
     var Has = Magix.has;
 var SafeExec = Magix.safeExec;
 var Mix = Magix.mix;
+var Prefix = 'mr';
+var Split = String.fromCharCode(26);
 var IsFunction = Magix.isFunction;
 var DefaultCacheTime = 20 * 60 * 1000;
+var Ser = function(o, a, p) {
+    a = [];
+    for (p in o) {
+        a.push(p, Prefix, o[p]);
+    }
+    return a;
+};
+
+var DefaultCacheKey = function(meta, attrs) {
+    return [meta.name, Ser(attrs.urlParams), Ser(attrs.postParams)].join(Split);
+};
 var Now = Date.now || function() {
         return +new Date();
     };
@@ -125,7 +138,7 @@ var MRequest = function(host) {
     this.$host = host;
     this.$doTask = false;
     this.$reqModels = {};
-    this.id = 'mr' + Guid--;
+    this.id = Prefix + Guid--;
 };
 
 Mix(MRequest.prototype, {
@@ -179,7 +192,7 @@ Mix(MRequest.prototype, {
             current++;
             delete reqModels[model.id];
             var mm = model.$mm;
-            var cacheKey = mm.cacheKey;
+            var cacheKey = mm.key;
             doneArr[idx] = model;
             if (err) {
                 hasError = true;
@@ -193,7 +206,7 @@ Mix(MRequest.prototype, {
                     if (cacheKey) {
                         modelsCache.set(cacheKey, model);
                     }
-                    mm.doneAt = Now();
+                    mm.done = Now();
                     var after = mm.after;
                     var meta = mm.meta;
 
@@ -350,7 +363,7 @@ Mix(MRequest.prototype, {
 
         for (var p in reqModels) {
             var m = reqModels[p];
-            var cacheKey = m.$mm.cacheKey;
+            var cacheKey = m.$mm.key;
             if (cacheKey && Has(modelsCacheKeys, cacheKey)) {
                 var cache = modelsCacheKeys[cacheKey];
                 var fns = cache.q;
@@ -408,6 +421,7 @@ Mix(MRequest.prototype, {
     },
     /**
      * 做下一个任务
+     * @param {Object} preArgs 上次请求任务回调的返回值
      * @private
      */
     doNext: function(preArgs) {
@@ -445,6 +459,7 @@ Mix(Mix(MManager.prototype, Event), {
      * @param {Object} models.postParams 发起请求时，默认的post参数对象
      * @param {String} models.cacheKey 指定model缓存的key，当指定后，该model会进行缓存，下次不再发起请求
      * @param {Integer} models.cacheTime 缓存过期时间，以毫秒为单位，当过期后，再次使用该model时会发起新的请求(前提是该model指定cacheKey被缓存后cacheTime才有效)
+     * @param {Boolean} models.cache 当您同时需要指定cacheKey和cacheTime时，可通过cache=true快捷指定，设置cache=true后，cacheTime默认为20分钟，您可以通过cacheTime显式控制
      * @param {Function} models.before model在发起请求前的回调
      * @param {Function} models.after model在结束请求，并且成功后回调
      */
@@ -481,15 +496,19 @@ Mix(Mix(MManager.prototype, Event), {
                     throw Error('already exist:' + name);
                 }
                 if (model.cache) {
-                    if (!model.cacheKey) model.cacheKey = name;
-                    if (!model.cacheTime) model.cacheTime = DefaultCacheTime;
+                    if (!model.cacheKey) {
+                        model.cacheKey = DefaultCacheKey;
+                    }
+                    if (!model.cacheTime) {
+                        model.cacheTime = DefaultCacheTime;
+                    }
                 }
                 metas[name] = model;
             }
         }
     },
     /**
-     * 注册方法，前面是参数，后面2个是成功和失败的回调
+     * 注册常用方法，或以把经常几个同时请求的model封装成一个方法以便快捷调用
      * @param {Object} methods 方法对象
      */
     registerMethods: function(methods) {
@@ -599,7 +618,7 @@ Mix(Mix(MManager.prototype, Event), {
         var before = modelAttrs.before || meta.before;
 
         if (IsFunction(before)) {
-            SafeExec(before, [entity, meta, modelAttrs]);
+            SafeExec(before, [entity, meta]);
         }
 
         var after = modelAttrs.after || meta.after;
@@ -607,12 +626,11 @@ Mix(Mix(MManager.prototype, Event), {
         entity.$mm.after = after;
 
         var cacheKey = modelAttrs.cacheKey || meta.cacheKey;
-
         if (IsFunction(cacheKey)) {
             cacheKey = SafeExec(cacheKey, [meta, modelAttrs]);
         }
+        entity.$mm.key = cacheKey;
 
-        entity.$mm.cacheKey = cacheKey;
         entity.$mm.meta = meta;
         entity.set(modelAttrs, WhiteList);
         //默认设置的
@@ -622,7 +640,8 @@ Mix(Mix(MManager.prototype, Event), {
         //临时传递的
         entity.setUrlParams(modelAttrs.urlParams);
         entity.setPostParams(modelAttrs.postParams);
-        me.fire('init', {
+
+        me.fire('inited', {
             model: entity,
             meta: meta
         });
@@ -669,7 +688,7 @@ Mix(Mix(MManager.prototype, Event), {
         }
         return {
             entity: entity,
-            cKey: entity.$mm.cacheKey,
+            cKey: entity.$mm.key,
             update: needUpdate
         };
     },
@@ -863,7 +882,7 @@ Mix(Mix(MManager.prototype, Event), {
             if (mm) {
                 var tName = mm.meta.name;
                 if (tName == name) {
-                    modelsCache.del(mm.cacheKey);
+                    modelsCache.del(mm.key);
                 }
             }
         }
@@ -905,7 +924,7 @@ Mix(Mix(MManager.prototype, Event), {
                     }
 
                     if (cacheTime > 0) {
-                        if (Now() - entity.$mm.doneAt > cacheTime) {
+                        if (Now() - entity.$mm.done > cacheTime) {
                             me.clearCacheByKey(cacheKey);
                             entity = null;
                         }

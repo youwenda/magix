@@ -1,7 +1,7 @@
 /*
     author:xinglie.lkf@taobao.com
  */
-KISSY.add('apiapp/mviews/partials/index', function(S, View, MM, Mustache, Magix) {
+KISSY.add('apiapp/mviews/partials/index', function(S, View, MM, Crox, Magix) {
     return View.extend({
         render: function() {
             var me = this;
@@ -15,12 +15,12 @@ KISSY.add('apiapp/mviews/partials/index', function(S, View, MM, Mustache, Magix)
                     if (e) {
                         me.setViewHTML(e.msg);
                     } else {
-                        var html = Mustache.render(me.template, {
+                        var html = Crox.render(me.template, {
                             coreList: m.get('coreList'),
                             extList: m.get('extList'),
                             infos: Magix.local('APIPathInfo'),
-                            extInfo: function() {
-                                var info = infos.map[this.name];
+                            extInfo: function(name) {
+                                var info = infos.map[name];
                                 if (info) {
                                     return info.get('desc');
                                 }
@@ -34,5 +34,5 @@ KISSY.add('apiapp/mviews/partials/index', function(S, View, MM, Mustache, Magix)
         }
     });
 }, {
-    requires: ['mxext/view', 'apiapp/models/manager', 'apiapp/helpers/mustache', 'magix/magix']
+    requires: ['mxext/view', 'apiapp/models/manager', 'apiapp/helpers/crox', 'magix/magix']
 });

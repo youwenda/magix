@@ -28,14 +28,14 @@ KISSY.add('mxext/model', function(S, Magix) {
  */
 
 var GUID = +new Date();
+var Encode = encodeURIComponent;
+var Has = Magix.has;
+var IsObject = Magix.isObject;
+var ToString = Magix.toString;
 var Model = function(ops) {
-    if (ops) {
-        this.set(ops);
-    }
+    this.set(ops);
     this.id = 'm' + GUID--;
 };
-
-var Encode = encodeURIComponent;
 
 Magix.mix(Model, {
     /**
@@ -85,9 +85,9 @@ Magix.mix(Model.prototype, {
      * @param {Object|String} resp 返回的数据
      * @return {Object}
      */
-    parse: function(r) {
+    /* parse: function(r) {
         return r;
-    },
+    },*/
     /**
      * 获取参数对象
      * @param  {String} [type] 参数分组的key[Model.GET,Model.POST]，默认为Model.GET
@@ -141,16 +141,13 @@ Magix.mix(Model.prototype, {
         var params = me[k];
         var arr = [];
         var v;
-        if (params) {
-            for (var p in params) {
-                v = params[p];
-                if (Magix.isArray(v)) {
-                    for (var i = 0; i < v.length; i++) {
-                        arr.push(p + '=' + Encode(v[i]));
-                    }
-                } else {
-                    arr.push(p + '=' + Encode(v));
-                }
+        for (var p in params) {
+            v = params[p];
+            if (!Magix.isArray(v)) {
+                v = [v];
+            }
+            for (var i = 0; i < v.length; i++) {
+                arr.push(p + '=' + Encode(v[i]));
             }
         }
         return arr.join('&');
@@ -180,26 +177,21 @@ Magix.mix(Model.prototype, {
      * @param {Boolean}   ignoreIfExist   如果存在同名的参数则不覆盖，忽略掉这次传递的参数
      */
     setParams: function(obj1, obj2, type, ignoreIfExist) {
-        if (!type) {
-            type = Model.GET;
-        } else {
-            type = type.toUpperCase();
-        }
         var me = this;
-        if (!me.$types) me.$types = {};
-        me.$types[type] = true;
+        /*if (!me.$types) me.$types = {};
+        me.$types[type] = true;*/
 
         var k = '$' + type;
         if (!me[k]) me[k] = {};
-        if (Magix.isObject(obj1)) {
-            for (var p in obj1) {
-                if (!ignoreIfExist || !me[k][p]) {
-                    me[k][p] = obj1[p];
-                }
-            }
-        } else if (obj1) {
-            if (!ignoreIfExist || !me[k][obj1]) {
-                me[k][obj1] = obj2;
+        var obj = me[k];
+        if (!IsObject(obj1) && obj1) {
+            var t = {};
+            t[obj1] = obj2;
+            obj1 = t;
+        }
+        for (var p in obj1) {
+            if (!ignoreIfExist || !Has(obj, p)) {
+                obj[p] = obj1[p];
             }
         }
     },
@@ -242,14 +234,12 @@ Magix.mix(Model.prototype, {
     /**
      * 重置缓存的参数对象，对于同一个model反复使用前，最好能reset一下，防止把上次请求的参数也带上
      */
-    reset: function() {
+    /*reset: function() {
         var me = this;
         var keysCache = me.$types;
         if (keysCache) {
             for (var p in keysCache) {
-                if (Magix.has(keysCache, p)) {
-                    delete me['$' + p];
-                }
+                delete me['$' + p];
             }
             delete me.$types;
         }
@@ -261,7 +251,7 @@ Magix.mix(Model.prototype, {
             }
             delete me.$keys;
         }
-    },
+    },*/
     /**
      * 获取属性
      * @param {String} [key] 要获取数据的key
@@ -286,7 +276,7 @@ Magix.mix(Model.prototype, {
         if (attrs) {
             attrs = getAll ? attrs : attrs[key];
         }
-        if (hasDValue && !attrs) {
+        if (hasDValue && ToString.call(dValue) != ToString.call(attrs)) {
             attrs = dValue;
         }
         return attrs;
@@ -296,28 +286,19 @@ Magix.mix(Model.prototype, {
      * @param {String|Object} key 属性对象或属性key
      * @param {Object} [val] 属性值
      */
-    set: function(key, val, saveKeyList) {
+    set: function(key, val) {
         var me = this;
         if (!me.$attrs) me.$attrs = {};
-        if (saveKeyList && !me.$keys) {
+        /* if (saveKeyList && !me.$keys) {
             me.$keys = [];
-        }
-        if (Magix.isObject(key)) {
-            if (!Magix.isObject(val)) {
-                val = {};
-            }
+        }*/
+        if (IsObject(key)) {
             for (var p in key) {
-                if (saveKeyList) {
-                    me.$keys.push(p);
-                }
-                if (!Magix.has(val, p)) {
+                if (!Has(val, p)) {
                     me.$attrs[p] = key[p];
                 }
             }
         } else if (key) {
-            if (saveKeyList) {
-                me.$keys.push(key);
-            }
             me.$attrs[key] = val;
         }
     },
@@ -326,23 +307,19 @@ Magix.mix(Model.prototype, {
      * @param {Function} callback 请求成功或失败的回调
      */
     request: function(callback, options) {
-        if (!callback) callback = function() {};
         var me = this;
-        me.$abort = false;
+        me.$abt = 0;
         var temp = function(err, data) {
-            if (!me.$abort) {
+            if (!me.$abt) {
                 if (err) {
                     callback(err, data, options);
                 } else {
-                    if (data) {
-                        var val = me.parse(data);
-                        if (!Magix.isObject(val)) {
-                            val = {
-                                data: val
-                            };
-                        }
-                        me.set(val, null, true);
+                    if (!IsObject(data)) {
+                        data = {
+                            data: data
+                        };
                     }
+                    me.set(data);
                     callback(err, data, options);
                 }
             } else {
@@ -361,14 +338,14 @@ Magix.mix(Model.prototype, {
             trans.abort();
         }
         delete me.$trans;
-        me.$abort = true;
+        me.$abt = 1;
     },
     /**
      * 获取当前model是否已经取消了请求
      * @return {Boolean}
      */
     isAborted: function() {
-        return this.$abort;
+        return this.$abt;
     }
 });
     return Model;

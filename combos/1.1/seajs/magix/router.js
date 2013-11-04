@@ -93,7 +93,8 @@ var Router = Mix({
     /**
      * 根据地址栏中的pathname获取对应的前端view
      * @param  {String} pathname 形如/list/index这样的pathname
-     * @return {String} 返回形如app/views/layouts/index这样的字符串
+     * @param {Object} loc 内部临时使用的对象
+     * @return {Object} 返回形如{view:'app/views/default',pathname:'/home'}这样的对象
      * @private
      */
     getView: function(pathname, loc) {
@@ -344,10 +345,13 @@ var Router = Mix({
      *          page:2,
      *          rows:20
      *      });
-     *      R.navigate('/list',{
+     *      R.navigate('/list',{//改变pathname和相关参数，丢弃地址栏上原有的其它参数
      *          page:2,
      *          rows:20
-     *      })
+     *      });
+     *
+     *      //凡是带pathname的修改地址栏，都会把原来地址栏中的参数丢弃
+     *
      * });
      */
     navigate: function(pn, params, replace) {
