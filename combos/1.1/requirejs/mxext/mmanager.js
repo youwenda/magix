@@ -44,6 +44,10 @@ var Guid = Now();
  * @name MManager
  * @class
  * @namespace
+ * @borrows Event.on as #on
+ * @borrows Event.fire as #fire
+ * @borrows Event.off as #off
+ * @borrows Event.once as #once
  * @param {Model} modelClass Model类
  */
 var MManager = function(modelClass) {
@@ -210,7 +214,7 @@ Mix(MRequest.prototype, {
                         SafeExec(after, [model, meta]);
                     }
                     host.fire('done', {
-                        model: mm,
+                        model: model,
                         meta: meta
                     });
                 }
@@ -599,7 +603,7 @@ Mix(Mix(MManager.prototype, Event), {
     /**
      * 创建model对象
      * @param {Object} modelAttrs           model描述信息对象
-     * @return {Object}
+     * @return {Model}
      */
     createModel: function(modelAttrs) {
         var me = this;
@@ -905,7 +909,7 @@ Mix(Mix(MManager.prototype, Event), {
         if (cacheKey) {
             var requestCacheKeys = me.$mCacheKeys;
             var info = requestCacheKeys[cacheKey];
-            if (info) {
+            if (info) { //处于请求队列中的
                 entity = info.e;
             } else { //缓存
                 entity = modelsCache.get(cacheKey);
@@ -917,11 +921,9 @@ Mix(Mix(MManager.prototype, Event), {
                         cacheTime = SafeExec(cacheTime, [meta, modelAttrs]);
                     }
 
-                    if (cacheTime > 0) {
-                        if (Now() - entity.$mm.done > cacheTime) {
-                            me.clearCacheByKey(cacheKey);
-                            entity = null;
-                        }
+                    if (cacheTime > 0 && Now() - entity.$mm.done > cacheTime) {
+                        me.clearCacheByKey(cacheKey);
+                        entity = null;
                     }
                 }
             }
@@ -929,5 +931,23 @@ Mix(Mix(MManager.prototype, Event), {
         return entity;
     }
 });
+
+/**
+ * 创建完成Model对象后触发
+ * @name MManager#inited
+ * @event
+ * @param {Object} e
+ * @param {Object} e.meta 注册model时提供的信息
+ * @param {Model} e.model model对象
+ */
+
+/**
+ * Model对象完成请求后触发
+ * @name MManager#done
+ * @event
+ * @param {Object} e
+ * @param {Object} e.meta 注册model时提供的信息
+ * @param {Model} e.model model对象
+ */
     return MManager;
 });

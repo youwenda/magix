@@ -74,7 +74,7 @@ KISSY.add('exts/statistics', function(S, Router, VOM, Magix) {
     var vfAdd = function(e) {
         if (e.vframe.id == rootVfId) {
             resume(e.vframe);
-            VOM.un('add', vfAdd);
+            VOM.off('add', vfAdd);
         }
     };
     if (!rootVf) {

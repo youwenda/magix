@@ -9,7 +9,7 @@ define('mxext/view', ["magix/magix", "magix/view", "magix/router"], function(req
     var Router = require("magix/router");
 
     var WIN = window;
-var Mix = Magix.mix;
+
 var DestroyTimer = function(id) {
     WIN.clearTimeout(id);
     WIN.clearInterval(id);
@@ -28,7 +28,6 @@ var Has = Magix.has;
  * @name MxView
  * @namespace
  * @constructor
- * @requires View
  * @augments View
  */
 var MxView = View.extend({
@@ -189,15 +188,7 @@ var MxView = View.extend({
         me.on('prerender', me.destroyManaged);
         me.on('destroy', me.destroyManaged);
     });
-    SafeExec(MxView.ms, arguments, me);
-}, {
-    ms: [],
-    mixin: function(props, ctor) {
-        MxView.ms.push(ctor);
-        Mix(MxView.prototype, props);
-    }
 });
-
 /**
  * view销毁托管资源时发生
  * @name MxView#destroyResource

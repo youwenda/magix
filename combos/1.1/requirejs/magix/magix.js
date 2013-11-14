@@ -42,7 +42,7 @@ var Cfg = {
     rootId: 'magix_vf_root',
     execError: Noop
 };
-var HasProp = {}.hasOwnProperty;
+var HasProp = Cfg.hasOwnProperty;
 /**
  * 检测某个对象是否拥有某个属性
  * @param  {Object}  owner 检测对象
@@ -164,7 +164,7 @@ Mix(Cache.prototype, {
             delete c[k];
             if (r.m) {
                 SafeExec(r.m, r.o, r);
-                r.m = 0;
+                r.m = EMPTY;
             }
         }
     },
@@ -534,9 +534,9 @@ var Magix = {
             if (pathname) {
                 if (ProtocalReg.test(pathname)) { //解析以https?:开头的网址
                     var first = pathname.indexOf(Slash, 8); //找最近的 /
-                    if (~first) { //未找到，比如 http://etao.com
+                    if (~first) {
                         pathname = pathname.substring(first); //截取
-                    } else {
+                    } else { //未找到，比如 http://etao.com
                         pathname = Slash; //则pathname为  /
                     }
                 }

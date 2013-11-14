@@ -20,6 +20,10 @@ var Chged = {};
  * VOM对象
  * @name VOM
  * @namespace
+ * @borrows Event.on as on
+ * @borrows Event.fire as fire
+ * @borrows Event.off as off
+ * @borrows Event.once as once
  */
 var VOM = Magix.mix({
     /**
@@ -44,7 +48,6 @@ var VOM = Magix.mix({
                 vframe: vf
             });
         }
-        vf.owner = VOM;
     },
     /**
      * 根据vframe的id获取vframe对象

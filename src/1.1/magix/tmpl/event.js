@@ -52,36 +52,38 @@ var Event = {
      * 绑定事件
      * @param {String} name 事件名称
      * @param {Function} fn 事件回调
-     * @param {Interger|Boolean} insertOrRemove 事件监听插入的位置或触发后是否移除监听
+     * @param {Interger} insert 事件监听插入的位置
      * @example
      * var T=Magix.mix({},Event);
-     * T.on('done',function(e){
-     *
-     * });
-     *
-     * T.on('done',function(e){
-     *
-     * },0)//监听插入到开始位置
-     *
-     * T.on('done',function(e){
-     *
-     * },true);//触发后即删除该监听
-     *
-     * T.fire('done',{
-     *     data:'test'
-     * })
+        T.on('done',function(e){
+            alert(1);
+        });
+        T.on('done',function(e){
+            alert(2);
+            T.off('done',arguments.callee);
+        });
+        T.on('done',function(e){
+            alert(3);
+        },0);//监听插入到开始位置
+
+        T.once('done',function(e){
+            alert('once');
+        });
+
+        T.fire('done',{data:'test'});
+        T.fire('done',{data:'test2'});
      */
-    on: function(name, fn, insertOrRemove) {
+    on: function(name, fn, insert) {
         var key = GenKey(name);
         var list = this[key] || (this[key] = []);
-        if (Magix.isNumeric(insertOrRemove)) {
-            list.splice(insertOrRemove, 0, {
+        if (Magix.isNumeric(insert)) {
+            list.splice(insert, 0, {
                 f: fn
             });
         } else {
             list.push({
                 f: fn,
-                r: insertOrRemove
+                r: insert
             });
         }
     },
@@ -90,7 +92,7 @@ var Event = {
      * @param {String} name 事件名称
      * @param {Function} fn 事件回调
      */
-    un: function(name, fn) {
+    off: function(name, fn) {
         var key = GenKey(name),
             list = this[key];
         if (list) {
@@ -106,5 +108,13 @@ var Event = {
                 delete this[key];
             }
         }
+    },
+    /**
+     * 绑定事件，触发一次后即解绑
+     * @param {String} name 事件名称
+     * @param {Function} fn 事件回调
+     */
+    once: function(name, fn) {
+        this.on(name, fn, true);
     }
 };

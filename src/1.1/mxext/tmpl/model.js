@@ -116,9 +116,9 @@ Magix.mix(Model.prototype, {
         var me = this;
         if (!type) {
             type = Model.GET;
-        } else {
-            type = type.toUpperCase();
         }
+        type = type.toUpperCase();
+
         var k = '$' + type;
         var params = me[k];
         var arr = [];
