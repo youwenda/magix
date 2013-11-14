@@ -949,14 +949,13 @@ var Router = Mix({
         var nKey = newLocation.href;
         var tKey = oKey + '\n' + nKey;
         var result = ChgdCache.get(tKey);
-
         if (!result) {
             var hasChanged, from, to;
             result = {
-                params: {} //,
-                //view: to
+                view: to
             };
-            //result[PATHNAME] = to;
+            result[PATHNAME] = to;
+            result[PARAMS] = {};
             var tArr = [PATHNAME, 'view'],
                 idx, key;
             for (idx = 1; idx >= 0; idx--) {
@@ -976,7 +975,7 @@ var Router = Mix({
             var oldParams = oldLocation[PARAMS],
                 newParams = newLocation[PARAMS];
             tArr = OKeys(oldParams).concat(OKeys(newParams));
-            for (idx = 1; idx >= 0; idx--) {
+            for (idx = tArr.length - 1; idx >= 0; idx--) {
                 key = tArr[idx];
                 from = oldParams[key];
                 to = newParams[key];
