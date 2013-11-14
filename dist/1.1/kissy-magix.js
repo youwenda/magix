@@ -221,42 +221,42 @@ var Magix = {
      * @param {Object} o 待检测的对象
      * @return {Boolean}
      */
-    isArray: Unimpl,
+    
     /**
      * 判断o是否为对象
      * @function
      * @param {Object} o 待检测的对象
      * @return {Boolean}
      */
-    isObject: Unimpl,
+    
     /**
      * 判断o是否为函数
      * @function
      * @param {Object} o 待检测的对象
      * @return {Boolean}
      */
-    isFunction: Unimpl,
+    
     /**
      * 判断o是否为正则
      * @function
      * @param {Object} o 待检测的对象
      * @return {Boolean}
      */
-    isRegExp: Unimpl,
+    
     /**
      * 判断o是否为字符串
      * @function
      * @param {Object} o 待检测的对象
      * @return {Boolean}
      */
-    isString: Unimpl,
+    
     /**
      * 判断o是否为数字
      * @function
      * @param {Object} o 待检测的对象
      * @return {Boolean}
      */
-    isNumber: Unimpl,
+    
     /**
      * 判断是否可转为数字
      * @param  {Object}  o 待检测的对象
@@ -272,7 +272,7 @@ var Magix = {
      * @param {Function} fn 加载完成后的回调方法
      * @private
      */
-    libRequire: Unimpl,
+    
     /**
      * 通过xhr同步获取文件的内容，仅开发magix自身时使用
      * @function
@@ -280,7 +280,7 @@ var Magix = {
      * @return {String} 文件内容
      * @private
      */
-    include: Unimpl,
+    
     /**
      * 把src对象的值混入到aim对象上
      * @function
@@ -310,7 +310,7 @@ var Magix = {
      * @type {Function}
      * @private
      */
-    unimpl: Unimpl,
+    
     /**
      * 检测某个对象是否拥有某个属性
      * @function

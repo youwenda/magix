@@ -35,7 +35,7 @@ module.exports = function(grunt) {
         [destMagixPrefix + '.js', destMagixPrefix + '-mxext.js'].forEach(function(f) {
             grunt.file.copy(f, f, {
                 process: function(content) {
-                    content = content.replace(/\w+:\s*(Magix\.)?unimpl\s*,?/g, '');
+                    content = content.replace(/\w+:\s*(Magix\.)?[Uu]nimpl\s*,?/g, '');
                     content = content.replace(/include\s*:\s*Include,/g, '');
                     content = content.replace(/debug\s*:\s*'\*_\*',/, '//debug-*_*');
                     return content;
