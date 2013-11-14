@@ -1,0 +1,8 @@
+.tmp_*
+.project
+*.idea
+.DS_Store
+test
+node_modules
+README.html
+_site

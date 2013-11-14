@@ -1,0 +1,6 @@
+baseurl:
+markdown: redcarpet
+lsi: false
+pygments: true
+title: /:category/:title
+version: 1.1.0
