@@ -1,6 +1,7 @@
 var WIN = window;
 var EMPTY = '';
 var PATHNAME = 'pathname';
+var VIEW = 'view';
 
 var Has = Magix.has;
 var Mix = Magix.mix;
@@ -36,7 +37,7 @@ var IsPathname = function() {
     return this[PATHNAME];
 };
 var IsView = function() {
-    return this.view;
+    return this[VIEW];
 };
 
 
@@ -188,7 +189,7 @@ var Router = Mix({
             };
             HrefCache.set(href, result);
         }
-        if (inner && !result.view) {
+        if (inner && !result[VIEW]) {
             //console.log(result,result.srcHash);
             var tempPathname;
             /*
@@ -246,12 +247,11 @@ var Router = Mix({
         var result = ChgdCache.get(tKey);
         if (!result) {
             var hasChanged, from, to;
-            result = {
-                view: to
-            };
+            result = {};
+            result[VIEW] = to;
             result[PATHNAME] = to;
             result[PARAMS] = {};
-            var tArr = [PATHNAME, 'view'],
+            var tArr = [PATHNAME, VIEW],
                 idx, key;
             for (idx = 1; idx >= 0; idx--) {
                 key = tArr[idx];
