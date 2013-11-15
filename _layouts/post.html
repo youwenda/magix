@@ -28,14 +28,19 @@ script: assets/post.js
     </a>
     <a href="{{ site.baseurl }}/" class="logo"><i class="iconfont">&#532;</i>Magix</a>
     <ul class="categories">
-    {% for category in site.categories %}
+      <li>
+        <a href="{{ site.baseurl }}/tutorial" class="entry">
+          <i class="iconfont">&#363;</i> 快速上手
+        </a>
+      </li>
+      {% for category in site.categories %}
       <li>
         <a href="{{ site.baseurl }}/{{ category[0] }}" class="entry">
-          <i class="iconfont category-{{ category[0] }}"></i>
+          <i class="iconfont mi-{{ category[0] }}"></i>
           {{ category[0] | capitalize }}
         </a>
       </li>
-    {% endfor %}
+      {% endfor %}
     </ul>
   </div>
 </div>
