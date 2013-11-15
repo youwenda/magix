@@ -5,6 +5,7 @@ var PATHNAME = 'pathname';
 var Has = Magix.has;
 var Mix = Magix.mix;
 var D = document;
+var OKeys = Magix.keys;
 var IsUtf8 = /^UTF-8$/i.test(D.charset || D.characterSet || 'UTF-8');
 var MxConfig = Magix.config();
 var HrefCache = Magix.cache();
@@ -39,10 +40,10 @@ var IsView = function() {
 };
 
 
-var GetParam = function(key, me, params) {
+var GetSetParam = function(key, value, me, params) {
     me = this;
     params = me[PARAMS];
-    return params[key];
+    return arguments.length > 1 ? params[key] = value : params[key];
 };
 
 
@@ -63,7 +64,8 @@ var Path = function(path) {
  * @namespace
  * @borrows Event.on as on
  * @borrows Event.fire as fire
- * @borrows Event.un as un
+ * @borrows Event.off as off
+ * @borrows Event.once as once
  */
 var Router = Mix({
     /**
@@ -88,7 +90,7 @@ var Router = Mix({
      * @return {Object} 返回形如{view:'app/views/default',pathname:'/home'}这样的对象
      * @private
      */
-    getView: function(pathname, loc) {
+    viewInfo: function(pathname, loc) {
 
         if (!Pnr) {
             Pnr = {
@@ -118,7 +120,6 @@ var Router = Mix({
         } else {
             result = r[pathname]; //简单的在映射表中找
         }
-
         return {
             view: result ? result : Pnr.nf || Pnr.home,
             pathname: result || UseNativeHistory ? pathname : (Pnr.nf ? pathname : Pnr[PATHNAME])
@@ -175,7 +176,8 @@ var Router = Mix({
             Mix(comObj, queryObj[PARAMS]);
             Mix(comObj, hashObj[PARAMS]);
             result = {
-                get: GetParam,
+                get: GetSetParam,
+                set: GetSetParam,
                 href: href,
                 refHref: LLoc.href,
                 srcQuery: query,
@@ -225,7 +227,7 @@ var Router = Mix({
             } else { //指定不用history state ，那咱还能说什么呢，直接用hash
                 tempPathname = result.hash[PATHNAME];
             }
-            var view = me.getView(tempPathname, result);
+            var view = me.viewInfo(tempPathname, result);
             Mix(result, view);
         }
         return result;
@@ -243,58 +245,41 @@ var Router = Mix({
         var tKey = oKey + '\n' + nKey;
         var result = ChgdCache.get(tKey);
         if (!result) {
-            tKey = nKey + '\n' + tKey;
-            result = ChgdCache.get(tKey);
-        }
-        if (!result) {
             var hasChanged, from, to;
             result = {
-                params: {},
                 view: to
             };
             result[PATHNAME] = to;
-            from = oldLocation[PATHNAME];
-            to = newLocation[PATHNAME];
-            if (from != to) {
-                result[PATHNAME] = {
-                    from: from,
-                    to: to
-                };
-                hasChanged = 1;
-            }
-            from = oldLocation.view;
-            to = newLocation.view;
-            if (from != to) {
-                result.view = {
-                    from: from,
-                    to: to
-                };
-                hasChanged = 1;
-            }
-            var oldParams = oldLocation[PARAMS],
-                newParams = newLocation[PARAMS];
-            var p;
-            for (p in oldParams) {
-                from = oldParams[p];
-                to = newParams[p];
-                if (oldParams[p] != newParams[p]) {
-                    hasChanged = 1;
-                    result[PARAMS][p] = {
+            result[PARAMS] = {};
+            var tArr = [PATHNAME, 'view'],
+                idx, key;
+            for (idx = 1; idx >= 0; idx--) {
+                key = tArr[idx];
+                from = oldLocation[key];
+                to = newLocation[key];
+                if (from != to) {
+                    result[key] = {
                         from: from,
                         to: to
                     };
+                    hasChanged = 1;
                 }
             }
 
-            for (p in newParams) {
-                from = oldParams[p];
-                to = newParams[p];
-                if (oldParams[p] != newParams[p]) {
-                    hasChanged = 1;
-                    result[PARAMS][p] = {
+
+            var oldParams = oldLocation[PARAMS],
+                newParams = newLocation[PARAMS];
+            tArr = OKeys(oldParams).concat(OKeys(newParams));
+            for (idx = tArr.length - 1; idx >= 0; idx--) {
+                key = tArr[idx];
+                from = oldParams[key];
+                to = newParams[key];
+                if (from != to) {
+                    result[PARAMS][key] = {
                         from: from,
                         to: to
                     };
+                    hasChanged = 1;
                 }
             }
             result.occur = hasChanged;
@@ -402,7 +387,7 @@ var Router = Mix({
 
                 if (SupportState) { //如果使用pushState
                     me.poped = 1;
-                    history[replace ? 'replaceState' : 'pushState'](null, null, tempPath);
+                    history[replace ? 'replaceState' : 'pushState'](EMPTY, EMPTY, tempPath);
                     me.route();
                 } else {
                     Mix(temp, TLoc, temp);

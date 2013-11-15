@@ -61,9 +61,10 @@ var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
  * @name View
  * @class
  * @constructor
- * @borrows Event.on as this.on
- * @borrows Event.fire as this.fire
- * @borrows Event.un as this.un
+ * @borrows Event.on as #on
+ * @borrows Event.fire as #fire
+ * @borrows Event.off as #off
+ * @borrows Event.once as #once
  * @param {Object} ops 创建view时，需要附加到view对象上的其它属性
  * @property {String} id 当前view与页面vframe节点对应的id
  * @property {Vframe} owner 拥有当前view的vframe对象
@@ -73,7 +74,7 @@ var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
  * @property {Boolean} rendered 标识当前view有没有渲染过，即primed事件有没有触发过
  * @property {Object} location window.locaiton.href解析出来的对象
  * @example
- * 关于View.prototype.events:
+ * 关于事件:
  * 示例：
  *   html写法：
  *
@@ -114,7 +115,7 @@ View.prepare = function(oView) {
     }
     if (!oView[WrapKey]) { //只处理一次
         oView[WrapKey] = 1;
-        oView.extend = me.extend;
+        //oView.extend = me.extend;
         var prop = oView.prototype;
         var old, temp, name, evts, idx, revts = {};
         for (var p in prop) {
@@ -170,7 +171,7 @@ View.prepare = function(oView) {
  *
  */
 View.mixin = function(props, ctor) {
-    View.ms.push(ctor);
+    if (ctor) View.ms.push(ctor);
     Mix(View.prototype, props);
 };
 
@@ -257,12 +258,12 @@ Mix(Mix(View.prototype, Event), {
         var hasTmpl = me.hasTmpl;
         var args = arguments;
         var sign = me.sign;
-        var tmplReady = Has(me, 'template');
+        // var tmplReady = Has(me, 'template');
         var ready = function(tmpl) {
             if (sign == me.sign) {
-                if (!tmplReady) {
-                    me.template = me.wrapMxEvent(tmpl);
-                }
+                //if (!tmplReady) {
+                me.template = me.wrapMxEvent(tmpl);
+                // }
                 me.delegateEvents();
                 /*
                     关于interact事件的设计 ：
@@ -282,11 +283,11 @@ Mix(Mix(View.prototype, Event), {
 
                 if (noTemplateAndNoRendered) { //监视有没有在调用render方法内更新view，对于没有模板的view，需要派发一次事件
                     me.rendered = true;
-                    me.fire('primed', null, 1); //primed事件只触发一次
+                    me.fire('primed', 0, 1); //primed事件只触发一次
                 }
             }
         };
-        if (hasTmpl && !tmplReady) {
+        if (hasTmpl) {
             me.fetchTmpl(ready);
         } else {
             ready();
@@ -314,8 +315,9 @@ Mix(Mix(View.prototype, Event), {
             }*/
             if (!me.rendered) { //触发一次primed事件
                 me.fire('primed', 0, 1);
+                me.rendered = true;
             }
-            me.rendered = true;
+
             me.fire('rendered'); //可以在rendered事件中访问view.rendered属性
 
         }
@@ -555,7 +557,7 @@ Mix(Mix(View.prototype, Event), {
     delegateEvents: function(destroy) {
         var me = this;
         var events = me.$evts;
-        var fn = destroy ? Body.un : Body.on;
+        var fn = destroy ? Body.off : Body.on;
         var vom = me.vom;
         for (var p in events) {
             fn.call(Body, p, vom);

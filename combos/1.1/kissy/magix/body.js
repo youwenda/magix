@@ -21,10 +21,12 @@ var IdIt = function(dom) {
     return dom.id || (dom.id = 'mx-e-' + (IdCounter--));
 };
 var GetSetAttribute = function(dom, attrKey, attrVal) {
-    if (attrVal) {
-        dom.setAttribute(attrKey, attrVal);
-    } else if (dom && dom.getAttribute) {
-        attrVal = dom.getAttribute(attrKey);
+    if (dom && dom.setAttribute) {
+        if (attrVal) {
+            dom.setAttribute(attrKey, attrVal);
+        } else {
+            attrVal = dom.getAttribute(attrKey);
+        }
     }
     return attrVal;
 };
@@ -41,7 +43,7 @@ var Body = {
         }
         var current = target;
         var eventType = e.type;
-        var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp('(?:^|,)' + eventType + '(?:,|$)'));
+        var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(',' + eventType + '(?:,|$)'));
         //
         if (!eventReg.test(GetSetAttribute(target, MxIgnore))) {
             var type = 'mx-' + eventType;
@@ -76,9 +78,8 @@ var Body = {
                             GetSetAttribute(current, MxOwner, handler = begin.id);
                             //current.setAttribute(MxOwner,handler=begin.id);
                             break;
-                        } else {
-                            begin = begin.parentNode;
                         }
+                        begin = begin.parentNode;
                     }
                 }
                 if (handler) { //有处理的vframe,派发事件，让对应的vframe进行处理
@@ -101,9 +102,9 @@ var Body = {
                 var node;
                 while (arr.length) {
                     node = arr.shift();
-                    ignore = GetSetAttribute(node, MxIgnore); //node.getAttribute(MxIgnore);
+                    ignore = GetSetAttribute(node, MxIgnore) || ''; //node.getAttribute(MxIgnore);
                     if (!eventReg.test(ignore)) {
-                        ignore = ignore ? ignore + ',' + eventType : eventType;
+                        ignore = ignore + ',' + eventType;
                         GetSetAttribute(node, MxIgnore, ignore);
                         //node.setAttribute(MxIgnore,ignore);
                     }
@@ -131,7 +132,7 @@ var Body = {
         }
         RootEvents[type]++;
     },
-    un: function(type) {
+    off: function(type) {
         var me = this;
         var counter = RootEvents[type];
         if (counter > 0) {

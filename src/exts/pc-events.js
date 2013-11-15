@@ -9,5 +9,5 @@ KISSY.add('exts/pc-events', function(S, Body, Magix, SE) {
     };
     Body.special(Magix.listToMap('submit,focusin,focusout,mouseenter,mouseleave,mousewheel,change'));
 }, {
-    requires: ['magix/body', 'magix/magix', 'event', 'sizzle']
+    requires: ['magix/body', 'magix/magix', 'event']
 });
