@@ -92,7 +92,7 @@ var Router = Mix({
      * @private
      */
     viewInfo: function(pathname, loc) {
-
+        var r, result;
         if (!Pnr) {
             Pnr = {
                 rs: MxConfig.routes || {},
@@ -107,16 +107,18 @@ var Router = Mix({
             Pnr.home = defaultView;
             var defaultPathname = MxConfig.defaultPathname || EMPTY;
             //if(!Magix.isFunction(temp.rs)){
-            Pnr.rs[defaultPathname] = defaultView;
+            r = Pnr.rs;
+            Pnr.f = Magix.isFunction(r);
+            if (!r[defaultPathname]) {
+                r[defaultPathname] = defaultView;
+            }
             Pnr[PATHNAME] = defaultPathname;
         }
 
-        var result;
-
         if (!pathname) pathname = Pnr[PATHNAME];
-        //console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',pathname);
-        var r = Pnr.rs;
-        if (Magix.isFunction(r)) {
+
+        r = Pnr.rs;
+        if (Pnr.f) {
             result = r.call(MxConfig, pathname, loc);
         } else {
             result = r[pathname]; //简单的在映射表中找

@@ -3,14 +3,6 @@
  */
 KISSY.add('apiapp/models/model', function(S, Model, IO, Magix) {
     return Model.extend({
-        parse: function(resp) {
-            if (S.isArray(resp)) {
-                return {
-                    list: resp
-                };
-            }
-            return resp;
-        },
         sync: function(callback) {
             var pathInfos = Magix.local('APIPathInfo');
             var url = this.get('url');
@@ -25,6 +17,11 @@ KISSY.add('apiapp/models/model', function(S, Model, IO, Magix) {
                 url: path,
                 dataType: 'json',
                 success: function(data) {
+                    if (S.isArray(data)) {
+                        data = {
+                            list: data
+                        };
+                    }
                     callback(null, data);
                 },
                 error: function(xhr, msg) {

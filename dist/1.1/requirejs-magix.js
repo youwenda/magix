@@ -706,6 +706,7 @@ define('magix/router', ["magix/magix", "magix/event"], function(Magix, Event) {
     var WIN = window;
 var EMPTY = '';
 var PATHNAME = 'pathname';
+var VIEW = 'view';
 
 var Has = Magix.has;
 var Mix = Magix.mix;
@@ -741,7 +742,7 @@ var IsPathname = function() {
     return this[PATHNAME];
 };
 var IsView = function() {
-    return this.view;
+    return this[VIEW];
 };
 
 
@@ -796,7 +797,7 @@ var Router = Mix({
      * @private
      */
     viewInfo: function(pathname, loc) {
-
+        var r, result;
         if (!Pnr) {
             Pnr = {
                 rs: MxConfig.routes || {},
@@ -811,16 +812,18 @@ var Router = Mix({
             Pnr.home = defaultView;
             var defaultPathname = MxConfig.defaultPathname || EMPTY;
             //if(!Magix.isFunction(temp.rs)){
-            Pnr.rs[defaultPathname] = defaultView;
+            r = Pnr.rs;
+            Pnr.f = Magix.isFunction(r);
+            if (!r[defaultPathname]) {
+                r[defaultPathname] = defaultView;
+            }
             Pnr[PATHNAME] = defaultPathname;
         }
 
-        var result;
-
         if (!pathname) pathname = Pnr[PATHNAME];
-        //
-        var r = Pnr.rs;
-        if (Magix.isFunction(r)) {
+
+        r = Pnr.rs;
+        if (Pnr.f) {
             result = r.call(MxConfig, pathname, loc);
         } else {
             result = r[pathname]; //简单的在映射表中找
@@ -893,7 +896,7 @@ var Router = Mix({
             };
             HrefCache.set(href, result);
         }
-        if (inner && !result.view) {
+        if (inner && !result[VIEW]) {
             //
             var tempPathname;
             /*
@@ -951,12 +954,11 @@ var Router = Mix({
         var result = ChgdCache.get(tKey);
         if (!result) {
             var hasChanged, from, to;
-            result = {
-                view: to
-            };
+            result = {};
+            result[VIEW] = to;
             result[PATHNAME] = to;
             result[PARAMS] = {};
-            var tArr = [PATHNAME, 'view'],
+            var tArr = [PATHNAME, VIEW],
                 idx, key;
             for (idx = 1; idx >= 0; idx--) {
                 key = tArr[idx];
@@ -3044,7 +3046,7 @@ var VOM = Magix.mix({
         if (!hack) {
             Mix(Chged, e.changed);
             var vf = Vframe.root(VOM, Loc, Chged);
-            if (Chged.isView()) {
+            if (Chged.view) {
                 vf.mountView(loc.view);
             } else {
                 vf.locChged();
