@@ -1,0 +1,30 @@
+<div class="switcher btn-group dib-box">
+  {% for category in site.categories %}{% if category[0] == 'tutorial' %}
+    {% assign posts = category[1]  %}
+  {% endif %}{% endfor %}
+
+  {% for post in posts %}
+    {% if post.url == page.url %}
+      {% unless forloop.last %}
+      {% assign next_post = posts[forloop.index] %}
+      <a class="dib btn" href="{{ site.baseurl }}{{ next_post.url }}">
+        <i class="iconfont">&#321;</i> {{ next_post.title }}
+      </a>
+      {% endunless %}
+
+      <span class="dib btn btn-disabled">{{ post.title }}</span>
+      <a class="dib btn" href="http://thx.github.io/magix-bp/{{ post.id | split: '/' | last }}">在线演示</a>
+
+      {% unless forloop.last %}
+      <a class="dib btn" href="https://github.com/thx/magix-bp/compare/{{ next_post.id | split: '/' | last }}...{{ post.id | split: '/' | last }}">代码对比</a>
+      {% endunless %}
+
+      {% unless forloop.first %}
+      <a class="dib btn" href="{{ site.baseurl }}{{ prev_post.url }}">
+        {{ prev_post.title }} <i class="iconfont">&#323;</i>
+      </a>
+      {% endunless %}
+    {% endif %}
+    {% assign prev_post = post %}
+  {% endfor %}
+</div>
