@@ -804,15 +804,15 @@ var Router = Mix({
             //var home=pathCfg.defaultView;//处理默认加载的view
             //var dPathname=pathCfg.defaultPathname||EMPTY;
             var defaultView = MxConfig.defaultView;
-            if (!defaultView) {
+            /*if (!defaultView) {
                 throw new Error('unset defaultView');
-            }
-            Pnr.home = defaultView;
+            }*/
+            Pnr.dv = defaultView;
             var defaultPathname = MxConfig.defaultPathname || EMPTY;
             //if(!Magix.isFunction(temp.rs)){
             r = Pnr.rs;
             Pnr.f = Magix.isFunction(r);
-            if (!r[defaultPathname]) {
+            if (!Pnr.f && !r[defaultPathname] && defaultView) {
                 r[defaultPathname] = defaultView;
             }
             Pnr[PATHNAME] = defaultPathname;
@@ -827,8 +827,8 @@ var Router = Mix({
             result = r[pathname]; //简单的在映射表中找
         }
         return {
-            view: result ? result : Pnr.nf || Pnr.home,
-            pathname: result || UseNativeHistory ? pathname : (Pnr.nf ? pathname : Pnr[PATHNAME])
+            view: result || Pnr.nf || Pnr.dv,
+            pathname: result || UseNativeHistory || Pnr.nf ? pathname : Pnr[PATHNAME]
         };
     },
     /**
