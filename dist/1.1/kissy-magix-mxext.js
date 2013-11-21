@@ -1184,6 +1184,7 @@ var Body = {
         Mix(DependLibEvents, events);
     },
     process: function(e) {
+
         var target = e.target || e.srcElement;
         while (target && target.nodeType != 1) {
             target = target.parentNode;
@@ -1259,43 +1260,45 @@ var Body = {
             }
         }
     },
-    on: function(type, vom) {
+    on: function(type, vom, remove) {
         var me = this;
-        if (!RootEvents[type]) {
+        var counter = RootEvents[type] || 0;
+        var step = counter > 0 ? 1 : 0;
 
-            VOM = vom;
-            RootEvents[type] = 0;
+        counter += remove ? -step : step;
+
+        if (!counter) {
+            if (vom) {
+                VOM = vom;
+            }
             var lib = DependLibEvents[type];
             if (lib) {
-                me.lib(0, RootNode, type);
+                me.lib(remove, RootNode, type);
             } else {
-                RootNode['on' + type] = function(e) {
+                RootNode['on' + type] = remove ? null : function(e) {
                     e = e || window.event;
                     if (e) {
                         me.process(e);
                     }
                 };
             }
+            if (!remove) {
+                counter = 1;
+            }
         }
-        RootEvents[type]++;
+        RootEvents[type] = counter;
     },
     off: function(type) {
-        var me = this;
-        var counter = RootEvents[type];
-        if (counter > 0) {
-            counter--;
-            if (!counter) {
-                var lib = DependLibEvents[type];
-                if (lib) {
-                    me.lib(1, RootNode, type);
-                } else {
-                    RootNode['on' + type] = null;
-                }
-            }
-            RootEvents[type] = counter;
-        }
+        this.on(type, 0, 1);
     }
 };
+    Body.lib = function(remove, node, type) {
+        S.use('event', function(S, SE) {
+            var fn = remove ? SE.undelegate : SE.delegate;
+            fn.call(SE, node, type, '[mx-' + type + ']', Body.process);
+        });
+    };
+    Body.special(Magix.listToMap('focusin,focusout,mouseenter,mouseleave,mousewheel'));
     return Body;
 }, {
     requires: ['magix/magix']
@@ -2032,10 +2035,7 @@ var COMMA = ',';
 var EMPTY_ARRAY = [];
 var Noop = Magix.noop;
 var Mix = Magix.mix;
-var WrapAsynUpdateNames = {
-    render: 1,
-    renderUI: 1
-};
+
 var WrapKey = '~';
 var WrapFn = function(fn) {
     return function() {
@@ -2136,11 +2136,11 @@ var View = function(ops) {
 };
 View.ms = [];
 View.prepare = function(oView) {
-    var me = this;
-    var superclass = oView.superclass;
-    if (superclass) {
+    // var me = this;
+    //var superclass = oView.superclass;
+    /*if (superclass) {
         me.prepare(superclass.constructor);
-    }
+    }*/
     if (!oView[WrapKey]) { //只处理一次
         oView[WrapKey] = 1;
         //oView.extend = me.extend;
@@ -2159,7 +2159,7 @@ View.prepare = function(oView) {
                         revts[temp] = 1;
                         prop[name + MxEvtSplit + temp] = old;
                     }
-                } else if (Has(WrapAsynUpdateNames, p) && old != Noop) {
+                } else if (p == 'render' && old != Noop) {
                     prop[p] = WrapFn(old);
                 }
             }
@@ -2834,7 +2834,7 @@ Mix(Mix(View.prototype, Event), {
      */
 
     /**
-     * 异步更新ui的方法(render,renderUI)被调用前触发
+     * 异步更新ui的方法(render)被调用前触发
      * @name View#rendercall
      * @event
      * @param {Object} e

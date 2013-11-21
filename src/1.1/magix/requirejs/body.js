@@ -10,5 +10,6 @@ define("magix/body", ["magix/magix"], function(Magix) {
         var fn = remove ? 'undelegate' : 'delegate';
         $(node)[fn]('[mx-' + type + ']', type, Body.process);
     };
+    Body.special(Magix.listToMap('focusin,focusout,mouseenter,mouseleave,mousewheel'));
     return Body;
 });

@@ -14,10 +14,7 @@ var COMMA = ',';
 var EMPTY_ARRAY = [];
 var Noop = Magix.noop;
 var Mix = Magix.mix;
-var WrapAsynUpdateNames = {
-    render: 1,
-    renderUI: 1
-};
+
 var WrapKey = '~';
 var WrapFn = function(fn) {
     return function() {
@@ -118,11 +115,11 @@ var View = function(ops) {
 };
 View.ms = [];
 View.prepare = function(oView) {
-    var me = this;
-    var superclass = oView.superclass;
-    if (superclass) {
+    // var me = this;
+    //var superclass = oView.superclass;
+    /*if (superclass) {
         me.prepare(superclass.constructor);
-    }
+    }*/
     if (!oView[WrapKey]) { //只处理一次
         oView[WrapKey] = 1;
         //oView.extend = me.extend;
@@ -141,7 +138,7 @@ View.prepare = function(oView) {
                         revts[temp] = 1;
                         prop[name + MxEvtSplit + temp] = old;
                     }
-                } else if (Has(WrapAsynUpdateNames, p) && old != Noop) {
+                } else if (p == 'render' && old != Noop) {
                     prop[p] = WrapFn(old);
                 }
             }
@@ -816,7 +813,7 @@ Mix(Mix(View.prototype, Event), {
      */
 
     /**
-     * 异步更新ui的方法(render,renderUI)被调用前触发
+     * 异步更新ui的方法(render)被调用前触发
      * @name View#rendercall
      * @event
      * @param {Object} e
