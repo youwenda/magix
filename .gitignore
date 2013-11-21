@@ -5,4 +5,9 @@
 test/
 tools/node_modules/
 README.html
+
+# Jekyll generated result
 _site
+
+# Sublime Project files
+*.sublime-*
