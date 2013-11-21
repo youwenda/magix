@@ -17,7 +17,7 @@
     <div id="magix_vf_root"></div>
     <div class="app_progress_bar" id="magix_percent"></div>
     <script type="text/javascript" src="http://g.tbcdn.cn/kissy/k/1.4.0/seed.js"></script>
-    <script type="text/javascript" src="http://t.tbcdn.cn/apps/e/magix/1.1/kissy-magix-mxext.js"></script>
+    <script type="text/javascript" src="http://g.tbcdn.cn/thx/magix/1.1/kissy-magix-mxext.js"></script>
     <script type="text/javascript" src="apiapp/progress.js"></script>
     <script type="text/javascript" src="apiapp/crox.js"></script>
     <script type="text/javascript">
@@ -39,7 +39,7 @@
             defaultView:'apiapp/'+views+'/default',
             defaultPathname:'/home',
             extensions:exts,
-            safeExec:function(e){
+            execError:function(e){
                 if (Math.random()<0.5) {
                     new Image().src='http://gm.mmstat.com/ued.1.1.2?'+[
                         'type=9',

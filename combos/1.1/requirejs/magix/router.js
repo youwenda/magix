@@ -8,6 +8,7 @@ define('magix/router', ["magix/magix", "magix/event"], function(Magix, Event) {
     var WIN = window;
 var EMPTY = '';
 var PATHNAME = 'pathname';
+var VIEW = 'view';
 
 var Has = Magix.has;
 var Mix = Magix.mix;
@@ -43,7 +44,7 @@ var IsPathname = function() {
     return this[PATHNAME];
 };
 var IsView = function() {
-    return this.view;
+    return this[VIEW];
 };
 
 
@@ -98,7 +99,7 @@ var Router = Mix({
      * @private
      */
     viewInfo: function(pathname, loc) {
-
+        var r, result;
         if (!Pnr) {
             Pnr = {
                 rs: MxConfig.routes || {},
@@ -107,29 +108,31 @@ var Router = Mix({
             //var home=pathCfg.defaultView;//处理默认加载的view
             //var dPathname=pathCfg.defaultPathname||EMPTY;
             var defaultView = MxConfig.defaultView;
-            if (!defaultView) {
+            /*if (!defaultView) {
                 throw new Error('unset defaultView');
-            }
-            Pnr.home = defaultView;
+            }*/
+            Pnr.dv = defaultView;
             var defaultPathname = MxConfig.defaultPathname || EMPTY;
             //if(!Magix.isFunction(temp.rs)){
-            Pnr.rs[defaultPathname] = defaultView;
+            r = Pnr.rs;
+            Pnr.f = Magix.isFunction(r);
+            if (!Pnr.f && !r[defaultPathname] && defaultView) {
+                r[defaultPathname] = defaultView;
+            }
             Pnr[PATHNAME] = defaultPathname;
         }
 
-        var result;
-
         if (!pathname) pathname = Pnr[PATHNAME];
-        //
-        var r = Pnr.rs;
-        if (Magix.isFunction(r)) {
+
+        r = Pnr.rs;
+        if (Pnr.f) {
             result = r.call(MxConfig, pathname, loc);
         } else {
             result = r[pathname]; //简单的在映射表中找
         }
         return {
-            view: result ? result : Pnr.nf || Pnr.home,
-            pathname: result || UseNativeHistory ? pathname : (Pnr.nf ? pathname : Pnr[PATHNAME])
+            view: result || Pnr.nf || Pnr.dv,
+            pathname: result || UseNativeHistory || Pnr.nf ? pathname : Pnr[PATHNAME]
         };
     },
     /**
@@ -195,7 +198,7 @@ var Router = Mix({
             };
             HrefCache.set(href, result);
         }
-        if (inner && !result.view) {
+        if (inner && !result[VIEW]) {
             //
             var tempPathname;
             /*
@@ -253,12 +256,11 @@ var Router = Mix({
         var result = ChgdCache.get(tKey);
         if (!result) {
             var hasChanged, from, to;
-            result = {
-                view: to
-            };
+            result = {};
+            result[VIEW] = to;
             result[PATHNAME] = to;
             result[PARAMS] = {};
-            var tArr = [PATHNAME, 'view'],
+            var tArr = [PATHNAME, VIEW],
                 idx, key;
             for (idx = 1; idx >= 0; idx--) {
                 key = tArr[idx];

@@ -92,7 +92,7 @@ var Router = Mix({
      * @private
      */
     viewInfo: function(pathname, loc) {
-
+        var r, result;
         if (!Pnr) {
             Pnr = {
                 rs: MxConfig.routes || {},
@@ -101,29 +101,31 @@ var Router = Mix({
             //var home=pathCfg.defaultView;//处理默认加载的view
             //var dPathname=pathCfg.defaultPathname||EMPTY;
             var defaultView = MxConfig.defaultView;
-            if (!defaultView) {
+            /*if (!defaultView) {
                 throw new Error('unset defaultView');
-            }
-            Pnr.home = defaultView;
+            }*/
+            Pnr.dv = defaultView;
             var defaultPathname = MxConfig.defaultPathname || EMPTY;
             //if(!Magix.isFunction(temp.rs)){
-            Pnr.rs[defaultPathname] = defaultView;
+            r = Pnr.rs;
+            Pnr.f = Magix.isFunction(r);
+            if (!Pnr.f && !r[defaultPathname] && defaultView) {
+                r[defaultPathname] = defaultView;
+            }
             Pnr[PATHNAME] = defaultPathname;
         }
 
-        var result;
-
         if (!pathname) pathname = Pnr[PATHNAME];
-        //console.log('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',pathname);
-        var r = Pnr.rs;
-        if (Magix.isFunction(r)) {
+
+        r = Pnr.rs;
+        if (Pnr.f) {
             result = r.call(MxConfig, pathname, loc);
         } else {
             result = r[pathname]; //简单的在映射表中找
         }
         return {
-            view: result ? result : Pnr.nf || Pnr.home,
-            pathname: result || UseNativeHistory ? pathname : (Pnr.nf ? pathname : Pnr[PATHNAME])
+            view: result || Pnr.nf || Pnr.dv,
+            pathname: result || UseNativeHistory || Pnr.nf ? pathname : Pnr[PATHNAME]
         };
     },
     /**
