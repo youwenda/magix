@@ -12,11 +12,16 @@
     "Zhang Sifei <sifei.zm@alibaba-inc.com>"
   ],
   "license": "MIT",
+  "main": [
+    "dist/1.1"
+  ],
   "ignore": [
     "**/.*",
     "combos",
     "docs",
     "src",
-    "tools"
+    "tools",
+    "**/*-min.js",
+    "dist/1.0"
   ]
 }
