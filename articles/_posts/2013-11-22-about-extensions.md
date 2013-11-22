@@ -12,12 +12,12 @@ Router本身是对url的导航，解析等，在直通车中某些页面需要�
 类似这样：在项目中建立一个router.js，并在里面写上如下代码：
 
 ```javascript
-KISSY.add(“app/router”,function(S,Router){
+KISSY.add('app/router',function(S,Router){
     Router.useHash=function(){
         //…
     }
 },{
-    requires:[“magix/router”]
+    requires:['magix/router']
 });
 ```
 
@@ -26,7 +26,7 @@ KISSY.add(“app/router”,function(S,Router){
 ```javascript
 Magix.start({
     //…
-    extensions:[“app/router”]
+    extensions:['app/router']
 });
 ```
 
