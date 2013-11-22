@@ -564,10 +564,9 @@ Mix(Mix(View.prototype, Event), {
     delegateEvents: function(destroy) {
         var me = this;
         var events = me.$evts;
-        var fn = destroy ? Body.off : Body.on;
         var vom = me.vom;
         for (var p in events) {
-            fn.call(Body, p, vom);
+            Body.act(p, vom, destroy);
         }
     }
     /**

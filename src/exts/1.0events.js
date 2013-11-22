@@ -79,10 +79,9 @@ KISSY.add('exts/1.0events', function(S, View, Magix, Body) {
         delegateEvents: function(isDestroy) {
             var me = this;
             var events = me.events;
-            var fn = isDestroy ? Body.off : Body.on;
             var vom = me.vom;
             for (var p in events) {
-                fn.call(Body, p, vom);
+                Body.act(p, vom, isDestroy);
             }
         }
     });

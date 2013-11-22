@@ -16,6 +16,8 @@ var MxOwner = 'mx-owner';
 var MxIgnore = 'mx-ei';
 var TypesRegCache = {};
 var IdCounter = 1 << 16;
+var On = 'on';
+var Comma = ',';
 
 var IdIt = function(dom) {
     return dom.id || (dom.id = 'mx-e-' + (IdCounter--));
@@ -44,7 +46,7 @@ var Body = {
         }
         var current = target;
         var eventType = e.type;
-        var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(',' + eventType + '(?:,|$)'));
+        var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(Comma + eventType + '(?:,|$)'));
         //
         if (!eventReg.test(GetSetAttribute(target, MxIgnore))) {
             var type = 'mx-' + eventType;
@@ -103,9 +105,9 @@ var Body = {
                 var node;
                 while (arr.length) {
                     node = arr.shift();
-                    ignore = GetSetAttribute(node, MxIgnore) || ''; //node.getAttribute(MxIgnore);
+                    ignore = GetSetAttribute(node, MxIgnore) || On; //node.getAttribute(MxIgnore);
                     if (!eventReg.test(ignore)) {
-                        ignore = ignore + ',' + eventType;
+                        ignore = ignore + Comma + eventType;
                         GetSetAttribute(node, MxIgnore, ignore);
                         //node.setAttribute(MxIgnore,ignore);
                     }
@@ -113,7 +115,7 @@ var Body = {
             }
         }
     },
-    on: function(type, vom, remove) {
+    act: function(type, vom, remove) {
         var me = this;
         var counter = RootEvents[type] || 0;
         var step = counter > 0 ? 1 : 0;
@@ -128,7 +130,7 @@ var Body = {
             if (lib) {
                 me.lib(remove, RootNode, type);
             } else {
-                RootNode['on' + type] = remove ? null : function(e) {
+                RootNode[On + type] = remove ? null : function(e) {
                     e = e || window.event;
                     if (e) {
                         me.process(e);
@@ -140,9 +142,6 @@ var Body = {
             }
         }
         RootEvents[type] = counter;
-    },
-    off: function(type) {
-        this.on(type, 0, 1);
     }
 };
     Body.lib = function(remove, node, type) {

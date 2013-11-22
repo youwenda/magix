@@ -20,6 +20,7 @@ var Now = Date.now || function() {
         return +new Date();
     };
 var Guid = Now();
+var JoinedCache = Magix.cache();
 /**
  * Model管理对象，可方便的对Model进行缓存和更新
  * @name MManager
@@ -37,6 +38,7 @@ var MManager = function(modelClass) {
     me.$mCache = Magix.cache();
     me.$mCacheKeys = {};
     me.$mMetas = {};
+    me.$mSrcMs = [];
     me.id = 'mm' + Guid--;
 };
 
@@ -95,11 +97,11 @@ Mix(MManager, {
      * 创建Model类管理对象
      * @param {Model} modelClass Model类
      */
-    create: function(modelClass) {
+    create: function(modelClass, alias) {
         if (!modelClass) {
             throw Error('ungiven modelClass');
         }
-        return new MManager(modelClass);
+        return new MManager(modelClass, alias);
     }
 });
 var FetchFlags = {
@@ -444,7 +446,7 @@ Mix(Mix(MManager.prototype, Event), {
      * @param {Function} models.before model在发起请求前的回调
      * @param {Function} models.after model在结束请求，并且成功后回调
      */
-    registerModels: function(models) {
+    registerModels: function(models, prefix) {
         /*
                 name:'',
                 options:{
@@ -463,14 +465,15 @@ Mix(Mix(MManager.prototype, Event), {
              */
         var me = this;
         var metas = me.$mMetas;
-
+        prefix = prefix || '';
         if (!Magix.isArray(models)) {
             models = [models];
         }
+        me.$mSrcMs = models;
         for (var i = 0, model, name; i < models.length; i++) {
             model = models[i];
             if (model) {
-                name = model.name;
+                name = prefix + model.name;
                 if (!name) {
                     throw Error('miss name attribute');
                 } else if (metas[name]) {
@@ -904,6 +907,35 @@ Mix(Mix(MManager.prototype, Event), {
             }
         }
         return entity;
+    },
+    /**
+     * 联合其它MManager查询
+     * @param {MManager} manager 要联合的Manager
+     * @param {String} [prefix] 为联合的Manager中的元信息名称加的前缀，当2个Manager内部有同名的元信息时的解决方案
+     * @return {MManager}
+     *  //var MM=MA.join(MB);
+     *  //var MM=MA.join(MB,'MB').join(MC,'MC');
+     *  MM.fetchAll({
+     *
+     *  })
+     */
+    join: function(manager, prefix) {
+        var me = this;
+        var mclass = me.$mClass;
+        if (mclass != manager.$mClass) {
+            throw new Error('Managers model class must be same');
+        }
+        var key1 = me.id + '$' + manager.id;
+        var key2 = manager.id + '$' + me.id;
+        var m = JoinedCache.get(key1) || JoinedCache.get(key2);
+        if (!m) {
+            m = new MManager(mclass);
+            m.registerModels(me.$mSrcMs);
+            m.registerModels(manager.$mSrcMs, prefix);
+            JoinedCache.set(key1, m);
+            JoinedCache.set(key2, m);
+        }
+        return m;
     }
 });
 

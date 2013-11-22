@@ -1163,6 +1163,8 @@ var MxOwner = 'mx-owner';
 var MxIgnore = 'mx-ei';
 var TypesRegCache = {};
 var IdCounter = 1 << 16;
+var On = 'on';
+var Comma = ',';
 
 var IdIt = function(dom) {
     return dom.id || (dom.id = 'mx-e-' + (IdCounter--));
@@ -1191,7 +1193,7 @@ var Body = {
         }
         var current = target;
         var eventType = e.type;
-        var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(',' + eventType + '(?:,|$)'));
+        var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(Comma + eventType + '(?:,|$)'));
         //
         if (!eventReg.test(GetSetAttribute(target, MxIgnore))) {
             var type = 'mx-' + eventType;
@@ -1250,9 +1252,9 @@ var Body = {
                 var node;
                 while (arr.length) {
                     node = arr.shift();
-                    ignore = GetSetAttribute(node, MxIgnore) || ''; //node.getAttribute(MxIgnore);
+                    ignore = GetSetAttribute(node, MxIgnore) || On; //node.getAttribute(MxIgnore);
                     if (!eventReg.test(ignore)) {
-                        ignore = ignore + ',' + eventType;
+                        ignore = ignore + Comma + eventType;
                         GetSetAttribute(node, MxIgnore, ignore);
                         //node.setAttribute(MxIgnore,ignore);
                     }
@@ -1260,7 +1262,7 @@ var Body = {
             }
         }
     },
-    on: function(type, vom, remove) {
+    act: function(type, vom, remove) {
         var me = this;
         var counter = RootEvents[type] || 0;
         var step = counter > 0 ? 1 : 0;
@@ -1275,7 +1277,7 @@ var Body = {
             if (lib) {
                 me.lib(remove, RootNode, type);
             } else {
-                RootNode['on' + type] = remove ? null : function(e) {
+                RootNode[On + type] = remove ? null : function(e) {
                     e = e || window.event;
                     if (e) {
                         me.process(e);
@@ -1287,9 +1289,6 @@ var Body = {
             }
         }
         RootEvents[type] = counter;
-    },
-    off: function(type) {
-        this.on(type, 0, 1);
     }
 };
     Body.lib = function(remove, node, type) {
@@ -2585,10 +2584,9 @@ Mix(Mix(View.prototype, Event), {
     delegateEvents: function(destroy) {
         var me = this;
         var events = me.$evts;
-        var fn = destroy ? Body.off : Body.on;
         var vom = me.vom;
         for (var p in events) {
-            fn.call(Body, p, vom);
+            Body.act(p, vom, destroy);
         }
     }
     /**
@@ -3111,6 +3109,7 @@ var Now = Date.now || function() {
         return +new Date();
     };
 var Guid = Now();
+var JoinedCache = Magix.cache();
 /**
  * Model管理对象，可方便的对Model进行缓存和更新
  * @name MManager
@@ -3128,6 +3127,7 @@ var MManager = function(modelClass) {
     me.$mCache = Magix.cache();
     me.$mCacheKeys = {};
     me.$mMetas = {};
+    me.$mSrcMs = [];
     me.id = 'mm' + Guid--;
 };
 
@@ -3186,11 +3186,11 @@ Mix(MManager, {
      * 创建Model类管理对象
      * @param {Model} modelClass Model类
      */
-    create: function(modelClass) {
+    create: function(modelClass, alias) {
         if (!modelClass) {
             throw Error('ungiven modelClass');
         }
-        return new MManager(modelClass);
+        return new MManager(modelClass, alias);
     }
 });
 var FetchFlags = {
@@ -3535,7 +3535,7 @@ Mix(Mix(MManager.prototype, Event), {
      * @param {Function} models.before model在发起请求前的回调
      * @param {Function} models.after model在结束请求，并且成功后回调
      */
-    registerModels: function(models) {
+    registerModels: function(models, prefix) {
         /*
                 name:'',
                 options:{
@@ -3554,14 +3554,15 @@ Mix(Mix(MManager.prototype, Event), {
              */
         var me = this;
         var metas = me.$mMetas;
-
+        prefix = prefix || '';
         if (!Magix.isArray(models)) {
             models = [models];
         }
+        me.$mSrcMs = models;
         for (var i = 0, model, name; i < models.length; i++) {
             model = models[i];
             if (model) {
-                name = model.name;
+                name = prefix + model.name;
                 if (!name) {
                     throw Error('miss name attribute');
                 } else if (metas[name]) {
@@ -4003,6 +4004,35 @@ Mix(Mix(MManager.prototype, Event), {
             }
         }
         return entity;
+    },
+    /**
+     * 联合其它MManager查询
+     * @param {MManager} manager 要联合的Manager
+     * @param {String} [prefix] 为联合的Manager中的元信息名称加的前缀，当2个Manager内部有同名的元信息时的解决方案
+     * @return {MManager}
+     *  //var MM=MA.join(MB);
+     *  //var MM=MA.join(MB,'MB').join(MC,'MC');
+     *  MM.fetchAll({
+     *
+     *  })
+     */
+    join: function(manager, prefix) {
+        var me = this;
+        var mclass = me.$mClass;
+        if (mclass != manager.$mClass) {
+            throw new Error('Managers model class must be same');
+        }
+        var key1 = me.id + '$' + manager.id;
+        var key2 = manager.id + '$' + me.id;
+        var m = JoinedCache.get(key1) || JoinedCache.get(key2);
+        if (!m) {
+            m = new MManager(mclass);
+            m.registerModels(me.$mSrcMs);
+            m.registerModels(manager.$mSrcMs, prefix);
+            JoinedCache.set(key1, m);
+            JoinedCache.set(key2, m);
+        }
+        return m;
     }
 });
 
