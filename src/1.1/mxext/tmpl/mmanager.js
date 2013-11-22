@@ -963,7 +963,7 @@ Mix(Mix(MManager.prototype, Event), {
         if (mclass != manager.$mClass) {
             throw new Error('Managers model class must be same');
         }
-        var key = me.id + '$' + manager.id;
+        var key = prefix + '$' + me.id + '$' + manager.id;
         var m = JoinedCache.get(key);
         if (!m) {
             m = new MManager(mclass);
