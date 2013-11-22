@@ -41,6 +41,9 @@ body {
 .mi-tutorial:before {
   content: '\016b';
 }
+.mi-whos-using:before {
+  content: '\00fa';
+}
 
 /*
  * Tutorial Switcher
@@ -53,6 +56,9 @@ body {
 /*
  * Who's Using
  */
+.whos-using {
+  margin-top: 30px;
+}
 .whos-using .dib {
   max-width: 200px;
   vertical-align: middle;
