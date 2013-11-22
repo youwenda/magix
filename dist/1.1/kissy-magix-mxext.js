@@ -4010,11 +4010,49 @@ Mix(Mix(MManager.prototype, Event), {
      * @param {MManager} manager 要联合的Manager
      * @param {String} [prefix] 为联合的Manager中的元信息名称加的前缀，当2个Manager内部有同名的元信息时的解决方案
      * @return {MManager}
-     *  //var MM=MA.join(MB);
-     *  //var MM=MA.join(MB,'MB').join(MC,'MC');
-     *  MM.fetchAll({
+     * @example
+     * //假设我们有2个Manager
+     * var ReportManager=MM.create(AppModel);
+     * ReportManager.registerModels([{
+     *     name:'News_List'
+     *     url:'report/news/list.json'
+     * }]);
      *
-     *  })
+     * var VideoManager=MM.create(AppModel);
+     * VideoManager.registerModels([{
+     *     name:'News_List',
+     *     url:'video/news/list.json'
+     * }]);
+     *
+     * //考虑以上2个manager同时使用的情况：我们需要体育新闻和视频新闻，我们可能会这样写：
+     *  render:function(){
+     *      var me=this;
+     *      var r1=ReportManager.fetchAll({
+     *          name:'News_List'
+     *      },function(e,m){
+     *          if(!e){
+     *              var r2=VideoManager.fetchAll({
+     *                  name:'News_List'
+     *              },function(e,m){
+     *
+     *              });
+     *              me.manage(r2);
+     *          }
+     *      });
+     *      me.manage(r1);
+     *  }
+     *
+     * //如上需要嵌套，而且不能同时发起请求。通过join后我们可以把2个manager合并成一个来请求：
+     *
+     * var TempManager=ReportManager.join(VideoManager,'Video_');//因为ReportManger与VideoManager有相同的News_List,因此我们给Video的加上一个前缀Video_以示区分
+     * var r=TempManager.fetchAll([{
+     *     name:'News_List'
+     * },{
+     *     name:'Video_News_List'
+     * }],function(e,reportNews,videoNews){
+     *
+     * });
+     * me.manage(r);
      */
     join: function(manager, prefix) {
         var me = this;
@@ -4022,15 +4060,13 @@ Mix(Mix(MManager.prototype, Event), {
         if (mclass != manager.$mClass) {
             throw new Error('Managers model class must be same');
         }
-        var key1 = me.id + '$' + manager.id;
-        var key2 = manager.id + '$' + me.id;
-        var m = JoinedCache.get(key1) || JoinedCache.get(key2);
+        var key = me.id + '$' + manager.id;
+        var m = JoinedCache.get(key);
         if (!m) {
             m = new MManager(mclass);
             m.registerModels(me.$mSrcMs);
             m.registerModels(manager.$mSrcMs, prefix);
-            JoinedCache.set(key1, m);
-            JoinedCache.set(key2, m);
+            JoinedCache.set(key, m);
         }
         return m;
     }
