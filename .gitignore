@@ -2,7 +2,12 @@
 .project
 *.idea
 .DS_Store
-test
-node_modules
+test/
+tools/node_modules/
 README.html
+
+# Jekyll generated result
 _site
+
+# Sublime Project files
+*.sublime-*

@@ -51,6 +51,21 @@ body {
 }
 
 /*
+ * Who's Using
+ */
+.whos-using .dib {
+  max-width: 200px;
+  vertical-align: middle;
+  font-size: 14px;
+}
+.whos-using .iconfont {
+  font-size: 40px;
+}
+.whos-using a:hover {
+  border-bottom: 0 none;
+}
+
+/*
  * Aside styles
  */
 #aside .logo {
@@ -81,6 +96,13 @@ body {
 #aside .entry:hover {
   color: #fff;
   background: #2C3E50;
+}
+
+/*
+ * Duoshuo
+ */
+.ds-thread {
+  margin-top: 40px;
 }
 
 /*
