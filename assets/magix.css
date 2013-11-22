@@ -44,6 +44,9 @@ body {
 .mi-whos-using:before {
   content: '\00fa';
 }
+.mi-articles:before{
+  content: '\f03e'
+}
 
 /*
  * Tutorial Switcher
