@@ -45,7 +45,8 @@ body {
   content: '\00fa';
 }
 .mi-articles:before{
-  content: '\f03e'
+  content: '\f03e';
+  font-size:12px;
 }
 
 /*
