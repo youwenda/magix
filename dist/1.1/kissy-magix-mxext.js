@@ -2053,9 +2053,6 @@ var EvtInfoCache = Magix.cache(40);
 
 var MxEvt = /\smx-(?!view|defer|owner|vframe)[a-z]+\s*=\s*"/g;
 var MxEvtSplit = String.fromCharCode(26);
-var DefaultLocationChange = function() {
-    this.render();
-};
 
 
 var WEvent = {
@@ -2249,7 +2246,9 @@ Mix(Mix(View.prototype, Event), {
      *     //...
      * }
      */
-    locationChange: Noop,
+    locationChange: function() {
+        this.render();
+    },
     /**
      * 初始化方法，供最终的view开发人员进行覆盖
      * @param {Object} extra 初始化时，外部传递的参数
@@ -2436,9 +2435,6 @@ Mix(Mix(View.prototype, Event), {
         }
         if (args) {
             loc.keys = keys.concat(String(args).split(COMMA));
-        }
-        if (me.locationChange == Noop) {
-            me.locationChange = DefaultLocationChange;
         }
     },
     /**
@@ -3109,7 +3105,9 @@ var Now = Date.now || function() {
         return +new Date();
     };
 var Guid = Now();
-var JoinedCache = Magix.cache();
+var TError = function(e) {
+    throw Error(e);
+};
 /**
  * Model管理对象，可方便的对Model进行缓存和更新
  * @name MManager
@@ -3127,28 +3125,17 @@ var MManager = function(modelClass) {
     me.$mCache = Magix.cache();
     me.$mCacheKeys = {};
     me.$mMetas = {};
-    me.$mSrcMs = [];
     me.id = 'mm' + Guid--;
+    SafeExec(MManager.ms, arguments, me);
 };
 
 var Slice = [].slice;
-var WhiteList = {
-    urlParams: 1,
-    postParams: 1,
-    cacheKey: 1,
-    cacheTime: 1,
-    cache: 1,
-    before: 1,
-    after: 1
-};
+
 
 var WrapDone = function(fn, model, idx) {
     return function() {
         return fn.apply(model, [model, idx].concat(Slice.call(arguments)));
     };
-};
-var IsMxView = function(view) {
-    return view && view.manage;
 };
 var CacheDone = function(err, data, ops) {
     var cacheKey = ops.key;
@@ -3165,7 +3152,7 @@ var GenMRequest = function(method) {
         var mr = new MRequest(this);
         var args = arguments;
         var last = args[args.length - 1];
-        if (IsMxView(last)) {
+        if (last && last.manage) {
             last.manage(mr.id, mr);
             args = Slice.call(args, 0, -1);
         }
@@ -3186,13 +3173,24 @@ Mix(MManager, {
      * 创建Model类管理对象
      * @param {Model} modelClass Model类
      */
-    create: function(modelClass, alias) {
+    create: function(modelClass) {
         if (!modelClass) {
-            throw Error('ungiven modelClass');
+            TError('ungiven modelClass');
         }
-        return new MManager(modelClass, alias);
-    }
+        return new MManager(modelClass);
+    },
+    /**
+     * 扩展MMamager
+     * @param  {Object} props 扩展到原型上的方法
+     * @param  {Function} ctor  在初始化MManager时进行调用的方法
+     */
+    mixin: function(props, ctor) {
+        if (ctor) MManager.ms.push(ctor);
+        Mix(MManager.prototype, props);
+    },
+    ms: []
 });
+
 var FetchFlags = {
     ALL: 1,
     ONE: 2,
@@ -3208,8 +3206,8 @@ var FetchFlags = {
  */
 var MRequest = function(host) {
     this.$host = host;
-    this.$doTask = false;
-    this.$reqModels = {};
+    this.$busy = 0;
+    this.$reqs = {};
     this.id = Prefix + Guid--;
 };
 
@@ -3228,18 +3226,18 @@ Mix(MRequest.prototype, {
      */
     send: function(models, done, flag, save) {
         var me = this;
-        if (me.$doTask) {
+        if (me.$busy) {
             me.next(function() {
                 this.send(models, done, flag, save);
             });
             return me;
         }
-        me.$doTask = true;
+        me.$busy = 1;
 
         var host = me.$host;
         var modelsCache = host.$mCache;
         var modelsCacheKeys = host.$mCacheKeys;
-        var reqModels = me.$reqModels;
+        var reqs = me.$reqs;
 
         if (!Magix.isArray(models)) {
             models = [models];
@@ -3262,18 +3260,18 @@ Mix(MRequest.prototype, {
         var doneFn = function(model, idx, err) {
             if (me.$destroy) return; //销毁，啥也不做
             current++;
-            delete reqModels[model.id];
+            delete reqs[model.id];
             var mm = model.$mm;
             var cacheKey = mm.key;
             doneArr[idx] = model;
             if (err) {
-                hasError = true;
-                currentError = true;
+                hasError = 1;
+                currentError = 1;
                 latestMsg = err;
                 errorArgs.msg = err;
                 errorArgs[idx] = err;
             } else {
-                currentError = false;
+                currentError = 0;
                 if (!cacheKey || (cacheKey && !modelsCache.has(cacheKey))) {
                     if (cacheKey) {
                         modelsCache.set(cacheKey, model);
@@ -3291,7 +3289,7 @@ Mix(MRequest.prototype, {
                     });
                 }
                 if (!model.fromCache && mm.used > 0) {
-                    model.fromCache = true;
+                    model.fromCache = 1;
                 }
                 mm.used++;
             }
@@ -3350,7 +3348,7 @@ Mix(MRequest.prototype, {
                     modelsCacheKeys[cacheKey].q.push(wrapDoneFn);
                 } else {
                     if (modelInfo.update) {
-                        reqModels[modelEntity.id] = modelEntity;
+                        reqs[modelEntity.id] = modelEntity;
                         if (cacheKey) {
                             modelsCacheKeys[cacheKey] = {
                                 q: [wrapDoneFn],
@@ -3367,7 +3365,7 @@ Mix(MRequest.prototype, {
                     }
                 }
             } else {
-                throw Error('miss attrs:' + models);
+                TError('empty model');
             }
         }
         return me;
@@ -3430,11 +3428,11 @@ Mix(MRequest.prototype, {
         var me = this;
         clearTimeout(me.$ntId);
         var host = me.$host;
-        var reqModels = me.$reqModels;
+        var reqs = me.$reqs;
         var modelsCacheKeys = host.$mCacheKeys;
 
-        for (var p in reqModels) {
-            var m = reqModels[p];
+        for (var p in reqs) {
+            var m = reqs[p];
             var cacheKey = m.$mm.key;
             if (cacheKey && Has(modelsCacheKeys, cacheKey)) {
                 var cache = modelsCacheKeys[cacheKey];
@@ -3460,9 +3458,9 @@ Mix(MRequest.prototype, {
             }
         }
 
-        me.$reqModels = {};
+        me.$reqs = {};
         me.$queue = [];
-        me.$doTask = false;
+        me.$busy = 0;
     },
     /**
      * 前一个fetchX或saveX任务做完后的下一个任务
@@ -3485,7 +3483,7 @@ Mix(MRequest.prototype, {
         var me = this;
         if (!me.$queue) me.$queue = [];
         me.$queue.push(callback);
-        if (!me.$doTask) {
+        if (!me.$busy) {
             var args = me.$latest;
             me.doNext(args);
         }
@@ -3498,7 +3496,7 @@ Mix(MRequest.prototype, {
      */
     doNext: function(preArgs) {
         var me = this;
-        me.$doTask = false;
+        me.$busy = 0;
         var queue = me.$queue;
         if (queue) {
             var one = queue.shift();
@@ -3513,7 +3511,7 @@ Mix(MRequest.prototype, {
      */
     destroy: function() {
         var me = this;
-        me.$destroy = true;
+        me.$destroy = 1;
         me.abort();
     }
 });
@@ -3526,21 +3524,21 @@ Mix(Mix(MManager.prototype, Event), {
      * 注册APP中用到的model
      * @param {Object|Array} models 模块描述信息
      * @param {String} models.name app中model的唯一标识
-     * @param {Object} models.options 传递的参数信息，如{uri:'test',isJSONP:true,updateIdent:true}
+     * @param {Object} models.options 传递的参数信息，如{uri:'test',isJSONP:1,updateIdent:1}
      * @param {Object} models.urlParams 发起请求时，默认的get参数对象
      * @param {Object} models.postParams 发起请求时，默认的post参数对象
      * @param {String} models.cacheKey 指定model缓存的key，当指定后，该model会进行缓存，下次不再发起请求
      * @param {Integer} models.cacheTime 缓存过期时间，以毫秒为单位，当过期后，再次使用该model时会发起新的请求(前提是该model指定cacheKey被缓存后cacheTime才有效)
-     * @param {Boolean} models.cache 当您同时需要指定cacheKey和cacheTime时，可通过cache=true快捷指定，设置cache=true后，cacheTime默认为20分钟，您可以通过cacheTime显式控制
+     * @param {Boolean} models.cache 当您同时需要指定cacheKey和cacheTime时，可通过cache=1快捷指定，设置cache=1后，cacheTime默认为20分钟，您可以通过cacheTime显式控制
      * @param {Function} models.before model在发起请求前的回调
      * @param {Function} models.after model在结束请求，并且成功后回调
      */
-    registerModels: function(models, prefix) {
+    registerModels: function(models) {
         /*
                 name:'',
                 options:{
                     uri:'',
-                    jsonp:'true'
+                    jsonp:'1'
                 },
                 urlParams:'',
                 postParams:'',
@@ -3554,19 +3552,17 @@ Mix(Mix(MManager.prototype, Event), {
              */
         var me = this;
         var metas = me.$mMetas;
-        prefix = prefix || '';
         if (!Magix.isArray(models)) {
             models = [models];
         }
-        me.$mSrcMs = models;
         for (var i = 0, model, name; i < models.length; i++) {
             model = models[i];
             if (model) {
-                name = prefix + model.name;
+                name = model.name;
                 if (!name) {
-                    throw Error('miss name attribute');
+                    TError('miss name');
                 } else if (metas[name]) {
-                    throw Error('already exist:' + name);
+                    TError('already exist:' + name);
                 }
                 if (model.cache) {
                     if (!model.cacheKey) {
@@ -3585,8 +3581,7 @@ Mix(Mix(MManager.prototype, Event), {
      * @param {Object} methods 方法对象
      */
     registerMethods: function(methods) {
-        var me = this;
-        Mix(me, methods);
+        Mix(this, methods);
     },
     /**
      * 调用当前Manager注册的多个方法
@@ -3661,15 +3656,15 @@ Mix(Mix(MManager.prototype, Event), {
                     if(!one.params)one.params=[];
                     if(!S.isArray(one.params))one.params=[one.params];
 
-                    one.params.push(check(i,true),check(i));
+                    one.params.push(check(i,1),check(i));
                     fn.apply(me,one.params);
                 }else{
-                    doneCheck('unfound:'+one.name,i,true);
+                    doneCheck('unfound:'+one.name,i,1);
                 }
             }
             return {
                 abort:function(){
-                    aborted=true;
+                    aborted=1;
                 }
             }
         },*/
@@ -3683,7 +3678,7 @@ Mix(Mix(MManager.prototype, Event), {
         var meta = me.getModelMeta(modelAttrs);
 
         var entity = new me.$mClass();
-        entity.set(meta, WhiteList);
+        entity.set(meta);
         entity.$mm = {
             used: 0
         };
@@ -3705,7 +3700,7 @@ Mix(Mix(MManager.prototype, Event), {
         entity.$mm.key = cacheKey;
 
         entity.$mm.meta = meta;
-        entity.set(modelAttrs, WhiteList);
+        entity.set(modelAttrs);
         //默认设置的
         entity.setUrlParams(meta.urlParams);
         entity.setPostParams(meta.postParams);
@@ -3737,7 +3732,7 @@ Mix(Mix(MManager.prototype, Event), {
         }
         var meta = metas[name];
         if (!meta) {
-            throw Error('Unfound:' + name);
+            TError('Unfound:' + name);
         }
         return meta;
     },
@@ -3756,7 +3751,7 @@ Mix(Mix(MManager.prototype, Event), {
         }
 
         if (!entity) {
-            needUpdate = true;
+            needUpdate = 1;
             entity = me.createModel(modelAttrs);
         }
         return {
@@ -3926,7 +3921,7 @@ Mix(Mix(MManager.prototype, Event), {
      */
     createMRequest: function(view) {
         var mr = new MRequest(this);
-        if (IsMxView(view)) {
+        if (view && view.manage) {
             view.manage(mr.id, mr);
         }
         return mr;
@@ -3998,77 +3993,12 @@ Mix(Mix(MManager.prototype, Event), {
 
                     if (cacheTime > 0 && Now() - entity.$mm.done > cacheTime) {
                         me.clearCacheByKey(cacheKey);
-                        entity = null;
+                        entity = 0;
                     }
                 }
             }
         }
         return entity;
-    },
-    /**
-     * 联合其它MManager查询
-     * @param {MManager} manager 要联合的Manager
-     * @param {String} [prefix] 为联合的Manager中的元信息名称加的前缀，当2个Manager内部有同名的元信息时的解决方案
-     * @return {MManager}
-     * @example
-     * //假设我们有2个Manager
-     * var ReportManager=MM.create(AppModel);
-     * ReportManager.registerModels([{
-     *     name:'News_List'
-     *     url:'report/news/list.json'
-     * }]);
-     *
-     * var VideoManager=MM.create(AppModel);
-     * VideoManager.registerModels([{
-     *     name:'News_List',
-     *     url:'video/news/list.json'
-     * }]);
-     *
-     * //考虑以上2个manager同时使用的情况：我们需要体育新闻和视频新闻，我们可能会这样写：
-     *  render:function(){
-     *      var me=this;
-     *      var r1=ReportManager.fetchAll({
-     *          name:'News_List'
-     *      },function(e,m){
-     *          if(!e){
-     *              var r2=VideoManager.fetchAll({
-     *                  name:'News_List'
-     *              },function(e,m){
-     *
-     *              });
-     *              me.manage(r2);
-     *          }
-     *      });
-     *      me.manage(r1);
-     *  }
-     *
-     * //如上需要嵌套，而且不能同时发起请求。通过join后我们可以把2个manager合并成一个来请求：
-     *
-     * var TempManager=ReportManager.join(VideoManager,'Video_');//因为ReportManger与VideoManager有相同的News_List,因此我们给Video的加上一个前缀Video_以示区分
-     * var r=TempManager.fetchAll([{
-     *     name:'News_List'
-     * },{
-     *     name:'Video_News_List'
-     * }],function(e,reportNews,videoNews){
-     *
-     * });
-     * me.manage(r);
-     */
-    join: function(manager, prefix) {
-        var me = this;
-        var mclass = me.$mClass;
-        if (mclass != manager.$mClass) {
-            throw new Error('Managers model class must be same');
-        }
-        var key = me.id + '$' + manager.id;
-        var m = JoinedCache.get(key);
-        if (!m) {
-            m = new MManager(mclass);
-            m.registerModels(me.$mSrcMs);
-            m.registerModels(manager.$mSrcMs, prefix);
-            JoinedCache.set(key, m);
-        }
-        return m;
     }
 });
 
@@ -4389,9 +4319,9 @@ Magix.mix(Model.prototype, {
         }*/
         if (IsObject(key)) {
             for (var p in key) {
-                if (!Has(val, p)) {
-                    me.$attrs[p] = key[p];
-                }
+                //if (!Has(val, p)) {
+                me.$attrs[p] = key[p];
+                //}
             }
         } else if (key) {
             me.$attrs[key] = val;

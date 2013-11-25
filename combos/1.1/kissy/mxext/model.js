@@ -294,9 +294,9 @@ Magix.mix(Model.prototype, {
         }*/
         if (IsObject(key)) {
             for (var p in key) {
-                if (!Has(val, p)) {
-                    me.$attrs[p] = key[p];
-                }
+                //if (!Has(val, p)) {
+                me.$attrs[p] = key[p];
+                //}
             }
         } else if (key) {
             me.$attrs[key] = val;

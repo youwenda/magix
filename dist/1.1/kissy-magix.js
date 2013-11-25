@@ -2053,9 +2053,6 @@ var EvtInfoCache = Magix.cache(40);
 
 var MxEvt = /\smx-(?!view|defer|owner|vframe)[a-z]+\s*=\s*"/g;
 var MxEvtSplit = String.fromCharCode(26);
-var DefaultLocationChange = function() {
-    this.render();
-};
 
 
 var WEvent = {
@@ -2249,7 +2246,9 @@ Mix(Mix(View.prototype, Event), {
      *     //...
      * }
      */
-    locationChange: Noop,
+    locationChange: function() {
+        this.render();
+    },
     /**
      * 初始化方法，供最终的view开发人员进行覆盖
      * @param {Object} extra 初始化时，外部传递的参数
@@ -2436,9 +2435,6 @@ Mix(Mix(View.prototype, Event), {
         }
         if (args) {
             loc.keys = keys.concat(String(args).split(COMMA));
-        }
-        if (me.locationChange == Noop) {
-            me.locationChange = DefaultLocationChange;
         }
     },
     /**
