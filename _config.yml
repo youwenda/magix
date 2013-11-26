@@ -1,6 +1,15 @@
 baseurl: /magix
 markdown: redcarpet
+safe: true
 lsi: false
 pygments: true
 permalink: /:categories/:title
+exclude:
+  - magix.sublime-project
+  - magix.sublime-workspace
+  - node_modules
+  - .gitignore
+  - README.md
+  - package.json
+  - Gruntfile.js
 version: 1.1

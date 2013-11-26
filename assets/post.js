@@ -9,7 +9,7 @@ KISSY.use('node,event', function(S) {
 
             page.css(
                 'left',
-                parseInt(page.css('left'), 10) > 0 ? 0 : S.one('#aside').outerWidth()
+                parseInt(page.css('left'), 10) > 0 ? 0 : S.one('#nav').outerWidth()
             )
             e.stopPropagation()
         })
@@ -17,6 +17,15 @@ KISSY.use('node,event', function(S) {
             S.one('#page').css('left', 0)
         })
     }
+
+    S.one(window).on('scroll', function(e) {
+        if (S.one('body').scrollTop() > 48) {
+            S.one('#nav').addClass('fixed')
+        }
+        else {
+            S.one('#nav').removeClass('fixed')
+        }
+    })
 
     S.getScript('http://static.duoshuo.com/embed.js')
 })
