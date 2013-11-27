@@ -18,9 +18,7 @@ script: assets/post.js
         </div>
         {{ content }}
       </article>
-      <!-- Duoshuo Comment BEGIN -->
-      <div class="ds-thread"></div>
-      <!-- Duoshuo Comment END -->
+      {% include duoshuo.html %}
       {% include footer.html %}
     </div>
   </div>
