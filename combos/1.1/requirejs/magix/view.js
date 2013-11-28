@@ -26,7 +26,8 @@ var WrapFn = function(fn) {
 };
 
 var EvtInfoCache = Magix.cache(40);
-
+var Left = '<';
+var Right = '>';
 
 var MxEvt = /\smx-(?!view|defer|owner|vframe)[a-z]+\s*=\s*"/g;
 var MxEvtSplit = String.fromCharCode(26);
@@ -130,7 +131,7 @@ View.prepare = function(oView) {
                     for (idx = evts.length - 1; idx > -1; idx--) {
                         temp = evts[idx];
                         revts[temp] = 1;
-                        prop[name + MxEvtSplit + temp] = old;
+                        prop[name + Left + temp + Right] = old;
                     }
                 } else if (p == 'render' && old != Noop) {
                     prop[p] = WrapFn(old);
@@ -223,9 +224,7 @@ Mix(Mix(View.prototype, Event), {
      *     //...
      * }
      */
-    locationChange: function() {
-        this.render();
-    },
+    locationChange: Noop,
     /**
      * 初始化方法，供最终的view开发人员进行覆盖
      * @param {Object} extra 初始化时，外部传递的参数
@@ -531,7 +530,7 @@ Mix(Mix(View.prototype, Event), {
                 }
                 EvtInfoCache.set(info, m);
             }
-            var name = m.n + MxEvtSplit + e.st;
+            var name = m.n + Left + e.st + Right;
             var fn = me[name];
             if (fn) {
                 var tfn = WEvent[m.f];
@@ -559,7 +558,7 @@ Mix(Mix(View.prototype, Event), {
         var events = me.$evts;
         var vom = me.vom;
         for (var p in events) {
-            Body.act(p, vom, destroy);
+            Body.act(p, destroy, vom);
         }
     }
     /**

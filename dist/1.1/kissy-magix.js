@@ -1159,8 +1159,9 @@ var RootNode = document.body;
 var RootEvents = {};
 var MxEvtSplit = String.fromCharCode(26);
 
-var MxOwner = 'mx-owner';
 var MxIgnore = 'mx-ei';
+var MxOwner = 'mx-owner';
+
 var TypesRegCache = {};
 var IdCounter = 1 << 16;
 var On = 'on';
@@ -1186,103 +1187,97 @@ var Body = {
         Mix(DependLibEvents, events);
     },
     process: function(e) {
-
-        var target = e.target || e.srcElement;
-        while (target && target.nodeType != 1) {
-            target = target.parentNode;
-        }
-        var current = target;
-        var eventType = e.type;
-        var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(Comma + eventType + '(?:,|$)'));
-        //
-        if (!eventReg.test(GetSetAttribute(target, MxIgnore))) {
-            var type = 'mx-' + eventType;
-            var info;
-            var ignore;
-            var arr = [];
-            while (current && current != RootNode) { //找事件附近有mx[a-z]+事件的DOM节点
-                info = GetSetAttribute(current, type);
-                ignore = GetSetAttribute(current, MxIgnore); //current.getAttribute(MxIgnore);
-                if (info || eventReg.test(ignore)) {
-                    break;
-                } else {
-                    //
-                    arr.push(current);
-                    current = current.parentNode;
-                }
+        e = e || window.event;
+        if (e) {
+            var target = e.target || e.srcElement; //原生事件对象
+            var cTarget = e.currentTarget; //只处理类库(比如KISSY)处理后的currentTarget
+            if (cTarget && cTarget != RootNode) target = cTarget; //类库处理后代理事件的currentTarget并不是根节点
+            while (target && target.nodeType != 1) {
+                target = target.parentNode;
             }
-            if (info) { //有事件
-                //找处理事件的vframe
-                var vId;
-                var ts = info.split(MxEvtSplit);
-                if (ts.length > 1) {
-                    vId = ts[0];
-                    info = ts.pop();
-                }
-                var handler = GetSetAttribute(current, MxOwner) || vId; //current.getAttribute(MxOwner);
-                if (!handler) { //如果没有则找最近的vframe
-                    var begin = current;
-                    var vfs = VOM.all();
-                    while (begin && begin != RootNode) {
-                        if (Has(vfs, begin.id)) {
-                            GetSetAttribute(current, MxOwner, handler = begin.id);
-                            //current.setAttribute(MxOwner,handler=begin.id);
-                            break;
-                        }
-                        begin = begin.parentNode;
+            var current = target;
+            var eventType = e.type;
+            var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(Comma + eventType + '(?:,|$)'));
+            //
+            if (!eventReg.test(GetSetAttribute(target, MxIgnore))) {
+                var type = 'mx-' + eventType;
+                var info;
+                var ignore;
+                var arr = [];
+
+                while (current) { //找事件附近有mx[a-z]+事件的DOM节点
+                    info = GetSetAttribute(current, type);
+                    ignore = GetSetAttribute(current, MxIgnore); //current.getAttribute(MxIgnore);
+                    if (info || eventReg.test(ignore)) {
+                        break;
+                    } else {
+                        arr.push(current);
+                        current = current.parentNode;
                     }
                 }
-                if (handler) { //有处理的vframe,派发事件，让对应的vframe进行处理
+                if (info) { //有事件
+                    //找处理事件的vframe
+                    var vId;
+                    var ts = info.split(MxEvtSplit);
+                    if (ts.length > 1) {
+                        vId = ts[0];
+                        info = ts.pop();
+                    }
+                    vId = vId || GetSetAttribute(current, MxOwner);
+                    if (!vId) { //如果没有则找最近的vframe
+                        var begin = current;
+                        var vfs = VOM.all();
+                        while (begin) {
+                            if (Has(vfs, begin.id)) {
+                                GetSetAttribute(current, MxOwner, vId = begin.id);
+                                break;
+                            }
+                            begin = begin.parentNode;
+                        }
+                    }
+                    if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
 
-                    var vframe = VOM.get(handler);
-                    var view = vframe && vframe.view;
-                    if (view) {
-                        view.processEvent({
-                            info: info,
-                            se: e,
-                            st: eventType,
-                            tId: IdIt(target),
-                            cId: IdIt(current)
-                        });
+                        var vframe = VOM.get(vId);
+                        var view = vframe && vframe.view;
+                        if (view) {
+                            view.processEvent({
+                                info: info,
+                                se: e,
+                                st: eventType,
+                                tId: IdIt(target),
+                                cId: IdIt(current)
+                            });
+                        }
+                    } else {
+                        throw Error('bad:' + info);
                     }
                 } else {
-                    throw Error('miss ' + MxOwner + ':' + info);
-                }
-            } else {
-                var node;
-                while (arr.length) {
-                    node = arr.shift();
-                    ignore = GetSetAttribute(node, MxIgnore) || On; //node.getAttribute(MxIgnore);
-                    if (!eventReg.test(ignore)) {
-                        ignore = ignore + Comma + eventType;
-                        GetSetAttribute(node, MxIgnore, ignore);
-                        //node.setAttribute(MxIgnore,ignore);
+                    var node;
+                    while (arr.length) {
+                        node = arr.shift();
+                        ignore = GetSetAttribute(node, MxIgnore) || On;
+                        if (!eventReg.test(ignore)) {
+                            ignore = ignore + Comma + eventType;
+                            GetSetAttribute(node, MxIgnore, ignore);
+                        }
                     }
                 }
             }
         }
     },
-    act: function(type, vom, remove) {
-        var me = this;
+    act: function(type, remove, vom) {
         var counter = RootEvents[type] || 0;
         var step = counter > 0 ? 1 : 0;
-
         counter += remove ? -step : step;
-
         if (!counter) {
             if (vom) {
                 VOM = vom;
             }
             var lib = DependLibEvents[type];
             if (lib) {
-                me.lib(remove, RootNode, type);
+                Body.lib(RootNode, type, remove, Body.process);
             } else {
-                RootNode[On + type] = remove ? null : function(e) {
-                    e = e || window.event;
-                    if (e) {
-                        me.process(e);
-                    }
-                };
+                RootNode[On + type] = remove ? null : Body.process;
             }
             if (!remove) {
                 counter = 1;
@@ -1291,13 +1286,26 @@ var Body = {
         RootEvents[type] = counter;
     }
 };
-    Body.lib = function(remove, node, type) {
+    var Unbubbles = {
+        focusin: 1,
+        focusout: 1,
+        mouseenter: 2,
+        mouseleave: 2,
+        mousewheel: 1
+    };
+    Body.special(Unbubbles);
+    Body.lib = function(node, type, remove, cb) {
         S.use('event', function(S, SE) {
-            var fn = remove ? SE.undelegate : SE.delegate;
-            fn.call(SE, node, type, '[mx-' + type + ']', Body.process);
+            var flag = Unbubbles[type];
+            if (flag == 1) {
+                flag = remove ? 'detach' : 'on';
+                SE[flag](node, type, cb);
+            } else {
+                flag = (remove ? 'un' : '') + 'delegate';
+                SE[flag](node, type, '[mx-' + type + ']', cb);
+            }
         });
     };
-    Body.special(Magix.listToMap('focusin,focusout,mouseenter,mouseleave,mousewheel'));
     return Body;
 }, {
     requires: ['magix/magix']
@@ -2049,7 +2057,8 @@ var WrapFn = function(fn) {
 };
 
 var EvtInfoCache = Magix.cache(40);
-
+var Left = '<';
+var Right = '>';
 
 var MxEvt = /\smx-(?!view|defer|owner|vframe)[a-z]+\s*=\s*"/g;
 var MxEvtSplit = String.fromCharCode(26);
@@ -2153,7 +2162,7 @@ View.prepare = function(oView) {
                     for (idx = evts.length - 1; idx > -1; idx--) {
                         temp = evts[idx];
                         revts[temp] = 1;
-                        prop[name + MxEvtSplit + temp] = old;
+                        prop[name + Left + temp + Right] = old;
                     }
                 } else if (p == 'render' && old != Noop) {
                     prop[p] = WrapFn(old);
@@ -2246,9 +2255,7 @@ Mix(Mix(View.prototype, Event), {
      *     //...
      * }
      */
-    locationChange: function() {
-        this.render();
-    },
+    locationChange: Noop,
     /**
      * 初始化方法，供最终的view开发人员进行覆盖
      * @param {Object} extra 初始化时，外部传递的参数
@@ -2554,7 +2561,7 @@ Mix(Mix(View.prototype, Event), {
                 }
                 EvtInfoCache.set(info, m);
             }
-            var name = m.n + MxEvtSplit + e.st;
+            var name = m.n + Left + e.st + Right;
             var fn = me[name];
             if (fn) {
                 var tfn = WEvent[m.f];
@@ -2582,7 +2589,7 @@ Mix(Mix(View.prototype, Event), {
         var events = me.$evts;
         var vom = me.vom;
         for (var p in events) {
-            Body.act(p, vom, destroy);
+            Body.act(p, destroy, vom);
         }
     }
     /**

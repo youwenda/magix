@@ -4,7 +4,6 @@
  * @version 1.0
  **/
 define("magix/body", ["magix/magix"], function(require) {
-    //todo dom event and sizzle
     var Magix = require("magix/magix");
     var Has = Magix.has;
 var Mix = Magix.mix;
@@ -14,8 +13,9 @@ var RootNode = document.body;
 var RootEvents = {};
 var MxEvtSplit = String.fromCharCode(26);
 
-var MxOwner = 'mx-owner';
 var MxIgnore = 'mx-ei';
+var MxOwner = 'mx-owner';
+
 var TypesRegCache = {};
 var IdCounter = 1 << 16;
 var On = 'on';
@@ -41,103 +41,97 @@ var Body = {
         Mix(DependLibEvents, events);
     },
     process: function(e) {
-
-        var target = e.target || e.srcElement;
-        while (target && target.nodeType != 1) {
-            target = target.parentNode;
-        }
-        var current = target;
-        var eventType = e.type;
-        var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(Comma + eventType + '(?:,|$)'));
-        //
-        if (!eventReg.test(GetSetAttribute(target, MxIgnore))) {
-            var type = 'mx-' + eventType;
-            var info;
-            var ignore;
-            var arr = [];
-            while (current && current != RootNode) { //找事件附近有mx[a-z]+事件的DOM节点
-                info = GetSetAttribute(current, type);
-                ignore = GetSetAttribute(current, MxIgnore); //current.getAttribute(MxIgnore);
-                if (info || eventReg.test(ignore)) {
-                    break;
-                } else {
-                    //
-                    arr.push(current);
-                    current = current.parentNode;
-                }
+        e = e || window.event;
+        if (e) {
+            var target = e.target || e.srcElement; //原生事件对象
+            var cTarget = e.currentTarget; //只处理类库(比如KISSY)处理后的currentTarget
+            if (cTarget && cTarget != RootNode) target = cTarget; //类库处理后代理事件的currentTarget并不是根节点
+            while (target && target.nodeType != 1) {
+                target = target.parentNode;
             }
-            if (info) { //有事件
-                //找处理事件的vframe
-                var vId;
-                var ts = info.split(MxEvtSplit);
-                if (ts.length > 1) {
-                    vId = ts[0];
-                    info = ts.pop();
-                }
-                var handler = GetSetAttribute(current, MxOwner) || vId; //current.getAttribute(MxOwner);
-                if (!handler) { //如果没有则找最近的vframe
-                    var begin = current;
-                    var vfs = VOM.all();
-                    while (begin && begin != RootNode) {
-                        if (Has(vfs, begin.id)) {
-                            GetSetAttribute(current, MxOwner, handler = begin.id);
-                            //current.setAttribute(MxOwner,handler=begin.id);
-                            break;
-                        }
-                        begin = begin.parentNode;
+            var current = target;
+            var eventType = e.type;
+            var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(Comma + eventType + '(?:,|$)'));
+            //
+            if (!eventReg.test(GetSetAttribute(target, MxIgnore))) {
+                var type = 'mx-' + eventType;
+                var info;
+                var ignore;
+                var arr = [];
+
+                while (current) { //找事件附近有mx[a-z]+事件的DOM节点
+                    info = GetSetAttribute(current, type);
+                    ignore = GetSetAttribute(current, MxIgnore); //current.getAttribute(MxIgnore);
+                    if (info || eventReg.test(ignore)) {
+                        break;
+                    } else {
+                        arr.push(current);
+                        current = current.parentNode;
                     }
                 }
-                if (handler) { //有处理的vframe,派发事件，让对应的vframe进行处理
+                if (info) { //有事件
+                    //找处理事件的vframe
+                    var vId;
+                    var ts = info.split(MxEvtSplit);
+                    if (ts.length > 1) {
+                        vId = ts[0];
+                        info = ts.pop();
+                    }
+                    vId = vId || GetSetAttribute(current, MxOwner);
+                    if (!vId) { //如果没有则找最近的vframe
+                        var begin = current;
+                        var vfs = VOM.all();
+                        while (begin) {
+                            if (Has(vfs, begin.id)) {
+                                GetSetAttribute(current, MxOwner, vId = begin.id);
+                                break;
+                            }
+                            begin = begin.parentNode;
+                        }
+                    }
+                    if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
 
-                    var vframe = VOM.get(handler);
-                    var view = vframe && vframe.view;
-                    if (view) {
-                        view.processEvent({
-                            info: info,
-                            se: e,
-                            st: eventType,
-                            tId: IdIt(target),
-                            cId: IdIt(current)
-                        });
+                        var vframe = VOM.get(vId);
+                        var view = vframe && vframe.view;
+                        if (view) {
+                            view.processEvent({
+                                info: info,
+                                se: e,
+                                st: eventType,
+                                tId: IdIt(target),
+                                cId: IdIt(current)
+                            });
+                        }
+                    } else {
+                        throw Error('bad:' + info);
                     }
                 } else {
-                    throw Error('miss ' + MxOwner + ':' + info);
-                }
-            } else {
-                var node;
-                while (arr.length) {
-                    node = arr.shift();
-                    ignore = GetSetAttribute(node, MxIgnore) || On; //node.getAttribute(MxIgnore);
-                    if (!eventReg.test(ignore)) {
-                        ignore = ignore + Comma + eventType;
-                        GetSetAttribute(node, MxIgnore, ignore);
-                        //node.setAttribute(MxIgnore,ignore);
+                    var node;
+                    while (arr.length) {
+                        node = arr.shift();
+                        ignore = GetSetAttribute(node, MxIgnore) || On;
+                        if (!eventReg.test(ignore)) {
+                            ignore = ignore + Comma + eventType;
+                            GetSetAttribute(node, MxIgnore, ignore);
+                        }
                     }
                 }
             }
         }
     },
-    act: function(type, vom, remove) {
-        var me = this;
+    act: function(type, remove, vom) {
         var counter = RootEvents[type] || 0;
         var step = counter > 0 ? 1 : 0;
-
         counter += remove ? -step : step;
-
         if (!counter) {
             if (vom) {
                 VOM = vom;
             }
             var lib = DependLibEvents[type];
             if (lib) {
-                me.lib(remove, RootNode, type);
+                Body.lib(RootNode, type, remove, Body.process);
             } else {
-                RootNode[On + type] = remove ? null : function(e) {
-                    e = e || window.event;
-                    if (e) {
-                        me.process(e);
-                    }
-                };
+                RootNode[On + type] = remove ? null : Body.process;
             }
             if (!remove) {
                 counter = 1;
@@ -146,10 +140,15 @@ var Body = {
         RootEvents[type] = counter;
     }
 };
-    Body.lib = function(remove, node, type) {
-        var fn = remove ? 'undelegate' : 'delegate';
-        $(node)[fn]('[mx-' + type + ']', type, Body.process);
+    var Unbubbles = {
+        focus: 2,
+        blur: 2,
+        mouseenter: 2,
+        mouseleave: 2
     };
-    Body.special(Magix.listToMap('focusin,focusout,mouseenter,mouseleave,mousewheel'));
+    Body.special(Unbubbles);
+    Body.lib = function(node, type, remove, cb) {
+        $(node)[(remove ? 'un' : '') + 'delegate']('[mx-' + type + ']', type, cb);
+    };
     return Body;
 });

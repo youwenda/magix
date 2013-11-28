@@ -5,13 +5,26 @@
  **/
 KISSY.add('magix/body', function(S, Magix) {
     eval(Magix.include('../tmpl/body'));
-    Body.lib = function(remove, node, type) {
+    var Unbubbles = {
+        focusin: 1,
+        focusout: 1,
+        mouseenter: 2,
+        mouseleave: 2,
+        mousewheel: 1
+    };
+    Body.special(Unbubbles);
+    Body.lib = function(node, type, remove, cb) {
         S.use('event', function(S, SE) {
-            var fn = remove ? SE.undelegate : SE.delegate;
-            fn.call(SE, node, type, '[mx-' + type + ']', Body.process);
+            var flag = Unbubbles[type];
+            if (flag == 1) {
+                flag = remove ? 'detach' : 'on';
+                SE[flag](node, type, cb);
+            } else {
+                flag = (remove ? 'un' : '') + 'delegate';
+                SE[flag](node, type, '[mx-' + type + ']', cb);
+            }
         });
     };
-    Body.special(Magix.listToMap('focusin,focusout,mouseenter,mouseleave,mousewheel'));
     return Body;
 }, {
     requires: ['magix/magix']

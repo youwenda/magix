@@ -4,13 +4,17 @@
  * @version 1.0
  **/
 define("magix/body", ["magix/magix"], function(require) {
-    //todo dom event and sizzle
     var Magix = require("magix/magix");
     eval(Magix.include('../tmpl/body'));
-    Body.lib = function(remove, node, type) {
-        var fn = remove ? 'undelegate' : 'delegate';
-        $(node)[fn]('[mx-' + type + ']', type, Body.process);
+    var Unbubbles = {
+        focus: 2,
+        blur: 2,
+        mouseenter: 2,
+        mouseleave: 2
     };
-    Body.special(Magix.listToMap('focusin,focusout,mouseenter,mouseleave,mousewheel'));
+    Body.special(Unbubbles);
+    Body.lib = function(node, type, remove, cb) {
+        $(node)[(remove ? 'un' : '') + 'delegate']('[mx-' + type + ']', type, cb);
+    };
     return Body;
 });
