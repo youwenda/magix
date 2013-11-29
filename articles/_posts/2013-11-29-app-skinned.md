@@ -124,7 +124,7 @@ KISSY.add('app/views/default-skin2-tmpl',function(){
 
 是否是开发还是上线，是使用xhr获取html文件还是用script标签加载模板js文件，在程序内部很难识别出来，所以我们在`Magix.start`中增加一个新的配置项`release`来帮助我们确定使用哪种
 
-```javascipt
+```javascript
 Magix.start({
     release:false//true or false
 });
