@@ -6,6 +6,7 @@ script: assets/post.js
 <div id="page">
   <div id="content">
     <div id="content-wrap">
+      {% include ceiling.html %}
       <article>
         <h1>{{ page.title }}</h1>
         <div class="authors">
@@ -17,16 +18,16 @@ script: assets/post.js
         </div>
         {{ content }}
       </article>
-      <!-- Duoshuo Comment BEGIN -->
-      <div class="ds-thread"></div>
-      <!-- Duoshuo Comment END -->
+      {% include duoshuo.html %}
+      {% include footer.html %}
     </div>
   </div>
-  <div id="aside">
+  <div id="nav">
     <a href="javascript:void(0)" class="toggler" id="J_toggler">
-      <i class="iconfont">&#271;</i> 导航
+      <i class="iconfont">&#271;</i>
+      <span class="label">导航</span>
     </a>
-    <a href="{{ site.baseurl }}/" class="logo"><i class="iconfont">&#532;</i>Magix</a>
+    <a href="{{ site.baseurl }}/" class="logo"><i class="iconfont">&#61551;</i>Magix</a>
     <ul class="categories">
       <li>
         <a href="http://thx.github.io/magix-api/" target="_blank" class="entry">

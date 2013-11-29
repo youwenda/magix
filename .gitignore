@@ -11,3 +11,5 @@ _site
 
 # Sublime Project files
 *.sublime-*
+
+node_modules
