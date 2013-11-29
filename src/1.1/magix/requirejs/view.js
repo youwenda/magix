@@ -22,23 +22,23 @@ define('magix/view', ["magix/magix", "magix/event", "magix/body"], function(Magi
 
 
     var Tmpls = {}, Locker = {};
-    View.prototype.fetchTmpl = function(fn) {
+    View.prototype.fetchTmpl = function(path, fn) {
         var me = this;
         var hasTemplate = 'template' in me;
         if (!hasTemplate) {
-            if (Has(Tmpls, me.path)) {
-                fn(Tmpls[me.path]);
+            if (Has(Tmpls, path)) {
+                fn(Tmpls[path]);
             } else {
-                var idx = me.path.indexOf('/');
+                var idx = path.indexOf('/');
                 if (!AppRoot) {
-                    var name = me.path.substring(0, idx);
+                    var name = path.substring(0, idx);
                     AppRoot = require.s.contexts._.config.paths[name];
                 }
-                var path = me.path.substring(idx + 1);
+                path = path.substring(idx + 1);
                 var file = AppRoot + path + '.html';
                 var l = Locker[file];
                 var onload = function(tmpl) {
-                    fn(Tmpls[me.path] = tmpl);
+                    fn(Tmpls[path] = tmpl);
                 };
                 if (l) {
                     l.push(onload);

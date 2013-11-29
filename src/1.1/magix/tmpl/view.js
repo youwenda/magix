@@ -255,7 +255,7 @@ Mix(Mix(View.prototype, Event), {
         var sign = me.sign;
         // var tmplReady = Has(me, 'template');
         var ready = function(tmpl) {
-            if (sign == me.sign) {
+            if (sign > 0 && sign == me.sign) {
                 //if (!tmplReady) {
                 me.template = me.wrapMxEvent(tmpl);
                 // }
@@ -283,7 +283,7 @@ Mix(Mix(View.prototype, Event), {
             }
         };
         if (hasTmpl) {
-            me.fetchTmpl(ready);
+            me.fetchTmpl(me.path, ready);
         } else {
             ready();
         }

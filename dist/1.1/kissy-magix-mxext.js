@@ -2322,7 +2322,7 @@ Mix(Mix(View.prototype, Event), {
             }
         };
         if (hasTmpl) {
-            me.fetchTmpl(ready);
+            me.fetchTmpl(me.path, ready);
         } else {
             ready();
         }
@@ -2872,26 +2872,25 @@ Mix(Mix(View.prototype, Event), {
     };*/
 
     var Tmpls = {}, Locker = {};
-    View.prototype.fetchTmpl = function(fn) {
+    View.prototype.fetchTmpl = function(path, fn) {
         var me = this;
         var hasTemplate = 'template' in me;
         if (!hasTemplate) {
-            if (Has(Tmpls, me.path)) {
-                fn(Tmpls[me.path]);
+            if (Has(Tmpls, path)) {
+                fn(Tmpls[path]);
             } else {
                 if (!AppRoot) {
-                    var name = me.path.substring(0, me.path.indexOf('/'));
+                    var name = path.substring(0, path.indexOf('/'));
                     AppInfo = S.Config.packages[name];
                     AppRoot = AppInfo.base || AppInfo.path;
                 }
-                var path = me.path;
                 if (AppInfo.ignorePackageNameInUri) {
                     path = path.replace(AppInfo.name, '');
                 }
                 var file = AppRoot + path + '.html';
                 var l = Locker[file];
                 var onload = function(tmpl) {
-                    fn(Tmpls[me.path] = tmpl);
+                    fn(Tmpls[path] = tmpl);
                 };
                 if (l) {
                     l.push(onload);
