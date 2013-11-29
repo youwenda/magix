@@ -126,7 +126,7 @@ KISSY.add('app/views/default-skin2-tmpl',function(){
 
 ```javascipt
 Magix.start({
-    release:{{release}}//true or false
+    release:false//true or false
 });
 ```
 
