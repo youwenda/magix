@@ -25,6 +25,7 @@ var ProtocalReg = /^https?:\/\//i;
 var CacheLatest = 0;
 var Slash = '/';
 var DefaultTagName = 'vframe';
+var Newline = '\n';
 /**
 待重写的方法
 @method imimpl
@@ -470,7 +471,7 @@ var Magix = {
      * http://www.a.com/a/b.html?a=b#!/home?e=f   ./../  => http://www.a.com/
      */
     path: function(url, part) {
-        var key = url + '\n' + part;
+        var key = url + Newline + part;
         var result = PathCache.get(key);
         if (!result) {
             if (ProtocalReg.test(part)) {
@@ -519,7 +520,8 @@ var Magix = {
         //6. /xxx/#           => pathname /xxx/
         //7. a=b&c=d          => pathname ''
         //8. /s?src=b#        => pathname /s params:{src:'b'}
-        var r = PathToObjCache.get(path);
+        var key = path + Newline + decode;
+        var r = PathToObjCache.get(key);
         if (!r) {
             r = {};
             var params = {};
@@ -553,7 +555,7 @@ var Magix = {
             });
             r[PATHNAME] = pathname;
             r.params = params;
-            PathToObjCache.set(path, r);
+            PathToObjCache.set(key, r);
         }
         return r;
     },
@@ -1204,7 +1206,7 @@ var Body = {
     process: function(e) {
         e = e || window.event;
         if (e && !e[On]) {
-            var target = e.target || e.srcElement; //原生事件对象
+            var target = e.target || e.srcElement || RootNode; //原生事件对象Cordova没有target对象
             e[On] = 1;
             //var cTarget = e.currentTarget; //只处理类库(比如KISSY)处理后的currentTarget
             //if (cTarget && cTarget != RootNode) target = cTarget; //类库处理后代理事件的currentTarget并不是根节点
@@ -1310,7 +1312,12 @@ var Body = {
     };
     Body.special(Unbubbles);
     Body.lib = function(node, type, remove, cb) {
-        $(node)[(remove ? 'un' : '') + 'delegate']('[mx-' + type + ']', type, cb);
+        var flag = Unbubbles[type];
+        if (flag == 1) {
+            $(node)[remove ? 'off' : 'on'](type, cb);
+        } else {
+            $(node)[(remove ? 'un' : '') + 'delegate']('[mx-' + type + ']', type, cb);
+        }
     };
     return Body;
 });
@@ -2300,7 +2307,7 @@ Mix(Mix(View.prototype, Event), {
         var sign = me.sign;
         // var tmplReady = Has(me, 'template');
         var ready = function(tmpl) {
-            if (sign == me.sign) {
+            if (sign > 0 && sign == me.sign) {
                 //if (!tmplReady) {
                 me.template = me.wrapMxEvent(tmpl);
                 // }
@@ -4580,6 +4587,13 @@ var MxView = View.extend({
         me.on('prerender', me.destroyManaged);
         me.on('destroy', me.destroyManaged);
     });
+    SafeExec(MxView.ms, arguments, me);
+}, {
+    ms: [],
+    mixin: function(props, ctor) {
+        if (ctor) MxView.ms.push(ctor);
+        Magix.mix(MxView.prototype, props);
+    }
 });
 /**
  * view销毁托管资源时发生

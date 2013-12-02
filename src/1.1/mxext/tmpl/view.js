@@ -178,6 +178,13 @@ var MxView = View.extend({
         me.on('prerender', me.destroyManaged);
         me.on('destroy', me.destroyManaged);
     });
+    SafeExec(MxView.ms, arguments, me);
+}, {
+    ms: [],
+    mixin: function(props, ctor) {
+        if (ctor) MxView.ms.push(ctor);
+        Magix.mix(MxView.prototype, props);
+    }
 });
 /**
  * view销毁托管资源时发生

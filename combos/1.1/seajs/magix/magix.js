@@ -25,6 +25,7 @@ var ProtocalReg = /^https?:\/\//i;
 var CacheLatest = 0;
 var Slash = '/';
 var DefaultTagName = 'vframe';
+var Newline = '\n';
 /**
 待重写的方法
 @method imimpl
@@ -470,7 +471,7 @@ var Magix = {
      * http://www.a.com/a/b.html?a=b#!/home?e=f   ./../  => http://www.a.com/
      */
     path: function(url, part) {
-        var key = url + '\n' + part;
+        var key = url + Newline + part;
         var result = PathCache.get(key);
         if (!result) {
             if (ProtocalReg.test(part)) {
@@ -519,7 +520,8 @@ var Magix = {
         //6. /xxx/#           => pathname /xxx/
         //7. a=b&c=d          => pathname ''
         //8. /s?src=b#        => pathname /s params:{src:'b'}
-        var r = PathToObjCache.get(path);
+        var key = path + Newline + decode;
+        var r = PathToObjCache.get(key);
         if (!r) {
             r = {};
             var params = {};
@@ -553,7 +555,7 @@ var Magix = {
             });
             r[PATHNAME] = pathname;
             r.params = params;
-            PathToObjCache.set(path, r);
+            PathToObjCache.set(key, r);
         }
         return r;
     },

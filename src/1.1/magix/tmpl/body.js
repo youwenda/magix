@@ -36,7 +36,7 @@ var Body = {
     process: function(e) {
         e = e || window.event;
         if (e && !e[On]) {
-            var target = e.target || e.srcElement; //原生事件对象
+            var target = e.target || e.srcElement || RootNode; //原生事件对象Cordova没有target对象
             e[On] = 1;
             //var cTarget = e.currentTarget; //只处理类库(比如KISSY)处理后的currentTarget
             //if (cTarget && cTarget != RootNode) target = cTarget; //类库处理后代理事件的currentTarget并不是根节点

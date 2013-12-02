@@ -14,7 +14,12 @@ define("magix/body", ["magix/magix"], function(require) {
     };
     Body.special(Unbubbles);
     Body.lib = function(node, type, remove, cb) {
-        $(node)[(remove ? 'un' : '') + 'delegate']('[mx-' + type + ']', type, cb);
+        var flag = Unbubbles[type];
+        if (flag == 1) {
+            $(node)[remove ? 'off' : 'on'](type, cb);
+        } else {
+            $(node)[(remove ? 'un' : '') + 'delegate']('[mx-' + type + ']', type, cb);
+        }
     };
     return Body;
 });
