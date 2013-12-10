@@ -40,86 +40,70 @@
         new ComTest('#testRoot');
  */
 KISSY.add('exts/comsbase', function(S, View, Body, Magix, VOM) {
-    var EvtMethodReg = /([^<>]+)<([\w,]+)>/;
-    var CacheObj = {};
+    var Mix = Magix.mix;
+    var EvtMethodReg = /([^<>]+)<([\w]+)>/;
+
+    var Caches = {
+        counter: {},
+        entities: {}
+    };
     var Encode = encodeURIComponent;
     var Decode = decodeURIComponent;
-    var magixRootId = Magix.config('rootId');
+    var MagixRootId = Magix.config('rootId');
 
+    /**
+     * 扩展到view原型上的方法，辅助组件事件的调整
+     */
     var ViewEventFn = function(e) {
         var params = e.params;
-        var c = CacheObj[params.cId];
-        if (c) {
-            var entity = c.get(params.eId);
-            if (entity) {
-                var fn = entity[Decode(params.selector) + '<' + params.evt + '>'];
-                if (fn) {
-                    fn.call(entity, e);
-                }
+        var entity = Caches.entities[params.eId];
+
+        if (entity) {
+            var fn = entity[Decode(params.src)];
+            if (fn) {
+                fn.call(entity, e);
             }
         }
     };
-    var Cache = function() {
-        var me = this;
-        me.$count = 0;
-        me.$cache = {};
-        me.id = S.guid('ccache');
-        CacheObj[me.id] = me;
-    };
-    Cache.prototype.add = function(entity) {
-        var me = this;
-        if (!me.$count) {
-            var o = {};
-            var root = S.one(entity.get('root'));
-            for (var p in entity) {
-                var ms = p.match(EvtMethodReg);
-                if (ms) {
-                    var selector = ms[1];
-                    var evt = ms[2];
-                    var key = '__coms_' + entity.name + '_evts';
-                    var val = key + '{eId:' + entity.id + ',evt:' + evt + ',selector:' + Encode(selector) + ',cId:' + me.id + '}';
+    /**
+     * 扩展方法到view的原型上
+     * @param {Base} entity  组件对象
+     * @param {Strig} name    组件名称
+     * @param {Boolean} _delete 是否删除，内部调用时使用
+     */
+    var AttachView = function(entity, name, _delete) {
+        var o = {};
+        for (var p in entity) {
+            var ms = p.match(EvtMethodReg);
+            if (ms) {
+                var evt = ms[2];
+                var key = '__coms_' + name + '_evts';
+                if (_delete) {
+                    delete View.prototype[key + '<' + evt + '>'];
+                } else {
                     o[key + '<' + evt + '>'] = ViewEventFn;
-                    Body.act(evt, false, VOM);
-                    if (selector.charAt(0) == '$') {
-                        var node = S.one(entity.get(selector.substring(1)));
-                        if (node) {
-                            node.attr('mx-' + evt, val).attr('mx-owner', magixRootId);
-                        }
-                    } else if (root) {
-                        root.all(selector).attr('mx-' + evt, val).attr('mx-owner', magixRootId);
-                    }
                 }
+                Body.act(evt, _delete, VOM);
             }
+        }
+        if (!_delete) {
             View.mixin(o);
         }
-        me.$cache[entity.id] = entity;
-        me.$count++;
     };
-    Cache.prototype.remove = function(entity) {
-        var me = this;
-        delete me.$cache[entity.id];
-        me.$count--;
-        if (!me.$count) {
-            for (var p in entity) {
-                var ms = p.match(EvtMethodReg);
-                if (ms) {
-                    var evt = ms[2];
-                    var key = '__coms_' + entity.name + '_evts';
-                    delete View.prototype[key + '<' + evt + '>'];
-                    Body.act(evt, true, VOM);
-                }
-            }
-        }
-    };
-    Cache.prototype.get = function(id) {
-        var c = this.$cache;
-        return c[id];
+    /**
+     * 从view原型上删除事件辅助方法
+     * @param {Base} entity  组件对象
+     * @param {Strig} name    组件名称
+     */
+    var DetachView = function(entity, name) {
+        AttachView(entity, name, true);
     };
 
     //组件base
     var Base = function(ops) {
         var me = this;
-        me.id = S.guid('coms');
+        me.id = S.guid('com');
+        Caches.entities[me.id] = me;
         me.$attrs = {
             root: document.body
         };
@@ -127,48 +111,112 @@ KISSY.add('exts/comsbase', function(S, View, Body, Magix, VOM) {
     };
     Base.extend = function(props, ctor, statics) {
         var me = this;
-        if (!props) props = {};
-        if (!props.name) props.name = S.guid('cname');
-        var cache = new Cache();
         var Coms = function() {
             var me = this;
+            var name = Coms.xname;
+            var counter = Caches.counter;
             Coms.superclass.constructor.apply(me, arguments);
             if (ctor) {
                 ctor.apply(me, arguments);
             }
-            cache.add(me);
+            if (!counter[name]) {
+                counter[name] = 0;
+                AttachView(me, name);
+            }
+            counter[name]++;
+            me.attachAttrs();
         };
-        Coms.$cache = cache;
+        Coms.xname = S.guid('cname');
         Coms.extend = me.extend;
         return S.extend(Coms, me, props, statics);
     };
-    Base.prototype.destroy = function() {
-        var me = this;
-        var cache = me.constructor.$cache;
-        if (cache) {
-            cache.remove(me);
-        }
-    };
-    Base.prototype.set = function(key, val) {
-        var me = this;
-        var attrs = me.$attrs;
-        if (S.isObject(key)) {
-            for (var p in key) {
-                attrs[p] = key[p];
+    Mix(Base.prototype, {
+        /**
+         * 设置属性
+         * @param {String|Object} key 对象或字符串
+         * @param {Object} val 任意值
+         */
+        set: function(key, val) {
+            var me = this;
+            var attrs = me.$attrs;
+            if (S.isObject(key)) {
+                for (var p in key) {
+                    attrs[p] = key[p];
+                }
+            } else {
+                attrs[key] = val;
             }
-        } else {
-            attrs[key] = val;
+        },
+        /**
+         * 获取属性
+         * @param  {String} key 根据key获取对应的属性值
+         * @return {Object}
+         */
+        get: function(key) {
+            var me = this;
+            var attrs = me.$attrs;
+            var len = arguments.length;
+            if (len) {
+                return attrs[key];
+            }
+            return attrs;
+        },
+        /**
+         * 向DOM添加属性
+         * @param  {String} zone    DOM区域id
+         * @param  {Boolean} _delete 是否是删除添加的属性
+         */
+        attachAttrs: function(zone, _delete) {
+            var me = this;
+            if (!zone) {
+                zone = me.get('root');
+            }
+            var root = S.one(zone);
+            var name = me.constructor.xname;
+            var action = _delete ? 'removeAttr' : 'attr';
+            if (root) {
+                if (!_delete) {
+                    root.all('[mx-ei]').removeAttr('mx-ei');
+                }
+                for (var p in me) {
+                    var ms = p.match(EvtMethodReg);
+                    if (ms) {
+                        var selector = ms[1];
+                        var evt = ms[2];
+                        var key = '__coms_' + name + '_evts';
+                        var val = key + '{eId:' + me.id + ',src:' + Encode(p) + '}';
+
+                        if (selector.charAt(0) == '$') {
+                            selector = me.get(selector.substring(1));
+                        }
+                        root.all(selector)[action]('mx-' + evt, val)[action]('mx-owner', MagixRootId);
+                    }
+                }
+            }
+        },
+        /**
+         * 删除添加的属性
+         * @param  {String} zone    DOM区域id
+         */
+        detachAttrs: function(zone) {
+            this.attachAttrs(zone, true);
+        },
+        /**
+         * 销毁组件
+         */
+        destroy: function() {
+            var me = this;
+            var name = me.constructor.xname;
+            var counter = Caches.counter[name];
+            delete Caches.entities[me.id];
+            if (counter > 0) {
+                Caches.counter[name]--;
+                if (counter == 1) {
+                    DetachView(me, name);
+                }
+            }
         }
-    };
-    Base.prototype.get = function(key) {
-        var me = this;
-        var attrs = me.$attrs;
-        var len = arguments.length;
-        if (len) {
-            return attrs[key];
-        }
-        return attrs;
-    };
+    });
     return Base;
 }, {
     requires: ['magix/view', 'magix/body', 'magix/magix', 'magix/vom', 'node']

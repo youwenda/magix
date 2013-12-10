@@ -16,6 +16,9 @@ KISSY.add('apiapp/mviews/partials/header', function(S, View, Crox, MM, Magix) {
             var html = Crox.render(me.template, data);
             me.setViewHTML(html);
         },
+        locationChange: function() {
+            this.render();
+        },
         render: function() {
             var me = this;
             var loc = me.location;

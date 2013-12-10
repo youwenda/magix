@@ -2575,7 +2575,7 @@ Mix(Mix(View.prototype, Event), {
                     currentId: e.cId,
                     targetId: e.tId,
                     type: e.st,
-                    domEvent: domEvent,
+                    srcEvent: domEvent,
                     params: m.p
                 }, WEvent), me);
             }
