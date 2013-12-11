@@ -38,20 +38,12 @@ var MxEvtSplit = String.fromCharCode(26);
 
 var WEvent = {
     prevent: function(e) {
-        e = e || this.domEvent;
-        if (e.preventDefault) {
-            e.preventDefault();
-        } else {
-            e.returnValue = false;
-        }
+        e = e || this.srcEvent;
+        e.preventDefault();
     },
     stop: function(e) {
-        e = e || this.domEvent;
-        if (e.stopPropagation) {
-            e.stopPropagation();
-        } else {
-            e.cancelBubble = true;
-        }
+        e = e || this.srcEvent;
+        e.stopPropagation();
     },
     halt: function(e) {
         this.prevent(e);
@@ -540,13 +532,16 @@ Mix(Mix(View.prototype, Event), {
                 if (tfn) {
                     tfn.call(WEvent, domEvent);
                 }
-                SafeExec(fn, Mix({
+                SafeExec(fn, {
                     currentId: e.cId,
                     targetId: e.tId,
                     type: e.st,
                     srcEvent: domEvent,
+                    halt: WEvent.halt,
+                    prevent: WEvent.prevent,
+                    stop: WEvent.stop,
                     params: m.p
-                }, WEvent), me);
+                }, me);
             }
         }
     },

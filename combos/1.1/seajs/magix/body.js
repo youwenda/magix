@@ -15,6 +15,9 @@ var MxEvtSplit = String.fromCharCode(26);
 
 var MxIgnore = 'mx-ei';
 var MxOwner = 'mx-owner';
+var AddEvent = 'addEventListener';
+var RemoveEvent = 'removeEventListener';
+var W3C = RootNode[AddEvent];
 
 var TypesRegCache = {};
 var IdCounter = 1 << 16;
@@ -33,6 +36,12 @@ var GetSetAttribute = function(dom, attrKey, attrVal) {
         }
     }
     return attrVal;
+};
+var PreventDefault = function() {
+    this.returnValue = false;
+};
+var StopPropagation = function() {
+    this.cancelBubble = true;
 };
 var VOM;
 var Body = {
@@ -95,6 +104,10 @@ var Body = {
                         var vframe = VOM.get(vId);
                         var view = vframe && vframe.view;
                         if (view) {
+                            if (!W3C) {
+                                e.preventDefault = PreventDefault;
+                                e.stopPropagation = StopPropagation;
+                            }
                             view.processEvent({
                                 info: info,
                                 se: e,
@@ -123,6 +136,7 @@ var Body = {
     act: function(type, remove, vom) {
         var counter = RootEvents[type] || 0;
         var step = counter > 0 ? 1 : 0;
+        var fn = Body.process;
         counter += remove ? -step : step;
         if (!counter) {
             if (vom) {
@@ -130,9 +144,11 @@ var Body = {
             }
             var lib = DependLibEvents[type];
             if (lib) {
-                Body.lib(RootNode, type, remove, Body.process);
+                Body.lib(RootNode, type, remove, fn);
+            } else if (W3C) { //chrome 模拟touch事件时，需要使用addEventListener方式添加，不能使用node.onx的形式
+                RootNode[remove ? RemoveEvent : AddEvent](type, fn, false);
             } else {
-                RootNode[On + type] = remove ? null : Body.process;
+                RootNode[On + type] = remove ? null : fn;
             }
             if (!remove) {
                 counter = 1;

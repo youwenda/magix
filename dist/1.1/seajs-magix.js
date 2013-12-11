@@ -1178,6 +1178,9 @@ var MxEvtSplit = String.fromCharCode(26);
 
 var MxIgnore = 'mx-ei';
 var MxOwner = 'mx-owner';
+var AddEvent = 'addEventListener';
+var RemoveEvent = 'removeEventListener';
+var W3C = RootNode[AddEvent];
 
 var TypesRegCache = {};
 var IdCounter = 1 << 16;
@@ -1196,6 +1199,12 @@ var GetSetAttribute = function(dom, attrKey, attrVal) {
         }
     }
     return attrVal;
+};
+var PreventDefault = function() {
+    this.returnValue = false;
+};
+var StopPropagation = function() {
+    this.cancelBubble = true;
 };
 var VOM;
 var Body = {
@@ -1258,6 +1267,10 @@ var Body = {
                         var vframe = VOM.get(vId);
                         var view = vframe && vframe.view;
                         if (view) {
+                            if (!W3C) {
+                                e.preventDefault = PreventDefault;
+                                e.stopPropagation = StopPropagation;
+                            }
                             view.processEvent({
                                 info: info,
                                 se: e,
@@ -1286,6 +1299,7 @@ var Body = {
     act: function(type, remove, vom) {
         var counter = RootEvents[type] || 0;
         var step = counter > 0 ? 1 : 0;
+        var fn = Body.process;
         counter += remove ? -step : step;
         if (!counter) {
             if (vom) {
@@ -1293,9 +1307,11 @@ var Body = {
             }
             var lib = DependLibEvents[type];
             if (lib) {
-                Body.lib(RootNode, type, remove, Body.process);
+                Body.lib(RootNode, type, remove, fn);
+            } else if (W3C) { //chrome 模拟touch事件时，需要使用addEventListener方式添加，不能使用node.onx的形式
+                RootNode[remove ? RemoveEvent : AddEvent](type, fn, false);
             } else {
-                RootNode[On + type] = remove ? null : Body.process;
+                RootNode[On + type] = remove ? null : fn;
             }
             if (!remove) {
                 counter = 1;
@@ -1761,6 +1777,7 @@ Mix(Mix(Vframe.prototype, Event), {
      */
     mountVframe: function(id, viewPath, viewInitParams, callback) {
         var me = this;
+        if (me.fcc) me.cAlter(); //如果在就绪的vframe上渲染新的vframe，则通知有变化
         //var vom = me.owner;
         var vf = RefVOM.get(id);
         if (!vf) {
@@ -1886,6 +1903,7 @@ Mix(Mix(Vframe.prototype, Event), {
     /**
      * 通知所有的子view创建完成
      * @private
+     *
      */
     cCreated: function(e) {
         var me = this;
@@ -1918,8 +1936,9 @@ Mix(Mix(Vframe.prototype, Event), {
     cAlter: function(e) {
         var me = this;
         if (!e) e = {};
+        var fcc = me.fcc;
         delete me.fcc;
-        if (!me.fca) {
+        if (!me.fca && fcc) { //当前vframe触发过created才可以触发alter事件
             var view = me.view;
             var mId = me.id;
             if (view) {
@@ -2080,20 +2099,12 @@ var MxEvtSplit = String.fromCharCode(26);
 
 var WEvent = {
     prevent: function(e) {
-        e = e || this.domEvent;
-        if (e.preventDefault) {
-            e.preventDefault();
-        } else {
-            e.returnValue = false;
-        }
+        e = e || this.srcEvent;
+        e.preventDefault();
     },
     stop: function(e) {
-        e = e || this.domEvent;
-        if (e.stopPropagation) {
-            e.stopPropagation();
-        } else {
-            e.cancelBubble = true;
-        }
+        e = e || this.srcEvent;
+        e.stopPropagation();
     },
     halt: function(e) {
         this.prevent(e);
@@ -2582,13 +2593,16 @@ Mix(Mix(View.prototype, Event), {
                 if (tfn) {
                     tfn.call(WEvent, domEvent);
                 }
-                SafeExec(fn, Mix({
+                SafeExec(fn, {
                     currentId: e.cId,
                     targetId: e.tId,
                     type: e.st,
                     srcEvent: domEvent,
+                    halt: WEvent.halt,
+                    prevent: WEvent.prevent,
+                    stop: WEvent.stop,
                     params: m.p
-                }, WEvent), me);
+                }, me);
             }
         }
     },

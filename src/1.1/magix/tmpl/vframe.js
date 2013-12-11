@@ -300,6 +300,7 @@ Mix(Mix(Vframe.prototype, Event), {
      */
     mountVframe: function(id, viewPath, viewInitParams, callback) {
         var me = this;
+        if (me.fcc) me.cAlter(); //如果在就绪的vframe上渲染新的vframe，则通知有变化
         //var vom = me.owner;
         var vf = RefVOM.get(id);
         if (!vf) {
@@ -425,6 +426,7 @@ Mix(Mix(Vframe.prototype, Event), {
     /**
      * 通知所有的子view创建完成
      * @private
+     *
      */
     cCreated: function(e) {
         var me = this;
@@ -457,8 +459,9 @@ Mix(Mix(Vframe.prototype, Event), {
     cAlter: function(e) {
         var me = this;
         if (!e) e = {};
+        var fcc = me.fcc;
         delete me.fcc;
-        if (!me.fca) {
+        if (!me.fca && fcc) { //当前vframe触发过created才可以触发alter事件
             var view = me.view;
             var mId = me.id;
             if (view) {
