@@ -15,9 +15,3 @@ title: 使用者 - Who's Using
   {% endfor %}
   {% endif %}{% endfor %}
 </div>
-
-## Demo via [Mock.js](http://mockjs.com)
-
-以下为产品演示，数据由 Mock.js 模拟。
-
-- [DMP Demo](http://thx.alibaba-inc.com/dmp_demo/)
