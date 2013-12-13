@@ -68,7 +68,7 @@ var GenMRequest = function(method) {
         var args = arguments;
         var last = args[args.length - 1];
         if (last && last.manage) {
-            last.manage(mr.id, mr);
+            last.manage(mr);
             args = Slice.call(args, 0, -1);
         }
         return mr[method].apply(mr, args);
@@ -829,7 +829,7 @@ Mix(Mix(MManager.prototype, Event), {
     createMRequest: function(view) {
         var mr = new MRequest(this);
         if (view && view.manage) {
-            view.manage(mr.id, mr);
+            view.manage(mr);
         }
         return mr;
     },

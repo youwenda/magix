@@ -140,7 +140,6 @@ Magix.mix(Model.prototype, {
         if (!type) {
             type = Model.GET;
         }
-        type = type.toUpperCase();
 
         var k = '$' + type;
         var params = me[k];

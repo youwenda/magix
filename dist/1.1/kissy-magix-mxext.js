@@ -3176,7 +3176,7 @@ var GenMRequest = function(method) {
         var args = arguments;
         var last = args[args.length - 1];
         if (last && last.manage) {
-            last.manage(mr.id, mr);
+            last.manage(mr);
             args = Slice.call(args, 0, -1);
         }
         return mr[method].apply(mr, args);
@@ -3945,7 +3945,7 @@ Mix(Mix(MManager.prototype, Event), {
     createMRequest: function(view) {
         var mr = new MRequest(this);
         if (view && view.manage) {
-            view.manage(mr.id, mr);
+            view.manage(mr);
         }
         return mr;
     },
@@ -4183,7 +4183,6 @@ Magix.mix(Model.prototype, {
         if (!type) {
             type = Model.GET;
         }
-        type = type.toUpperCase();
 
         var k = '$' + type;
         var params = me[k];
@@ -4407,6 +4406,13 @@ Magix.mix(Model.prototype, {
  */
 KISSY.add('mxext/view', function(S, Magix, View, Router) {
     var WIN = window;
+var ResCounter = 0;
+var SafeExec = Magix.safeExec;
+var Has = Magix.has;
+var EMPTYARR = [];
+var Slice = EMPTYARR.slice;
+var DestroyStr = 'destroy';
+var RenderCallStr = 'rendercall';
 
 var DestroyTimer = function(id) {
     WIN.clearTimeout(id);
@@ -4414,12 +4420,44 @@ var DestroyTimer = function(id) {
 };
 
 var Destroy = function(res) {
-    SafeExec(res.destroy, [], res);
+    SafeExec(res.destroy, EMPTYARR, res);
 };
 
-var ResCounter = 0;
-var SafeExec = Magix.safeExec;
-var Has = Magix.has;
+var DestroyManaged = function(view, key, remove) {
+    var cache = view.$res;
+    var o = cache[key];
+    var res;
+    if (o && (remove || !o.ol) /*&& (!o.isMR || o.sign != view.sign)*/ ) { //暂不考虑render中多次setViewHTML的情况
+        //var processed=false;
+        res = o.res;
+        var oust = o.oust;
+        var processed = false;
+        if (oust) {
+            oust(res);
+            processed = true;
+        }
+        if (!o.hk || remove) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
+            delete cache[key];
+        }
+        view.fire('destroyManaged', {
+            resource: res,
+            processed: processed
+        });
+    }
+    return res;
+};
+var DestroyAllManaged = function(e) {
+    var cache = this.$res;
+    var remove = e.type == DestroyStr;
+    var onlyMR = e.type == RenderCallStr;
+
+    for (var p in cache) {
+        var c = cache[p];
+        if (!onlyMR || c.isMR) {
+            DestroyManaged(this, p, remove);
+        }
+    }
+};
 
 /**
  * 内置的view扩展，提供资源管理等
@@ -4441,13 +4479,14 @@ var MxView = View.extend({
      * 让view帮你管理资源，强烈建议对组件等进行托管
      * @param {String|Object} key 托管的资源或要共享的资源标识key
      * @param {Object} res 要托管的资源
-     * @return {Object} 返回传入的资源，对于函数会自动进行一次包装
+     * @param {Boolean} [lastly] 是否在最终view销毁时才去销毁这个托管的资源，如果该参数为true时，可以调用destroyManaged来销毁这个资源
+     * @return {Object} 返回传入的资源
      * @example
      * init:function(){
      *      this.manage('user_list',[//管理对象资源
      *          {id:1,name:'a'},
      *          {id:2,name:'b'}
-     *      ]);
+     *      ],true);//仅在view销毁时才销毁这个托管的资源
      * },
      * render:function(){
      *      var _self=this;
@@ -4478,29 +4517,36 @@ var MxView = View.extend({
      *      _self.manage(m);
      * }
      */
-    manage: function(key, res) {
+    manage: function(key, res, lastly) {
         var me = this;
         var args = arguments;
-        var hasKey = true;
+        var hk = 1;
+
+        var cache = me.$res;
         if (args.length == 1) {
             res = key;
             key = 'res_' + (ResCounter++);
-            hasKey = false;
+            hk = 0;
+        } else {
+            var old = cache[key];
+            if (old && old.res != res) { //销毁同key不同资源的旧资源
+                me.destroyManaged(key); //
+            }
         }
-        if (!me.$res) me.$res = {};
-        var destroy;
+        var oust;
         if (Magix.isNumber(res)) {
-            destroy = DestroyTimer;
+            oust = DestroyTimer;
         } else if (res && res.destroy) {
-            destroy = Destroy;
+            oust = Destroy;
         }
         var wrapObj = {
-            hasKey: hasKey,
+            hk: hk,
             res: res,
-            sign: me.sign,
-            destroy: destroy
+            ol: lastly,
+            isMR: res && res.fetchOne,
+            oust: oust
         };
-        me.$res[key] = wrapObj;
+        cache[key] = wrapObj;
         return res;
     },
     /**
@@ -4513,7 +4559,7 @@ var MxView = View.extend({
         var me = this;
         var cache = me.$res;
         var res = null;
-        if (cache && Has(cache, key)) {
+        if (Has(cache, key)) {
             var wrapObj = cache[key];
             res = wrapObj.res;
             if (remove) {
@@ -4532,59 +4578,45 @@ var MxView = View.extend({
     },
     /**
      * 销毁托管的资源
-     * @private
+     * @param {String} key manage时提供的资源的key
+     * @return {Object} 返回销毁的托管资源
      */
-    destroyManaged: function() {
-        var me = this;
-        var cache = me.$res;
-        //
-        if (cache) {
-            for (var p in cache) {
-                var o = cache[p];
-                if (o.sign != me.sign) {
-                    //var processed=false;
-                    var res = o.res;
-                    var destroy = o.destroy;
-                    var processed = false;
-                    if (destroy) {
-                        destroy(res);
-                        processed = true;
-                    }
-                    if (!o.hasKey) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
-                        delete cache[p];
-                    }
-                    me.fire('destroyManaged', {
-                        resource: res,
-                        processed: processed
-                    });
-                }
-            }
-        }
+    destroyManaged: function(key) {
+        return DestroyManaged(this, key, 1);
     },
     /**
-     * 销毁托管的MRequest对象
-     * @private
+     * 调用其它view的方法
+     * @param  {String} vfId vframe的id
+     * @param  {String} methodName view的方法名
+     * @return {Object}
      */
-    destroyMRequest: function() {
-        var me = this;
-        var cache = me.$res;
-        if (cache) {
-            for (var p in cache) {
-                var o = cache[p];
-                var res = o.res;
-                if (res && res.fetchOne && res.fetchAll) { //销毁MRequest
-                    res.destroy();
-                    delete cache[p];
-                }
-            }
+    invokeView: function(vfId, methodName) {
+        var vf = this.vom.get(vfId);
+        var r;
+        if (vf) {
+            var arr = Slice.call(arguments, 1);
+            r = vf.invokeView.apply(vf, arr);
         }
+        return r;
+    },
+    /**
+     * 调用父view的方法
+     * @param  {String} methodName view的方法名
+     * @return {Object}
+     */
+    invokeParentView: function(methodName) {
+        var me = this;
+        var arr = Slice.call(arguments);
+        arr.unshift(me.owner.pId);
+        return me.invokeView.apply(me, arr);
     }
 }, function() {
     var me = this;
+    me.$res = {};
     me.on('interact', function() {
-        me.on('rendercall', me.destroyMRequest);
-        me.on('prerender', me.destroyManaged);
-        me.on('destroy', me.destroyManaged);
+        me.on(RenderCallStr, DestroyAllManaged);
+        me.on('prerender', DestroyAllManaged);
+        me.on(DestroyStr, DestroyAllManaged);
     });
     SafeExec(MxView.ms, arguments, me);
 }, {
