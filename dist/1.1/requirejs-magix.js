@@ -3013,7 +3013,7 @@ var VOM = Magix.mix({
         var vf = Vframes[id];
         if (vf) {
             VframesCount--;
-            if (fcc) FirstVframesLoaded--;
+            if (fcc) FirstVframesLoaded--; //该处有问题，需要考虑在渲染过程中，直接把根vframe给销毁了，导致进度条中止在当前状态。解决办法是判断VframesCount，如果减到0则进度条为100%，但考虑到线上几乎没有这个需求，所以暂不修复
             delete Vframes[id];
             VOM.fire('remove', {
                 vframe: vf

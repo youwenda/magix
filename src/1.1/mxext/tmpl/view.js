@@ -4,8 +4,8 @@ var SafeExec = Magix.safeExec;
 var Has = Magix.has;
 var EMPTYARR = [];
 var Slice = EMPTYARR.slice;
-var DestroyStr = 'destroy';
 var RenderCallStr = 'rendercall';
+var DestroyStr = 'destroy';
 
 var DestroyTimer = function(id) {
     WIN.clearTimeout(id);
@@ -16,38 +16,16 @@ var Destroy = function(res) {
     SafeExec(res.destroy, EMPTYARR, res);
 };
 
-var DestroyManaged = function(view, key, remove) {
-    var cache = view.$res;
-    var o = cache[key];
-    var res;
-    if (o && (remove || !o.ol) /*&& (!o.isMR || o.sign != view.sign)*/ ) { //暂不考虑render中多次setViewHTML的情况
-        //var processed=false;
-        res = o.res;
-        var oust = o.oust;
-        var processed = false;
-        if (oust) {
-            oust(res);
-            processed = true;
-        }
-        if (!o.hk || remove) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
-            delete cache[key];
-        }
-        view.fire('destroyManaged', {
-            resource: res,
-            processed: processed
-        });
-    }
-    return res;
-};
 var DestroyAllManaged = function(e) {
-    var cache = this.$res;
-    var remove = e.type == DestroyStr;
+    var me = this;
+    var cache = me.$res;
     var onlyMR = e.type == RenderCallStr;
+    var keepIt = e.type != DestroyStr;
 
     for (var p in cache) {
         var c = cache[p];
         if (!onlyMR || c.isMR) {
-            DestroyManaged(this, p, remove);
+            me.destroyManaged(p, keepIt);
         }
     }
 };
@@ -171,11 +149,34 @@ var MxView = View.extend({
     },
     /**
      * 销毁托管的资源
+     * @function
      * @param {String} key manage时提供的资源的key
+     * @param {Boolean} [keepIt] 销毁后是否依然在缓存中保留该资源的引用
      * @return {Object} 返回销毁的托管资源
      */
-    destroyManaged: function(key) {
-        return DestroyManaged(this, key, 1);
+    destroyManaged: function(key, keepIt) {
+        var me = this;
+        var cache = me.$res;
+        var o = cache[key];
+        var res;
+        if (o && (!keepIt || !o.ol) /*&& (!o.isMR || o.sign != view.sign)*/ ) { //暂不考虑render中多次setViewHTML的情况
+            //var processed=false;
+            res = o.res;
+            var oust = o.oust;
+            var processed = false;
+            if (oust) {
+                oust(res);
+                processed = true;
+            }
+            if (!o.hk || !keepIt) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
+                delete cache[key];
+            }
+            me.fire('destroyManaged', {
+                resource: res,
+                processed: processed
+            });
+        }
+        return res;
     },
     /**
      * 调用其它view的方法
