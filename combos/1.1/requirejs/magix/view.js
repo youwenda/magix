@@ -544,7 +544,6 @@ Mix(Mix(View.prototype, Event), {
     },
     /**
      * 处理代理事件
-     * @param {Boolean} bubble  是否冒泡的事件
      * @param {Boolean} dispose 是否销毁
      * @private
      */

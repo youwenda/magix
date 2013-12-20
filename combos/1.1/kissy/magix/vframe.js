@@ -492,7 +492,7 @@ Mix(Mix(Vframe.prototype, Event), {
     locChged: function() {
         var me = this;
         var view = me.view;
-        if (view && view.sign > 0 && view.rendered) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的window.location.href对象，对于销毁的也不需要广播
+        if (me.viewInited && view.sign > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的window.location.href对象，对于销毁的也不需要广播
 
             var isChanged = view.olChanged(RefChged);
             /**
@@ -515,7 +515,7 @@ Mix(Mix(Vframe.prototype, Event), {
                  * @param  {Array} c 子view数组
                  * @ignore
                  */
-                toChildren: function(c) {
+                to: function(c) {
                     c = c || EmptyArr;
                     if (Magix.isString(c)) {
                         c = c.split(',');

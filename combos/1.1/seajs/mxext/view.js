@@ -34,7 +34,7 @@ var DestroyAllManaged = function(e) {
 
     for (var p in cache) {
         var c = cache[p];
-        if (!onlyMR || c.isMR) {
+        if (!onlyMR || c.mr) {
             me.destroyManaged(p, keepIt);
         }
     }
@@ -124,7 +124,7 @@ var MxView = View.extend({
             hk: hk,
             res: res,
             ol: lastly,
-            isMR: res && res.fetchOne,
+            mr: res && res.fetchOne,
             oust: oust
         };
         cache[key] = wrapObj;
@@ -169,7 +169,7 @@ var MxView = View.extend({
         var cache = me.$res;
         var o = cache[key];
         var res;
-        if (o && (!keepIt || !o.ol) /*&& (!o.isMR || o.sign != view.sign)*/ ) { //暂不考虑render中多次setViewHTML的情况
+        if (o && (!keepIt || !o.ol) /*&& (!o.mr || o.sign != view.sign)*/ ) { //暂不考虑render中多次setViewHTML的情况
             //var processed=false;
             res = o.res;
             var oust = o.oust;
