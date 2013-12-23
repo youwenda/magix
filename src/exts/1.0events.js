@@ -8,19 +8,11 @@ KISSY.add('exts/1.0events', function(S, View, Magix, Body) {
     var WEvent = {
         prevent: function(e) {
             e = e || this.domEvent;
-            if (e.preventDefault) {
-                e.preventDefault();
-            } else {
-                e.returnValue = false;
-            }
+            e.preventDefault();
         },
         stop: function(e) {
             e = e || this.domEvent;
-            if (e.stopPropagation) {
-                e.stopPropagation();
-            } else {
-                e.cancelBubble = true;
-            }
+            e.stopPropagation();
         },
         halt: function(e) {
             this.prevent(e);
@@ -68,7 +60,7 @@ KISSY.add('exts/1.0events', function(S, View, Magix, Body) {
                                 targetId: e.tId,
                                 type: e.st,
                                 view: me,
-                                domEvent: domEvent,
+                                srcEvent: domEvent,
                                 params: m.p
                             }, WEvent), eventsTypes);
                         }

@@ -2166,21 +2166,19 @@ View.prepare = function(oView) {
         var prop = oView.prototype;
         var old, temp, name, evts, idx, revts = {};
         for (var p in prop) {
-            if (Has(prop, p)) {
-                old = prop[p];
-                temp = p.match(EvtMethodReg);
-                if (temp) {
-                    name = temp[1];
-                    evts = temp[2];
-                    evts = evts.split(COMMA);
-                    for (idx = evts.length - 1; idx > -1; idx--) {
-                        temp = evts[idx];
-                        revts[temp] = 1;
-                        prop[name + Left + temp + Right] = old;
-                    }
-                } else if (p == 'render' && old != Noop) {
-                    prop[p] = WrapFn(old);
+            old = prop[p];
+            temp = p.match(EvtMethodReg);
+            if (temp) {
+                name = temp[1];
+                evts = temp[2];
+                evts = evts.split(COMMA);
+                for (idx = evts.length - 1; idx > -1; idx--) {
+                    temp = evts[idx];
+                    revts[temp] = 1;
+                    prop[name + Left + temp + Right] = old;
                 }
+            } else if (p == 'render' && old != Noop) {
+                prop[p] = WrapFn(old);
             }
         }
         if (evts) {
