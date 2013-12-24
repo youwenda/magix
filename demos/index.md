@@ -5,6 +5,8 @@ title: Demos
 
 ## 产品原型
 
+仅限阿里内网访问：
+
  3. [淘宝直通车系统原型](http://thx.tbsite.net/bp_demo)
  1. [Tanx DMP 数据营销系统原型](http://thx.tbsite.net/dmp_demo/)
  2. [Adhoc 大数据查询系统原型](http://thx.tbsite.net/adhoc_demo)
