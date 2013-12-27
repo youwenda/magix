@@ -32,6 +32,31 @@ Magix中的两个重心 ：
 在异步这块深入钻研，整理出自已的一套异步管理机制。包括第三方组件的管理，通常在页面切换时，
 当前页面用到的组件需要销毁。Magix中通过引入资源托管的概念，简单的API处理掉这些问题
 
+
+```
+//一般OPOA中的写法：
+render:function(){
+    if(!this.$dropdown){
+        this.$dropdown=new Dropdown('#list');//把页面上id为list的节点渲染成下拉列表
+    }
+},
+destroy:function(){//view销毁时需要销毁当前用到的其它资源
+    if(this.$dropdown){
+        this.$dropdown.destroy();
+    }
+}
+
+
+//magix中的写法：
+
+render:function(){
+        this.manage(new Dropdown('#list'));//直接manage Dropdown对象即可
+}
+
+```
+
+以上是同步的情况，当使用XHR等异步时，情况会更复杂些，而Magix通过统一的manage方法帮你搞定
+
 Magix 中的 Model 和特有的 ModelManager 并非是后端接口的映射，Model 仅提供简单的数据通讯
 和数据载体。在大型项目中通常接口的数量也是庞大的，所以 Magix 中未采取接口映射的方式，
 而是通过 ModelManager 集中管理，通过 ModelManager 还可以很好的解决任意多个接口组合调用
