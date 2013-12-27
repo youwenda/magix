@@ -3,8 +3,19 @@ layout: post
 title: Demos
 ---
 
- 1. [Magix Brix Seed](/magix-demo-ad/)
- 2. [Magix 1.0 PPT](/magix-demo-ppt/)
- 3. [DMP Demo](http://thx.alibaba-inc.com/dmp_demo)
- 4. [Adhoc Demo](http://thx.alibaba-inc.com/adhoc_demo/)
- 5. [BP Demo](http://thx.alibaba-inc.com/bp_demo/)
+## 产品原型
+
+仅限阿里内网访问：
+
+ 3. [淘宝直通车系统原型](http://thx.tbsite.net/bp_demo)
+ 1. [Tanx DMP 数据营销系统原型](http://thx.tbsite.net/dmp_demo/)
+ 2. [Adhoc 大数据查询系统原型](http://thx.tbsite.net/adhoc_demo)
+ 2. [钻石展位系统原型](http://thx.tbsite.net/zuanshi_demo)
+
+## 其他
+
+ 1. [Magix 脚手架][1]
+ 2. [Magix 1.0 PPT][2]
+
+[1]: /magix-demo-ad/
+[2]: /magix-demo-ppt/
