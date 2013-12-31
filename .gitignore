@@ -2,7 +2,7 @@
 .project
 *.idea
 .DS_Store
-test/
+tests/
 tools/node_modules/
 README.html
 
