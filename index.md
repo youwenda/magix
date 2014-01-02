@@ -26,3 +26,16 @@ Magix 对多重底层库做了适配，用户可以选用：
 - RequireJS 作为模块加载器，jQuery 作为基础库
 
 {% include magixBuild.html %}
+
+## Who's Using
+
+<div class="dib-box justify whos-using">
+  {% for app in site.data.apps %}
+  <div class="dib">
+    <a href="{{ app.homepage }}">
+      {% if app.logo %}<img alt="{{ app.title }}" src="{{ app.logo }}">{% endif %}
+      {% if app.iconfont %}{{ app.iconfont }}{% endif %}
+    </a>
+  </div>
+  {% endfor %}
+</div>
