@@ -29,6 +29,8 @@ var CacheLatest = 0;
 var Slash = '/';
 var DefaultTagName = 'vframe';
 var Newline = '\n';
+var Console = window.console;
+var SupportError = Console && Console.error;
 /**
 待重写的方法
 @method imimpl
@@ -44,7 +46,11 @@ var Noop = function() {};
 var Cfg = {
     tagName: DefaultTagName,
     rootId: 'magix_vf_root',
-    execError: Noop
+    execError: function(e) {
+        if (SupportError) {
+            Console.error(e);
+        }
+    }
 };
 var HasProp = Cfg.hasOwnProperty;
 /**
