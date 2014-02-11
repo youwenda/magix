@@ -457,10 +457,10 @@ var Router = Mix({
             if (!me.poped && equal) return;
             me.poped = 1;
             me.route();
-        }, false);
+        });
     };
     Router.useHash = function() { //extension impl change event
-        $(WIN).on('hashchange', Router.route, false);
+        $(WIN).on('hashchange', Router.route);
     };
     return Router;
 });

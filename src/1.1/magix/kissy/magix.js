@@ -34,7 +34,7 @@ KISSY.add('magix/magix', function(S) {
         isArray: S.isArray,
         isFunction: S.isFunction,
         isObject: S.isObject,
-        isRegExp: S.isRegExp,
+        //isRegExp: S.isRegExp,
         isString: S.isString,
         isNumber: S.isNumber
     });

@@ -92,7 +92,7 @@ var Cache = function(max, buffer) {
     if (!me.get) return new Cache(max, buffer);
     me.c = [];
     me.x = max || 20;
-    me.b = me.x + (isNaN(buffer) ? 5 : buffer);
+    me.b = me.x + (buffer | 0 || 5); //buffer先取整，如果为0则再默认5
 };
 
 /**
@@ -246,7 +246,7 @@ var Magix = {
      * @param {Object} o 待检测的对象
      * @return {Boolean}
      */
-    
+    //
     /**
      * 判断o是否为字符串
      * @function
@@ -266,9 +266,9 @@ var Magix = {
      * @param  {Object}  o 待检测的对象
      * @return {Boolean}
      */
-    isNumeric: function(o) {
+    /*  isNumeric: function(o) {
         return !isNaN(parseFloat(o)) && isFinite(o);
-    },
+    },*/
     /**
      * 利用底层类库的包机制加载js文件，仅Magix内部使用，不推荐在app中使用
      * @function
@@ -684,9 +684,9 @@ var Magix = {
         isNumber: function(v) {
             return ToString.call(v) == '[object Number]';
         },
-        isRegExp: function(r) {
+        /* isRegExp: function(r) {
             return ToString.call(r) == '[object RegExp]';
-        },
+        },*/
         extend: function(ctor, base, props, statics) {
             ctor.superclass = base.prototype;
             base.prototype.constructor = base;
@@ -705,9 +705,9 @@ var Magix = {
  * @author 行列
  * @version 1.0
  */
-define('magix/router',["magix/magix","magix/event"],function(require){
-    var Magix=require("magix/magix");
-    var Event=require("magix/event");
+define('magix/router', ["magix/magix", "magix/event"], function(require) {
+    var Magix = require("magix/magix");
+    var Event = require("magix/event");
     //todo dom event;
     var WIN = window;
 var EMPTY = '';
@@ -1153,17 +1153,18 @@ var Router = Mix({
      */
 
 }, Event);
-    Router.useState=function(){
-        var me=Router,initialURL=location.href;
-        WIN.addEventListener('popstate',function(e){
-            var equal=location.href==initialURL;
-            if(!me.poped&&equal)return;
-            me.poped=1;
+    Router.useState = function() {
+        var me = Router,
+            initialURL = location.href;
+        $(WIN).on('popstate', function(e) {
+            var equal = location.href == initialURL;
+            if (!me.poped && equal) return;
+            me.poped = 1;
             me.route();
-        },false);
+        });
     };
-    Router.useHash=function(){//extension impl change event
-        WIN.addEventListener('hashchange',Router.route,false);
+    Router.useHash = function() { //extension impl change event
+        $(WIN).on('hashchange', Router.route);
     };
     return Router;
 });
@@ -1428,14 +1429,14 @@ var Event = {
     on: function(name, fn, insert) {
         var key = GenKey(name);
         var list = this[key] || (this[key] = []);
-        if (Magix.isNumeric(insert)) {
-            list.splice(insert, 0, {
-                f: fn
-            });
-        } else {
+        if (isNaN(insert)) {
             list.push({
                 f: fn,
                 r: insert
+            });
+        } else {
+            list.splice(insert | 0, 0, {
+                f: fn
             });
         }
     },
@@ -1467,7 +1468,7 @@ var Event = {
      * @param {Function} fn 事件回调
      */
     once: function(name, fn) {
-        this.on(name, fn, true);
+        this.on(name, fn, GenKey);
     }
 };
     return Event;

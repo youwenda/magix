@@ -36,9 +36,9 @@ define('magix/magix', function() {
         isNumber: function(v) {
             return ToString.call(v) == '[object Number]';
         },
-        isRegExp: function(r) {
+        /* isRegExp: function(r) {
             return ToString.call(r) == '[object RegExp]';
-        },
+        },*/
         extend: function(ctor, base, props, statics) {
             ctor.superclass = base.prototype;
             base.prototype.constructor = base;

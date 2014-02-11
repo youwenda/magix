@@ -83,14 +83,14 @@ var Event = {
     on: function(name, fn, insert) {
         var key = GenKey(name);
         var list = this[key] || (this[key] = []);
-        if (Magix.isNumeric(insert)) {
-            list.splice(insert, 0, {
-                f: fn
-            });
-        } else {
+        if (isNaN(insert)) {
             list.push({
                 f: fn,
                 r: insert
+            });
+        } else {
+            list.splice(insert | 0, 0, {
+                f: fn
             });
         }
     },
@@ -122,7 +122,7 @@ var Event = {
      * @param {Function} fn 事件回调
      */
     once: function(name, fn) {
-        this.on(name, fn, true);
+        this.on(name, fn, GenKey);
     }
 };
     return Event;

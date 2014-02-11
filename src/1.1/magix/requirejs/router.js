@@ -15,10 +15,10 @@ define('magix/router', ["magix/magix", "magix/event"], function(Magix, Event) {
             me.poped = 1;
             console.log('push?', e.type, e.state);
             me.route();
-        }, false);
+        });
     };
     Router.useHash = function() { //extension impl change event
-        $(WIN).on('hashchange', Router.route, false);
+        $(WIN).on('hashchange', Router.route);
     };
     return Router;
 });

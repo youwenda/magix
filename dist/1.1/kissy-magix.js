@@ -95,7 +95,7 @@ var Cache = function(max, buffer) {
     if (!me.get) return new Cache(max, buffer);
     me.c = [];
     me.x = max || 20;
-    me.b = me.x + (isNaN(buffer) ? 5 : buffer);
+    me.b = me.x + (buffer | 0 || 5); //buffer先取整，如果为0则再默认5
 };
 
 /**
@@ -249,7 +249,7 @@ var Magix = {
      * @param {Object} o 待检测的对象
      * @return {Boolean}
      */
-    
+    //
     /**
      * 判断o是否为字符串
      * @function
@@ -269,9 +269,9 @@ var Magix = {
      * @param  {Object}  o 待检测的对象
      * @return {Boolean}
      */
-    isNumeric: function(o) {
+    /*  isNumeric: function(o) {
         return !isNaN(parseFloat(o)) && isFinite(o);
-    },
+    },*/
     /**
      * 利用底层类库的包机制加载js文件，仅Magix内部使用，不推荐在app中使用
      * @function
@@ -682,7 +682,7 @@ var Magix = {
         isArray: S.isArray,
         isFunction: S.isFunction,
         isObject: S.isObject,
-        isRegExp: S.isRegExp,
+        //isRegExp: S.isRegExp,
         isString: S.isString,
         isNumber: S.isNumber
     });
@@ -1419,14 +1419,14 @@ var Event = {
     on: function(name, fn, insert) {
         var key = GenKey(name);
         var list = this[key] || (this[key] = []);
-        if (Magix.isNumeric(insert)) {
-            list.splice(insert, 0, {
-                f: fn
-            });
-        } else {
+        if (isNaN(insert)) {
             list.push({
                 f: fn,
                 r: insert
+            });
+        } else {
+            list.splice(insert | 0, 0, {
+                f: fn
             });
         }
     },
@@ -1458,7 +1458,7 @@ var Event = {
      * @param {Function} fn 事件回调
      */
     once: function(name, fn) {
-        this.on(name, fn, true);
+        this.on(name, fn, GenKey);
     }
 };
     return Event;

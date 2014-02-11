@@ -3,9 +3,9 @@
  * @author 行列
  * @version 1.0
  */
-define('magix/router',["magix/magix","magix/event"],function(require){
-    var Magix=require("magix/magix");
-    var Event=require("magix/event");
+define('magix/router', ["magix/magix", "magix/event"], function(require) {
+    var Magix = require("magix/magix");
+    var Event = require("magix/event");
     //todo dom event;
     var WIN = window;
 var EMPTY = '';
@@ -451,17 +451,18 @@ var Router = Mix({
      */
 
 }, Event);
-    Router.useState=function(){
-        var me=Router,initialURL=location.href;
-        WIN.addEventListener('popstate',function(e){
-            var equal=location.href==initialURL;
-            if(!me.poped&&equal)return;
-            me.poped=1;
+    Router.useState = function() {
+        var me = Router,
+            initialURL = location.href;
+        $(WIN).on('popstate', function(e) {
+            var equal = location.href == initialURL;
+            if (!me.poped && equal) return;
+            me.poped = 1;
             me.route();
-        },false);
+        });
     };
-    Router.useHash=function(){//extension impl change event
-        WIN.addEventListener('hashchange',Router.route,false);
+    Router.useHash = function() { //extension impl change event
+        $(WIN).on('hashchange', Router.route);
     };
     return Router;
 });
