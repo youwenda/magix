@@ -10,7 +10,7 @@
 }, {
     requires: ['magix/body', 'magix/magix', 'event']
 });*/
-define('exts/m-events', ['magix/body', 'magix/event', 'magix/magix'], function(require) {
+define('exts/mevents', ['magix/body', 'magix/event', 'magix/magix'], function(require) {
     var Body = require('magix/body');
     //var Event = require('magix/event');
     //var Magix = require('magix/magix');
