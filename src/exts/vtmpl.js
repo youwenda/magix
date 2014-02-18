@@ -43,7 +43,7 @@ KISSY.add('exts/vtmpl', function(S, View) {
                 var ctor = parent.constructor;
                 if (!ctor.path) {
                     for (var p in Mods) {
-                        if (Mods[p].value == ctor) {
+                        if (Mods[p].value == ctor || Mods[p].exports == ctor) {
                             ctor.path = p;
                             break;
                         }
@@ -85,7 +85,7 @@ KISSY.add('exts/vtmpl', function(S, View) {
             var sign = me.sign;
             FetchTmpls(FindExtendTmpls(me), function(tmpl) {
                 if (sign == me.sign) {
-                    me.template = tmpl;
+                    me.template = me.hasTmpl ? tmpl : me.wrapMxEvent(tmpl);
                     Load.apply(me, args);
                 }
             }, DefaultContent);

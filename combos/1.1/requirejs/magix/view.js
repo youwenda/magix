@@ -47,7 +47,7 @@ var WEvent = {
         this.stop(e);
     }
 };
-var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:{([\s\S]*)})?/;
+var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(?{([\s\S]*)}\)?)?/;
 var EvtParamsReg = /(\w+):([^,]+)/g;
 var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
 /**
@@ -253,9 +253,9 @@ Mix(Mix(View.prototype, Event), {
         // var tmplReady = Has(me, 'template');
         var ready = function(tmpl) {
             if (sign > 0 && sign == me.sign) {
-                //if (!tmplReady) {
-                me.template = me.wrapMxEvent(tmpl);
-                // }
+                if (hasTmpl) {
+                    me.template = me.wrapMxEvent(tmpl);
+                }
                 me.delegateEvents();
                 /*
                     关于interact事件的设计 ：
