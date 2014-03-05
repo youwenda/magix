@@ -53,18 +53,23 @@ KISSY.add('exts/vfdeps', function(S, Vframe, Magix, VOM, Event) {
         for (var i = 0, one, node, rect, temp; i < ScrollList.length; i++) {
             one = ScrollList[i];
             node = S.one('#' + one.id);
-            temp = node.offset();
+            if (node) {
+                temp = node.offset();
 
-            rect = {
-                x: temp.left,
-                y: temp.top,
-                width: node.width(),
-                height: node.height()
-            };
-            if (Intersect(viewport, rect)) {
+                rect = {
+                    x: temp.left,
+                    y: temp.top,
+                    width: node.width(),
+                    height: node.height()
+                };
+                if (Intersect(viewport, rect)) {
+                    ScrollList.splice(i, 1);
+                    i--;
+                    one.cb();
+                }
+            } else {
                 ScrollList.splice(i, 1);
                 i--;
-                one.cb();
             }
         }
         if (!ScrollList.length) {
@@ -87,7 +92,7 @@ KISSY.add('exts/vfdeps', function(S, Vframe, Magix, VOM, Event) {
         var node = S.one('#' + me.id);
         var deps = node.attr('mxext-deps');
         if (deps) { //有依赖
-            if (Magix.isNumeric(deps)) { //延时
+            if (deps | 0) { //延时
                 setTimeout(function() { //由sign保证正确,所以无须取消setTimeout的执行
                     if (sign == me.sign) {
                         oldMountView.call(me, viewPath, viewInitParams, callback);
@@ -96,7 +101,6 @@ KISSY.add('exts/vfdeps', function(S, Vframe, Magix, VOM, Event) {
             } else { //其它依赖
                 if (deps == '@viewport') { //以@开头的表示内置的命令：当vframe节点处在可视区域时加载
                     ScrollWatch(me.id, function() {
-                        console.log(sign, me.sign);
                         if (sign == me.sign) {
                             oldMountView.call(me, viewPath, viewInitParams, callback);
                         }

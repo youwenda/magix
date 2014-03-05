@@ -1,7 +1,7 @@
 /**
  * @fileOverview 路由
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
 define('magix/router', ["magix/magix", "magix/event"], function(require) {
     var Magix = require("magix/magix");

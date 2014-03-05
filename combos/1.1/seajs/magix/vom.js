@@ -1,12 +1,12 @@
 /**
  * @fileOverview VOM
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
-define("magix/vom",["magix/vframe","magix/magix","magix/event"],function(require){
-    var Vframe=require("magix/vframe");
-    var Magix=require("magix/magix");
-    var Event=require("magix/event");
+define("magix/vom", ["magix/vframe", "magix/magix", "magix/event"], function(require) {
+    var Vframe = require("magix/vframe");
+    var Magix = require("magix/magix");
+    var Event = require("magix/event");
     var Has = Magix.has;
 var Mix = Magix.mix;
 var VframesCount = 0;

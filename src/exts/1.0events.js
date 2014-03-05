@@ -4,7 +4,6 @@
 KISSY.add('exts/1.0events', function(S, View, Magix, Body) {
     var EvtInfoCache = Magix.cache(40);
     var SafeExec = Magix.safeExec;
-    var Mix = Magix.mix;
     var WEvent = {
         prevent: function(e) {
             e = e || this.domEvent;
@@ -19,7 +18,7 @@ KISSY.add('exts/1.0events', function(S, View, Magix, Body) {
             this.stop(e);
         }
     };
-    var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:{([\s\S]*)})?/;
+    var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\({([\s\S]*)}\))?/;
     var EvtParamsReg = /(\w+):([^,]+)/g;
     return View.mixin({
         processEvent: function(e) {
@@ -55,25 +54,28 @@ KISSY.add('exts/1.0events', function(S, View, Magix, Body) {
                             if (tfn) {
                                 tfn.call(WEvent, domEvent);
                             }
-                            SafeExec(fn, Mix({
+                            SafeExec(fn, {
                                 currentId: e.cId,
                                 targetId: e.tId,
                                 type: e.st,
                                 view: me,
                                 srcEvent: domEvent,
-                                params: m.p
-                            }, WEvent), eventsTypes);
+                                params: m.p,
+                                halt: WEvent.halt,
+                                prevent: WEvent.prevent,
+                                stop: WEvent.stop
+                            }, eventsTypes);
                         }
                     }
                 }
             }
         },
-        delegateEvents: function(isDestroy) {
+        delegateEvents: function(dispose) {
             var me = this;
             var events = me.events;
             var vom = me.vom;
             for (var p in events) {
-                Body.act(p, vom, isDestroy);
+                Body.act(p, vom, dispose);
             }
         }
     });

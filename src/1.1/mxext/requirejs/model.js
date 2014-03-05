@@ -1,6 +1,6 @@
 /**
  * @fileOverview Model
- * @version 1.0
+ * @version 1.1
  * @author 行列
  */
 define('mxext/model', ['magix/magix'], function(Magix) {

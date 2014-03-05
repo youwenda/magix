@@ -1,9 +1,9 @@
 /**
  * @fileOverview Vframe类
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
-KISSY.add('magix/vframe',function(S,Magix,Event,BaseView){
+KISSY.add('magix/vframe', function(S, Magix, Event, BaseView) {
     var D = document;
 var B = D.body;
 var VframeIdCounter = 1 << 16;
@@ -587,6 +587,6 @@ Mix(Mix(Vframe.prototype, Event), {
  *      fca firstChildrenAlter  fcc firstChildrenCreated
  */
     return Vframe;
-},{
-    requires:["magix/magix","magix/event","magix/view"]
+}, {
+    requires: ["magix/magix", "magix/event", "magix/view"]
 });

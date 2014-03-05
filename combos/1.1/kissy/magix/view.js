@@ -1,7 +1,7 @@
 /**
  * @fileOverview view类
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
 KISSY.add('magix/view', function(S, Magix, Event, Body, IO) {
 

@@ -125,7 +125,7 @@ var Router = Mix({
         }
         return {
             view: result || Pnr.nf || Pnr.dv,
-            pathname: result || UseNativeHistory || Pnr.nf ? pathname : Pnr[PATHNAME]
+            pathname: pathname
         };
     },
     /**
@@ -259,6 +259,7 @@ var Router = Mix({
                 key = tArr[idx];
                 from = oldLocation[key];
                 to = newLocation[key];
+                console.log(from, to);
                 if (from != to) {
                     result[key] = {
                         from: from,
@@ -301,7 +302,7 @@ var Router = Mix({
         var firstFire = !LLoc.get; //是否强制触发的changed，对于首次加载会强制触发一次
         var changed = me.getChged(LLoc, location);
         LLoc = location;
-        console.log(changed);
+        console.log(changed, location);
         if (changed.occur) {
             TLoc = location;
             me.fire('changed', {

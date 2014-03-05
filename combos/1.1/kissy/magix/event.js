@@ -1,9 +1,9 @@
 /**
  * @fileOverview 多播事件对象
  * @author 行列<xinglie.lkf@taobao.com>
- * @version 1.0
+ * @version 1.1
  **/
-KISSY.add("magix/event",function(S,Magix){
+KISSY.add("magix/event", function(S, Magix) {
     /**
  * 根据名称生成事件数组的key
  * @param {Strig} name 事件名称
@@ -125,6 +125,6 @@ var Event = {
     }
 };
     return Event;
-},{
-    requires:["magix/magix"]
+}, {
+    requires: ["magix/magix"]
 });

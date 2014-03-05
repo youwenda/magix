@@ -1,7 +1,7 @@
 /**
  * @fileOverview view类
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
 KISSY.add('magix/view', function(S, Magix, Event, Body, IO) {
 
@@ -36,6 +36,7 @@ KISSY.add('magix/view', function(S, Magix, Event, Body, IO) {
                 if (AppInfo.ignorePackageNameInUri) {
                     path = path.replace(AppInfo.name, '');
                 }
+                console.log(path, AppRoot);
                 var file = AppRoot + path + '.html';
                 var l = Locker[file];
                 var onload = function(tmpl) {

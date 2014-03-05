@@ -1,11 +1,11 @@
 /**
  * @fileOverview VOM
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
-KISSY.add("magix/vom",function(S,Vframe,Magix,Event){
+KISSY.add("magix/vom", function(S, Vframe, Magix, Event) {
     eval(Magix.include('../tmpl/vom'));
     return VOM;
-},{
-    requires:["magix/vframe","magix/magix","magix/event"]
+}, {
+    requires: ["magix/vframe", "magix/magix", "magix/event"]
 });

@@ -1,12 +1,12 @@
 /**
  * @fileOverview Vframe类
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
-define('magix/vframe',["magix/magix","magix/event","magix/view"],function(require){
-    var Magix=require("magix/magix");
-    var Event=require("magix/event");
-    var BaseView=require("magix/view");
+define('magix/vframe', ["magix/magix", "magix/event", "magix/view"], function(require) {
+    var Magix = require("magix/magix");
+    var Event = require("magix/event");
+    var BaseView = require("magix/view");
     var D = document;
 var B = D.body;
 var VframeIdCounter = 1 << 16;

@@ -1,6 +1,6 @@
 /**
  * @fileOverview 对magix/view的扩展
- * @version 1.0
+ * @version 1.1
  * @author 行列
  */
 KISSY.add('mxext/view', function(S, Magix, View, Router) {

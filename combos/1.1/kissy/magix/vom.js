@@ -1,9 +1,9 @@
 /**
  * @fileOverview VOM
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
-KISSY.add("magix/vom",function(S,Vframe,Magix,Event){
+KISSY.add("magix/vom", function(S, Vframe, Magix, Event) {
     var Has = Magix.has;
 var Mix = Magix.mix;
 var VframesCount = 0;
@@ -134,6 +134,6 @@ var VOM = Magix.mix({
      */
 }, Event);
     return VOM;
-},{
-    requires:["magix/vframe","magix/magix","magix/event"]
+}, {
+    requires: ["magix/vframe", "magix/magix", "magix/event"]
 });

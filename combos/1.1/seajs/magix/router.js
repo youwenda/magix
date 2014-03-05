@@ -1,7 +1,7 @@
 /**
  * @fileOverview 路由
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
 define('magix/router', ["magix/magix", "magix/event"], function(require) {
     var Magix = require("magix/magix");
@@ -134,7 +134,7 @@ var Router = Mix({
         }
         return {
             view: result || Pnr.nf || Pnr.dv,
-            pathname: result || UseNativeHistory || Pnr.nf ? pathname : Pnr[PATHNAME]
+            pathname: pathname
         };
     },
     /**

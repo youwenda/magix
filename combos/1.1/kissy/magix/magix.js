@@ -1,7 +1,7 @@
 /**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
- * @version 1.0
+ * @version 1.1
  **/
 KISSY.add('magix/magix', function(S) {
     var Slice = [].slice;
@@ -46,6 +46,7 @@ var Noop = function() {};
 var Cfg = {
     tagName: DefaultTagName,
     rootId: 'magix_vf_root',
+    progress: Noop,
     execError: function(e) {
         if (SupportError) {
             Console.error(e);
@@ -409,19 +410,16 @@ var Magix = {
     start: function(cfg) {
         var me = this;
         Mix(Cfg, cfg);
-        me.libRequire(Cfg.iniFile, function(I) {
+
+        me.libRequire(['magix/router', 'magix/vom', Cfg.iniFile], function(R, V, I) {
             Cfg = Mix(Cfg, I, cfg);
             Cfg['!tnc'] = Cfg.tagName != DefaultTagName;
 
-            var progress = Cfg.progress;
-            me.libRequire(['magix/router', 'magix/vom'], function(R, V) {
-                R.on('!ul', V.locChged);
-                R.on('changed', V.locChged);
-                if (progress) {
-                    V.on('progress', progress);
-                }
-                me.libRequire(Cfg.extensions, R.start);
-            });
+            R.on('!ul', V.locChged);
+            R.on('changed', V.locChged);
+            V.on('progress', Cfg.progress);
+
+            me.libRequire(Cfg.extensions, R.start);
         });
     },
     /**

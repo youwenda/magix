@@ -1,7 +1,7 @@
 /**
  * @fileOverview 多播事件对象
  * @author 行列<xinglie.lkf@taobao.com>
- * @version 1.0
+ * @version 1.1
  **/
 define("magix/event", ["magix/magix"], function(Magix) {
     /**

@@ -1,7 +1,7 @@
 /**
  * @fileOverview view类
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
 define('magix/view', ["magix/magix", "magix/event", "magix/body"], function(Magix, Event, Body) {
 

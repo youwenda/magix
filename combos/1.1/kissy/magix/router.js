@@ -1,9 +1,9 @@
 /**
  * @fileOverview 路由
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
-KISSY.add('magix/router',function(S,Magix,Event,SE){
+KISSY.add('magix/router', function(S, Magix, Event, SE) {
     var WIN = window;
 var EMPTY = '';
 var PATHNAME = 'pathname';
@@ -131,7 +131,7 @@ var Router = Mix({
         }
         return {
             view: result || Pnr.nf || Pnr.dv,
-            pathname: result || UseNativeHistory || Pnr.nf ? pathname : Pnr[PATHNAME]
+            pathname: pathname
         };
     },
     /**
@@ -448,19 +448,20 @@ var Router = Mix({
      */
 
 }, Event);
-    Router.useState=function(){
-        var me=Router,initialURL=location.href;
-        SE.on(WIN,'popstate',function(e){
-            var equal=location.href==initialURL;
-            if(!me.poped&&equal)return;
-            me.poped=1;
+    Router.useState = function() {
+        var me = Router,
+            initialURL = location.href;
+        SE.on(WIN, 'popstate', function(e) {
+            var equal = location.href == initialURL;
+            if (!me.poped && equal) return;
+            me.poped = 1;
             me.route();
         });
     };
-    Router.useHash=function(){//extension impl change event
-        SE.on(WIN,'hashchange',Router.route);
+    Router.useHash = function() { //extension impl change event
+        SE.on(WIN, 'hashchange', Router.route);
     };
     return Router;
-},{
-    requires:["magix/magix","magix/event","event"]
+}, {
+    requires: ["magix/magix", "magix/event", "event"]
 });

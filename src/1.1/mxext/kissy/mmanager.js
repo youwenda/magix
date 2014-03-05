@@ -1,7 +1,7 @@
 /**
  * @fileOverview model管理工厂，可方便的对Model进行缓存和更新
  * @author 行列
- * @version 1.0
+ * @version 1.1
  **/
 KISSY.add("mxext/mmanager", function(S, Magix, Event) {
     /*

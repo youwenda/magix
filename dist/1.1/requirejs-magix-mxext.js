@@ -1,7 +1,7 @@
 /**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
- * @version 1.0
+ * @version 1.1
  **/
 define('magix/magix', function() {
 
@@ -43,6 +43,7 @@ var Noop = function() {};
 var Cfg = {
     tagName: DefaultTagName,
     rootId: 'magix_vf_root',
+    progress: Noop,
     execError: function(e) {
         if (SupportError) {
             Console.error(e);
@@ -406,19 +407,16 @@ var Magix = {
     start: function(cfg) {
         var me = this;
         Mix(Cfg, cfg);
-        me.libRequire(Cfg.iniFile, function(I) {
+
+        me.libRequire(['magix/router', 'magix/vom', Cfg.iniFile], function(R, V, I) {
             Cfg = Mix(Cfg, I, cfg);
             Cfg['!tnc'] = Cfg.tagName != DefaultTagName;
 
-            var progress = Cfg.progress;
-            me.libRequire(['magix/router', 'magix/vom'], function(R, V) {
-                R.on('!ul', V.locChged);
-                R.on('changed', V.locChged);
-                if (progress) {
-                    V.on('progress', progress);
-                }
-                me.libRequire(Cfg.extensions, R.start);
-            });
+            R.on('!ul', V.locChged);
+            R.on('changed', V.locChged);
+            V.on('progress', Cfg.progress);
+
+            me.libRequire(Cfg.extensions, R.start);
         });
     },
     /**
@@ -707,7 +705,7 @@ var Magix = {
 /**
  * @fileOverview 路由
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
 define('magix/router', ["magix/magix", "magix/event"], function(Magix, Event) {
     //todo dom event;
@@ -838,7 +836,7 @@ var Router = Mix({
         }
         return {
             view: result || Pnr.nf || Pnr.dv,
-            pathname: result || UseNativeHistory || Pnr.nf ? pathname : Pnr[PATHNAME]
+            pathname: pathname
         };
     },
     /**
@@ -1173,7 +1171,7 @@ var Router = Mix({
 /**
  * @fileOverview body事件代理
  * @author 行列<xinglie.lkf@taobao.com>
- * @version 1.0
+ * @version 1.1
  **/
 define("magix/body", ["magix/magix"], function(Magix) {
     var Has = Magix.has;
@@ -1348,7 +1346,7 @@ var Body = {
 /**
  * @fileOverview 多播事件对象
  * @author 行列<xinglie.lkf@taobao.com>
- * @version 1.0
+ * @version 1.1
  **/
 define("magix/event", ["magix/magix"], function(Magix) {
     /**
@@ -1476,7 +1474,7 @@ var Event = {
 /**
  * @fileOverview Vframe类
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
 define('magix/vframe', ["magix/magix", "magix/event", "magix/view"], function(Magix, Event, BaseView) {
     var D = document;
@@ -2066,7 +2064,7 @@ Mix(Mix(Vframe.prototype, Event), {
 /**
  * @fileOverview view类
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
 define('magix/view', ["magix/magix", "magix/event", "magix/body"], function(Magix, Event, Body) {
 
@@ -2954,7 +2952,7 @@ Mix(Mix(View.prototype, Event), {
 /**
  * @fileOverview VOM
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
 define("magix/vom", ["magix/vframe", "magix/magix", "magix/event"], function(Vframe, Magix, Event) {
     var Has = Magix.has;
@@ -3091,7 +3089,7 @@ var VOM = Magix.mix({
 /**
  * @fileOverview model管理工厂，可方便的对Model进行缓存和更新
  * @author 行列
- * @version 1.0
+ * @version 1.1
  **/
 define("mxext/mmanager", ["magix/magix", "magix/event"], function(Magix, Event) {
     /*
@@ -4045,7 +4043,7 @@ Mix(Mix(MManager.prototype, Event), {
 });
 /**
  * @fileOverview Model
- * @version 1.0
+ * @version 1.1
  * @author 行列
  */
 define('mxext/model', ['magix/magix'], function(Magix) {
@@ -4401,7 +4399,7 @@ Magix.mix(Model.prototype, {
 });
 /**
  * @fileOverview 对magix/view的扩展
- * @version 1.0
+ * @version 1.1
  * @author 行列
  */
 define('mxext/view', ["magix/magix", "magix/view", "magix/router"], function(Magix, View, Router) {

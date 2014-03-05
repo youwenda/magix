@@ -1,7 +1,7 @@
 /**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
- * @version 1.0
+ * @version 1.1
  **/
 KISSY.add('magix/magix', function(S) {
     var Slice = [].slice;
@@ -46,6 +46,7 @@ var Noop = function() {};
 var Cfg = {
     tagName: DefaultTagName,
     rootId: 'magix_vf_root',
+    progress: Noop,
     execError: function(e) {
         if (SupportError) {
             Console.error(e);
@@ -409,19 +410,16 @@ var Magix = {
     start: function(cfg) {
         var me = this;
         Mix(Cfg, cfg);
-        me.libRequire(Cfg.iniFile, function(I) {
+
+        me.libRequire(['magix/router', 'magix/vom', Cfg.iniFile], function(R, V, I) {
             Cfg = Mix(Cfg, I, cfg);
             Cfg['!tnc'] = Cfg.tagName != DefaultTagName;
 
-            var progress = Cfg.progress;
-            me.libRequire(['magix/router', 'magix/vom'], function(R, V) {
-                R.on('!ul', V.locChged);
-                R.on('changed', V.locChged);
-                if (progress) {
-                    V.on('progress', progress);
-                }
-                me.libRequire(Cfg.extensions, R.start);
-            });
+            R.on('!ul', V.locChged);
+            R.on('changed', V.locChged);
+            V.on('progress', Cfg.progress);
+
+            me.libRequire(Cfg.extensions, R.start);
         });
     },
     /**
@@ -690,9 +688,9 @@ var Magix = {
 /**
  * @fileOverview 路由
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
-KISSY.add('magix/router',function(S,Magix,Event,SE){
+KISSY.add('magix/router', function(S, Magix, Event, SE) {
     var WIN = window;
 var EMPTY = '';
 var PATHNAME = 'pathname';
@@ -820,7 +818,7 @@ var Router = Mix({
         }
         return {
             view: result || Pnr.nf || Pnr.dv,
-            pathname: result || UseNativeHistory || Pnr.nf ? pathname : Pnr[PATHNAME]
+            pathname: pathname
         };
     },
     /**
@@ -1137,26 +1135,27 @@ var Router = Mix({
      */
 
 }, Event);
-    Router.useState=function(){
-        var me=Router,initialURL=location.href;
-        SE.on(WIN,'popstate',function(e){
-            var equal=location.href==initialURL;
-            if(!me.poped&&equal)return;
-            me.poped=1;
+    Router.useState = function() {
+        var me = Router,
+            initialURL = location.href;
+        SE.on(WIN, 'popstate', function(e) {
+            var equal = location.href == initialURL;
+            if (!me.poped && equal) return;
+            me.poped = 1;
             me.route();
         });
     };
-    Router.useHash=function(){//extension impl change event
-        SE.on(WIN,'hashchange',Router.route);
+    Router.useHash = function() { //extension impl change event
+        SE.on(WIN, 'hashchange', Router.route);
     };
     return Router;
-},{
-    requires:["magix/magix","magix/event","event"]
+}, {
+    requires: ["magix/magix", "magix/event", "event"]
 });
 /**
  * @fileOverview body事件代理
  * @author 行列<xinglie.lkf@taobao.com>
- * @version 1.0
+ * @version 1.1
  **/
 KISSY.add('magix/body', function(S, Magix) {
     var Has = Magix.has;
@@ -1338,9 +1337,9 @@ var Body = {
 /**
  * @fileOverview 多播事件对象
  * @author 行列<xinglie.lkf@taobao.com>
- * @version 1.0
+ * @version 1.1
  **/
-KISSY.add("magix/event",function(S,Magix){
+KISSY.add("magix/event", function(S, Magix) {
     /**
  * 根据名称生成事件数组的key
  * @param {Strig} name 事件名称
@@ -1462,15 +1461,15 @@ var Event = {
     }
 };
     return Event;
-},{
-    requires:["magix/magix"]
+}, {
+    requires: ["magix/magix"]
 });
 /**
  * @fileOverview Vframe类
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
-KISSY.add('magix/vframe',function(S,Magix,Event,BaseView){
+KISSY.add('magix/vframe', function(S, Magix, Event, BaseView) {
     var D = document;
 var B = D.body;
 var VframeIdCounter = 1 << 16;
@@ -2054,13 +2053,13 @@ Mix(Mix(Vframe.prototype, Event), {
  *      fca firstChildrenAlter  fcc firstChildrenCreated
  */
     return Vframe;
-},{
-    requires:["magix/magix","magix/event","magix/view"]
+}, {
+    requires: ["magix/magix", "magix/event", "magix/view"]
 });
 /**
  * @fileOverview view类
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
 KISSY.add('magix/view', function(S, Magix, Event, Body, IO) {
 
@@ -2952,9 +2951,9 @@ Mix(Mix(View.prototype, Event), {
 /**
  * @fileOverview VOM
  * @author 行列
- * @version 1.0
+ * @version 1.1
  */
-KISSY.add("magix/vom",function(S,Vframe,Magix,Event){
+KISSY.add("magix/vom", function(S, Vframe, Magix, Event) {
     var Has = Magix.has;
 var Mix = Magix.mix;
 var VframesCount = 0;
@@ -3085,6 +3084,6 @@ var VOM = Magix.mix({
      */
 }, Event);
     return VOM;
-},{
-    requires:["magix/vframe","magix/magix","magix/event"]
+}, {
+    requires: ["magix/vframe", "magix/magix", "magix/event"]
 });;document.createElement("vframe");
