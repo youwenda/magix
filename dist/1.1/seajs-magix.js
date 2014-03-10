@@ -44,6 +44,7 @@ var Cfg = {
     tagName: DefaultTagName,
     rootId: 'magix_vf_root',
     progress: Noop,
+    coded: 1,
     execError: function(e) {
         if (SupportError) {
             Console.error(e);
@@ -391,6 +392,7 @@ var Magix = {
      * @param {String} cfg.iniFile ini文件位置
      * @param {String} cfg.rootId 根view的id
      * @param {Array} cfg.extensions 需要加载的扩展
+     * @param {Boolean} cfg.coded 是否对地址栏中的参数进行编码或解码，默认true
      * @param {Function} cfg.execError 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
      * @example
      * Magix.start({
@@ -716,7 +718,6 @@ var Has = Magix.has;
 var Mix = Magix.mix;
 var D = document;
 var OKeys = Magix.keys;
-var IsUtf8 = /^UTF-8$/i.test(D.charset || D.characterSet || 'UTF-8');
 var MxConfig = Magix.config();
 var HrefCache = Magix.cache();
 var ChgdCache = Magix.cache(40);
@@ -729,6 +730,7 @@ var TrimHashReg = /#.*$/,
     TrimQueryReg = /^[^#]*#?!?/;
 var PARAMS = 'params';
 var UseNativeHistory = MxConfig.nativeHistory;
+var Coded = MxConfig.coded;
 var SupportState, HashAsNativeHistory;
 
 var IsParam = function(params, r, ps) {
@@ -758,7 +760,7 @@ var GetSetParam = function(key, value, me, params) {
 
 
 var Path = function(path) {
-    var o = Magix.pathToObject(path, IsUtf8);
+    var o = Magix.pathToObject(path, Coded);
     var pn = o[PATHNAME];
     if (pn && HashAsNativeHistory) { //如果不是以/开头的并且要使用history state,当前浏览器又不支持history state则放hash中的pathname要进行处理
         o[PATHNAME] = Magix.path(WIN.location[PATHNAME], pn);
@@ -1052,7 +1054,7 @@ var Router = Mix({
             pn = Magix.objectToPath({
                 params: params,
                 pathname: pn
-            }, IsUtf8);
+            }, Coded);
         }
         //TLoc引用
         //pathObj引用
@@ -1084,7 +1086,7 @@ var Router = Mix({
                 temp[PARAMS] = Mix(ps, temp[PARAMS]);
                 temp[PATHNAME] = TLoc[PATHNAME];
             }
-            var tempPath = Magix.objectToPath(temp, IsUtf8, TLoc.query[PARAMS]);
+            var tempPath = Magix.objectToPath(temp, Coded, TLoc.query[PARAMS]);
             var navigate;
 
             if (SupportState) {

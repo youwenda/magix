@@ -7,7 +7,6 @@ var Has = Magix.has;
 var Mix = Magix.mix;
 var D = document;
 var OKeys = Magix.keys;
-var IsUtf8 = /^UTF-8$/i.test(D.charset || D.characterSet || 'UTF-8');
 var MxConfig = Magix.config();
 var HrefCache = Magix.cache();
 var ChgdCache = Magix.cache(40);
@@ -20,6 +19,7 @@ var TrimHashReg = /#.*$/,
     TrimQueryReg = /^[^#]*#?!?/;
 var PARAMS = 'params';
 var UseNativeHistory = MxConfig.nativeHistory;
+var Coded = MxConfig.coded;
 var SupportState, HashAsNativeHistory;
 
 var IsParam = function(params, r, ps) {
@@ -49,7 +49,7 @@ var GetSetParam = function(key, value, me, params) {
 
 
 var Path = function(path) {
-    var o = Magix.pathToObject(path, IsUtf8);
+    var o = Magix.pathToObject(path, Coded);
     var pn = o[PATHNAME];
     if (pn && HashAsNativeHistory) { //如果不是以/开头的并且要使用history state,当前浏览器又不支持history state则放hash中的pathname要进行处理
         o[PATHNAME] = Magix.path(WIN.location[PATHNAME], pn);
@@ -345,7 +345,7 @@ var Router = Mix({
             pn = Magix.objectToPath({
                 params: params,
                 pathname: pn
-            }, IsUtf8);
+            }, Coded);
         }
         //TLoc引用
         //pathObj引用
@@ -377,7 +377,7 @@ var Router = Mix({
                 temp[PARAMS] = Mix(ps, temp[PARAMS]);
                 temp[PATHNAME] = TLoc[PATHNAME];
             }
-            var tempPath = Magix.objectToPath(temp, IsUtf8, TLoc.query[PARAMS]);
+            var tempPath = Magix.objectToPath(temp, Coded, TLoc.query[PARAMS]);
             var navigate;
 
             if (SupportState) {
