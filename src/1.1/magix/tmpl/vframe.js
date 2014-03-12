@@ -4,7 +4,6 @@ var VframeIdCounter = 1 << 16;
 
 var SafeExec = Magix.safeExec;
 var EmptyArr = [];
-var Slice = EmptyArr.slice;
 
 
 var Mix = Magix.mix;
@@ -405,23 +404,6 @@ Mix(Mix(Vframe.prototype, Event), {
             me.cCreated();
         }
         return hasVframe;
-    },
-    /**
-     * 调用view中的方法
-     * @param  {String} methodName 方法名
-     * @param {Object} [args1,args2] 向方法传递的参数
-     * @return {Object}
-     */
-    invokeView: function(methodName) {
-        var me = this;
-        var view = me.view;
-        var fn = me.viewInited && view[methodName];
-        var args = Slice.call(arguments, 1);
-        var r;
-        if (fn) {
-            r = SafeExec(fn, args, view);
-        }
-        return r;
     },
     /**
      * 通知所有的子view创建完成

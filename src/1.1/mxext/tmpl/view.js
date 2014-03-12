@@ -3,7 +3,7 @@ var ResCounter = 0;
 var SafeExec = Magix.safeExec;
 var Has = Magix.has;
 var EMPTYARR = [];
-var Slice = EMPTYARR.slice;
+
 var RenderCallStr = 'rendercall';
 var DestroyStr = 'destroy';
 
@@ -28,6 +28,47 @@ var DestroyAllManaged = function(e) {
             me.destroyManaged(p, keepIt);
         }
     }
+};
+var SyncInvoke = function(vf, method, args) {
+    var result;
+    if (vf.viewInited) {
+        var view = vf.view;
+        var fn = view[method];
+        if (fn) {
+            result = SafeExec(fn, args, view);
+        }
+    }
+    return result;
+};
+
+var InvokeVframeView = function(vom, id, wait, method, args, callback) {
+    var result;
+    console.log(arguments);
+    var vf = vom.get(id);
+    if (wait) {
+        var fn = function() {
+            vf = vom.get(id);
+            if (vf && vf.viewInited) {
+                result = SyncInvoke(vf, method, args);
+                if (callback) {
+                    SafeExec(callback, result);
+                }
+            } else {
+                console.log('wait for invoke');
+                fn.T = setTimeout(fn, 50);
+            }
+        };
+        fn();
+        result = {
+            destroy: function() {
+                console.log('destroy invoke vframe view');
+                DestroyTimer(fn.T);
+            }
+        };
+    } else if (vf) {
+        result = SyncInvoke(vf, method, args);
+    }
+    return result;
 };
 
 /**
@@ -182,27 +223,21 @@ var MxView = View.extend({
      * 调用其它view的方法
      * @param  {String} vfId vframe的id
      * @param  {String} methodName view的方法名
+     * @param {Array} args 参数
      * @return {Object}
      */
-    invokeView: function(vfId, methodName) {
-        var vf = this.vom.get(vfId);
-        var r;
-        if (vf) {
-            var arr = Slice.call(arguments, 1);
-            r = vf.invokeView.apply(vf, arr);
-        }
-        return r;
+    invokeView: function(vfId, methodName, args) {
+        return InvokeVframeView(this.vom, vfId, 0, methodName, args);
     },
     /**
-     * 调用父view的方法
+     * 以异步的方式调用其它view的方法，该方法会等待其它view的加载完成
+     * @param  {String} vfId vframe的id
      * @param  {String} methodName view的方法名
-     * @return {Object}
+     * @param  {Array} args 参数
+     * @param  {Function} callback 用于接收调用完成后的返回值
      */
-    invokeParentView: function(methodName) {
-        var me = this;
-        var arr = Slice.call(arguments);
-        arr.unshift(me.owner.pId);
-        return me.invokeView.apply(me, arr);
+    invokeViewAsync: function(vfId, methodName, args, callback) {
+        this.manage(InvokeVframeView(this.vom, vfId, 1, methodName, args, callback));
     }
 }, function() {
     var me = this;
