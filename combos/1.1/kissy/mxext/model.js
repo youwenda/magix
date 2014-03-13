@@ -264,16 +264,24 @@ Magix.mix(Model.prototype, {
      *
      *     var list=m.get('list',[]);//获取list数据，如果不存在list则使用空数组
      *
+     *     var count=m.get('data.info.count',0);//获取data下面info下count的值，您无须关心data下是否有info属性
+     *
      * });
      */
-    get: function(key, dValue) {
+    get: function(key, dValue, udfd) {
         var me = this;
         var alen = arguments.length;
-        var getAll = !alen;
+
         var hasDValue = alen == 2;
         var attrs = me.$attrs;
-        if (attrs) {
-            attrs = getAll ? attrs : attrs[key];
+        if (alen) {
+            var tks = (key + '').split('.');
+            while (attrs && tks[0]) {
+                attrs = attrs[tks.shift()];
+            }
+            if (tks[0]) {
+                attrs = udfd;
+            }
         }
         if (hasDValue && ToString.call(dValue) != ToString.call(attrs)) {
             attrs = dValue;

@@ -51,8 +51,9 @@ var SyncInvoke = function(vf, method, args) {
     return result;
 };
 
-var InvokeVframeView = function(vom, id, wait, method, args, callback) {
+var InvokeVframeView = function(view, id, wait, method, args, callback) {
     var result;
+    var vom = view.vom;
     var vf = vom.get(id);
     if (wait) {
         var fn = function() {
@@ -67,11 +68,11 @@ var InvokeVframeView = function(vom, id, wait, method, args, callback) {
             }
         };
         fn();
-        result = {
+        result = view.manage({
             destroy: function() {
                 DestroyTimer(fn.T);
             }
-        };
+        });
     } else if (vf) {
         result = SyncInvoke(vf, method, args);
     }
@@ -234,7 +235,7 @@ var MxView = View.extend({
      * @return {Object}
      */
     invokeView: function(vfId, methodName, args) {
-        return InvokeVframeView(this.vom, vfId, 0, methodName, args);
+        return InvokeVframeView(this, vfId, 0, methodName, args);
     },
     /**
      * 以异步的方式调用其它view的方法，该方法会等待其它view的加载完成
@@ -244,7 +245,7 @@ var MxView = View.extend({
      * @param  {Function} callback 用于接收调用完成后的返回值
      */
     invokeViewAsync: function(vfId, methodName, args, callback) {
-        this.manage(InvokeVframeView(this.vom, vfId, 1, methodName, args, callback));
+        InvokeVframeView(this, vfId, 1, methodName, args, callback);
     }
 }, function() {
     var me = this;

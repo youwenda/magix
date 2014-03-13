@@ -4311,16 +4311,24 @@ Magix.mix(Model.prototype, {
      *
      *     var list=m.get('list',[]);//获取list数据，如果不存在list则使用空数组
      *
+     *     var count=m.get('data.info.count',0);//获取data下面info下count的值，您无须关心data下是否有info属性
+     *
      * });
      */
-    get: function(key, dValue) {
+    get: function(key, dValue, udfd) {
         var me = this;
         var alen = arguments.length;
-        var getAll = !alen;
+
         var hasDValue = alen == 2;
         var attrs = me.$attrs;
-        if (attrs) {
-            attrs = getAll ? attrs : attrs[key];
+        if (alen) {
+            var tks = (key + '').split('.');
+            while (attrs && tks[0]) {
+                attrs = attrs[tks.shift()];
+            }
+            if (tks[0]) {
+                attrs = udfd;
+            }
         }
         if (hasDValue && ToString.call(dValue) != ToString.call(attrs)) {
             attrs = dValue;
@@ -4449,8 +4457,9 @@ var SyncInvoke = function(vf, method, args) {
     return result;
 };
 
-var InvokeVframeView = function(vom, id, wait, method, args, callback) {
+var InvokeVframeView = function(view, id, wait, method, args, callback) {
     var result;
+    var vom = view.vom;
     var vf = vom.get(id);
     if (wait) {
         var fn = function() {
@@ -4465,11 +4474,11 @@ var InvokeVframeView = function(vom, id, wait, method, args, callback) {
             }
         };
         fn();
-        result = {
+        result = view.manage({
             destroy: function() {
                 DestroyTimer(fn.T);
             }
-        };
+        });
     } else if (vf) {
         result = SyncInvoke(vf, method, args);
     }
@@ -4632,7 +4641,7 @@ var MxView = View.extend({
      * @return {Object}
      */
     invokeView: function(vfId, methodName, args) {
-        return InvokeVframeView(this.vom, vfId, 0, methodName, args);
+        return InvokeVframeView(this, vfId, 0, methodName, args);
     },
     /**
      * 以异步的方式调用其它view的方法，该方法会等待其它view的加载完成
@@ -4642,7 +4651,7 @@ var MxView = View.extend({
      * @param  {Function} callback 用于接收调用完成后的返回值
      */
     invokeViewAsync: function(vfId, methodName, args, callback) {
-        this.manage(InvokeVframeView(this.vom, vfId, 1, methodName, args, callback));
+        InvokeVframeView(this, vfId, 1, methodName, args, callback);
     }
 }, function() {
     var me = this;
