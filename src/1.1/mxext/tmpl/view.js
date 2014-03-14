@@ -29,47 +29,6 @@ var DestroyAllManaged = function(e) {
         }
     }
 };
-var SyncInvoke = function(vf, method, args) {
-    var result;
-    if (vf.viewInited) {
-        var view = vf.view;
-        var fn = view[method];
-        if (fn) {
-            result = SafeExec(fn, args, view);
-        }
-    }
-    return result;
-};
-
-var InvokeVframeView = function(view, id, wait, method, args, callback) {
-    var result;
-    var vom = view.vom;
-    var vf = vom.get(id);
-    if (wait) {
-        var fn = function() {
-            vf = vom.get(id);
-            if (vf && vf.viewInited) {
-                result = SyncInvoke(vf, method, args);
-                if (callback) {
-                    SafeExec(callback, result);
-                }
-            } else {
-                console.log('wait for invoke');
-                fn.T = setTimeout(fn, 50);
-            }
-        };
-        fn();
-        result = view.manage({
-            destroy: function() {
-                console.log('destroy invoke vframe view');
-                DestroyTimer(fn.T);
-            }
-        });
-    } else if (vf) {
-        result = SyncInvoke(vf, method, args);
-    }
-    return result;
-};
 
 /**
  * 内置的view扩展，提供资源管理等
@@ -204,10 +163,10 @@ var MxView = View.extend({
             //var processed=false;
             res = o.res;
             var oust = o.oust;
-            var processed = false;
+            var processed = 0;
             if (oust) {
                 oust(res);
-                processed = true;
+                processed = 1;
             }
             if (!o.hk || !keepIt) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
                 delete cache[key];
@@ -218,26 +177,6 @@ var MxView = View.extend({
             });
         }
         return res;
-    },
-    /**
-     * 调用其它view的方法
-     * @param  {String} vfId vframe的id
-     * @param  {String} methodName view的方法名
-     * @param {Array} args 参数
-     * @return {Object}
-     */
-    invokeView: function(vfId, methodName, args) {
-        return InvokeVframeView(this, vfId, 0, methodName, args);
-    },
-    /**
-     * 以异步的方式调用其它view的方法，该方法会等待其它view的加载完成
-     * @param  {String} vfId vframe的id
-     * @param  {String} methodName view的方法名
-     * @param  {Array} args 参数
-     * @param  {Function} callback 用于接收调用完成后的返回值
-     */
-    invokeViewAsync: function(vfId, methodName, args, callback) {
-        InvokeVframeView(this, vfId, 1, methodName, args, callback);
     }
 }, function() {
     var me = this;

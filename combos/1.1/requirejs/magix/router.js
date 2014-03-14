@@ -12,7 +12,7 @@ var VIEW = 'view';
 
 var Has = Magix.has;
 var Mix = Magix.mix;
-var D = document;
+
 var OKeys = Magix.keys;
 var MxConfig = Magix.config();
 var HrefCache = Magix.cache();

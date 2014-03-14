@@ -259,7 +259,7 @@ Mix(Mix(View.prototype, Event), {
                 if (hasTmpl) {
                     me.template = me.wrapMxEvent(tmpl);
                 }
-                me.delegateEvents();
+                me.dEvts();
                 /*
                     关于interact事件的设计 ：
                     首先这个事件是对内的，当然外部也可以用，API文档上就不再体现了
@@ -272,12 +272,13 @@ Mix(Mix(View.prototype, Event), {
                 }, 1); //可交互
                 SafeExec(me.init, args, me);
                 me.fire('inited', 0, 1);
+                me.owner.viewInited = 1;
                 SafeExec(me.render, EMPTY_ARRAY, me);
                 //
                 var noTemplateAndNoRendered = !hasTmpl && !me.rendered; //没模板，调用render后，render里面也没调用setViewHTML
 
                 if (noTemplateAndNoRendered) { //监视有没有在调用render方法内更新view，对于没有模板的view，需要派发一次事件
-                    me.rendered = true;
+                    me.rendered = 1;
                     me.fire('primed', 0, 1); //primed事件只触发一次
                 }
             }
@@ -310,7 +311,7 @@ Mix(Mix(View.prototype, Event), {
             }*/
             if (!me.rendered) { //触发一次primed事件
                 me.fire('primed', 0, 1);
-                me.rendered = true;
+                me.rendered = 1;
             }
 
             me.fire('rendered'); //可以在rendered事件中访问view.rendered属性
@@ -452,8 +453,8 @@ Mix(Mix(View.prototype, Event), {
     olChanged: function(changed) {
         var me = this;
         var location = me.$ol;
+        var res = 1;
         if (location) {
-            var res = 0;
             if (location.pn) {
                 res = changed.isPathname();
             }
@@ -461,9 +462,8 @@ Mix(Mix(View.prototype, Event), {
                 var keys = location.keys;
                 res = changed.isParam(keys);
             }
-            return res;
         }
-        return 1;
+        return res;
     },
 
     /**
@@ -476,7 +476,7 @@ Mix(Mix(View.prototype, Event), {
             me.sign = 0;
             me.fire('refresh', 0, 1);
             me.fire('destroy', 0, 1, 1);
-            me.delegateEvents(1);
+            me.dEvts(1);
         }
         me.sign--;
     },
@@ -548,7 +548,7 @@ Mix(Mix(View.prototype, Event), {
      * @param {Boolean} dispose 是否销毁
      * @private
      */
-    delegateEvents: function(destroy) {
+    dEvts: function(destroy) {
         var me = this;
         var events = me.$evts;
         var vom = me.vom;

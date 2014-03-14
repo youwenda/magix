@@ -76,15 +76,14 @@ var Event = {
     on: function(name, fn, insert) {
         var key = GenKey(name);
         var list = this[key] || (this[key] = []);
+        var wrap = {
+            f: fn
+        };
         if (isNaN(insert)) {
-            list.push({
-                f: fn,
-                r: insert
-            });
+            wrap.r = insert;
+            list.push(wrap);
         } else {
-            list.splice(insert | 0, 0, {
-                f: fn
-            });
+            list.splice(insert | 0, 0, wrap);
         }
     },
     /**

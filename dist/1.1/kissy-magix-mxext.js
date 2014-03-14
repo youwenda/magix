@@ -700,7 +700,7 @@ var VIEW = 'view';
 
 var Has = Magix.has;
 var Mix = Magix.mix;
-var D = document;
+
 var OKeys = Magix.keys;
 var MxConfig = Magix.config();
 var HrefCache = Magix.cache();
@@ -1420,15 +1420,14 @@ var Event = {
     on: function(name, fn, insert) {
         var key = GenKey(name);
         var list = this[key] || (this[key] = []);
+        var wrap = {
+            f: fn
+        };
         if (isNaN(insert)) {
-            list.push({
-                f: fn,
-                r: insert
-            });
+            wrap.r = insert;
+            list.push(wrap);
         } else {
-            list.splice(insert | 0, 0, {
-                f: fn
-            });
+            list.splice(insert | 0, 0, wrap);
         }
     },
     /**
@@ -1546,6 +1545,7 @@ var RefLoc, RefChged, RefVOM;
  * @property {View} view view对象
  * @property {VOM} owner VOM对象
  * @property {Boolean} viewInited view是否完成初始化，即view的inited事件有没有派发
+ * @property {Boolean} viewPrimed view是否完成首次渲染，即view的primed事件有没有派发
  * @property {String} pId 父vframe的id，如果是根节点则为undefined
  */
 var Vframe = function(id) {
@@ -1581,7 +1581,7 @@ Mix(Vframe, {
             if (!e) {
                 e = D.createElement(TagName);
                 e.id = RootId;
-                B.insertBefore(e, B.firstChild);
+                B.appendChild(e);
             }
             RootVframe = new Vframe(RootId);
             owner.add(RootVframe);
@@ -1666,9 +1666,8 @@ Mix(Mix(Vframe.prototype, Event), {
      * 加载对应的view
      * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的view路径
      * @param {Object|Null} viewInitParams 调用view的init方法时传递的参数
-     * @param {Function} callback view在触发inited事件后的回调
      */
-    mountView: function(viewPath, viewInitParams, callback) {
+    mountView: function(viewPath, viewInitParams) {
         var me = this;
         var node = $(me.id);
         if (!node._bak) {
@@ -1699,13 +1698,15 @@ Mix(Mix(Vframe.prototype, Event), {
                     me.view = view;
                     view.on('interact', function(e) { //view准备好后触发
                         if (!e.tmpl) {
-
                             if (node._chgd) {
                                 node.innerHTML = node._tmpl;
                             }
-
                             me.mountZoneVframes();
                         }
+                        view.on('primed', function() {
+                            me.viewPrimed = 1;
+                            me.fire('viewMounted');
+                        });
                         view.on('rendered', function() { //再绑定rendered
                             //
                             me.mountZoneVframes();
@@ -1713,16 +1714,6 @@ Mix(Mix(Vframe.prototype, Event), {
                         view.on('prerender', function() {
                             if (!me.unmountZoneVframes(0, 1)) {
                                 me.cAlter();
-                            }
-                        });
-
-                        view.on('inited', function() {
-                            me.viewInited = 1;
-                            me.fire('viewInited', {
-                                view: view
-                            });
-                            if (callback) {
-                                SafeExec(callback, view, me);
                             }
                         });
                     }, 0);
@@ -1750,8 +1741,11 @@ Mix(Mix(Vframe.prototype, Event), {
             }
             delete me.view;
             delete me.viewInited;
+            if (me.viewPrimed) { //viewMounted与viewUnmounted成对出现
+                delete me.viewPrimed;
+                me.fire('viewUnmounted');
+            }
             GlobalAlter = 0;
-            me.fire('viewUnmounted');
         }
         me.sign--;
     },
@@ -1760,7 +1754,6 @@ Mix(Mix(Vframe.prototype, Event), {
      * @param  {String} id             节点id
      * @param  {String} viewPath       view路径
      * @param  {Object} viewInitParams 传递给view init方法的参数
-     * @param {Function} callback view在触发inited事件后的回调
      * @return {Vframe} vframe对象
      * @example
      * //html
@@ -1771,7 +1764,7 @@ Mix(Mix(Vframe.prototype, Event), {
      * view.owner.mountVframe('magix_vf_defer','app/views/list',{page:2})
      * //注意：动态向某个节点渲染view时，该节点无须是vframe标签
      */
-    mountVframe: function(id, viewPath, viewInitParams, callback) {
+    mountVframe: function(id, viewPath, viewInitParams) {
         var me = this;
         if (me.fcc) me.cAlter(); //如果在就绪的vframe上渲染新的vframe，则通知有变化
         //var vom = me.owner;
@@ -1787,16 +1780,15 @@ Mix(Mix(Vframe.prototype, Event), {
             me.cM[id] = 1;
             RefVOM.add(vf);
         }
-        vf.mountView(viewPath, viewInitParams, callback);
+        vf.mountView(viewPath, viewInitParams);
         return vf;
     },
     /**
      * 加载当前view下面的子view，因为view的持有对象是vframe，所以是加载vframes
      * @param {HTMLElement|String} zoneId 节点对象或id
      * @param {Object} viewInitParams 传递给view init方法的参数
-     * @param {Function} callback view在触发inited事件后的回调
      */
-    mountZoneVframes: function(zoneId, viewInitParams, callback) {
+    mountZoneVframes: function(zoneId, viewInitParams) {
         var me = this;
 
         var node = zoneId || me.id;
@@ -1817,7 +1809,7 @@ Mix(Mix(Vframe.prototype, Event), {
                     mxBuild = mxBuild != TagNameChanged;
 
                     if (mxBuild || mxView) {
-                        me.mountVframe(key, mxView, viewInitParams, callback);
+                        me.mountVframe(key, mxView, viewInitParams);
                         var svs = $$(vframe);
                         for (var j = 0, c = svs.length, temp; j < c; j++) {
                             temp = svs[j];
@@ -1988,19 +1980,6 @@ Mix(Mix(Vframe.prototype, Event), {
             }
         }
     }
-    /**
-     * view初始化完成后触发，由于vframe可以渲染不同的view，也就是可以通过mountView来渲染其它view，所以viewInited可能触发多次
-     * @name Vframe#viewInited
-     * @event
-     * @param {Object} e
-     */
-
-    /**
-     * view卸载时触发，由于vframe可以渲染不同的view，因此该事件可能被触发多次
-     * @name Vframe#viewUnmounted
-     * @event
-     * @param {Object} e
-     */
 
     /**
      * 子孙view修改时触发
@@ -2017,8 +1996,15 @@ Mix(Mix(Vframe.prototype, Event), {
      */
 
     /**
-     * vframe销毁时触发
-     * @name Vframe#destroy
+     * view完成首次渲染(即primed事件触发)后触发
+     * @name Vframe#viewMounted
+     * @event
+     * @param {Object} e
+     */
+
+    /**
+     * view销毁时触发
+     * @name Vframe#viewUnmounted
      * @event
      * @param {Object} e
      */
@@ -2298,7 +2284,7 @@ Mix(Mix(View.prototype, Event), {
                 if (hasTmpl) {
                     me.template = me.wrapMxEvent(tmpl);
                 }
-                me.delegateEvents();
+                me.dEvts();
                 /*
                     关于interact事件的设计 ：
                     首先这个事件是对内的，当然外部也可以用，API文档上就不再体现了
@@ -2311,12 +2297,13 @@ Mix(Mix(View.prototype, Event), {
                 }, 1); //可交互
                 SafeExec(me.init, args, me);
                 me.fire('inited', 0, 1);
+                me.owner.viewInited = 1;
                 SafeExec(me.render, EMPTY_ARRAY, me);
                 //
                 var noTemplateAndNoRendered = !hasTmpl && !me.rendered; //没模板，调用render后，render里面也没调用setViewHTML
 
                 if (noTemplateAndNoRendered) { //监视有没有在调用render方法内更新view，对于没有模板的view，需要派发一次事件
-                    me.rendered = true;
+                    me.rendered = 1;
                     me.fire('primed', 0, 1); //primed事件只触发一次
                 }
             }
@@ -2349,7 +2336,7 @@ Mix(Mix(View.prototype, Event), {
             }*/
             if (!me.rendered) { //触发一次primed事件
                 me.fire('primed', 0, 1);
-                me.rendered = true;
+                me.rendered = 1;
             }
 
             me.fire('rendered'); //可以在rendered事件中访问view.rendered属性
@@ -2491,8 +2478,8 @@ Mix(Mix(View.prototype, Event), {
     olChanged: function(changed) {
         var me = this;
         var location = me.$ol;
+        var res = 1;
         if (location) {
-            var res = 0;
             if (location.pn) {
                 res = changed.isPathname();
             }
@@ -2500,9 +2487,8 @@ Mix(Mix(View.prototype, Event), {
                 var keys = location.keys;
                 res = changed.isParam(keys);
             }
-            return res;
         }
-        return 1;
+        return res;
     },
 
     /**
@@ -2515,7 +2501,7 @@ Mix(Mix(View.prototype, Event), {
             me.sign = 0;
             me.fire('refresh', 0, 1);
             me.fire('destroy', 0, 1, 1);
-            me.delegateEvents(1);
+            me.dEvts(1);
         }
         me.sign--;
     },
@@ -2587,7 +2573,7 @@ Mix(Mix(View.prototype, Event), {
      * @param {Boolean} dispose 是否销毁
      * @private
      */
-    delegateEvents: function(destroy) {
+    dEvts: function(destroy) {
         var me = this;
         var events = me.$evts;
         var vom = me.vom;
@@ -4430,45 +4416,6 @@ var DestroyAllManaged = function(e) {
         }
     }
 };
-var SyncInvoke = function(vf, method, args) {
-    var result;
-    if (vf.viewInited) {
-        var view = vf.view;
-        var fn = view[method];
-        if (fn) {
-            result = SafeExec(fn, args, view);
-        }
-    }
-    return result;
-};
-
-var InvokeVframeView = function(view, id, wait, method, args, callback) {
-    var result;
-    var vom = view.vom;
-    var vf = vom.get(id);
-    if (wait) {
-        var fn = function() {
-            vf = vom.get(id);
-            if (vf && vf.viewInited) {
-                result = SyncInvoke(vf, method, args);
-                if (callback) {
-                    SafeExec(callback, result);
-                }
-            } else {
-                fn.T = setTimeout(fn, 50);
-            }
-        };
-        fn();
-        result = view.manage({
-            destroy: function() {
-                DestroyTimer(fn.T);
-            }
-        });
-    } else if (vf) {
-        result = SyncInvoke(vf, method, args);
-    }
-    return result;
-};
 
 /**
  * 内置的view扩展，提供资源管理等
@@ -4603,10 +4550,10 @@ var MxView = View.extend({
             //var processed=false;
             res = o.res;
             var oust = o.oust;
-            var processed = false;
+            var processed = 0;
             if (oust) {
                 oust(res);
-                processed = true;
+                processed = 1;
             }
             if (!o.hk || !keepIt) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
                 delete cache[key];
@@ -4617,26 +4564,6 @@ var MxView = View.extend({
             });
         }
         return res;
-    },
-    /**
-     * 调用其它view的方法
-     * @param  {String} vfId vframe的id
-     * @param  {String} methodName view的方法名
-     * @param {Array} args 参数
-     * @return {Object}
-     */
-    invokeView: function(vfId, methodName, args) {
-        return InvokeVframeView(this, vfId, 0, methodName, args);
-    },
-    /**
-     * 以异步的方式调用其它view的方法，该方法会等待其它view的加载完成
-     * @param  {String} vfId vframe的id
-     * @param  {String} methodName view的方法名
-     * @param  {Array} args 参数
-     * @param  {Function} callback 用于接收调用完成后的返回值
-     */
-    invokeViewAsync: function(vfId, methodName, args, callback) {
-        InvokeVframeView(this, vfId, 1, methodName, args, callback);
     }
 }, function() {
     var me = this;

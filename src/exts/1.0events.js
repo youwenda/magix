@@ -70,7 +70,7 @@ KISSY.add('exts/1.0events', function(S, View, Magix, Body) {
                 }
             }
         },
-        delegateEvents: function(dispose) {
+        dEvts: function(dispose) {
             var me = this;
             var events = me.events;
             var vom = me.vom;

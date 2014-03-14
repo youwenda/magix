@@ -81,6 +81,7 @@ var RefLoc, RefChged, RefVOM;
  * @property {View} view view对象
  * @property {VOM} owner VOM对象
  * @property {Boolean} viewInited view是否完成初始化，即view的inited事件有没有派发
+ * @property {Boolean} viewPrimed view是否完成首次渲染，即view的primed事件有没有派发
  * @property {String} pId 父vframe的id，如果是根节点则为undefined
  */
 var Vframe = function(id) {
@@ -116,7 +117,7 @@ Mix(Vframe, {
             if (!e) {
                 e = D.createElement(TagName);
                 e.id = RootId;
-                B.insertBefore(e, B.firstChild);
+                B.appendChild(e);
             }
             RootVframe = new Vframe(RootId);
             owner.add(RootVframe);
@@ -201,9 +202,8 @@ Mix(Mix(Vframe.prototype, Event), {
      * 加载对应的view
      * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的view路径
      * @param {Object|Null} viewInitParams 调用view的init方法时传递的参数
-     * @param {Function} callback view在触发inited事件后的回调
      */
-    mountView: function(viewPath, viewInitParams, callback) {
+    mountView: function(viewPath, viewInitParams) {
         var me = this;
         var node = $(me.id);
         if (!node._bak) {
@@ -234,13 +234,15 @@ Mix(Mix(Vframe.prototype, Event), {
                     me.view = view;
                     view.on('interact', function(e) { //view准备好后触发
                         if (!e.tmpl) {
-
                             if (node._chgd) {
                                 node.innerHTML = node._tmpl;
                             }
-
                             me.mountZoneVframes();
                         }
+                        view.on('primed', function() {
+                            me.viewPrimed = 1;
+                            me.fire('viewMounted');
+                        });
                         view.on('rendered', function() { //再绑定rendered
                             //
                             me.mountZoneVframes();
@@ -248,16 +250,6 @@ Mix(Mix(Vframe.prototype, Event), {
                         view.on('prerender', function() {
                             if (!me.unmountZoneVframes(0, 1)) {
                                 me.cAlter();
-                            }
-                        });
-
-                        view.on('inited', function() {
-                            me.viewInited = 1;
-                            me.fire('viewInited', {
-                                view: view
-                            });
-                            if (callback) {
-                                SafeExec(callback, view, me);
                             }
                         });
                     }, 0);
@@ -285,8 +277,11 @@ Mix(Mix(Vframe.prototype, Event), {
             }
             delete me.view;
             delete me.viewInited;
+            if (me.viewPrimed) { //viewMounted与viewUnmounted成对出现
+                delete me.viewPrimed;
+                me.fire('viewUnmounted');
+            }
             GlobalAlter = 0;
-            me.fire('viewUnmounted');
         }
         me.sign--;
     },
@@ -295,7 +290,6 @@ Mix(Mix(Vframe.prototype, Event), {
      * @param  {String} id             节点id
      * @param  {String} viewPath       view路径
      * @param  {Object} viewInitParams 传递给view init方法的参数
-     * @param {Function} callback view在触发inited事件后的回调
      * @return {Vframe} vframe对象
      * @example
      * //html
@@ -306,7 +300,7 @@ Mix(Mix(Vframe.prototype, Event), {
      * view.owner.mountVframe('magix_vf_defer','app/views/list',{page:2})
      * //注意：动态向某个节点渲染view时，该节点无须是vframe标签
      */
-    mountVframe: function(id, viewPath, viewInitParams, callback) {
+    mountVframe: function(id, viewPath, viewInitParams) {
         var me = this;
         if (me.fcc) me.cAlter(); //如果在就绪的vframe上渲染新的vframe，则通知有变化
         //var vom = me.owner;
@@ -322,16 +316,15 @@ Mix(Mix(Vframe.prototype, Event), {
             me.cM[id] = 1;
             RefVOM.add(vf);
         }
-        vf.mountView(viewPath, viewInitParams, callback);
+        vf.mountView(viewPath, viewInitParams);
         return vf;
     },
     /**
      * 加载当前view下面的子view，因为view的持有对象是vframe，所以是加载vframes
      * @param {HTMLElement|String} zoneId 节点对象或id
      * @param {Object} viewInitParams 传递给view init方法的参数
-     * @param {Function} callback view在触发inited事件后的回调
      */
-    mountZoneVframes: function(zoneId, viewInitParams, callback) {
+    mountZoneVframes: function(zoneId, viewInitParams) {
         var me = this;
 
         var node = zoneId || me.id;
@@ -352,7 +345,7 @@ Mix(Mix(Vframe.prototype, Event), {
                     mxBuild = mxBuild != TagNameChanged;
 
                     if (mxBuild || mxView) {
-                        me.mountVframe(key, mxView, viewInitParams, callback);
+                        me.mountVframe(key, mxView, viewInitParams);
                         var svs = $$(vframe);
                         for (var j = 0, c = svs.length, temp; j < c; j++) {
                             temp = svs[j];
@@ -523,19 +516,6 @@ Mix(Mix(Vframe.prototype, Event), {
             }
         }
     }
-    /**
-     * view初始化完成后触发，由于vframe可以渲染不同的view，也就是可以通过mountView来渲染其它view，所以viewInited可能触发多次
-     * @name Vframe#viewInited
-     * @event
-     * @param {Object} e
-     */
-
-    /**
-     * view卸载时触发，由于vframe可以渲染不同的view，因此该事件可能被触发多次
-     * @name Vframe#viewUnmounted
-     * @event
-     * @param {Object} e
-     */
 
     /**
      * 子孙view修改时触发
@@ -552,8 +532,15 @@ Mix(Mix(Vframe.prototype, Event), {
      */
 
     /**
-     * vframe销毁时触发
-     * @name Vframe#destroy
+     * view完成首次渲染(即primed事件触发)后触发
+     * @name Vframe#viewMounted
+     * @event
+     * @param {Object} e
+     */
+
+    /**
+     * view销毁时触发
+     * @name Vframe#viewUnmounted
      * @event
      * @param {Object} e
      */
