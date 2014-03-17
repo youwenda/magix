@@ -101,7 +101,7 @@ var Body = {
                                 e.preventDefault = PreventDefault;
                                 e.stopPropagation = StopPropagation;
                             }
-                            view.processEvent({
+                            view.pEvt({
                                 info: info,
                                 se: e,
                                 st: eventType,

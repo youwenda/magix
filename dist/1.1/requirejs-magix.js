@@ -1279,7 +1279,7 @@ var Body = {
                                 e.preventDefault = PreventDefault;
                                 e.stopPropagation = StopPropagation;
                             }
-                            view.processEvent({
+                            view.pEvt({
                                 info: info,
                                 se: e,
                                 st: eventType,
@@ -1735,18 +1735,22 @@ Mix(Mix(Vframe.prototype, Event), {
      */
     unmountView: function() {
         var me = this;
-        if (me.view) {
+        var view = me.view;
+        if (view) {
             if (!GlobalAlter) {
                 GlobalAlter = {};
             }
             me.unmountZoneVframes(0, 1);
             me.cAlter(GlobalAlter);
-            me.view.oust();
+
+            delete me.view; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZoneVframes方法引起的多次created
+            view.oust();
+
             var node = $(me.id);
             if (node && node._bak) {
                 node.innerHTML = node._tmpl;
             }
-            delete me.view;
+
             delete me.viewInited;
             if (me.viewPrimed) { //viewMounted与viewUnmounted成对出现
                 delete me.viewPrimed;
@@ -1881,7 +1885,6 @@ Mix(Mix(Vframe.prototype, Event), {
     /**
      * 通知所有的子view创建完成
      * @private
-     *
      */
     cCreated: function(e) {
         var me = this;
@@ -2268,7 +2271,7 @@ Mix(Mix(View.prototype, Event), {
      * Q:为什么不支持history state的浏览器上还要使用view？
      * A:考虑 http://etao.com/list?page=2#!/list?page=3; 在IE6上，实际的页码是3，但后台生成时候生成的页码是2，<br />所以需要magix/view载入后对相应的a标签链接进行处理成实际的3。用户点击链接时，由于view没启用事件，不会阻止a标签的默认行为，后续才是正确的结果
      */
-    enableEvent: true,
+    //enableEvent: true,
     /**
      * view刷新时是否采用动画
      * @type {Boolean}
@@ -2367,6 +2370,30 @@ Mix(Mix(View.prototype, Event), {
      */
     wrapMxEvent: function(html) {
         return String(html).replace(MxEvt, '$&' + this.id + MxEvtSplit);
+    },
+    /**
+     * 包装异步回调
+     * @param  {Function} fn 异步回调的function
+     * @return {Function}
+     * @example
+     * render:function(){
+     *     setTimeout(this.wrapAsync(function(){
+     *         //codes
+     *     }),50000);
+     * }
+     * //为什么要包装一次？
+     * //Magix是单页应用，有可能异步回调执行时，当前view已经被销毁。比如上例中的setTimeout，50s后执行回调，如果你的回调中去操作了DOM，则会出错，为了避免这种情况的出现，可以调用view的wrapAsync包装一次。(该示例中最好的做法是在view销毁时清除setTimeout，但有时候你很难控制回调的执行，所以最好包装一次)
+     * //
+     * //
+     */
+    wrapAsync: function(fn) {
+        var me = this;
+        var sign = me.sign;
+        return function() {
+            if (sign == me.sign) {
+                if (fn) fn.apply(this, arguments);
+            }
+        };
     },
     /**
      * 设置view的html内容
@@ -2530,9 +2557,9 @@ Mix(Mix(View.prototype, Event), {
      * @param {Object} e 事件信息对象
      * @private
      */
-    processEvent: function(e) {
+    pEvt: function(e) {
         var me = this;
-        if (me.enableEvent && me.sign > 0) {
+        if ( /*me.enableEvent &&*/ me.sign > 0) {
             var info = e.info;
             var domEvent = e.se;
 

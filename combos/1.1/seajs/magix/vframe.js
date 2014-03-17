@@ -264,18 +264,22 @@ Mix(Mix(Vframe.prototype, Event), {
      */
     unmountView: function() {
         var me = this;
-        if (me.view) {
+        var view = me.view;
+        if (view) {
             if (!GlobalAlter) {
                 GlobalAlter = {};
             }
             me.unmountZoneVframes(0, 1);
             me.cAlter(GlobalAlter);
-            me.view.oust();
+
+            delete me.view; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZoneVframes方法引起的多次created
+            view.oust();
+
             var node = $(me.id);
             if (node && node._bak) {
                 node.innerHTML = node._tmpl;
             }
-            delete me.view;
+
             delete me.viewInited;
             if (me.viewPrimed) { //viewMounted与viewUnmounted成对出现
                 delete me.viewPrimed;
@@ -410,7 +414,6 @@ Mix(Mix(Vframe.prototype, Event), {
     /**
      * 通知所有的子view创建完成
      * @private
-     *
      */
     cCreated: function(e) {
         var me = this;

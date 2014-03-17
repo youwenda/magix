@@ -77,7 +77,7 @@ KISSY.add('apiapp/mviews/partials/class', function(S, View, MM, Magix, Crox) {
     var ClassExample = {
         info: null,
         example_desc: function(val) {
-            return val.desc.replace(/ /g, '&nbsp;').replace(/(?:\bfunction|var|if|else|this\b)/g, '<span style="color:blue">$&</span>').replace(/(^|[^:])(\/{2}[\s\S]*?)(?:[\r\n]|$)/g, '$1<span style="color:green">$2</span><br />').replace(/\r\n|\r|\n/g, '<br />');
+            return val.desc.replace(/ /g, '&nbsp;').replace(/(?:\bfunction|var|if|else|this\b)/g, '<span style="color:blue">$&</span>').replace(/(^|[^:])(\/{2}[\s\S]*?)(?:[\r\n]|$)/mg, '$1<span style="color:green">$2</span><br />').replace(/\r\n|\r|\n/g, '<br />');
         }
     };
     return View.extend({
