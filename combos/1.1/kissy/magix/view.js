@@ -841,8 +841,8 @@ Mix(Mix(View.prototype, Event), {
      * @param {Object} e
      */
 });
-    var AppRoot, AppInfo;
     var Suffix = '?t=' + S.now();
+    var Mods = S.Env.mods;
 
     /*var ProcessObject = function(props, proto, enterObject) {
         for (var p in proto) {
@@ -863,15 +863,12 @@ Mix(Mix(View.prototype, Event), {
             if (Has(Tmpls, path)) {
                 fn(Tmpls[path]);
             } else {
-                if (!AppRoot) {
-                    var name = path.substring(0, path.indexOf('/'));
-                    AppInfo = S.Config.packages[name];
-                    AppRoot = AppInfo.base || AppInfo.path;
+                var info = Mods[me.path];
+                if (info) {
+                    var url = info.uri || info.fullpath;
+                    path = url.slice(0, url.indexOf(path) + path.length);
                 }
-                if (AppInfo.ignorePackageNameInUri) {
-                    path = path.replace(AppInfo.name, '');
-                }
-                var file = AppRoot + path + '.html';
+                var file = path + '.html';
                 var l = Locker[file];
                 var onload = function(tmpl) {
                     fn(Tmpls[path] = tmpl);
@@ -882,12 +879,8 @@ Mix(Mix(View.prototype, Event), {
                     l = Locker[file] = [onload];
                     IO({
                         url: file + Suffix,
-                        success: function(x) {
-                            SafeExec(l, x);
-                            delete Locker[file];
-                        },
-                        error: function(e, m) {
-                            SafeExec(l, m);
+                        complete: function(data, status) {
+                            SafeExec(l, data || status);
                             delete Locker[file];
                         }
                     });

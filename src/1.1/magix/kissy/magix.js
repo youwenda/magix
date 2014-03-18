@@ -8,9 +8,10 @@ KISSY.add('magix/magix', function(S) {
 
     var Include = function(path, mxext) {
         var magixPackages = S.Config.packages[mxext ? 'mxext' : 'magix'];
-        var mPath = magixPackages.base || magixPackages.path;
+        var mPath = magixPackages.base || magixPackages.path || magixPackages.uri;
 
         var url = mPath + path + ".js?r=" + Math.random() + '.js';
+        console.log(url);
         var xhr = window.ActiveXObject || window.XMLHttpRequest;
         var r = new xhr('Microsoft.XMLHTTP');
         r.open('GET', url, false);

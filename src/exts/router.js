@@ -1,7 +1,7 @@
 /*
     扩展路由示例，仅KISSY版
  */
-KISSY.add('mxext/router', function(S, R, E, View) {
+KISSY.add('exts/router', function(S, R, E, View) {
     var W = window;
     R.useState = function() {
         var me = this,

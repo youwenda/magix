@@ -6,8 +6,8 @@
 KISSY.add('magix/view', function(S, Magix, Event, Body, IO) {
 
     eval(Magix.include('../tmpl/view'));
-    var AppRoot, AppInfo;
     var Suffix = '?t=' + S.now();
+    var Mods = S.Env.mods;
 
     /*var ProcessObject = function(props, proto, enterObject) {
         for (var p in proto) {
@@ -28,16 +28,12 @@ KISSY.add('magix/view', function(S, Magix, Event, Body, IO) {
             if (Has(Tmpls, path)) {
                 fn(Tmpls[path]);
             } else {
-                if (!AppRoot) {
-                    var name = path.substring(0, path.indexOf('/'));
-                    AppInfo = S.Config.packages[name];
-                    AppRoot = AppInfo.base || AppInfo.path;
+                var info = Mods[me.path];
+                if (info) {
+                    var url = info.uri || info.fullpath;
+                    path = url.slice(0, url.indexOf(path) + path.length);
                 }
-                if (AppInfo.ignorePackageNameInUri) {
-                    path = path.replace(AppInfo.name, '');
-                }
-                console.log(path, AppRoot);
-                var file = AppRoot + path + '.html';
+                var file = path + '.html';
                 var l = Locker[file];
                 var onload = function(tmpl) {
                     fn(Tmpls[path] = tmpl);
@@ -48,12 +44,8 @@ KISSY.add('magix/view', function(S, Magix, Event, Body, IO) {
                     l = Locker[file] = [onload];
                     IO({
                         url: file + Suffix,
-                        success: function(x) {
-                            SafeExec(l, x);
-                            delete Locker[file];
-                        },
-                        error: function(e, m) {
-                            SafeExec(l, m);
+                        complete: function(data, status) {
+                            SafeExec(l, data || status);
                             delete Locker[file];
                         }
                     });
