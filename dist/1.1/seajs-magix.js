@@ -2521,12 +2521,12 @@ Mix(Mix(View.prototype, Event), {
         var location = me.$ol;
         var res = 1;
         if (location) {
+            res = 0;
             if (location.pn) {
                 res = changed.isPathname();
             }
             if (!res) {
-                var keys = location.keys;
-                res = changed.isParam(keys);
+                res = changed.isParam(location.keys);
             }
         }
         return res;
