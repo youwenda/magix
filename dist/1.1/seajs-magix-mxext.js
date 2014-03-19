@@ -131,6 +131,9 @@ Mix(Cache.prototype, {
         }
         return r;
     },
+    list: function() {
+        return this.c;
+    },
     set: function(okey, value, onRemove) {
         var me = this;
         var c = me.c;
@@ -2906,12 +2909,13 @@ Mix(Mix(View.prototype, Event), {
             if (Has(Tmpls, path)) {
                 fn(Tmpls[path]);
             } else {
-                var idx = path.indexOf('/');
+                /*var idx = path.indexOf('/');
                 if (!AppRoot) {
                     var name = path.substring(0, idx);
                     AppRoot = seajs.data.paths[name];
                 }
-                path = path.substring(idx + 1);
+                path = path.substring(idx + 1);*/
+                throw new Error('unsupport');
                 var file = AppRoot + path + '.html';
                 var l = Locker[file];
                 var onload = function(tmpl) {
@@ -3117,10 +3121,11 @@ define("mxext/mmanager", ["magix/magix", "magix/event"], function(require) {
     var Event = require("magix/event");
     var Has = Magix.has;
 var SafeExec = Magix.safeExec;
+var IsArray = Magix.isArray;
+
 var Mix = Magix.mix;
 var Prefix = 'mr';
 var Split = String.fromCharCode(26);
-var IsFunction = Magix.isFunction;
 var DefaultCacheTime = 20 * 60 * 1000;
 var Ser = function(o, a, p) {
     a = [];
@@ -3129,9 +3134,34 @@ var Ser = function(o, a, p) {
     }
     return a;
 };
-
-var DefaultCacheKey = function(meta, attrs) {
-    return [meta.name, Ser(attrs.urlParams), Ser(attrs.postParams)].join(Split);
+/*
+    a=['1','2,']
+    b=['1','2','']
+ */
+var DefaultCacheKey = function(keys, meta, attrs) {
+    var arr = [meta.name];
+    var locker = {};
+    for (var i = keys.length - 1, key; i > -1; i--) {
+        key = keys[i];
+        if (!locker[key]) {
+            arr.push(locker[key] = Ser(meta[key]), Ser(attrs[key]));
+        } else {
+            keys.splice(i, 1);
+        }
+    }
+    return arr.join(Split);
+};
+var ProcessCache = function(attrs) {
+    var cache = attrs.cache;
+    if (cache) {
+        var ctime = attrs.cacheTime | 0;
+        if (ctime) {
+            cache = ctime;
+        } else {
+            cache = cache === true ? DefaultCacheTime : cache | 0;
+        }
+    }
+    return cache;
 };
 var Now = Date.now || function() {
         return +new Date();
@@ -3150,13 +3180,15 @@ var TError = function(e) {
  * @borrows Event.off as #off
  * @borrows Event.once as #once
  * @param {Model} modelClass Model类
+ * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和postParams外，额外使用的key
  */
-var MManager = function(modelClass) {
+var MManager = function(modelClass, serKeys) {
     var me = this;
     me.$mClass = modelClass;
     me.$mCache = Magix.cache();
     me.$mCacheKeys = {};
     me.$mMetas = {};
+    me.$sKeys = ['postParams', 'urlParams'].concat(IsArray(serKeys) ? serKeys : []);
     me.id = 'mm' + Guid--;
     SafeExec(MManager.ms, arguments, me);
 };
@@ -3204,12 +3236,13 @@ Mix(MManager, {
     /**
      * 创建Model类管理对象
      * @param {Model} modelClass Model类
+     * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和postParams外，额外使用的key
      */
-    create: function(modelClass) {
+    create: function(modelClass, serKeys) {
         if (!modelClass) {
             TError('ungiven modelClass');
         }
-        return new MManager(modelClass);
+        return new MManager(modelClass, serKeys);
     },
     /**
      * 扩展MMamager
@@ -3250,7 +3283,7 @@ Mix(MRequest.prototype, {
     /**
      * 获取models，该用缓存的用缓存，该发起请求的请求
      * @private
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2},params:[]}
+     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',urlParams:{a:'12'},postParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @param {Integer} flag   获取哪种类型的models
      * @param {Boolean} save 是否是保存的动作
@@ -3271,7 +3304,7 @@ Mix(MRequest.prototype, {
         var modelsCacheKeys = host.$mCacheKeys;
         var reqs = me.$reqs;
 
-        if (!Magix.isArray(models)) {
+        if (!IsArray(models)) {
             models = [models];
         }
         var total = models.length;
@@ -3285,7 +3318,7 @@ Mix(MRequest.prototype, {
         var errorArgs = {};
         var orderlyArr = [];
 
-        var doneIsArray = Magix.isArray(done);
+        var doneIsArray = IsArray(done);
         if (doneIsArray) {
             doneArgs = new Array(done.length);
         }
@@ -3556,25 +3589,17 @@ Mix(Mix(MManager.prototype, Event), {
      * 注册APP中用到的model
      * @param {Object|Array} models 模块描述信息
      * @param {String} models.name app中model的唯一标识
-     * @param {Object} models.options 传递的参数信息，如{uri:'test',isJSONP:1,updateIdent:1}
      * @param {Object} models.urlParams 发起请求时，默认的get参数对象
      * @param {Object} models.postParams 发起请求时，默认的post参数对象
-     * @param {String} models.cacheKey 指定model缓存的key，当指定后，该model会进行缓存，下次不再发起请求
-     * @param {Integer} models.cacheTime 缓存过期时间，以毫秒为单位，当过期后，再次使用该model时会发起新的请求(前提是该model指定cacheKey被缓存后cacheTime才有效)
-     * @param {Boolean} models.cache 当您同时需要指定cacheKey和cacheTime时，可通过cache=1快捷指定，设置cache=1后，cacheTime默认为20分钟，您可以通过cacheTime显式控制
+     * @param {Boolean|Integer} models.cache指定当前请求缓存多长时间,为true默认20分钟，可传入整数表示缓存多少毫秒
      * @param {Function} models.before model在发起请求前的回调
      * @param {Function} models.after model在结束请求，并且成功后回调
      */
     registerModels: function(models) {
         /*
                 name:'',
-                options:{
-                    uri:'',
-                    jsonp:'1'
-                },
-                urlParams:'',
-                postParams:'',
-                cacheTime:20000,//缓存多久
+                urlParams:{},
+                postParams:{},
                 before:function(m){
 
                 },
@@ -3584,7 +3609,7 @@ Mix(Mix(MManager.prototype, Event), {
              */
         var me = this;
         var metas = me.$mMetas;
-        if (!Magix.isArray(models)) {
+        if (!IsArray(models)) {
             models = [models];
         }
         for (var i = 0, model, name; i < models.length; i++) {
@@ -3596,14 +3621,7 @@ Mix(Mix(MManager.prototype, Event), {
                 } else if (metas[name]) {
                     TError('already exist:' + name);
                 }
-                if (model.cache) {
-                    if (!model.cacheKey) {
-                        model.cacheKey = DefaultCacheKey;
-                    }
-                    if (!model.cacheTime) {
-                        model.cacheTime = DefaultCacheTime;
-                    }
-                }
+                model.cache = ProcessCache(model);
                 metas[name] = model;
             }
         }
@@ -3708,30 +3726,30 @@ Mix(Mix(MManager.prototype, Event), {
     createModel: function(modelAttrs) {
         var me = this;
         var meta = me.getModelMeta(modelAttrs);
+        var cache = ProcessCache(modelAttrs) || meta.cache;
 
         var entity = new me.$mClass();
+        var mm;
         entity.set(meta);
-        entity.$mm = {
+        entity.$mm = mm = {
             used: 0
         };
 
         var before = modelAttrs.before || meta.before;
 
-        if (IsFunction(before)) {
+        if (before) {
             SafeExec(before, [entity, meta]);
         }
 
         var after = modelAttrs.after || meta.after;
 
-        entity.$mm.after = after;
+        mm.after = after;
 
-        var cacheKey = modelAttrs.cacheKey || meta.cacheKey;
-        if (IsFunction(cacheKey)) {
-            cacheKey = SafeExec(cacheKey, [meta, modelAttrs]);
+        if (cache) {
+            mm.key = DefaultCacheKey(me.$sKeys, meta, modelAttrs);
         }
-        entity.$mm.key = cacheKey;
 
-        entity.$mm.meta = meta;
+        mm.meta = meta;
         entity.set(modelAttrs);
         //默认设置的
         entity.setUrlParams(meta.urlParams);
@@ -3974,7 +3992,7 @@ Mix(Mix(MManager.prototype, Event), {
     clearCacheByName: function(name) {
         var me = this;
         var modelsCache = me.$mCache;
-        var list = modelsCache.c;
+        var list = modelsCache.list();
         for (var i = 0; i < list.length; i++) {
             var one = list[i];
             var m = one.v;
@@ -3989,7 +4007,7 @@ Mix(Mix(MManager.prototype, Event), {
     },
     /**
      * 从缓存中获取model对象
-     * @param  {String|Object} modelAttrs
+     * @param  {Object} modelAttrs
      * @return {Model}
      */
     getCachedModel: function(modelAttrs) {
@@ -3997,15 +4015,11 @@ Mix(Mix(MManager.prototype, Event), {
         var modelsCache = me.$mCache;
         var entity = null;
         var cacheKey;
-        var meta;
-        if (Magix.isString(modelAttrs)) {
-            cacheKey = modelAttrs;
-        } else {
-            meta = me.getModelMeta(modelAttrs);
-            cacheKey = modelAttrs.cacheKey || meta.cacheKey;
-            if (IsFunction(cacheKey)) {
-                cacheKey = SafeExec(cacheKey, [meta, modelAttrs]);
-            }
+        var meta = me.getModelMeta(modelAttrs);
+        var cache = ProcessCache(modelAttrs) || meta.cache;
+
+        if (cache) {
+            cacheKey = DefaultCacheKey(me.$sKeys, meta, modelAttrs);
         }
 
         if (cacheKey) {
@@ -4016,14 +4030,7 @@ Mix(Mix(MManager.prototype, Event), {
             } else { //缓存
                 entity = modelsCache.get(cacheKey);
                 if (entity) {
-                    if (!meta) meta = entity.$mm.meta;
-                    var cacheTime = modelAttrs.cacheTime || meta.cacheTime || 0;
-
-                    if (IsFunction(cacheTime)) {
-                        cacheTime = SafeExec(cacheTime, [meta, modelAttrs]);
-                    }
-
-                    if (cacheTime > 0 && Now() - entity.$mm.done > cacheTime) {
+                    if (cache > 0 && Now() - entity.$mm.done > cache) {
                         me.clearCacheByKey(cacheKey);
                         entity = 0;
                     }

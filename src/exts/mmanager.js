@@ -97,8 +97,9 @@ KISSY.add('exts/mmanager', function(S, MM, Magix) {
             }
             var key = prefix + '$' + me.id + '$' + manager.id;
             var m = JoinedCache.get(key);
+            var keys = me.$sKeys;
             if (!m) {
-                m = MM.create(mclass);
+                m = MM.create(mclass, keys.concat(manager.$sKeys));
                 m.registerModels(MConvert(me.$mMetas));
                 m.registerMethods(me.$mMetods);
 

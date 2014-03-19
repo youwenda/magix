@@ -134,6 +134,9 @@ Mix(Cache.prototype, {
         }
         return r;
     },
+    list: function() {
+        return this.c;
+    },
     set: function(okey, value, onRemove) {
         var me = this;
         var c = me.c;
@@ -2894,12 +2897,13 @@ Mix(Mix(View.prototype, Event), {
             if (Has(Tmpls, path)) {
                 fn(Tmpls[path]);
             } else {
-                var info = Mods[me.path];
+                var info = Mods[path];
+                var url;
                 if (info) {
-                    var url = info.uri || info.fullpath;
-                    path = url.slice(0, url.indexOf(path) + path.length);
+                    url = info.uri || info.fullpath;
+                    url = url.slice(0, url.indexOf(path) + path.length);
                 }
-                var file = path + '.html';
+                var file = url + '.html';
                 var l = Locker[file];
                 var onload = function(tmpl) {
                     fn(Tmpls[path] = tmpl);

@@ -867,12 +867,13 @@ Mix(Mix(View.prototype, Event), {
             if (Has(Tmpls, path)) {
                 fn(Tmpls[path]);
             } else {
-                var idx = path.indexOf('/');
+                /*var idx = path.indexOf('/');
                 if (!AppRoot) {
                     var name = path.substring(0, idx);
                     AppRoot = seajs.data.paths[name];
                 }
-                path = path.substring(idx + 1);
+                path = path.substring(idx + 1);*/
+                throw new Error('unsupport');
                 var file = AppRoot + path + '.html';
                 var l = Locker[file];
                 var onload = function(tmpl) {

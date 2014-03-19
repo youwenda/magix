@@ -134,6 +134,9 @@ Mix(Cache.prototype, {
         }
         return r;
     },
+    list: function() {
+        return this.c;
+    },
     set: function(okey, value, onRemove) {
         var me = this;
         var c = me.c;
