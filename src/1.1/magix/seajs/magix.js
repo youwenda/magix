@@ -18,22 +18,22 @@ define('magix/magix', function() {
     var ToString = Object.prototype.toString;
     return Mix(Magix, {
         include: Include,
-        libRequire: function(name, fn) {
+        use: function(name, fn) {
             if (name) {
                 seajs.use(name, fn);
             } else if (fn) {
                 fn();
             }
         },
-        isArray: $.isArray,
-        isFunction: $.isFunction,
-        isObject: function(o) {
+        _a: $.isArray,
+        _f: $.isFunction,
+        _o: function(o) {
             return ToString.call(o) == '[object Object]';
         },
-        isString: function(str) {
+        _s: function(str) {
             return ToString.call(str) == '[object String]';
         },
-        isNumber: function(v) {
+        _n: function(v) {
             return ToString.call(v) == '[object Number]';
         },
         /* isRegExp: function(r) {

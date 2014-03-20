@@ -413,7 +413,7 @@ Mix(Mix(View.prototype, Event), {
         };
         loc = me.$ol;
         var keys = loc.keys;
-        if (Magix.isObject(args)) {
+        if (Magix._o(args)) {
             loc.pn = args.pathname;
             args = args.keys;
         }

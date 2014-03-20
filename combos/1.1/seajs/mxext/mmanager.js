@@ -23,7 +23,7 @@ define("mxext/mmanager", ["magix/magix", "magix/event"], function(require) {
     var Event = require("magix/event");
     var Has = Magix.has;
 var SafeExec = Magix.safeExec;
-var IsArray = Magix.isArray;
+var IsArray = Magix._a;
 
 var Mix = Magix.mix;
 var Prefix = 'mr';
@@ -677,7 +677,7 @@ Mix(Mix(MManager.prototype, Event), {
         var me = this;
         var metas = me.$mMetas;
         var name;
-        if (Magix.isString(modelAttrs)) {
+        if (Magix._s(modelAttrs)) {
             name = modelAttrs;
         } else {
             name = modelAttrs.name;

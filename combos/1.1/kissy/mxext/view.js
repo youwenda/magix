@@ -111,7 +111,7 @@ var MxView = View.extend({
             }
         }
         var oust;
-        if (Magix.isNumber(res)) {
+        if (Magix._n(res)) {
             oust = DestroyTimer;
         } else if (res && res.destroy) {
             oust = Destroy;

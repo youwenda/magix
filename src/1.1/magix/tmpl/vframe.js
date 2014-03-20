@@ -209,7 +209,7 @@ Mix(Mix(Vframe.prototype, Event), {
             var path = Magix.pathToObject(viewPath);
             var vn = path.pathname;
             var sign = --me.sign;
-            Magix.libRequire(vn, function(View) {
+            Magix.use(vn, function(View) {
                 if (sign == me.sign) { //有可能在view载入后，vframe已经卸载了
 
                     BaseView.prepare(View);
@@ -489,7 +489,7 @@ Mix(Mix(Vframe.prototype, Event), {
                  */
                 to: function(c) {
                     c = c || EmptyArr;
-                    if (Magix.isString(c)) {
+                    if (Magix._s(c)) {
                         c = c.split(',');
                     }
                     this.cs = c;

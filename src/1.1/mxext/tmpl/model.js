@@ -12,7 +12,7 @@
 var GUID = +new Date();
 var Encode = encodeURIComponent;
 var Has = Magix.has;
-var IsObject = Magix.isObject;
+var IsObject = Magix._o;
 var ToString = Magix.toString;
 var Model = function(ops) {
     this.set(ops);
@@ -124,7 +124,7 @@ Magix.mix(Model.prototype, {
         var v;
         for (var p in params) {
             v = params[p];
-            if (!Magix.isArray(v)) {
+            if (!Magix._a(v)) {
                 v = [v];
             }
             for (var i = 0; i < v.length; i++) {

@@ -498,7 +498,7 @@ Mix(Mix(Vframe.prototype, Event), {
                  */
                 to: function(c) {
                     c = c || EmptyArr;
-                    if (Magix.isString(c)) {
+                    if (Magix._s(c)) {
                         c = c.split(',');
                     }
                     this.cs = c;

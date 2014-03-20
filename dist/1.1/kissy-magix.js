@@ -71,7 +71,7 @@ var GSObj = function(o) {
                 r = o;
                 break;
             case 1:
-                if (Magix.isObject(k)) {
+                if (Magix._o(k)) {
                     r = Mix(o, k);
                 } else {
                     r = Has(o, k) ? o[k] : null;
@@ -200,10 +200,10 @@ var PathCache = Cache();
  * @return {Object} 返回执行的最后一个方法的返回值
  */
 var SafeExec = function(fns, args, context, i, r, e) {
-    if (!Magix.isArray(fns)) {
+    if (!Magix._a(fns)) {
         fns = [fns];
     }
-    if (!args || (!Magix.isArray(args) && !args.callee)) {
+    if (!args || (!Magix._a(args) && !args.callee)) {
         args = [args];
     }
     for (i = 0; i < fns.length; i++) {
@@ -233,21 +233,21 @@ var Magix = {
      * @param {Object} o 待检测的对象
      * @return {Boolean}
      */
-    
+    //
     /**
      * 判断o是否为对象
      * @function
      * @param {Object} o 待检测的对象
      * @return {Boolean}
      */
-    
+    //
     /**
      * 判断o是否为函数
      * @function
      * @param {Object} o 待检测的对象
      * @return {Boolean}
      */
-    
+    //
     /**
      * 判断o是否为正则
      * @function
@@ -261,14 +261,14 @@ var Magix = {
      * @param {Object} o 待检测的对象
      * @return {Boolean}
      */
-    
+    //
     /**
      * 判断o是否为数字
      * @function
      * @param {Object} o 待检测的对象
      * @return {Boolean}
      */
-    
+    //
     /**
      * 判断是否可转为数字
      * @param  {Object}  o 待检测的对象
@@ -416,7 +416,7 @@ var Magix = {
         var me = this;
         Mix(Cfg, cfg);
 
-        me.libRequire(['magix/router', 'magix/vom', Cfg.iniFile], function(R, V, I) {
+        me.use(['magix/router', 'magix/vom', Cfg.iniFile], function(R, V, I) {
             Cfg = Mix(Cfg, I, cfg);
             Cfg['!tnc'] = Cfg.tagName != DefaultTagName;
 
@@ -424,7 +424,7 @@ var Magix = {
             R.on('changed', V.locChged);
             V.on('progress', Cfg.progress);
 
-            me.libRequire(Cfg.extensions, R.start);
+            me.use(Cfg.extensions, R.start);
         });
     },
     /**
@@ -643,7 +643,7 @@ var Magix = {
      */
     listToMap: function(list, key) {
         var i, e, map = {}, l;
-        if (Magix.isString(list)) {
+        if (Magix._s(list)) {
             list = list.split(',');
         }
         if (list && (l = list.length)) {
@@ -671,7 +671,7 @@ var Magix = {
 };
     return Mix(Magix, {
         
-        libRequire: function(name, fn) {
+        use: function(name, fn) {
             if (name) {
                 S.use(String(name), function(S) {
                     if (fn) {
@@ -682,12 +682,12 @@ var Magix = {
                 fn();
             }
         },
-        isArray: S.isArray,
-        isFunction: S.isFunction,
-        isObject: S.isObject,
+        _a: S.isArray,
+        _f: S.isFunction,
+        _o: S.isObject,
         //isRegExp: S.isRegExp,
-        isString: S.isString,
-        isNumber: S.isNumber
+        _s: S.isString,
+        _n: S.isNumber
     });
 });
 /**
@@ -723,7 +723,7 @@ var SupportState, HashAsNativeHistory;
 var IsParam = function(params, r, ps) {
     if (params) {
         ps = this[PARAMS];
-        if (Magix.isString(params)) params = params.split(',');
+        if (Magix._s(params)) params = params.split(',');
         for (var i = 0; i < params.length; i++) {
             r = Has(ps, params[i]);
             if (r) break;
@@ -806,7 +806,7 @@ var Router = Mix({
             var defaultPathname = MxConfig.defaultPathname || EMPTY;
             //if(!Magix.isFunction(temp.rs)){
             r = Pnr.rs;
-            Pnr.f = Magix.isFunction(r);
+            Pnr.f = Magix._f(r);
             if (!Pnr.f && !r[defaultPathname] && defaultView) {
                 r[defaultPathname] = defaultView;
             }
@@ -1033,7 +1033,7 @@ var Router = Mix({
     navigate: function(pn, params, replace) {
         var me = Router;
 
-        if (!params && Magix.isObject(pn)) {
+        if (!params && Magix._o(pn)) {
             params = pn;
             pn = EMPTY;
         }
@@ -1967,7 +1967,7 @@ Mix(Mix(Vframe.prototype, Event), {
                  */
                 to: function(c) {
                     c = c || EmptyArr;
-                    if (Magix.isString(c)) {
+                    if (Magix._s(c)) {
                         c = c.split(',');
                     }
                     this.cs = c;
@@ -2456,7 +2456,7 @@ Mix(Mix(View.prototype, Event), {
         };
         loc = me.$ol;
         var keys = loc.keys;
-        if (Magix.isObject(args)) {
+        if (Magix._o(args)) {
             loc.pn = args.pathname;
             args = args.keys;
         }

@@ -21,7 +21,7 @@ KISSY.add('magix/magix', function(S) {
     eval(Include('../tmpl/magix'));
     return Mix(Magix, {
         include: Include,
-        libRequire: function(name, fn) {
+        use: function(name, fn) {
             if (name) {
                 S.use(String(name), function(S) {
                     if (fn) {
@@ -32,11 +32,11 @@ KISSY.add('magix/magix', function(S) {
                 fn();
             }
         },
-        isArray: S.isArray,
-        isFunction: S.isFunction,
-        isObject: S.isObject,
+        _a: S.isArray,
+        _f: S.isFunction,
+        _o: S.isObject,
         //isRegExp: S.isRegExp,
-        isString: S.isString,
-        isNumber: S.isNumber
+        _s: S.isString,
+        _n: S.isNumber
     });
 });

@@ -34,7 +34,7 @@ var SupportState, HashAsNativeHistory;
 var IsParam = function(params, r, ps) {
     if (params) {
         ps = this[PARAMS];
-        if (Magix.isString(params)) params = params.split(',');
+        if (Magix._s(params)) params = params.split(',');
         for (var i = 0; i < params.length; i++) {
             r = Has(ps, params[i]);
             if (r) break;
@@ -117,7 +117,7 @@ var Router = Mix({
             var defaultPathname = MxConfig.defaultPathname || EMPTY;
             //if(!Magix.isFunction(temp.rs)){
             r = Pnr.rs;
-            Pnr.f = Magix.isFunction(r);
+            Pnr.f = Magix._f(r);
             if (!Pnr.f && !r[defaultPathname] && defaultView) {
                 r[defaultPathname] = defaultView;
             }
@@ -344,7 +344,7 @@ var Router = Mix({
     navigate: function(pn, params, replace) {
         var me = Router;
 
-        if (!params && Magix.isObject(pn)) {
+        if (!params && Magix._o(pn)) {
             params = pn;
             pn = EMPTY;
         }
