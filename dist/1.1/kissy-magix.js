@@ -1316,6 +1316,8 @@ var Body = {
     }
 };
     var Unbubbles = {
+        change: 1,
+        submit: 1,
         focusin: 1,
         focusout: 1,
         mouseenter: 2,
