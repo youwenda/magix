@@ -1517,7 +1517,7 @@ var $ = function(id) {
 var $$ = function(id, node, arr) {
     node = $(id);
     if (node) {
-        arr = UseQSA ? D.querySelectorAll('#' + node.id + Selector) : node.getElementsByTagName(TagName);
+        arr = UseQSA ? D.querySelectorAll('#' + IdIt(node) + Selector) : node.getElementsByTagName(TagName);
     }
     return arr || EmptyArr;
 };
@@ -1868,7 +1868,7 @@ Mix(Mix(Vframe.prototype, Event), {
     /**
      * 销毁某个区域下面的所有子vframes
      * @param {HTMLElement|String} [zoneId]节点对象或id
-     * @param {Boolean} [inner] 内部调用时传递
+     * @param {Boolean} [inner] 内部调用时传递，用于判断在这个区域内稍后是否还有vframes渲染，如果有，则为true，否则为false
      */
     unmountZoneVframes: function(zoneId, inner) {
         var me = this;
