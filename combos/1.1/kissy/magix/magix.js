@@ -415,16 +415,17 @@ var Magix = {
     start: function(cfg) {
         var me = this;
         Mix(Cfg, cfg);
-
-        me.use(['magix/router', 'magix/vom', Cfg.iniFile], function(R, V, I) {
+        me.use(Cfg.iniFile, function(I) {
             Cfg = Mix(Cfg, I, cfg);
             Cfg['!tnc'] = Cfg.tagName != DefaultTagName;
 
-            R.on('!ul', V.locChged);
-            R.on('changed', V.locChged);
-            V.on('progress', Cfg.progress);
+            me.use(['magix/router', 'magix/vom'], function(R, V) {
+                R.on('!ul', V.locChged);
+                R.on('changed', V.locChged);
+                V.on('progress', Cfg.progress);
 
-            me.use(Cfg.extensions, R.start);
+                me.use(Cfg.extensions, R.start);
+            });
         });
     },
     /**
