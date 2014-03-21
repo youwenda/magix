@@ -9,8 +9,8 @@ define('magix/view', function(require) {
     var Body = require("magix/body");
 
     eval(Magix.include('../tmpl/view'));
-    var AppRoot;
-    var Suffix = '?t=' + Date.now();
+    var Paths = {};
+    var Suffix = '?t=' + Math.random();
 
     /*var ProcessObject = function(props, proto, enterObject) {
         for (var p in proto) {
@@ -32,14 +32,12 @@ define('magix/view', function(require) {
             if (Has(Tmpls, path)) {
                 fn(Tmpls[path]);
             } else {
-                /*var idx = path.indexOf('/');
-                if (!AppRoot) {
-                    var name = path.substring(0, idx);
-                    AppRoot = seajs.data.paths[name];
+                var idx = path.indexOf('/');
+                var name = path.substring(0, idx);
+                if (!Paths[name]) {
+                    Paths[name] = seajs.data.paths[name];
                 }
-                path = path.substring(idx + 1);*/
-                throw new Error('unsupport');
-                var file = AppRoot + path + '.html';
+                var file = Paths[name] + path.substring(idx + 1) + '.html';
                 var l = Locker[file];
                 var onload = function(tmpl) {
                     fn(Tmpls[path] = tmpl);

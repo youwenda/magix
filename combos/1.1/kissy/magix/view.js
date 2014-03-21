@@ -97,6 +97,9 @@ var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
 var View = function(ops) {
     var me = this;
     Mix(me, ops);
+    me.$ol = {
+        ks: []
+    };
     me.sign = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     SafeExec(View.ms, [ops], me);
 };
@@ -415,17 +418,15 @@ Mix(Mix(View.prototype, Event), {
     observeLocation: function(args) {
         var me = this,
             loc;
-        if (!me.$ol) me.$ol = {
-            keys: []
-        };
         loc = me.$ol;
-        var keys = loc.keys;
+        loc.f = 1;
+        var keys = loc.ks;
         if (Magix._o(args)) {
             loc.pn = args.pathname;
             args = args.keys;
         }
         if (args) {
-            loc.keys = keys.concat(String(args).split(COMMA));
+            loc.ks = keys.concat(String(args).split(COMMA));
         }
     },
     /**
@@ -471,17 +472,17 @@ Mix(Mix(View.prototype, Event), {
      * @return {Boolean} 是否发生改变
      * @private
      */
-    olChanged: function(changed) {
+    olChg: function(changed) {
         var me = this;
-        var location = me.$ol;
+        var loc = me.$ol;
         var res = 1;
-        if (location) {
+        if (loc.f) {
             res = 0;
-            if (location.pn) {
-                res = changed.isPathname();
+            if (loc.pn) {
+                res = changed.pathname;
             }
             if (!res) {
-                res = changed.isParam(location.keys);
+                res = changed.isParam(loc.ks);
             }
         }
         return res;

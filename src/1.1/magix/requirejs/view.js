@@ -6,8 +6,8 @@
 define('magix/view', ["magix/magix", "magix/event", "magix/body"], function(Magix, Event, Body) {
 
     eval(Magix.include('../tmpl/view'));
-    var AppRoot;
-    var Suffix = '?t=' + Date.now();
+    var Paths = {};
+    var Suffix = '?t=' + Math.random();
 
     /* var ProcessObject = function(props, proto, enterObject) {
         for (var p in proto) {
@@ -30,12 +30,11 @@ define('magix/view', ["magix/magix", "magix/event", "magix/body"], function(Magi
                 fn(Tmpls[path]);
             } else {
                 var idx = path.indexOf('/');
-                if (!AppRoot) {
-                    var name = path.substring(0, idx);
-                    AppRoot = require.s.contexts._.config.paths[name];
+                var name = path.substring(0, idx);
+                if (!Paths[name]) {
+                    Paths[name] = require.s.contexts._.config.paths[name];
                 }
-                path = path.substring(idx + 1);
-                var file = AppRoot + path + '.html';
+                var file = Paths[name] + path.substring(idx + 1) + '.html';
                 var l = Locker[file];
                 var onload = function(tmpl) {
                     fn(Tmpls[path] = tmpl);

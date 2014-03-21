@@ -472,7 +472,7 @@ Mix(Mix(Vframe.prototype, Event), {
         var view = me.view;
         if (me.viewInited && view.sign > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的window.location.href对象，对于销毁的也不需要广播
 
-            var isChanged = view.olChanged(RefChged);
+            var isChanged = view.olChg(RefChged);
             /**
              * 事件对象
              * @type {Object}
