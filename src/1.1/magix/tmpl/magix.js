@@ -396,7 +396,7 @@ var Magix = {
     start: function(cfg) {
         var me = this;
         Mix(Cfg, cfg);
-        me.use(Cfg.iniFile, function(I) {
+        me.use(Cfg.iniFile, function(I) { //一定要等ini文件就绪后才能加载别的，否则会导致ini文件中的一些配置不生效
             Cfg = Mix(Cfg, I, cfg);
             Cfg['!tnc'] = Cfg.tagName != DefaultTagName;
 

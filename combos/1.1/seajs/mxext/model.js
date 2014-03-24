@@ -323,17 +323,17 @@ Magix.mix(Model.prototype, {
         me.$abt = 0;
         var temp = function(err, data) {
             if (!me.$abt) {
-                if (err) {
-                    callback(err, data, options);
-                } else {
-                    if (!IsObject(data)) {
-                        data = {
-                            data: data
-                        };
-                    }
-                    me.set(data);
-                    callback(err, data, options);
+                //if (err) {
+                // callback(err, data, options);
+                //} else {
+                if (!IsObject(data)) {
+                    data = {
+                        data: data
+                    };
                 }
+                me.set(data);
+                callback(err, data, options);
+                //}
             } else {
                 callback('abort', null, options);
             }

@@ -16,7 +16,8 @@ var Has = Magix.has;
 var MxBuild = TagNameChanged ? 'mx-vframe' : 'mx-defer';
 var SupportContains = B.contains;
 
-var UseQSA = TagNameChanged && B.querySelectorAll;
+var QSA = 'querySelectorAll';
+var UseQSA = TagNameChanged && B[QSA];
 var Selector = ' ' + TagName + '[mx-vframe]';
 
 var Alter = 'alter';
@@ -30,7 +31,7 @@ var $ = function(id) {
 var $$ = function(id, node, arr) {
     node = $(id);
     if (node) {
-        arr = UseQSA ? D.querySelectorAll('#' + IdIt(node) + Selector) : node.getElementsByTagName(TagName);
+        arr = UseQSA ? D[QSA]('#' + IdIt(node) + Selector) : node.getElementsByTagName(TagName);
     }
     return arr || EmptyArr;
 };

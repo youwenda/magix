@@ -23,7 +23,10 @@ var DestroyTimer = function(id) {
 };
 
 var Destroy = function(res) {
-    SafeExec(res.destroy, EMPTYARR, res);
+    var fn = res && res[DestroyStr];
+    if (fn) {
+        SafeExec(fn, EMPTYARR, res);
+    }
 };
 
 var DestroyAllManaged = function(e) {
@@ -109,22 +112,22 @@ var MxView = View.extend({
             key = 'res_' + (ResCounter++);
             hk = 0;
         } else {
-            var old = cache[key];
-            if (old && old.res != res) { //销毁同key不同资源的旧资源
-                me.destroyManaged(key); //
-            }
+            //var old = cache[key];
+            //if (old && old.res != res) { //销毁同key不同资源的旧资源
+            me.destroyManaged(key); //
+            //}
         }
         var oust;
         if (Magix._n(res)) {
             oust = DestroyTimer;
-        } else if (res && res.destroy) {
+        } else {
             oust = Destroy;
         }
         var wrapObj = {
             hk: hk,
             res: res,
             ol: lastly,
-            mr: res && res.fetchOne,
+            mr: res && res.$reqs,
             oust: oust
         };
         cache[key] = wrapObj;
@@ -172,19 +175,14 @@ var MxView = View.extend({
         if (o && (!keepIt || !o.ol) /*&& (!o.mr || o.sign != view.sign)*/ ) { //暂不考虑render中多次setViewHTML的情况
             //var processed=false;
             res = o.res;
-            var oust = o.oust;
-            var processed = 0;
-            if (oust) {
-                oust(res);
-                processed = 1;
-            }
+            o.oust(res);
             if (!o.hk || !keepIt) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
                 delete cache[key];
             }
-            me.fire('destroyManaged', {
+            /*me.fire('destroyManaged', {
                 resource: res,
                 processed: processed
-            });
+            });*/
         }
         return res;
     }
@@ -204,13 +202,5 @@ var MxView = View.extend({
         Magix.mix(MxView.prototype, props);
     }
 });
-/**
- * view销毁托管资源时发生
- * @name MxView#destroyResource
- * @event
- * @param {Object} e
- * @param {Object} e.resource 托管的资源
- * @param {Boolean} e.processed 表示view是否对这个资源做过销毁处理，目前view仅对带 abort destroy dispose方法的资源进行自动处理，其它资源需要您响应该事件自已处理
- */
     return MxView;
 });

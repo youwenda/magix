@@ -253,7 +253,7 @@ Mix(MRequest.prototype, {
                         meta: meta
                     });
                 }
-                if (!model.fromCache && mm.used > 0) {
+                if (mm.used > 0) {
                     model.fromCache = 1;
                 }
                 mm.used++;

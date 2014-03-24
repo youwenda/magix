@@ -412,7 +412,7 @@ var Magix = {
     start: function(cfg) {
         var me = this;
         Mix(Cfg, cfg);
-        me.use(Cfg.iniFile, function(I) {
+        me.use(Cfg.iniFile, function(I) { //一定要等ini文件就绪后才能加载别的，否则会导致ini文件中的一些配置不生效
             Cfg = Mix(Cfg, I, cfg);
             Cfg['!tnc'] = Cfg.tagName != DefaultTagName;
 
@@ -1500,7 +1500,8 @@ var Has = Magix.has;
 var MxBuild = TagNameChanged ? 'mx-vframe' : 'mx-defer';
 var SupportContains = B.contains;
 
-var UseQSA = TagNameChanged && B.querySelectorAll;
+var QSA = 'querySelectorAll';
+var UseQSA = TagNameChanged && B[QSA];
 var Selector = ' ' + TagName + '[mx-vframe]';
 
 var Alter = 'alter';
@@ -1514,7 +1515,7 @@ var $ = function(id) {
 var $$ = function(id, node, arr) {
     node = $(id);
     if (node) {
-        arr = UseQSA ? D.querySelectorAll('#' + IdIt(node) + Selector) : node.getElementsByTagName(TagName);
+        arr = UseQSA ? D[QSA]('#' + IdIt(node) + Selector) : node.getElementsByTagName(TagName);
     }
     return arr || EmptyArr;
 };
@@ -3340,7 +3341,7 @@ Mix(MRequest.prototype, {
                         meta: meta
                     });
                 }
-                if (!model.fromCache && mm.used > 0) {
+                if (mm.used > 0) {
                     model.fromCache = 1;
                 }
                 mm.used++;
@@ -4370,17 +4371,17 @@ Magix.mix(Model.prototype, {
         me.$abt = 0;
         var temp = function(err, data) {
             if (!me.$abt) {
-                if (err) {
-                    callback(err, data, options);
-                } else {
-                    if (!IsObject(data)) {
-                        data = {
-                            data: data
-                        };
-                    }
-                    me.set(data);
-                    callback(err, data, options);
+                //if (err) {
+                // callback(err, data, options);
+                //} else {
+                if (!IsObject(data)) {
+                    data = {
+                        data: data
+                    };
                 }
+                me.set(data);
+                callback(err, data, options);
+                //}
             } else {
                 callback('abort', null, options);
             }
@@ -4430,7 +4431,10 @@ var DestroyTimer = function(id) {
 };
 
 var Destroy = function(res) {
-    SafeExec(res.destroy, EMPTYARR, res);
+    var fn = res && res[DestroyStr];
+    if (fn) {
+        SafeExec(fn, EMPTYARR, res);
+    }
 };
 
 var DestroyAllManaged = function(e) {
@@ -4516,22 +4520,22 @@ var MxView = View.extend({
             key = 'res_' + (ResCounter++);
             hk = 0;
         } else {
-            var old = cache[key];
-            if (old && old.res != res) { //销毁同key不同资源的旧资源
-                me.destroyManaged(key); //
-            }
+            //var old = cache[key];
+            //if (old && old.res != res) { //销毁同key不同资源的旧资源
+            me.destroyManaged(key); //
+            //}
         }
         var oust;
         if (Magix._n(res)) {
             oust = DestroyTimer;
-        } else if (res && res.destroy) {
+        } else {
             oust = Destroy;
         }
         var wrapObj = {
             hk: hk,
             res: res,
             ol: lastly,
-            mr: res && res.fetchOne,
+            mr: res && res.$reqs,
             oust: oust
         };
         cache[key] = wrapObj;
@@ -4579,19 +4583,14 @@ var MxView = View.extend({
         if (o && (!keepIt || !o.ol) /*&& (!o.mr || o.sign != view.sign)*/ ) { //暂不考虑render中多次setViewHTML的情况
             //var processed=false;
             res = o.res;
-            var oust = o.oust;
-            var processed = 0;
-            if (oust) {
-                oust(res);
-                processed = 1;
-            }
+            o.oust(res);
             if (!o.hk || !keepIt) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
                 delete cache[key];
             }
-            me.fire('destroyManaged', {
+            /*me.fire('destroyManaged', {
                 resource: res,
                 processed: processed
-            });
+            });*/
         }
         return res;
     }
@@ -4611,13 +4610,5 @@ var MxView = View.extend({
         Magix.mix(MxView.prototype, props);
     }
 });
-/**
- * view销毁托管资源时发生
- * @name MxView#destroyResource
- * @event
- * @param {Object} e
- * @param {Object} e.resource 托管的资源
- * @param {Boolean} e.processed 表示view是否对这个资源做过销毁处理，目前view仅对带 abort destroy dispose方法的资源进行自动处理，其它资源需要您响应该事件自已处理
- */
     return MxView;
 });;document.createElement("vframe");
