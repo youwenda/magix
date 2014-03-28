@@ -60,75 +60,75 @@ var Body = {
             var eventType = e.type;
             var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(Comma + eventType + '(?:,|$)'));
             //
-            if (!eventReg.test(GetSetAttribute(target, MxIgnore))) {
-                var type = 'mx-' + eventType;
-                var info;
-                var ignore;
-                var arr = [];
+            //if (!eventReg.test(GetSetAttribute(target, MxIgnore))) {
+            var type = 'mx-' + eventType;
+            var info;
+            var ignore;
+            var arr = [];
 
-                while (current && current != RootNode) { //找事件附近有mx[a-z]+事件的DOM节点
-                    info = GetSetAttribute(current, type);
-                    ignore = GetSetAttribute(current, MxIgnore); //current.getAttribute(MxIgnore);
-                    if (info || eventReg.test(ignore)) {
-                        break;
-                    } else {
-                        arr.push(current);
-                        current = current.parentNode;
+            while (current && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点
+                info = GetSetAttribute(current, type);
+                ignore = GetSetAttribute(current, MxIgnore); //current.getAttribute(MxIgnore);
+                if (info || eventReg.test(ignore)) {
+                    break;
+                } else {
+                    arr.push(current);
+                    current = current.parentNode;
+                }
+            }
+            if (info) { //有事件
+                //找处理事件的vframe
+                var vId;
+                var ts = info.split(MxEvtSplit);
+                if (ts.length > 1) {
+                    vId = ts[0];
+                    info = ts.pop();
+                }
+                vId = vId || GetSetAttribute(current, MxOwner);
+                if (!vId) { //如果没有则找最近的vframe
+                    var begin = current;
+                    var vfs = VOM.all();
+                    while (begin) {
+                        if (Has(vfs, begin.id)) {
+                            GetSetAttribute(current, MxOwner, vId = begin.id);
+                            break;
+                        }
+                        begin = begin.parentNode;
                     }
                 }
-                if (info) { //有事件
-                    //找处理事件的vframe
-                    var vId;
-                    var ts = info.split(MxEvtSplit);
-                    if (ts.length > 1) {
-                        vId = ts[0];
-                        info = ts.pop();
-                    }
-                    vId = vId || GetSetAttribute(current, MxOwner);
-                    if (!vId) { //如果没有则找最近的vframe
-                        var begin = current;
-                        var vfs = VOM.all();
-                        while (begin) {
-                            if (Has(vfs, begin.id)) {
-                                GetSetAttribute(current, MxOwner, vId = begin.id);
-                                break;
-                            }
-                            begin = begin.parentNode;
-                        }
-                    }
-                    if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
+                if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
 
-                        var vframe = VOM.get(vId);
-                        var view = vframe && vframe.view;
-                        if (view) {
-                            if (!W3C) {
-                                e.preventDefault = PreventDefault;
-                                e.stopPropagation = StopPropagation;
-                            }
-                            view.pEvt({
-                                info: info,
-                                se: e,
-                                st: eventType,
-                                tId: IdIt(target),
-                                cId: IdIt(current)
-                            });
+                    var vframe = VOM.get(vId);
+                    var view = vframe && vframe.view;
+                    if (view) {
+                        if (!W3C) {
+                            e.preventDefault = PreventDefault;
+                            e.stopPropagation = StopPropagation;
                         }
-                    } else {
-                        throw Error('bad:' + info);
+                        view.pEvt({
+                            info: info,
+                            se: e,
+                            st: eventType,
+                            tId: IdIt(target),
+                            cId: IdIt(current)
+                        });
                     }
                 } else {
-                    var node;
-                    while (arr.length) {
-                        node = arr.shift();
-                        ignore = GetSetAttribute(node, MxIgnore) || On;
-                        if (!eventReg.test(ignore)) {
-                            ignore = ignore + Comma + eventType;
-                            GetSetAttribute(node, MxIgnore, ignore);
-                        }
+                    throw Error('bad:' + info);
+                }
+            } else {
+                var node;
+                while (arr.length) {
+                    node = arr.shift();
+                    ignore = GetSetAttribute(node, MxIgnore) || On;
+                    if (!eventReg.test(ignore)) {
+                        ignore = ignore + Comma + eventType;
+                        GetSetAttribute(node, MxIgnore, ignore);
                     }
                 }
             }
         }
+        //}
     },
     act: function(type, remove, vom) {
         var counter = RootEvents[type] || 0;
