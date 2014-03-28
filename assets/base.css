@@ -5,6 +5,10 @@ body {
     background: #e4e6e5;
 }
 
+.justify, .dib-box .justify {
+    line-height: inherit;
+}
+
 /* 全局hover颜色和背景色动画 */
 a {
     color: #3187DB;
@@ -45,6 +49,7 @@ a {
 }
 .type h3 {
     font-size: 1.17em;
+    margin: 1em 0;
 }
 .type h4,
 .type h5,
@@ -160,6 +165,7 @@ a {
     height: 60px;
     vertical-align: middle;
     background-color: #ed4242;
+    color: #fff;
     margin-top: 0;
     margin-bottom: 0;
     -webkit-transition: 0.3s;
@@ -167,6 +173,10 @@ a {
     -ms-transition: 0.3s;
     -o-transition: 0.3s;
     transition: 0.3s;
+}
+
+#nav .logo:hover {
+    color: #fff;
 }
 
 #nav.fixed .logo {
@@ -266,6 +276,8 @@ a {
     width: 100%;
     top: 0;
     left: 0;
+    height: 45px;
+    line-height: 45px;
     background: #f4f4f4;
     border-bottom: 1px solid #d6d6d6;
     color: #aaa;
@@ -292,13 +304,8 @@ a {
     /*float: right;*/
 }
 
-#ceiling .bd {
-    height: 45px;
-    line-height: 45px;
-}
-
 #ceiling .dib {
-    vertical-align: top;
+    vertical-align: middle;
 }
 
 .ds-thread {
@@ -381,7 +388,7 @@ a {
         overflow: hidden;
     }
 
-    #ceiling .bd {
+    #ceiling {
         height: 40px;
         line-height: 40px;
     }
@@ -473,8 +480,7 @@ a {
     }
 
     #ceiling .bd {
-        height: 45px;
-        line-height: 45px;
+        line-height: inherit;
     }
 
     #ceiling a {
@@ -891,20 +897,54 @@ ol.type-toc,
 }
 
 
+.anchor:target ~ .anchor-link {
+    visibility: visible;
+    -webkit-animation: highlight 1.6s ease;
+    -moz-animation: highlight 1.6s ease;
+    -ms-animation: highlight 1.6s ease;
+    -o-animation: highlight 1.6s ease;
+    animation: highlight 1.6s ease;
+}
 
-h2, h3, h4, h5, h6 {
+/* 修复顶部带有Fixed导航锚点定位不准确问题 */
+.type h2,
+.type h3,
+.type h4,
+.type h5,
+.type h6 {
     padding-left: 1em;
     position: relative;
-    z-index: -1; /* 防止盖住上面的内容 */
-    -webkit-background-clip:padding-box;
+/*    -webkit-background-clip:padding-box;
     -moz-background-clip:padding;
     background-clip:padding-box;
     border-top: 80px solid transparent;
-    margin-top: -80px;
-    
+    margin-top: -70px; */
 }
 
-/* 防止标题上边距导致 */
+/**
+ * 防止遮挡住上面的内容，导致无法选中
+ * 每个 z-index 递减，防止 h2+h3 这样的结构导致 h2 无法选中
+ */
+
+/*.type h2 {
+    z-index: -2;
+}
+
+.type h3 {
+    z-index: -3;
+}
+
+.type h4 {
+    z-index: -4;
+}
+
+.type h5 {
+    z-index: -5;
+}
+
+.type h6 {
+    z-index: -6;
+}*/
 .type {
     position: relative;
     z-index: 1;
@@ -915,22 +955,36 @@ h2, h3, h4, h5, h6 {
  * 生成行内锚点链接符号
  * http://www.fileformat.info/info/unicode/char/a7/index.htm
  */
-.anchor-link{
+.anchor-link {
     visibility: hidden;
     position: absolute;
     left: -.5em;
+    padding-left: .5em;
     top: -3px;
     z-index: 9;
-    width: 1.5em;
+    width: 2em;
+    /*text-indent: .5em;*/
     /*padding: 0 2px 0 5px;*/
-    text-align: center;
-    /*background-color:red;*/
+    /*background: rgba(255, 0, 0, 0.2);*/
 }
 
 .anchor-link:hover {
     border: 0 none !important;
     text-decoration: none;
 }
+
+h2 .anchor-link {
+    width: 2em;
+}
+
+h3 .anchor-link {
+    width: 2.5em;
+}
+
+h4 .anchor-link {
+    width: 3.5em;
+}
+
 
 /**
  * 生成章节号
@@ -943,15 +997,13 @@ h2, h3, h4, h5, h6 {
 
 h2:hover .anchor-link,
 h3:hover .anchor-link,
-h4:hover .anchor-link,
-h5:hover .anchor-link,
-h5:hover .anchor-link {
+h4:hover .anchor-link {
     visibility: visible;
 }
 
 .anchor {
     position: absolute;
-    top: -90px;
+    top: -50px;
     overflow: hidden;
 }
 
@@ -1111,6 +1163,11 @@ h5:hover .anchor-link {
 .body-night .type pre,
 .body-night .type code {
     background-color: #3F3F3F;
+    border-color: #555;
+}
+
+.body-night .type-demo {
+    border-color: #555;
 }
 
 /* 多说评论框 */
