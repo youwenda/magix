@@ -332,11 +332,12 @@ Magix.mix(Model.prototype, {
                     };
                 }
                 me.set(data);
-                callback(err, data, options);
                 //}
             } else {
-                callback('abort', null, options);
+                err = 'abort';
+                data = null;
             }
+            callback(err, data, options);
         };
         me.$trans = me.sync(temp);
     },

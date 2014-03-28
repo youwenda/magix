@@ -21,12 +21,10 @@ var IdIt = function(dom) {
     return dom.id || (dom.id = 'mx-e-' + (IdCounter--));
 };
 var GetSetAttribute = function(dom, attrKey, attrVal) {
-    if (dom && dom.setAttribute) {
-        if (attrVal) {
-            dom.setAttribute(attrKey, attrVal);
-        } else {
-            attrVal = dom.getAttribute(attrKey);
-        }
+    if (attrVal) {
+        dom.setAttribute(attrKey, attrVal);
+    } else {
+        attrVal = dom.getAttribute(attrKey);
     }
     return attrVal;
 };
@@ -62,9 +60,10 @@ var Body = {
                 var ignore;
                 var arr = [];
 
-                while (current) { //找事件附近有mx[a-z]+事件的DOM节点
+                while (current && current != RootNode) { //找事件附近有mx[a-z]+事件的DOM节点
                     info = GetSetAttribute(current, type);
                     ignore = GetSetAttribute(current, MxIgnore); //current.getAttribute(MxIgnore);
+                    console.log(current);
                     if (info || eventReg.test(ignore)) {
                         break;
                     } else {

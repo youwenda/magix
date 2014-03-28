@@ -21,9 +21,9 @@ KISSY.add('exts/1.0events', function(S, View, Magix, Body) {
     var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\({([\s\S]*)}\))?/;
     var EvtParamsReg = /(\w+):([^,]+)/g;
     return View.mixin({
-        processEvent: function(e) {
+        pEvt: function(e) {
             var me = this;
-            if (me.enableEvent && me.sign) {
+            if (me.sign > 0) {
                 var info = e.info;
                 var domEvent = e.se;
 

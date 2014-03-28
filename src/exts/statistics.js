@@ -6,7 +6,6 @@ KISSY.add('exts/statistics', function(S, Router, VOM, Magix) {
     var MS = window.MS || {
         start: new Date()
     };
-    window.MS = MS;
     var Statistics = {
         log: function(info) {
             console.log(info, info.end - info.start);
@@ -46,21 +45,22 @@ KISSY.add('exts/statistics', function(S, Router, VOM, Magix) {
         Router.on('changed', function(e) {
             if (!e.force) {
                 var loc = e.location;
-                var cache = !! MS[loc.pathname];
+                var pn = loc.pathname;
+                var cache = !! MS[pn];
                 if (cache) {
                     cache.discard = true;
                 }
                 var changed = e.changed;
-                if (changed.isPathname()) {
-                    MS[loc.pathname] = {
+                if (changed.isPathname()) { //view的改变必定引起pathname的改变
+                    MS[pn] = {
                         start: new Date(),
                         cache: cache,
                         action: 'pathnamechange',
                         from: changed.pathname.from,
                         to: changed.pathname.to
                     };
-                } else if (!changed.isView()) { //params
-                    MS[loc.pathname] = {
+                } else { //params
+                    MS[pn] = {
                         start: new Date(),
                         cache: cache,
                         action: 'paramschange'

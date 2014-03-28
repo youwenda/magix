@@ -1202,12 +1202,10 @@ var IdIt = function(dom) {
     return dom.id || (dom.id = 'mx-e-' + (IdCounter--));
 };
 var GetSetAttribute = function(dom, attrKey, attrVal) {
-    if (dom && dom.setAttribute) {
-        if (attrVal) {
-            dom.setAttribute(attrKey, attrVal);
-        } else {
-            attrVal = dom.getAttribute(attrKey);
-        }
+    if (attrVal) {
+        dom.setAttribute(attrKey, attrVal);
+    } else {
+        attrVal = dom.getAttribute(attrKey);
     }
     return attrVal;
 };
@@ -1243,7 +1241,7 @@ var Body = {
                 var ignore;
                 var arr = [];
 
-                while (current) { //找事件附近有mx[a-z]+事件的DOM节点
+                while (current && current != RootNode) { //找事件附近有mx[a-z]+事件的DOM节点
                     info = GetSetAttribute(current, type);
                     ignore = GetSetAttribute(current, MxIgnore); //current.getAttribute(MxIgnore);
                     if (info || eventReg.test(ignore)) {
@@ -3164,6 +3162,7 @@ var ProcessCache = function(attrs) {
     }
     return cache;
 };
+
 var Now = Date.now || function() {
         return +new Date();
     };
@@ -3189,7 +3188,12 @@ var MManager = function(modelClass, serKeys) {
     me.$mCache = Magix.cache();
     me.$mCacheKeys = {};
     me.$mMetas = {};
-    me.$sKeys = ['postParams', 'urlParams'].concat(IsArray(serKeys) ? serKeys : []);
+    if (serKeys) {
+        serKeys = IsArray(serKeys) ? serKeys : [serKeys];
+    } else {
+        serKeys = [];
+    }
+    me.$sKeys = ['postParams', 'urlParams'].concat(serKeys);
     me.id = 'mm' + Guid--;
     SafeExec(MManager.ms, arguments, me);
 };
@@ -3197,19 +3201,121 @@ var MManager = function(modelClass, serKeys) {
 var Slice = [].slice;
 
 
-var WrapDone = function(fn, model, idx) {
+var WrapDone = function(fn, model, idx, ops) {
     return function() {
-        return fn.apply(model, [model, idx].concat(Slice.call(arguments)));
+        return fn.apply(model, [idx, ops].concat(Slice.call(arguments)));
     };
 };
-var CacheDone = function(err, data, ops) {
-    var cacheKey = ops.key;
-    var modelsCacheKeys = ops.cKeys;
-    var cache = modelsCacheKeys[cacheKey];
-    if (cache) {
-        var fns = cache.q;
+var CacheDone = function(err, data, cache) {
+    //
+    var cacheKey = cache.b;
+    var modelsCacheKeys = cache.a;
+    var cached = modelsCacheKeys[cacheKey];
+    if (cached) {
+        var fns = cached.q;
         delete modelsCacheKeys[cacheKey];
-        SafeExec(fns, err);
+        //
+        SafeExec(fns, err, cached.e);
+    }
+};
+var DoneFn = function(idx, ops, err) {
+    //
+    var model = this;
+    var request = ops.a;
+    var reqs = ops.c;
+    var doneArr = ops.d;
+    var errorArgs = ops.g;
+    var modelsCache = ops.i;
+    var host = ops.j;
+    var flag = ops.k;
+    var doneIsArray = ops.l;
+    var done = ops.m;
+    var doneArgs = ops.n;
+    var orderlyArr = ops.o;
+
+    var currentError;
+
+    //
+    if (request.$destroy) return; //销毁，啥也不做
+    ops.b++; //exec count
+    //
+    delete reqs[model.id];
+    //
+    var mm = model.$mm;
+    var cacheKey = mm.key;
+    var meta = mm.meta;
+    doneArr[idx] = model;
+    if (err) {
+        ops.e = 1;
+        currentError = 1;
+        ops.f = err;
+        errorArgs.msg = err;
+        errorArgs[idx] = err;
+        host.fire('fail', {
+            model: model,
+            meta: meta,
+            msg: err
+        });
+    } else {
+        if (!cacheKey || (cacheKey && !modelsCache.has(cacheKey))) {
+            if (cacheKey) {
+                modelsCache.set(cacheKey, model);
+            }
+            mm.done = Now();
+            var after = mm.after;
+
+            if (after) { //有after
+                SafeExec(after, [model, meta]);
+            }
+            host.fire('done', {
+                model: model,
+                meta: meta
+            });
+        }
+        if (mm.used > 0) {
+            model.fromCache = 1;
+        }
+        mm.used++;
+    }
+
+    if (flag == FetchFlags.ONE) { //如果是其中一个成功，则每次成功回调一次
+        var m = doneIsArray ? done[idx] : done;
+        if (m) {
+            doneArgs[idx] = SafeExec(m, [currentError ? errorArgs : null, model, errorArgs], request);
+        }
+    } else if (flag == FetchFlags.ORDER) {
+        //var m=doneIsArray?done[idx]:done;
+        orderlyArr[idx] = {
+            m: model,
+            e: currentError,
+            s: err
+        };
+        //
+        for (var i = orderlyArr.i || 0, t, d; t = orderlyArr[i]; i++) {
+            d = doneIsArray ? done[i] : done;
+            if (t.e) {
+                errorArgs.msg = t.s;
+                errorArgs[i] = t.s;
+            }
+            doneArgs[i] = SafeExec(d, [t.e ? errorArgs : null, t.m, errorArgs].concat(doneArgs), request);
+        }
+        orderlyArr.i = i;
+    }
+
+    if (ops.b >= ops.h) { //ops.h total count
+        if (!ops.e) {
+            errorArgs = null;
+        }
+        if (flag == FetchFlags.ALL) {
+            doneArr.unshift(errorArgs);
+            doneArgs[0] = errorArgs;
+            doneArgs[1] = SafeExec(done, doneArr, request);
+        } else {
+            doneArgs.unshift(errorArgs);
+        }
+        request.$ntId = setTimeout(function() { //前面的任务可能从缓存中来，执行很快
+            request.doNext(doneArgs);
+        }, 30);
     }
 };
 var GenMRequest = function(method) {
@@ -3240,9 +3346,6 @@ Mix(MManager, {
      * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和postParams外，额外使用的key
      */
     create: function(modelClass, serKeys) {
-        if (!modelClass) {
-            TError('ungiven modelClass');
-        }
         return new MManager(modelClass, serKeys);
     },
     /**
@@ -3309,96 +3412,29 @@ Mix(MRequest.prototype, {
             models = [models];
         }
         var total = models.length;
-        var current = 0;
-        var hasError;
-        var latestMsg;
-        var currentError;
-
-        var doneArr = new Array(total);
         var doneArgs = [];
-        var errorArgs = {};
-        var orderlyArr = [];
 
         var doneIsArray = IsArray(done);
         if (doneIsArray) {
             doneArgs = new Array(done.length);
         }
-        var doneFn = function(model, idx, err) {
-            if (me.$destroy) return; //销毁，啥也不做
-            current++;
-            delete reqs[model.id];
-            var mm = model.$mm;
-            var cacheKey = mm.key;
-            doneArr[idx] = model;
-            if (err) {
-                hasError = 1;
-                currentError = 1;
-                latestMsg = err;
-                errorArgs.msg = err;
-                errorArgs[idx] = err;
-            } else {
-                currentError = 0;
-                if (!cacheKey || (cacheKey && !modelsCache.has(cacheKey))) {
-                    if (cacheKey) {
-                        modelsCache.set(cacheKey, model);
-                    }
-                    mm.done = Now();
-                    var after = mm.after;
-                    var meta = mm.meta;
 
-                    if (after) { //有after
-                        SafeExec(after, [model, meta]);
-                    }
-                    host.fire('done', {
-                        model: model,
-                        meta: meta
-                    });
-                }
-                if (mm.used > 0) {
-                    model.fromCache = 1;
-                }
-                mm.used++;
-            }
-
-            if (flag == FetchFlags.ONE) { //如果是其中一个成功，则每次成功回调一次
-                var m = doneIsArray ? done[idx] : done;
-                if (m) {
-                    doneArgs[idx] = SafeExec(m, [currentError ? errorArgs : null, model, errorArgs], me);
-                }
-            } else if (flag == FetchFlags.ORDER) {
-                //var m=doneIsArray?done[idx]:done;
-                orderlyArr[idx] = {
-                    m: model,
-                    e: currentError,
-                    s: err
-                };
-                //
-                for (var i = orderlyArr.i || 0, t, d; t = orderlyArr[i]; i++) {
-                    d = doneIsArray ? done[i] : done;
-                    if (t.e) {
-                        errorArgs.msg = t.s;
-                        errorArgs[i] = t.s;
-                    }
-                    doneArgs[i] = SafeExec(d, [t.e ? errorArgs : null, t.m, errorArgs].concat(doneArgs), me);
-                }
-                orderlyArr.i = i;
-            }
-
-            if (current >= total) {
-                if (!hasError) {
-                    errorArgs = null;
-                }
-                if (flag == FetchFlags.ALL) {
-                    doneArr.unshift(errorArgs);
-                    doneArgs[0] = errorArgs;
-                    doneArgs[1] = SafeExec(done, doneArr, me);
-                } else {
-                    doneArgs.unshift(errorArgs);
-                }
-                me.$ntId = setTimeout(function() { //前面的任务可能从缓存中来，执行很快
-                    me.doNext(doneArgs);
-                }, 30);
-            }
+        var options = {
+            a: me,
+            b: 0, //current done
+            c: me.$reqs,
+            d: new Array(total),
+            //e hasError,
+            //f latestMsg
+            g: {},
+            h: total,
+            i: modelsCache,
+            j: host,
+            k: flag,
+            l: doneIsArray,
+            m: done,
+            n: doneArgs,
+            o: []
         };
 
         for (var i = 0, model; i < models.length; i++) {
@@ -3407,7 +3443,7 @@ Mix(MRequest.prototype, {
                 var modelInfo = host.getModel(model, save);
                 var cacheKey = modelInfo.cKey;
                 var modelEntity = modelInfo.entity;
-                var wrapDoneFn = WrapDone(doneFn, modelEntity, i);
+                var wrapDoneFn = WrapDone(DoneFn, modelEntity, i, options);
                 wrapDoneFn.id = me.id;
 
                 if (cacheKey && Has(modelsCacheKeys, cacheKey)) {
@@ -3423,8 +3459,8 @@ Mix(MRequest.prototype, {
                             wrapDoneFn = CacheDone;
                         }
                         modelEntity.request(wrapDoneFn, {
-                            key: cacheKey,
-                            cKeys: modelsCacheKeys
+                            a: modelsCacheKeys,
+                            b: cacheKey
                         });
                     } else {
                         wrapDoneFn();
@@ -3438,6 +3474,7 @@ Mix(MRequest.prototype, {
     },
     /**
      * 获取models，所有请求完成回调done
+     * @function
      * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {MRequest}
@@ -3447,6 +3484,7 @@ Mix(MRequest.prototype, {
     },
     /**
      * 保存models，所有请求完成回调done
+     * @function
      * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home'urlParams:{a:'12'},postParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {MRequest}
@@ -3726,6 +3764,8 @@ Mix(Mix(MManager.prototype, Event), {
      */
     createModel: function(modelAttrs) {
         var me = this;
+        //modelAttrs = ProcessModelAttrs(modelAttrs);
+
         var meta = me.getModelMeta(modelAttrs);
         var cache = ProcessCache(modelAttrs) || meta.cache;
 
@@ -3751,7 +3791,9 @@ Mix(Mix(MManager.prototype, Event), {
         }
 
         mm.meta = meta;
-        entity.set(modelAttrs);
+        if (modelAttrs.name) {
+            entity.set(modelAttrs);
+        }
         //默认设置的
         entity.setUrlParams(meta.urlParams);
         entity.setPostParams(meta.postParams);
@@ -3775,12 +3817,7 @@ Mix(Mix(MManager.prototype, Event), {
     getModelMeta: function(modelAttrs) {
         var me = this;
         var metas = me.$mMetas;
-        var name;
-        if (Magix._s(modelAttrs)) {
-            name = modelAttrs;
-        } else {
-            name = modelAttrs.name;
-        }
+        var name = modelAttrs.name || modelAttrs;
         var meta = metas[name];
         if (!meta) {
             TError('Unfound:' + name);
@@ -4058,6 +4095,15 @@ Mix(Mix(MManager.prototype, Event), {
  * @param {Object} e
  * @param {Object} e.meta 注册model时提供的信息
  * @param {Model} e.model model对象
+ */
+
+/**
+ * Model对象请求处理失败后触发
+ * @name MManager#failb
+ * @event
+ * @param {Object} e
+ * @param {Object} e.meta 注册model时提供的信息
+ * @param {Model} e.msg 错误描述信息
  */
     return MManager;
 });
@@ -4395,11 +4441,12 @@ Magix.mix(Model.prototype, {
                     };
                 }
                 me.set(data);
-                callback(err, data, options);
                 //}
             } else {
-                callback('abort', null, options);
+                err = 'abort';
+                data = null;
             }
+            callback(err, data, options);
         };
         me.$trans = me.sync(temp);
     },
