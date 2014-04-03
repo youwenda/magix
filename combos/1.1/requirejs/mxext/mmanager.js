@@ -105,15 +105,14 @@ var WrapDone = function(fn, model, idx, ops) {
         return fn.apply(model, [idx, ops].concat(Slice.call(arguments)));
     };
 };
-var CacheDone = function(err, data, cache) {
+var CacheDone = function(err, ops) {
     //
-    var cacheKey = cache.b;
-    var modelsCacheKeys = cache.a;
+    var cacheKey = ops.b;
+    var modelsCacheKeys = ops.a;
     var cached = modelsCacheKeys[cacheKey];
     if (cached) {
         var fns = cached.q;
         delete modelsCacheKeys[cacheKey];
-        //
         SafeExec(fns, err, cached.e);
     }
 };
@@ -135,7 +134,7 @@ var DoneFn = function(idx, ops, err) {
     var currentError;
 
     //
-    if (request.$destroy) return; //销毁，啥也不做
+
     ops.b++; //exec count
     //
     delete reqs[model.id];
@@ -176,45 +175,45 @@ var DoneFn = function(idx, ops, err) {
         }
         mm.used++;
     }
-
-    if (flag == FetchFlags.ONE) { //如果是其中一个成功，则每次成功回调一次
-        var m = doneIsArray ? done[idx] : done;
-        if (m) {
-            doneArgs[idx] = SafeExec(m, [currentError ? errorArgs : null, model, errorArgs], request);
-        }
-    } else if (flag == FetchFlags.ORDER) {
-        //var m=doneIsArray?done[idx]:done;
-        orderlyArr[idx] = {
-            m: model,
-            e: currentError,
-            s: err
-        };
-        //
-        for (var i = orderlyArr.i || 0, t, d; t = orderlyArr[i]; i++) {
-            d = doneIsArray ? done[i] : done;
-            if (t.e) {
-                errorArgs.msg = t.s;
-                errorArgs[i] = t.s;
+    if (!request.$oust) { //销毁，啥也不做
+        if (flag == FetchFlags.ONE) { //如果是其中一个成功，则每次成功回调一次
+            var m = doneIsArray ? done[idx] : done;
+            if (m) {
+                doneArgs[idx] = SafeExec(m, [currentError ? errorArgs : null, model, errorArgs], request);
             }
-            doneArgs[i] = SafeExec(d, [t.e ? errorArgs : null, t.m, errorArgs].concat(doneArgs), request);
+        } else if (flag == FetchFlags.ORDER) {
+            //var m=doneIsArray?done[idx]:done;
+            orderlyArr[idx] = {
+                m: model,
+                e: currentError,
+                s: err
+            };
+            //
+            for (var i = orderlyArr.i || 0, t, d; t = orderlyArr[i]; i++) {
+                d = doneIsArray ? done[i] : done;
+                if (t.e) {
+                    errorArgs.msg = t.s;
+                    errorArgs[i] = t.s;
+                }
+                doneArgs[i] = SafeExec(d, [t.e ? errorArgs : null, t.m, errorArgs].concat(doneArgs), request);
+            }
+            orderlyArr.i = i;
         }
-        orderlyArr.i = i;
-    }
-
-    if (ops.b >= ops.h) { //ops.h total count
-        if (!ops.e) {
-            errorArgs = null;
+        if (ops.b == ops.h) { //ops.h total count
+            if (!ops.e) {
+                errorArgs = null;
+            }
+            if (flag == FetchFlags.ALL) {
+                doneArr.unshift(errorArgs);
+                doneArgs[0] = errorArgs;
+                doneArgs[1] = SafeExec(done, doneArr, request);
+            } else {
+                doneArgs.unshift(errorArgs);
+            }
+            request.$ntId = setTimeout(function() { //前面的任务可能从缓存中来，执行很快
+                request.doNext(doneArgs);
+            }, 30);
         }
-        if (flag == FetchFlags.ALL) {
-            doneArr.unshift(errorArgs);
-            doneArgs[0] = errorArgs;
-            doneArgs[1] = SafeExec(done, doneArr, request);
-        } else {
-            doneArgs.unshift(errorArgs);
-        }
-        request.$ntId = setTimeout(function() { //前面的任务可能从缓存中来，执行很快
-            request.doNext(doneArgs);
-        }, 30);
     }
 };
 var GenMRequest = function(method) {
@@ -273,10 +272,11 @@ var FetchFlags = {
  * @param {MManager} host
  */
 var MRequest = function(host) {
-    this.$host = host;
-    this.$busy = 0;
-    this.$reqs = {};
-    this.id = Prefix + Guid--;
+    var me = this;
+    me.$host = host;
+    me.$reqs = {};
+    me.id = Prefix + Guid--;
+    me.$queue = [];
 };
 
 Mix(MRequest.prototype, {
@@ -425,15 +425,14 @@ Mix(MRequest.prototype, {
     fetchOne: GenRequestMethod(FetchFlags.ONE),
     /**
      * 中止所有model的请求
-     * 注意：调用该方法后会中止请求，并调用回调传递aborted异常消息
+     * 注意：调用该方法后会中止请求，并调用回调传递abort异常消息
      */
-    abort: function() {
+    stop: function() {
         var me = this;
         clearTimeout(me.$ntId);
         var host = me.$host;
         var reqs = me.$reqs;
         var modelsCacheKeys = host.$mCacheKeys;
-
         for (var p in reqs) {
             var m = reqs[p];
             var cacheKey = m.$mm.key;
@@ -446,12 +445,13 @@ Mix(MRequest.prototype, {
                     fn = fns[i];
                     if (fn.id != me.id) {
                         nfns.push(fn);
-                    } else if (!me.$destroy) {
+                    } else {
                         rfns.push(fn);
                     }
                 }
-                SafeExec(rfns, ['abort'], me);
+                //
                 if (nfns.length) {
+                    SafeExec(rfns, 'abort', cache.e);
                     cache.q = nfns;
                 } else {
                     m.abort();
@@ -484,7 +484,6 @@ Mix(MRequest.prototype, {
      */
     next: function(callback) {
         var me = this;
-        if (!me.$queue) me.$queue = [];
         me.$queue.push(callback);
         if (!me.$busy) {
             var args = me.$latest;
@@ -514,8 +513,8 @@ Mix(MRequest.prototype, {
      */
     destroy: function() {
         var me = this;
-        me.$destroy = 1;
-        me.abort();
+        me.$oust = 1;
+        me.stop();
     }
 });
 

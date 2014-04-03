@@ -214,8 +214,8 @@ var Router = Mix({
                 // 情形A. pathname不变 http://etao.com/list?page=3#!/list?page=2 到支持history state的浏览器上 参数合并;
                 // 情形B .pathname有变化 http://etao.com/list?page=3#!/home?page=2 到支持history state的浏览器上 参数合并,pathname以hash中的为准;
             */
-            if (UseNativeHistory) { //指定使用history state
-                /*
+            //if (UseNativeHistory) { //指定使用history state
+            /*
                 if(me.supportState()){//当前浏览器也支持
                     if(hashObj[PATHNAME]){//优先使用hash中的，理由见上1
                         tempPathname=hashObj[PATHNAME];
@@ -231,11 +231,13 @@ var Router = Mix({
                 }
                 合并后如下：
                 */
-                //
-                tempPathname = result.hash[PATHNAME] || result.query[PATHNAME];
-            } else { //指定不用history state ，那咱还能说什么呢，直接用hash
-                tempPathname = result.hash[PATHNAME];
-            }
+            //
+            // tempPathname = result.hash[PATHNAME] || result.query[PATHNAME];
+            //} else { //指定不用history state ，那咱还能说什么呢，直接用hash
+            //tempPathname = result.hash[PATHNAME];
+            //}
+            //上述if else简写成以下形式，方便压缩
+            tempPathname = result.hash[PATHNAME] || (UseNativeHistory && result.query[PATHNAME]);
             var view = me.viewInfo(tempPathname, result);
             Mix(result, view);
         }

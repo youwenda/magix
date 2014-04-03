@@ -207,11 +207,11 @@ Mix(Mix(Vframe.prototype, Event), {
     mountView: function(viewPath, viewInitParams) {
         var me = this;
         var node = $(me.id);
-        if (!node._bak) {
-            node._bak = 1;
-            node._tmpl = node.innerHTML; //.replace(ScriptsReg, '');
+        if (!me._a) {
+            me._a = 1;
+            me._t = node.innerHTML; //.replace(ScriptsReg, '');
         } else {
-            node._chgd = 1;
+            me.c = 1;
         }
         //var useTurnaround=me.viewInited&&me.useAnimUpdate();
         me.unmountView();
@@ -235,8 +235,8 @@ Mix(Mix(Vframe.prototype, Event), {
                     me.view = view;
                     view.on('interact', function(e) { //view准备好后触发
                         if (!e.tmpl) {
-                            if (node._chgd) {
-                                node.innerHTML = node._tmpl;
+                            if (me._c) {
+                                node.innerHTML = me._t;
                             }
                             me.mountZoneVframes();
                         }
@@ -273,17 +273,17 @@ Mix(Mix(Vframe.prototype, Event), {
             me.unmountZoneVframes(0, 1);
             me.cAlter(GlobalAlter);
 
-            delete me.view; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZoneVframes方法引起的多次created
+            me.view = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZoneVframes方法引起的多次created
             view.oust();
 
             var node = $(me.id);
-            if (node && node._bak) {
-                node.innerHTML = node._tmpl;
+            if (node && me._a) {
+                node.innerHTML = me._t;
             }
 
-            delete me.viewInited;
+            me.viewInited = 0;
             if (me.viewPrimed) { //viewMounted与viewUnmounted成对出现
-                delete me.viewPrimed;
+                me.viewPrimed = 0;
                 me.fire('viewUnmounted');
             }
             GlobalAlter = 0;
@@ -422,7 +422,7 @@ Mix(Mix(Vframe.prototype, Event), {
             var view = me.view;
             if (view && !me.fcc) {
                 me.fcc = 1;
-                delete me.fca;
+                me.fca = 0;
                 view.fire(Created, e);
                 me.fire(Created, e);
             }
@@ -448,7 +448,7 @@ Mix(Mix(Vframe.prototype, Event), {
         var me = this;
         if (!e) e = {};
         var fcc = me.fcc;
-        delete me.fcc;
+        me.fcc = 0;
         if (!me.fca && fcc) { //当前vframe触发过created才可以触发alter事件
             var view = me.view;
             var mId = me.id;
@@ -474,7 +474,7 @@ Mix(Mix(Vframe.prototype, Event), {
     locChged: function() {
         var me = this;
         var view = me.view;
-        if (me.viewInited && view.sign > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的window.location.href对象，对于销毁的也不需要广播
+        if (me.viewInited && view && view.sign > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的window.location.href对象，对于销毁的也不需要广播
 
             var isChanged = view.olChg(RefChged);
             /**

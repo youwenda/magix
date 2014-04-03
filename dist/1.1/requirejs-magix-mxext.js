@@ -925,8 +925,8 @@ var Router = Mix({
                 // 情形A. pathname不变 http://etao.com/list?page=3#!/list?page=2 到支持history state的浏览器上 参数合并;
                 // 情形B .pathname有变化 http://etao.com/list?page=3#!/home?page=2 到支持history state的浏览器上 参数合并,pathname以hash中的为准;
             */
-            if (UseNativeHistory) { //指定使用history state
-                /*
+            //if (UseNativeHistory) { //指定使用history state
+            /*
                 if(me.supportState()){//当前浏览器也支持
                     if(hashObj[PATHNAME]){//优先使用hash中的，理由见上1
                         tempPathname=hashObj[PATHNAME];
@@ -942,11 +942,13 @@ var Router = Mix({
                 }
                 合并后如下：
                 */
-                //
-                tempPathname = result.hash[PATHNAME] || result.query[PATHNAME];
-            } else { //指定不用history state ，那咱还能说什么呢，直接用hash
-                tempPathname = result.hash[PATHNAME];
-            }
+            //
+            // tempPathname = result.hash[PATHNAME] || result.query[PATHNAME];
+            //} else { //指定不用history state ，那咱还能说什么呢，直接用hash
+            //tempPathname = result.hash[PATHNAME];
+            //}
+            //上述if else简写成以下形式，方便压缩
+            tempPathname = result.hash[PATHNAME] || (UseNativeHistory && result.query[PATHNAME]);
             var view = me.viewInfo(tempPathname, result);
             Mix(result, view);
         }
@@ -1680,11 +1682,11 @@ Mix(Mix(Vframe.prototype, Event), {
     mountView: function(viewPath, viewInitParams) {
         var me = this;
         var node = $(me.id);
-        if (!node._bak) {
-            node._bak = 1;
-            node._tmpl = node.innerHTML; //.replace(ScriptsReg, '');
+        if (!me._a) {
+            me._a = 1;
+            me._t = node.innerHTML; //.replace(ScriptsReg, '');
         } else {
-            node._chgd = 1;
+            me.c = 1;
         }
         //var useTurnaround=me.viewInited&&me.useAnimUpdate();
         me.unmountView();
@@ -1708,8 +1710,8 @@ Mix(Mix(Vframe.prototype, Event), {
                     me.view = view;
                     view.on('interact', function(e) { //view准备好后触发
                         if (!e.tmpl) {
-                            if (node._chgd) {
-                                node.innerHTML = node._tmpl;
+                            if (me._c) {
+                                node.innerHTML = me._t;
                             }
                             me.mountZoneVframes();
                         }
@@ -1746,17 +1748,17 @@ Mix(Mix(Vframe.prototype, Event), {
             me.unmountZoneVframes(0, 1);
             me.cAlter(GlobalAlter);
 
-            delete me.view; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZoneVframes方法引起的多次created
+            me.view = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZoneVframes方法引起的多次created
             view.oust();
 
             var node = $(me.id);
-            if (node && node._bak) {
-                node.innerHTML = node._tmpl;
+            if (node && me._a) {
+                node.innerHTML = me._t;
             }
 
-            delete me.viewInited;
+            me.viewInited = 0;
             if (me.viewPrimed) { //viewMounted与viewUnmounted成对出现
-                delete me.viewPrimed;
+                me.viewPrimed = 0;
                 me.fire('viewUnmounted');
             }
             GlobalAlter = 0;
@@ -1895,7 +1897,7 @@ Mix(Mix(Vframe.prototype, Event), {
             var view = me.view;
             if (view && !me.fcc) {
                 me.fcc = 1;
-                delete me.fca;
+                me.fca = 0;
                 view.fire(Created, e);
                 me.fire(Created, e);
             }
@@ -1921,7 +1923,7 @@ Mix(Mix(Vframe.prototype, Event), {
         var me = this;
         if (!e) e = {};
         var fcc = me.fcc;
-        delete me.fcc;
+        me.fcc = 0;
         if (!me.fca && fcc) { //当前vframe触发过created才可以触发alter事件
             var view = me.view;
             var mId = me.id;
@@ -1947,7 +1949,7 @@ Mix(Mix(Vframe.prototype, Event), {
     locChged: function() {
         var me = this;
         var view = me.view;
-        if (me.viewInited && view.sign > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的window.location.href对象，对于销毁的也不需要广播
+        if (me.viewInited && view && view.sign > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的window.location.href对象，对于销毁的也不需要广播
 
             var isChanged = view.olChg(RefChged);
             /**
@@ -3193,15 +3195,14 @@ var WrapDone = function(fn, model, idx, ops) {
         return fn.apply(model, [idx, ops].concat(Slice.call(arguments)));
     };
 };
-var CacheDone = function(err, data, cache) {
+var CacheDone = function(err, ops) {
     //
-    var cacheKey = cache.b;
-    var modelsCacheKeys = cache.a;
+    var cacheKey = ops.b;
+    var modelsCacheKeys = ops.a;
     var cached = modelsCacheKeys[cacheKey];
     if (cached) {
         var fns = cached.q;
         delete modelsCacheKeys[cacheKey];
-        //
         SafeExec(fns, err, cached.e);
     }
 };
@@ -3223,7 +3224,7 @@ var DoneFn = function(idx, ops, err) {
     var currentError;
 
     //
-    if (request.$destroy) return; //销毁，啥也不做
+
     ops.b++; //exec count
     //
     delete reqs[model.id];
@@ -3264,45 +3265,45 @@ var DoneFn = function(idx, ops, err) {
         }
         mm.used++;
     }
-
-    if (flag == FetchFlags.ONE) { //如果是其中一个成功，则每次成功回调一次
-        var m = doneIsArray ? done[idx] : done;
-        if (m) {
-            doneArgs[idx] = SafeExec(m, [currentError ? errorArgs : null, model, errorArgs], request);
-        }
-    } else if (flag == FetchFlags.ORDER) {
-        //var m=doneIsArray?done[idx]:done;
-        orderlyArr[idx] = {
-            m: model,
-            e: currentError,
-            s: err
-        };
-        //
-        for (var i = orderlyArr.i || 0, t, d; t = orderlyArr[i]; i++) {
-            d = doneIsArray ? done[i] : done;
-            if (t.e) {
-                errorArgs.msg = t.s;
-                errorArgs[i] = t.s;
+    if (!request.$oust) { //销毁，啥也不做
+        if (flag == FetchFlags.ONE) { //如果是其中一个成功，则每次成功回调一次
+            var m = doneIsArray ? done[idx] : done;
+            if (m) {
+                doneArgs[idx] = SafeExec(m, [currentError ? errorArgs : null, model, errorArgs], request);
             }
-            doneArgs[i] = SafeExec(d, [t.e ? errorArgs : null, t.m, errorArgs].concat(doneArgs), request);
+        } else if (flag == FetchFlags.ORDER) {
+            //var m=doneIsArray?done[idx]:done;
+            orderlyArr[idx] = {
+                m: model,
+                e: currentError,
+                s: err
+            };
+            //
+            for (var i = orderlyArr.i || 0, t, d; t = orderlyArr[i]; i++) {
+                d = doneIsArray ? done[i] : done;
+                if (t.e) {
+                    errorArgs.msg = t.s;
+                    errorArgs[i] = t.s;
+                }
+                doneArgs[i] = SafeExec(d, [t.e ? errorArgs : null, t.m, errorArgs].concat(doneArgs), request);
+            }
+            orderlyArr.i = i;
         }
-        orderlyArr.i = i;
-    }
-
-    if (ops.b >= ops.h) { //ops.h total count
-        if (!ops.e) {
-            errorArgs = null;
+        if (ops.b == ops.h) { //ops.h total count
+            if (!ops.e) {
+                errorArgs = null;
+            }
+            if (flag == FetchFlags.ALL) {
+                doneArr.unshift(errorArgs);
+                doneArgs[0] = errorArgs;
+                doneArgs[1] = SafeExec(done, doneArr, request);
+            } else {
+                doneArgs.unshift(errorArgs);
+            }
+            request.$ntId = setTimeout(function() { //前面的任务可能从缓存中来，执行很快
+                request.doNext(doneArgs);
+            }, 30);
         }
-        if (flag == FetchFlags.ALL) {
-            doneArr.unshift(errorArgs);
-            doneArgs[0] = errorArgs;
-            doneArgs[1] = SafeExec(done, doneArr, request);
-        } else {
-            doneArgs.unshift(errorArgs);
-        }
-        request.$ntId = setTimeout(function() { //前面的任务可能从缓存中来，执行很快
-            request.doNext(doneArgs);
-        }, 30);
     }
 };
 var GenMRequest = function(method) {
@@ -3361,10 +3362,11 @@ var FetchFlags = {
  * @param {MManager} host
  */
 var MRequest = function(host) {
-    this.$host = host;
-    this.$busy = 0;
-    this.$reqs = {};
-    this.id = Prefix + Guid--;
+    var me = this;
+    me.$host = host;
+    me.$reqs = {};
+    me.id = Prefix + Guid--;
+    me.$queue = [];
 };
 
 Mix(MRequest.prototype, {
@@ -3513,15 +3515,14 @@ Mix(MRequest.prototype, {
     fetchOne: GenRequestMethod(FetchFlags.ONE),
     /**
      * 中止所有model的请求
-     * 注意：调用该方法后会中止请求，并调用回调传递aborted异常消息
+     * 注意：调用该方法后会中止请求，并调用回调传递abort异常消息
      */
-    abort: function() {
+    stop: function() {
         var me = this;
         clearTimeout(me.$ntId);
         var host = me.$host;
         var reqs = me.$reqs;
         var modelsCacheKeys = host.$mCacheKeys;
-
         for (var p in reqs) {
             var m = reqs[p];
             var cacheKey = m.$mm.key;
@@ -3534,12 +3535,13 @@ Mix(MRequest.prototype, {
                     fn = fns[i];
                     if (fn.id != me.id) {
                         nfns.push(fn);
-                    } else if (!me.$destroy) {
+                    } else {
                         rfns.push(fn);
                     }
                 }
-                SafeExec(rfns, ['abort'], me);
+                //
                 if (nfns.length) {
+                    SafeExec(rfns, 'abort', cache.e);
                     cache.q = nfns;
                 } else {
                     m.abort();
@@ -3572,7 +3574,6 @@ Mix(MRequest.prototype, {
      */
     next: function(callback) {
         var me = this;
-        if (!me.$queue) me.$queue = [];
         me.$queue.push(callback);
         if (!me.$busy) {
             var args = me.$latest;
@@ -3602,8 +3603,8 @@ Mix(MRequest.prototype, {
      */
     destroy: function() {
         var me = this;
-        me.$destroy = 1;
-        me.abort();
+        me.$oust = 1;
+        me.stop();
     }
 });
 
@@ -4427,13 +4428,10 @@ Magix.mix(Model.prototype, {
                 }
                 me.set(data);
                 //}
-            } else {
-                err = 'abort';
-                data = null;
+                callback(err, options);
             }
-            callback(err, data, options);
         };
-        me.$trans = me.sync(temp);
+        me.$trans = me.sync(me.$temp = temp);
     },
     /**
      * 中止请求
@@ -4441,11 +4439,15 @@ Magix.mix(Model.prototype, {
     abort: function() {
         var me = this;
         var trans = me.$trans;
+        var fn = me.$temp;
+        if (fn) {
+            fn('abort');
+        }
+        me.$abt = 1;
         if (trans && trans.abort) {
             trans.abort();
         }
-        delete me.$trans;
-        me.$abt = 1;
+        me.$trans = 0;
     },
     /**
      * 获取当前model是否已经取消了请求

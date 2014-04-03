@@ -328,13 +328,10 @@ Magix.mix(Model.prototype, {
                 }
                 me.set(data);
                 //}
-            } else {
-                err = 'abort';
-                data = null;
+                callback(err, options);
             }
-            callback(err, data, options);
         };
-        me.$trans = me.sync(temp);
+        me.$trans = me.sync(me.$temp = temp);
     },
     /**
      * 中止请求
@@ -342,11 +339,15 @@ Magix.mix(Model.prototype, {
     abort: function() {
         var me = this;
         var trans = me.$trans;
+        var fn = me.$temp;
+        if (fn) {
+            fn('abort');
+        }
+        me.$abt = 1;
         if (trans && trans.abort) {
             trans.abort();
         }
-        delete me.$trans;
-        me.$abt = 1;
+        me.$trans = 0;
     },
     /**
      * 获取当前model是否已经取消了请求
