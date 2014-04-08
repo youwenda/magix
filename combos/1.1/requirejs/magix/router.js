@@ -25,8 +25,8 @@ var TLoc, LLoc = {
 var TrimHashReg = /#.*$/,
     TrimQueryReg = /^[^#]*#?!?/;
 var PARAMS = 'params';
-var UseNativeHistory = MxConfig.nativeHistory;
-var Coded = MxConfig.coded;
+var UseNativeHistory;
+var Coded;
 var SupportState, HashAsNativeHistory;
 
 var IsParam = function(params, r, ps) {
@@ -142,6 +142,11 @@ var Router = Mix({
     start: function() {
         var me = Router;
         var H = WIN.history;
+        /*
+        尽可能的延迟配置，防止被依赖时，配置信息不正确
+         */
+        UseNativeHistory = MxConfig.nativeHistory;
+        Coded = MxConfig.coded;
 
         SupportState = UseNativeHistory && H.pushState;
         HashAsNativeHistory = UseNativeHistory && !SupportState;

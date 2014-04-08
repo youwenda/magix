@@ -22,15 +22,11 @@ KISSY.add('magix/magix', function(S) {
     return Mix(Magix, {
         include: Include,
         use: function(name, fn) {
-            if (name) {
-                S.use(String(name), function(S) {
-                    if (fn) {
-                        fn.apply(S, Slice.call(arguments, 1));
-                    }
-                });
-            } else if (fn) {
-                fn();
-            }
+            S.use(name && String(name), function(S) {
+                if (fn) {
+                    fn.apply(S, Slice.call(arguments, 1));
+                }
+            });
         },
         _a: S.isArray,
         _f: S.isFunction,

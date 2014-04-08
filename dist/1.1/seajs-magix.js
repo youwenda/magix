@@ -412,17 +412,15 @@ var Magix = {
     start: function(cfg) {
         var me = this;
         Mix(Cfg, cfg);
-        me.use(Cfg.iniFile, function(I) { //一定要等ini文件就绪后才能加载别的，否则会导致ini文件中的一些配置不生效
+        me.use(['magix/router', 'magix/vom', cfg.iniFile], function(R, V, I) {
             Cfg = Mix(Cfg, I, cfg);
             Cfg['!tnc'] = Cfg.tagName != DefaultTagName;
 
-            me.use(['magix/router', 'magix/vom'], function(R, V) {
-                R.on('!ul', V.locChged);
-                R.on('changed', V.locChged);
-                V.on('progress', Cfg.progress);
+            R.on('!ul', V.locChged);
+            R.on('changed', V.locChged);
+            V.on('progress', Cfg.progress);
 
-                me.use(Cfg.extensions, R.start);
-            });
+            me.use(Cfg.extensions, R.start);
         });
     },
     /**
@@ -733,8 +731,8 @@ var TLoc, LLoc = {
 var TrimHashReg = /#.*$/,
     TrimQueryReg = /^[^#]*#?!?/;
 var PARAMS = 'params';
-var UseNativeHistory = MxConfig.nativeHistory;
-var Coded = MxConfig.coded;
+var UseNativeHistory;
+var Coded;
 var SupportState, HashAsNativeHistory;
 
 var IsParam = function(params, r, ps) {
@@ -850,6 +848,11 @@ var Router = Mix({
     start: function() {
         var me = Router;
         var H = WIN.history;
+        /*
+        尽可能的延迟配置，防止被依赖时，配置信息不正确
+         */
+        UseNativeHistory = MxConfig.nativeHistory;
+        Coded = MxConfig.coded;
 
         SupportState = UseNativeHistory && H.pushState;
         HashAsNativeHistory = UseNativeHistory && !SupportState;
@@ -1303,7 +1306,9 @@ var Body = {
                         GetSetAttribute(node, MxIgnore, ignore);
                     }
                 }
+                node = null;
             }
+            current = target = null;
         }
         //}
     },
@@ -1495,17 +1500,18 @@ var EmptyArr = [];
 
 var Mix = Magix.mix;
 
-var TagName = Magix.config('tagName');
-var RootId = Magix.config('rootId');
-var TagNameChanged = Magix.config('!tnc');
+var MxConfig = Magix.config();
+
+var TagName;
+var TagNameChanged;
+var UseQSA;
+var Selector;
+var MxBuild;
+
 var Has = Magix.has;
-
-var MxBuild = TagNameChanged ? 'mx-vframe' : 'mx-defer';
 var SupportContains = B.contains;
-
 var QSA = 'querySelectorAll';
-var UseQSA = TagNameChanged && B[QSA];
-var Selector = ' ' + TagName + '[mx-vframe]';
+
 
 var Alter = 'alter';
 var Created = 'created';
@@ -1574,82 +1580,42 @@ var Vframe = function(id) {
     me.rM = {};
     me.owner = RefVOM;
 };
-
-Mix(Vframe, {
-    /**
-     * @lends Vframe
-     */
-    /**
-     * 获取根vframe
-     * @param {VOM} vom vom对象
-     * @param {Object} refLoc 引用的Router解析出来的location对象
-     * @param {Object} refChged 引用的URL变化对象
-     * @return {Vframe}
-     * @private
-     */
-    root: function(owner, refLoc, refChged) {
-        if (!RootVframe) {
-            RefLoc = refLoc;
-            RefChged = refChged;
-            RefVOM = owner;
-            var e = $(RootId);
-            if (!e) {
-                e = D.createElement(TagName);
-                e.id = RootId;
-                B.appendChild(e);
-            }
-            RootVframe = new Vframe(RootId);
-            owner.add(RootVframe);
-        }
-        return RootVframe;
-    }
-});
-/*
-    修正IE下标签问题
-    @2012.11.23
-    暂时先不修正，如果页面上有vframe标签先create一下好了，用这么多代码代替一个document.createElement('vframe')太不值得
+/**
+ * 获取根vframe
+ * @param {VOM} vom vom对象
+ * @param {Object} refLoc 引用的Router解析出来的location对象
+ * @param {Object} refChged 引用的URL变化对象
+ * @return {Vframe}
+ * @private
  */
-/*(function(){
-    var badVframes=$$(D,'/'+Vframe.tagName);
-    var temp=[];
-    for(var i=0,j=badVframes.length;i<j;i++){
-        temp.push(badVframes[i]);
+Vframe.root = function(owner, refLoc, refChged) {
+    if (!RootVframe) {
+        /*
+            尽可能的延迟配置，防止被依赖时，配置信息不正确
+        */
+        TagName = MxConfig.tagName;
+        TagNameChanged = MxConfig['!tnc'];
+        MxBuild = TagNameChanged ? 'mx-vframe' : 'mx-defer';
+        UseQSA = TagNameChanged && B[QSA];
+        Selector = ' ' + TagName + '[mx-vframe]';
+
+        RefLoc = refLoc;
+        RefChged = refChged;
+        RefVOM = owner;
+
+        var rootId = MxConfig.rootId;
+        var e = $(rootId);
+        if (!e) {
+            e = D.createElement(TagName);
+            e.id = rootId;
+            B.appendChild(e);
+            e = null;
+        }
+        RootVframe = new Vframe(rootId);
+        owner.add(RootVframe);
     }
-    badVframes=temp;
-    for(var i=0,j=badVframes.length;i<j;i++){
-        var bVf=badVframes[i];
-        var pv=bVf.previousSibling;
-        var rVf=$C(Vframe.tagName);
-        var pNode=pv.parentNode;
-        var anchorNode=bVf.nextSibling;
-        var vframeId;
-        var vframeViewName;
-        pNode.removeChild(bVf);
-        temp=[];
-        while(pv){
-            if(pv.tagName&&pv.tagName.toLowerCase()==Vframe.tagName){
-                vframeId=pv.id;
-                vframeViewName=pv.getAttribute('mx-view');
-                pNode.removeChild(pv);
-                break;
-            }else{
-                temp.push(pv);
-                pv=pv.previousSibling;
-            }
-        }
-        while(temp.length){
-            rVf.appendChild(temp.pop());
-        }
-        pNode.insertBefore(rVf,anchorNode);
-        if(vframeId){
-            rVf.id=vframeId;
-        }
-        if(vframeViewName){
-            rVf.setAttribute('mx-view',vframeViewName);
-        }
-    }
-}());*/
-//
+    return RootVframe;
+};
 
 Mix(Mix(Vframe.prototype, Event), {
     /**
@@ -1688,8 +1654,6 @@ Mix(Mix(Vframe.prototype, Event), {
         if (!me._a) {
             me._a = 1;
             me._t = node.innerHTML; //.replace(ScriptsReg, '');
-        } else {
-            me.c = 1;
         }
         //var useTurnaround=me.viewInited&&me.useAnimUpdate();
         me.unmountView();
@@ -1711,21 +1675,19 @@ Mix(Mix(Vframe.prototype, Event), {
                         location: RefLoc
                     });
                     me.view = view;
+                    var mountZoneVframes = function() {
+                        me.mountZoneVframes();
+                    };
                     view.on('interact', function(e) { //view准备好后触发
                         if (!e.tmpl) {
-                            if (me._c) {
-                                node.innerHTML = me._t;
-                            }
-                            me.mountZoneVframes();
+                            node.innerHTML = me._t;
+                            mountZoneVframes();
                         }
                         view.on('primed', function() {
                             me.viewPrimed = 1;
                             me.fire('viewMounted');
                         });
-                        view.on('rendered', function() { //再绑定rendered
-                            //
-                            me.mountZoneVframes();
-                        });
+                        view.on('rendered', mountZoneVframes);
                         view.on('prerender', function() {
                             if (!me.unmountZoneVframes(0, 1)) {
                                 me.cAlter();

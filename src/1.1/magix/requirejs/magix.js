@@ -20,10 +20,10 @@ define('magix/magix', function() {
     return Mix(Magix, {
         include: Include,
         use: function(name, fn) {
-            if (!$.isArray(name)) {
-                name = [name];
-            }
             if (name) {
+                if (!$.isArray(name)) {
+                    name = [name];
+                }
                 require(name, fn);
             } else if (fn) {
                 fn();

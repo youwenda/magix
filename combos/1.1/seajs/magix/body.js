@@ -127,7 +127,9 @@ var Body = {
                         GetSetAttribute(node, MxIgnore, ignore);
                     }
                 }
+                node = null;
             }
+            current = target = null;
         }
         //}
     },

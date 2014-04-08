@@ -412,17 +412,15 @@ var Magix = {
     start: function(cfg) {
         var me = this;
         Mix(Cfg, cfg);
-        me.use(Cfg.iniFile, function(I) { //一定要等ini文件就绪后才能加载别的，否则会导致ini文件中的一些配置不生效
+        me.use(['magix/router', 'magix/vom', cfg.iniFile], function(R, V, I) {
             Cfg = Mix(Cfg, I, cfg);
             Cfg['!tnc'] = Cfg.tagName != DefaultTagName;
 
-            me.use(['magix/router', 'magix/vom'], function(R, V) {
-                R.on('!ul', V.locChged);
-                R.on('changed', V.locChged);
-                V.on('progress', Cfg.progress);
+            R.on('!ul', V.locChged);
+            R.on('changed', V.locChged);
+            V.on('progress', Cfg.progress);
 
-                me.use(Cfg.extensions, R.start);
-            });
+            me.use(Cfg.extensions, R.start);
         });
     },
     /**
