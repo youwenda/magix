@@ -2019,12 +2019,10 @@ var WrapKey = '~';
 var WrapFn = function(fn) {
     return function() {
         var me = this;
-        var r;
         var u = me.notifyUpdate();
-        if (u) {
-            r = fn.apply(me, arguments);
+        if (u > 0) {
+            fn.apply(me, arguments);
         }
-        return r;
     };
 };
 
@@ -2360,7 +2358,7 @@ Mix(Mix(View.prototype, Event), {
         var me = this;
         var sign = me.sign;
         return function() {
-            if (sign == me.sign) {
+            if (sign > 0 && sign == me.sign) {
                 if (fn) fn.apply(this, arguments);
             }
         };
