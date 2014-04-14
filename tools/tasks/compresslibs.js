@@ -38,6 +38,13 @@ module.exports = function(grunt) {
                     content = content.replace(/\w+:\s*(Magix\.)?[Uu]nimpl\s*,?/g, '');
                     content = content.replace(/include\s*:\s*Include,/g, '');
                     content = content.replace(/debug\s*:\s*'\*_\*',/, '//debug-*_*');
+
+                    content = content.replace(/window([\.,])/g, 'WINDOW$1');
+                    content = content.replace(/([=:\?])\s*null\b/g, '$1NULL');
+                    content = content.replace(/(?:KISSY|define)([\.\(])/g, 'LIB$1');
+                    content = content.replace(/document([\.\[])/g, 'DOCUMENT$1');
+                    content = content.replace(/var\s+IdIt\s*=[^}]+\};/gm, '');
+
                     return content;
                 }
             });

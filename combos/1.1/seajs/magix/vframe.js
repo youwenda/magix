@@ -7,10 +7,7 @@ define('magix/vframe', ["magix/magix", "magix/event", "magix/view"], function(re
     var Magix = require("magix/magix");
     var Event = require("magix/event");
     var BaseView = require("magix/view");
-    var D = document;
-var B = D.body;
-var VframeIdCounter = 1 << 16;
-
+    var VframeIdCounter = 1 << 16;
 var SafeExec = Magix.safeExec;
 var EmptyArr = [];
 
@@ -26,7 +23,7 @@ var Selector;
 var MxBuild;
 
 var Has = Magix.has;
-var SupportContains = B.contains;
+var SupportContains;
 var QSA = 'querySelectorAll';
 
 
@@ -36,12 +33,12 @@ var RootVframe;
 var GlobalAlter;
 
 var $ = function(id) {
-    return typeof id == 'object' ? id : D.getElementById(id);
+    return typeof id == 'object' ? id : document.getElementById(id);
 };
 var $$ = function(id, node, arr) {
     node = $(id);
     if (node) {
-        arr = UseQSA ? D[QSA]('#' + IdIt(node) + Selector) : node.getElementsByTagName(TagName);
+        arr = UseQSA ? document[QSA]('#' + IdIt(node) + Selector) : node.getElementsByTagName(TagName);
     }
     return arr || EmptyArr;
 };
@@ -113,8 +110,10 @@ Vframe.root = function(owner, refLoc, refChged) {
         TagName = MxConfig.tagName;
         TagNameChanged = MxConfig['!tnc'];
         MxBuild = TagNameChanged ? 'mx-vframe' : 'mx-defer';
-        UseQSA = TagNameChanged && B[QSA];
+        UseQSA = TagNameChanged && document[QSA];
         Selector = ' ' + TagName + '[mx-vframe]';
+        var body = document.body;
+        SupportContains = body.contains;
 
         RefLoc = refLoc;
         RefChged = refChged;
@@ -123,9 +122,9 @@ Vframe.root = function(owner, refLoc, refChged) {
         var rootId = MxConfig.rootId;
         var e = $(rootId);
         if (!e) {
-            e = D.createElement(TagName);
+            e = document.createElement(TagName);
             e.id = rootId;
-            B.appendChild(e);
+            body.appendChild(e);
             e = null;
         }
         RootVframe = new Vframe(rootId);

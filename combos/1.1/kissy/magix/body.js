@@ -8,7 +8,6 @@ KISSY.add('magix/body', function(S, Magix) {
 var Mix = Magix.mix;
 //依赖类库才能支持冒泡的事件
 var DependLibEvents = {};
-var RootNode = document.body;
 var RootEvents = {};
 var MxEvtSplit = String.fromCharCode(26);
 
@@ -16,8 +15,9 @@ var MxIgnore = 'mx-ei';
 var MxOwner = 'mx-owner';
 var AddEvent = 'addEventListener';
 var RemoveEvent = 'removeEventListener';
+var RootNode = document.body;
 var W3C = RootNode[AddEvent];
-
+var ParentNode = 'parentNode';
 var TypesRegCache = {};
 var IdCounter = 1 << 16;
 var On = 'on';
@@ -54,7 +54,7 @@ var Body = {
             //var cTarget = e.currentTarget; //只处理类库(比如KISSY)处理后的currentTarget
             //if (cTarget && cTarget != RootNode) target = cTarget; //类库处理后代理事件的currentTarget并不是根节点
             while (target && target.nodeType != 1) {
-                target = target.parentNode;
+                target = target[ParentNode];
             }
             var current = target;
             var eventType = e.type;
@@ -73,7 +73,7 @@ var Body = {
                     break;
                 } else {
                     arr.push(current);
-                    current = current.parentNode;
+                    current = current[ParentNode];
                 }
             }
             if (info) { //有事件
@@ -93,7 +93,7 @@ var Body = {
                             GetSetAttribute(current, MxOwner, vId = begin.id);
                             break;
                         }
-                        begin = begin.parentNode;
+                        begin = begin[ParentNode];
                     }
                 }
                 if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理

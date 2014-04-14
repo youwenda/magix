@@ -124,5 +124,6 @@ var Event = {
         this.on(name, fn, GenKey);
     }
 };
+Magix.mix(Magix.local, Event);
     return Event;
 });

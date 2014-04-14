@@ -6,18 +6,17 @@
 KISSY.add('magix/router', function(S, Magix, Event, SE) {
     eval(Magix.include('../tmpl/router'));
     Router.useState = function() {
-        var me = Router,
-            initialURL = location.href;
-        SE.on(WIN, 'popstate', function(e) {
+        var initialURL = location.href;
+        SE.on(window, 'popstate', function(e) {
             var equal = location.href == initialURL;
-            if (!me.poped && equal) return;
-            me.poped = 1;
+            if (!Router.poped && equal) return;
+            Router.poped = 1;
             console.log('push?', e.type, e.state);
-            me.route();
+            Router.route();
         });
     };
     Router.useHash = function() { //extension impl change event
-        SE.on(WIN, 'hashchange', Router.route);
+        SE.on(window, 'hashchange', Router.route);
     };
     return Router;
 }, {

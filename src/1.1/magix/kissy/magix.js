@@ -5,7 +5,6 @@
  **/
 KISSY.add('magix/magix', function(S) {
     var Slice = [].slice;
-
     var Include = function(path, mxext) {
         var magixPackages = S.Config.packages[mxext ? 'mxext' : 'magix'];
         var mPath = magixPackages.base || magixPackages.path || magixPackages.uri;
@@ -22,7 +21,7 @@ KISSY.add('magix/magix', function(S) {
     return Mix(Magix, {
         include: Include,
         use: function(name, fn) {
-            S.use(name && String(name), function(S) {
+            S.use(name && (name + EMPTY), function(S) {
                 if (fn) {
                     fn.apply(S, Slice.call(arguments, 1));
                 }

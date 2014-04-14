@@ -1,4 +1,3 @@
-var WIN = window;
 var EMPTY = '';
 var PATHNAME = 'pathname';
 var VIEW = 'view';
@@ -52,7 +51,7 @@ var Path = function(path) {
     var o = Magix.pathToObject(path, Coded);
     var pn = o[PATHNAME];
     if (pn && HashAsNativeHistory) { //如果不是以/开头的并且要使用history state,当前浏览器又不支持history state则放hash中的pathname要进行处理
-        o[PATHNAME] = Magix.path(WIN.location[PATHNAME], pn);
+        o[PATHNAME] = Magix.path(window.location[PATHNAME], pn);
     }
     return o;
 };
@@ -133,8 +132,7 @@ var Router = Mix({
      * @private
      */
     start: function() {
-        var me = Router;
-        var H = WIN.history;
+        var H = window.history;
         /*
         尽可能的延迟配置，防止被依赖时，配置信息不正确
          */
@@ -145,11 +143,11 @@ var Router = Mix({
         HashAsNativeHistory = UseNativeHistory && !SupportState;
 
         if (SupportState) {
-            me.useState();
+            Router.useState();
         } else {
-            me.useHash();
+            Router.useHash();
         }
-        me.route(); //页面首次加载，初始化整个页面
+        Router.route(); //页面首次加载，初始化整个页面
     },
 
     /**
@@ -158,9 +156,7 @@ var Router = Mix({
      * @return {Object} 解析的对象
      */
     parseQH: function(href, inner) {
-        href = href || WIN.location.href;
-
-        var me = Router;
+        href = href || window.location.href;
         /*var cfg=Magix.config();
         if(!cfg.originalHREF){
             try{
@@ -215,7 +211,7 @@ var Router = Mix({
             */
             //if (UseNativeHistory) { //指定使用history state
             /*
-                if(me.supportState()){//当前浏览器也支持
+                if(Router.supportState()){//当前浏览器也支持
                     if(hashObj[PATHNAME]){//优先使用hash中的，理由见上1
                         tempPathname=hashObj[PATHNAME];
                     }else{
@@ -237,7 +233,7 @@ var Router = Mix({
             //}
             //上述if else简写成以下形式，方便压缩
             tempPathname = result.hash[PATHNAME] || (UseNativeHistory && result.query[PATHNAME]);
-            var view = me.viewInfo(tempPathname, result);
+            var view = Router.viewInfo(tempPathname, result);
             Mix(result, view);
         }
         return result;
@@ -304,15 +300,14 @@ var Router = Mix({
      * 根据window.location.href路由并派发相应的事件
      */
     route: function() {
-        var me = Router;
-        var location = me.parseQH(0, 1);
+        var location = Router.parseQH(0, 1);
         var firstFire = !LLoc.get; //是否强制触发的changed，对于首次加载会强制触发一次
-        var changed = me.getChged(LLoc, location);
+        var changed = Router.getChged(LLoc, location);
         LLoc = location;
         console.log(changed, location);
         if (changed.occur) {
             TLoc = location;
-            me.fire('changed', {
+            Router.fire('changed', {
                 location: location,
                 changed: changed,
                 force: firstFire
@@ -325,7 +320,7 @@ var Router = Mix({
      * @param {String|Object} [params] 参数对象
      * @param {Boolean} [replace] 是否替换当前历史记录
      * @example
-     * KISSY.use('magix/router',function(S,R){
+     * Magix.use('magix/router',function(S,R){
      *      R.navigate('/list?page=2&rows=20');//改变pathname和相关的参数，地址栏上的其它参数会进行丢弃，不会保留
      *      R.navigate('page=2&rows=20');//只修改参数，地址栏上的其它参数会保留
      *      R.navigate({//通过对象修改参数，地址栏上的其它参数会保留
@@ -342,7 +337,6 @@ var Router = Mix({
      * });
      */
     navigate: function(pn, params, replace) {
-        var me = Router;
 
         if (!params && Magix._o(pn)) {
             params = pn;
@@ -396,9 +390,9 @@ var Router = Mix({
             if (navigate) {
 
                 if (SupportState) { //如果使用pushState
-                    me.poped = 1;
+                    Router.poped = 1;
                     history[replace ? 'replaceState' : 'pushState'](EMPTY, EMPTY, tempPath);
-                    me.route();
+                    Router.route();
                 } else {
                     Mix(temp, TLoc, temp);
                     temp.srcHash = tempPath;
@@ -418,7 +412,7 @@ var Router = Mix({
 
 
                      */
-                    me.fire('!ul', {
+                    Router.fire('!ul', {
                         loc: TLoc = temp
                     }); //hack 更新view的location属性
                     tempPath = '#!' + tempPath;

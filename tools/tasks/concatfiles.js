@@ -34,7 +34,6 @@ module.exports = function(grunt) {
         var platType = this.data.platType;
         var loaderType = this.data.loaderType;
         var distDir = this.data.distDir;
-        var isMobile = this.data.isMobile;
         var addMagixStartFile = this.data.addMagixStartFile;
 
         var combosDir = this.data.combosDir;
@@ -88,17 +87,20 @@ module.exports = function(grunt) {
         var extraFiles = maFiles.concat(meFiles);
         var footer = '';
 
-        if (!isMobile) {
-            if (addMagixStartFile) {
-                basicFiles = basicFiles.concat(magixStartFile);
-                extraFiles = extraFiles.concat(magixStartFile);
-            } else {
-                footer = ';document.createElement("vframe");';
+        if (addMagixStartFile) {
+            basicFiles = basicFiles.concat(magixStartFile);
+            extraFiles = extraFiles.concat(magixStartFile);
+        } else {
+            var lib = 'define';
+            if (loaderType == 'kissy') {
+                lib = 'KISSY';
             }
+            footer = ';document.createElement("vframe");})(null,this,document,' + lib + ')';
         }
 
         grunt.config.set('concat', {
             options: {
+                banner: '(function(NULL,WINDOW,DOCUMENT,LIB,IdIt,COUNTER){COUNTER=0;IdIt=function(n){return n.id||(n.id=\'mx_n_\'+(++COUNTER))};',
                 separator: '\n',
                 footer: footer
             },

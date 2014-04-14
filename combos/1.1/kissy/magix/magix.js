@@ -671,7 +671,7 @@ var Magix = {
     return Mix(Magix, {
         include: Include,
         use: function(name, fn) {
-            S.use(name && String(name), function(S) {
+            S.use(name && (name + EMPTY), function(S) {
                 if (fn) {
                     fn.apply(S, Slice.call(arguments, 1));
                 }
