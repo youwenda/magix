@@ -30,7 +30,7 @@ var SupportState, HashAsNativeHistory;
 var IsParam = function(params, r, ps) {
     if (params) {
         ps = this[PARAMS];
-        if (Magix._s(params)) params = params.split(',');
+        params = (params + EMPTY).split(',');
         for (var i = 0; i < params.length; i++) {
             r = Has(ps, params[i]);
             if (r) break;
@@ -385,11 +385,7 @@ var Router = Mix({
             var tempPath = Magix.objectToPath(temp, Coded, TLoc.query[PARAMS]);
             var navigate;
 
-            if (SupportState) {
-                navigate = tempPath != TLoc.srcQuery;
-            } else {
-                navigate = tempPath != TLoc.srcHash;
-            }
+            navigate = tempPath != TLoc[SupportState ? 'srcQuery' : 'srcHash'];
 
             if (navigate) {
 

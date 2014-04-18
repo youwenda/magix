@@ -49,6 +49,8 @@ var Event = {
                 }
                 if (!t.d) SafeExec(t.f, data, me);
             }
+            //
+            remove = remove || len < 0; //如果list中没有回调函数，则删除
         }
         if (remove) {
             delete me[key];

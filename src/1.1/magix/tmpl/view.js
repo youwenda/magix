@@ -243,39 +243,36 @@ Mix(Mix(View.prototype, Event), {
         var me = this;
         var hasTmpl = me.hasTmpl;
         var args = arguments;
-        var sign = me.sign;
         // var tmplReady = Has(me, 'template');
         var ready = function(tmpl) {
-            if (sign > 0 && sign == me.sign) {
-                if (hasTmpl) {
-                    me.template = me.wrapMxEvent(tmpl);
-                }
-                me.dEvts();
-                /*
+            if (hasTmpl) {
+                me.template = me.wrapMxEvent(tmpl);
+            }
+            me.dEvts();
+            /*
                     关于interact事件的设计 ：
                     首先这个事件是对内的，当然外部也可以用，API文档上就不再体现了
 
                     interact : view准备好，让外部尽早介入，进行其它事件的监听 ，当这个事件触发时，view有可能已经有html了(无模板的情况)，所以此时外部可以去加载相应的子view了，同时要考虑在调用render方法后，有可能在该方法内通过setViewHTML更新html，所以在使用setViewHTML更新界面前，一定要先监听prerender rendered事件，因此设计了该  interact事件
 
                  */
-                me.fire('interact', {
-                    tmpl: hasTmpl
-                }, 1); //可交互
-                SafeExec(me.init, args, me);
-                me.fire('inited', 0, 1);
-                me.owner.viewInited = 1;
-                SafeExec(me.render, EMPTY_ARRAY, me);
-                //console.log('render',me.render);
-                var noTemplateAndNoRendered = !hasTmpl && !me.rendered; //没模板，调用render后，render里面也没调用setViewHTML
+            me.fire('interact', {
+                tmpl: hasTmpl
+            }, 1); //可交互
+            SafeExec(me.init, args, me);
+            me.fire('inited', 0, 1);
+            me.owner.viewInited = 1;
+            SafeExec(me.render, EMPTY_ARRAY, me);
+            //console.log('render',me.render);
+            var noTemplateAndNoRendered = !hasTmpl && !me.rendered; //没模板，调用render后，render里面也没调用setViewHTML
 
-                if (noTemplateAndNoRendered) { //监视有没有在调用render方法内更新view，对于没有模板的view，需要派发一次事件
-                    me.rendered = 1;
-                    me.fire('primed', 0, 1); //primed事件只触发一次
-                }
+            if (noTemplateAndNoRendered) { //监视有没有在调用render方法内更新view，对于没有模板的view，需要派发一次事件
+                me.rendered = 1;
+                me.fire('primed', 0, 1); //primed事件只触发一次
             }
         };
         if (hasTmpl) {
-            me.fetchTmpl(me.path, ready);
+            me.fetchTmpl(me.path, me.wrapAsync(ready));
         } else {
             ready();
         }
@@ -327,7 +324,7 @@ Mix(Mix(View.prototype, Event), {
      * @returns {String} 返回处理后的字符串
      */
     wrapMxEvent: function(html) {
-        return String(html).replace(MxEvt, '$&' + this.id + MxEvtSplit);
+        return (html + '').replace(MxEvt, '$&' + this.id + MxEvtSplit);
     },
     /**
      * 包装异步回调
@@ -417,7 +414,7 @@ Mix(Mix(View.prototype, Event), {
             args = args.keys;
         }
         if (args) {
-            loc.ks = keys.concat(String(args).split(COMMA));
+            loc.ks = keys.concat((args + '').split(COMMA));
         }
     },
     /**

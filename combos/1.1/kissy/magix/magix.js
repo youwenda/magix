@@ -5,7 +5,6 @@
  **/
 KISSY.add('magix/magix', function(S) {
     var Slice = [].slice;
-
     var Include = function(path, mxext) {
         var magixPackages = S.Config.packages[mxext ? 'mxext' : 'magix'];
         var mPath = magixPackages.base || magixPackages.path || magixPackages.uri;
@@ -62,7 +61,7 @@ var HasProp = Cfg.hasOwnProperty;
  * @return {Boolean} 是否拥有prop属性
  */
 var Has = function(owner, prop) {
-    return owner ? HasProp.call(owner, prop) : owner; //false 0 null '' undefined
+    return owner && HasProp.call(owner, prop); //false 0 null '' undefined
 };
 var GSObj = function(o) {
     return function(k, v, r) {
@@ -90,7 +89,7 @@ var GSObj = function(o) {
     };
 };
 var CacheSort = function(a, b) {
-    return b.f == a.f ? b.t - a.t : b.f - a.f;
+    return b.f - a.f || b.t - a.t;
 };
 var Cache = function(max, buffer) {
     var me = this;
