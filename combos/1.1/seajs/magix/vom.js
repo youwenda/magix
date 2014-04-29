@@ -40,10 +40,10 @@ var VOM = Magix.mix({
      * 注册vframe对象
      * @param {Vframe} vf Vframe对象
      */
-    add: function(vf) {
-        if (!Has(Vframes, vf.id)) {
+    add: function(id, vf) {
+        if (!Has(Vframes, id)) {
             VframesCount++;
-            Vframes[vf.id] = vf;
+            Vframes[id] = vf;
             VOM.fire('add', {
                 vframe: vf
             });

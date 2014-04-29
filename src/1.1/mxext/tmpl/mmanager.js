@@ -428,14 +428,14 @@ Mix(MRequest.prototype, {
                 for (var i = 0, fn; i < fns.length; i++) {
                     fn = fns[i];
                     if (fn.id != me.id) {
-                        nfns.push(fn);
+                        nfns.push(fn); //仍然保留
                     } else {
-                        rfns.push(fn);
+                        rfns.push(fn); //需要中止
                     }
                 }
                 //console.log(rfns, nfns);
                 if (nfns.length) {
-                    SafeExec(rfns, 'abort', cache.e);
+                    SafeExec(rfns, 'abort', cache.e); //model并未中止，需要手动触发
                     cache.q = nfns;
                 } else {
                     m.abort();

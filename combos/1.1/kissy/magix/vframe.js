@@ -90,6 +90,7 @@ var Vframe = function(id) {
     me.sign = 1 << 30;
     me.rM = {};
     me.owner = RefVOM;
+    RefVOM.add(id, me);
 };
 /**
  * 获取根vframe
@@ -125,7 +126,6 @@ Vframe.root = function(owner, refLoc, refChged) {
             e = null;
         }
         RootVframe = new Vframe(rootId);
-        owner.add(RootVframe);
     }
     return RootVframe;
 };
@@ -272,7 +272,6 @@ Mix(Mix(Vframe.prototype, Event), {
                 me.cC++;
             }
             me.cM[id] = 1;
-            RefVOM.add(vf);
         }
         vf.mountView(viewPath, viewInitParams);
         return vf;
@@ -352,11 +351,7 @@ Mix(Mix(Vframe.prototype, Event), {
         var p;
         var cm = me.cM;
         for (p in cm) {
-            if (zoneId) {
-                if (NodeIn(p, zoneId)) {
-                    me.unmountVframe(p, hasVframe = 1);
-                }
-            } else {
+            if (!zoneId || NodeIn(p, zoneId)) {
                 me.unmountVframe(p, hasVframe = 1);
             }
         }

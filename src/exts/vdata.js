@@ -2,48 +2,52 @@
     author:xinglie.lkf@taobao.com
  */
 KISSY.add('exts/vdata', function(S, View) {
-    var ViewData = function(config) {
-        ViewData.superclass.constructor.call(this, config);
-        this.addAttrs(config);
+    var ViewData = function(view) {
+        this.$attrs = {};
+        this.$view = view;
     };
-
-    S.extend(ViewData, S.Base, {
-        /**
-         * @lends ViewData#
-         */
+    var WrapFn = function(owner, fn) {
+        return function() {
+            return fn.call(this, owner);
+        };
+    };
+    ViewData.prototype = {
         /**
          * 注册模板帮助方法
          * @param {Object} obj 包含方法的对象
          **/
         registerRenderers: function(obj) {
             var me = this;
-            var baseSet = me.constructor.superclass.set;
             for (var group in obj) {
                 var groups = obj[group];
                 for (var n in groups) {
-                    baseSet.call(me, group + '_' + n, (function(f) {
-                        return function() {
-                            return f.call(this, me._view);
-                        };
-                    }(groups[n])), {
-                        slient: true
-                    });
+                    me.set(group + '_' + n, WrapFn(me.$view, groups[n]));
                 }
             }
         },
-        /**
-         * 你懂的
-         * @return {Object}
-         */
+        set: function(key, value) {
+            if (S.isString(key)) {
+                var wrap = {};
+                wrap[key] = value;
+                key = wrap;
+            }
+            var attrs = this.$attrs;
+            for (var p in key) {
+                attrs[p] = key[p];
+            }
+        },
+        get: function(key) {
+            return this.$attrs[key];
+        },
         toJSON: function() {
-            return this.getAttrVals();
+            return this.$attrs;
         }
-    });
+    };
     return View.mixin({
 
     }, function() {
-        this.data = new ViewData();
+        this.data = new ViewData(this);
     });
 }, {
-    requires: ['magix/view', 'base']
+    requires: ['magix/view']
 });

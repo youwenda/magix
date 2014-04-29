@@ -101,6 +101,7 @@ var View = function(ops) {
     me.sign = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     SafeExec(View.ms, [ops], me);
 };
+var VProto = View.prototype;
 View.ms = [];
 View.prepare = function(oView) {
     // var me = this;
@@ -165,10 +166,10 @@ View.prepare = function(oView) {
  */
 View.mixin = function(props, ctor) {
     if (ctor) View.ms.push(ctor);
-    Mix(View.prototype, props);
+    Mix(VProto, props);
 };
 
-Mix(Mix(View.prototype, Event), {
+Mix(Mix(VProto, Event), {
     /**
      * @lends View#
      */
@@ -290,7 +291,6 @@ Mix(Mix(View.prototype, Event), {
     beginUpdate: function() {
         var me = this;
         if (me.sign > 0 && me.rendered) {
-            me.fire('refresh', 0, 1);
             me.fire('prerender');
         }
     },
@@ -308,9 +308,7 @@ Mix(Mix(View.prototype, Event), {
                 me.fire('primed', 0, 1);
                 me.rendered = 1;
             }
-
             me.fire('rendered'); //可以在rendered事件中访问view.rendered属性
-
         }
     },
     /**
@@ -370,7 +368,7 @@ Mix(Mix(View.prototype, Event), {
             setNodeHTML -> delegate unbubble events -> rendered(事件) -> primed(事件)
 
         2.再次调用
-            refresh(事件) -> prerender(事件) -> undelegate unbubble events -> anim... -> setNodeHTML -> delegate unbubble events -> rendered(事件)
+            update(事件) -> prerender(事件) -> undelegate unbubble events -> anim... -> setNodeHTML -> delegate unbubble events -> rendered(事件)
 
         当prerender、rendered事件触发时，在vframe中
 
@@ -491,7 +489,6 @@ Mix(Mix(View.prototype, Event), {
         var me = this;
         if (me.sign > 0) {
             me.sign = 0;
-            me.fire('refresh', 0, 1);
             me.fire('destroy', 0, 1, 1);
             me.dEvts(1);
         }
@@ -822,14 +819,6 @@ Mix(Mix(View.prototype, Event), {
      * @param {Object} e
      */
 
-
-    /**
-     * 每次调用beginUpdate更新view内容前触发
-     * @name View#refresh
-     * @event
-     * @param {Object} e
-     * 与prerender不同的是：refresh触发后即删除监听列表
-     */
     /**
      * 当view准备好模板(模板有可能是异步获取的)，调用init和render之前触发。可在该事件内对template进行一次处理
      * @name View#interact

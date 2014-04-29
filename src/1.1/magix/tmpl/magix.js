@@ -75,10 +75,14 @@ var CacheSort = function(a, b) {
 };
 var Cache = function(max, buffer) {
     var me = this;
-    if (!me.get) return new Cache(max, buffer);
-    me.c = [];
-    me.x = max || 20;
-    me.b = me.x + (buffer | 0 || 5); //buffer先取整，如果为0则再默认5
+    if (me.get) {
+        me.c = [];
+        me.x = max || 20;
+        me.b = me.x + (buffer | 0 || 5); //buffer先取整，如果为0则再默认5
+    } else {
+        me = new Cache(max, buffer);
+    }
+    return me;
 };
 
 /**
