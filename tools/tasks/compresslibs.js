@@ -32,17 +32,17 @@ module.exports = function(grunt) {
 
         var destMagixPrefix = distDir + SEP + platType + SEP + loaderType + '-magix';
 
-        [destMagixPrefix + '.js', destMagixPrefix + '-mxext.js'].forEach(function(f) {
+        [destMagixPrefix + '.js'].forEach(function(f) {
             grunt.file.copy(f, f, {
                 process: function(content) {
                     content = content.replace(/\w+:\s*(Magix\.)?[Uu]nimpl\s*,?/g, '');
                     content = content.replace(/include\s*:\s*Include,/g, '');
                     content = content.replace(/debug\s*:\s*'\*_\*',/, '//debug-*_*');
 
-                    content = content.replace(/window([\.,])/g, 'WINDOW$1');
+                    content = content.replace(/window([\.,\r\n])/g, 'WINDOW$1');
                     content = content.replace(/([=:\?])\s*null\b/g, '$1NULL');
                     content = content.replace(/(?:KISSY|define)([\.\(])/g, 'LIB$1');
-                    content = content.replace(/document([\.\[])/g, 'DOCUMENT$1');
+                    content = content.replace(/document([\.\[\r\n])/g, 'DOCUMENT$1');
                     content = content.replace(/var\s+IdIt\s*=[^}]+\};/gm, '');
 
                     return content;
@@ -62,7 +62,6 @@ module.exports = function(grunt) {
         var destMagixPrefix = distDir + SEP + platType + SEP + loaderType + '-magix';
         var jsMinMap = {};
         jsMinMap[destMagixPrefix + '-min.js'] = destMagixPrefix + '.js';
-        jsMinMap[destMagixPrefix + '-mxext-min.js'] = destMagixPrefix + '-mxext.js';
 
         //begin 压缩吧～
         grunt.config.set('uglify', {
@@ -82,7 +81,7 @@ module.exports = function(grunt) {
 
         var destMagixPrefix = distDir + SEP + platType + SEP + loaderType + '-magix';
 
-        [destMagixPrefix + '.js', destMagixPrefix + '-mxext.js'].forEach(function(f) {
+        [destMagixPrefix + '.js'].forEach(function(f) {
             grunt.file.copy(f, f, {
                 process: function(content) {
                     content = content.replace(/\S*\/\*_\*\//g, '');

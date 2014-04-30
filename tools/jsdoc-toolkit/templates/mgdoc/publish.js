@@ -50,7 +50,11 @@ function publish(symbolSet) {
 		'router': 1,
 		'view': 1,
 		'vframe': 1,
-		'vom': 1
+		'vom': 1,
+		//for 1.2
+		'model': 1,
+		'mmanager': 1,
+		'mrequest': 1
 	};
 
 	function isCore($) {

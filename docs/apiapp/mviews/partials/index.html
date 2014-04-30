@@ -1,5 +1,5 @@
 <div class="clearfix dir">
-    <div class="menu-t">核心模块</div>
+    {{if data.extList&&data.extList.length}}<div class="menu-t">核心模块</div>{{/if}}
     <ul class="menu">
         {{infos=data.infos}}
         {{each data.coreList as one}}
@@ -9,7 +9,7 @@
         </li>
         {{/each}}
     </ul>
-
+    {{if data.extList&&data.extList.length}}
     <div class="menu-t">扩展模块</div>
     <ul class="menu">
         {{each data.extList as one}}
@@ -19,4 +19,5 @@
         </li>
         {{/each}}
     </ul>
+    {{/if}}
 </div>

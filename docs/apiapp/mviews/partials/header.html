@@ -22,7 +22,7 @@
     <div class="extended-inner">
         <div class="clearfix">
             <div class="menu-outer">
-                <div class="menu-t">核心模块</div>
+                {{if data.extList&&data.extList.length}}<div class="menu-t">核心模块</div>{{/if}}
                 <ul class="menu">
                     {{each data.coreList as val}}
                     <li class="menu-list">
@@ -31,7 +31,7 @@
                     {{/each}}
                 </ul>
             </div>
-
+            {{if data.extList&&data.extList.length}}
             <div class="menu-outer">
                 <div class="menu-t">扩展模块</div>
                 <ul class="menu">
@@ -42,6 +42,7 @@
                     {{/each}}
                 </ul>
             </div>
+            {{/if}}
         </div>
     </div>
 </div>

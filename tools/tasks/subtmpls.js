@@ -24,7 +24,6 @@ module.exports = function(grunt) {
     var SEP = Path.sep;
     var TMPL = 'tmpl';
     var MAGIX = 'magix';
-    var MXEXT = 'mxext';
 
 
     // ==========================================================================
@@ -34,7 +33,7 @@ module.exports = function(grunt) {
     grunt.registerMultiTask('subtmpls', 'substitude tmpls in magix', function() {
         var dir = this.data.dir;
 
-        var folders = [MAGIX, MXEXT];
+        var folders = [MAGIX];
         folders.forEach(function(folder) {
             var fromFolder = dir + SEP + folder;
             var fromTmplFolder = dir + SEP + folder + TMPL;

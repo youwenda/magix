@@ -23,7 +23,6 @@ module.exports = function(grunt) {
 
     var SEP = Path.sep;
     var MAGIX = 'magix';
-    var MXEXT = 'mxext';
 
     // ==========================================================================
     // TASKS
@@ -39,13 +38,10 @@ module.exports = function(grunt) {
         var combosDir = this.data.combosDir;
 
         var maPrefix = dir + SEP + MAGIX + SEP;
-        var mePrefix = dir + SEP + MXEXT + SEP;
-        var magixArr = ['magix', 'router', 'body', 'event', 'vframe', 'view', 'vom'];
-        var mxextArr = ['mmanager', 'model', 'view'];
+        var magixArr = ['magix', 'router', 'body', 'event', 'vframe', 'view', 'vom', 'mmanager', 'model'];
         //删除dist中原来的文件
         var destMagixPrefix = distDir + SEP + platType + SEP + loaderType + '-magix';
-        var distArr = ['.js', '-min.js', '-mxext.js', '-mxext-min.js'];
-        var magixStartFile = dir + SEP + MAGIX + SEP + 'magix_start.js';
+        var distArr = ['.js', '-min.js'];
         for (var i = 0; i < distArr.length; i++) {
             var f = destMagixPrefix + distArr[i];
             if (grunt.file.isFile(f)) {
@@ -62,11 +58,6 @@ module.exports = function(grunt) {
                     cwd: maPrefix,
                     src: ['**'],
                     dest: [combosDir, platType, loaderType, MAGIX].join(SEP)
-                }, {
-                    expand: true,
-                    cwd: mePrefix,
-                    src: ['**'],
-                    dest: [combosDir, platType, loaderType, MXEXT].join(SEP)
                 }]
 
             }
@@ -79,24 +70,15 @@ module.exports = function(grunt) {
             maFiles.push(maPrefix + magixArr[i] + '.js');
         }
 
-        var meFiles = [];
-        for (var i = 0; i < mxextArr.length; i++) {
-            meFiles.push(mePrefix + mxextArr[i] + '.js');
-        }
         var basicFiles = maFiles;
-        var extraFiles = maFiles.concat(meFiles);
         var footer = '';
 
-        if (addMagixStartFile) {
-            basicFiles = basicFiles.concat(magixStartFile);
-            extraFiles = extraFiles.concat(magixStartFile);
-        } else {
-            var lib = 'define';
-            if (loaderType == 'kissy') {
-                lib = 'KISSY';
-            }
-            footer = ';document.createElement("vframe");})(null,this,document,' + lib + ')';
+        var lib = 'define';
+        if (loaderType == 'kissy') {
+            lib = 'KISSY';
         }
+        footer = ';document.createElement("vframe");})(null,this,document,' + lib + ')';
+
 
         grunt.config.set('concat', {
             options: {
@@ -107,10 +89,6 @@ module.exports = function(grunt) {
             basic: {
                 src: basicFiles,
                 dest: destMagixPrefix + '.js'
-            },
-            extras: {
-                src: extraFiles,
-                dest: destMagixPrefix + '-mxext.js'
             }
 
         });

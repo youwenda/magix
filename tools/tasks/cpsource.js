@@ -22,7 +22,6 @@ module.exports = function(grunt) {
 
     var SEP = Path.sep;
     var MAGIX = 'magix';
-    var MXEXT = 'mxext';
     var TMPL = 'tmpl';
 
     // ==========================================================================
@@ -35,11 +34,9 @@ module.exports = function(grunt) {
         var platType = this.data.platType;
         var loaderType = this.data.loaderType;
         console.log('platType is:' + platType, 'loaderType is:' + loaderType);
-        var source = [srcDir, platType].join(SEP);
         var magixSource = [srcDir, platType, MAGIX, loaderType].join(SEP);
-        var mxextSource = [srcDir, platType, MXEXT, loaderType].join(SEP);
         var magixTmplSource = [srcDir, platType, MAGIX, TMPL].join(SEP);
-        var mxextTmplSource = [srcDir, platType, MXEXT, TMPL].join(SEP);
+
 
         grunt.config.set('copy', {
             main: {
@@ -50,21 +47,9 @@ module.exports = function(grunt) {
                     dest: [dir, MAGIX].join(SEP)
                 }, {
                     expand: true,
-                    cwd: mxextSource,
-                    src: ['**'],
-                    dest: [dir, MXEXT].join(SEP)
-
-                }, {
-                    expand: true,
                     cwd: magixTmplSource,
                     src: ['**'],
                     dest: [dir, MAGIX + TMPL].join(SEP)
-
-                }, {
-                    expand: true,
-                    cwd: mxextTmplSource,
-                    src: ['**'],
-                    dest: [dir, MXEXT + TMPL].join(SEP)
 
                 }]
 

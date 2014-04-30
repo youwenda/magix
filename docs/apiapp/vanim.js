@@ -10,22 +10,22 @@ KISSY.add('apiapp/vanim', function(S, Router, Magix) {
     };
     var Rules = [{
         from: /^\/home$/,
-        to: /^\/(?:kissy|seajs|requirejs)\/1\.[01]\/index$/,
+        to: /^\/(?:kissy|seajs|requirejs)\/1\.[012]\/index$/,
         aAnim: 'slideLeft',
         bAnim: 'slideRight'
     }, {
-        from: /^\/(?:kissy|seajs|requirejs)\/1\.[01]\/index$/,
-        to: /^\/(?:kissy|seajs|requirejs)\/1\.[01]\/\w+$/,
+        from: /^\/(?:kissy|seajs|requirejs)\/1\.[012]\/index$/,
+        to: /^\/(?:kissy|seajs|requirejs)\/1\.[012]\/\w+$/,
         aAnim: 'slideLeft',
         bAnim: 'slideRight'
     }, {
         from: /^\/home$/,
-        to: /^\/(?:kissy|seajs|requirejs)\/1\.[01]\/\w+$/,
+        to: /^\/(?:kissy|seajs|requirejs)\/1\.[012]\/\w+$/,
         aAnim: 'slideLeft',
         bAnim: 'slideRight'
     }, {
-        from: /^\/(?:kissy|seajs|requirejs)\/1\.[01]\/\w+$/,
-        to: /^\/(?:kissy|seajs|requirejs)\/1\.[01]\/\w+$/,
+        from: /^\/(?:kissy|seajs|requirejs)\/1\.[012]\/\w+$/,
+        to: /^\/(?:kissy|seajs|requirejs)\/1\.[012]\/\w+$/,
         aAnim: 'fade',
         bAnim: 'fade'
     }];
