@@ -1637,7 +1637,7 @@ Mix(Mix(Vframe.prototype, Event), {
         //var useTurnaround=me.viewInited&&me.useAnimUpdate();
         me.unmountView();
         if (viewPath) {
-            var path = Magix.pathToObject(viewPath);
+            var path = Magix.pathToObject(viewPath, MxConfig.coded);
             var vn = path.pathname;
             var sign = --me.sign;
             Magix.use(vn, function(View) {
