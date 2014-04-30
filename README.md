@@ -20,6 +20,6 @@ Magix基于"约定大于配置"设计原则,可以快速构建可扩展的大型
 
 <http://thx.github.io/magix>
 
-## Magix 1.1 与 Magix 1.0 的使用差异：
+## Magix历史版本
 
-<http://thx.github.io/magix/releases/1.1.0/>
+<http://thx.github.io/magix/releases/>
