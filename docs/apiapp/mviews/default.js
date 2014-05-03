@@ -7,9 +7,16 @@ KISSY.add('apiapp/mviews/default', function(S, View, Magix, VOM) {
         search: 1
     };
     return View.extend({
+        init: function() {
+            this.observeLocation({
+                pathname: true
+            });
+        },
         render: function() {
             var me = this;
-            me.setViewHTML(me.template);
+            if (!me.rendered) {
+                me.setViewHTML(me.id, me.template);
+            }
             me.mountMainVframe();
         },
         mountMainVframe: function() {
@@ -31,9 +38,6 @@ KISSY.add('apiapp/mviews/default', function(S, View, Magix, VOM) {
             } else {
                 vf.mountView('apiapp/mviews/partials/home');
             }
-        },
-        locationChange: function() {
-            this.mountMainVframe();
         }
     });
 }, {

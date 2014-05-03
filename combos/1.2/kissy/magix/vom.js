@@ -6,10 +6,7 @@
 KISSY.add("magix/vom", function(S, Vframe, Magix, Event) {
     var Has = Magix.has;
 var Mix = Magix.mix;
-var VframesCount = 0;
-var FirstVframesLoaded = 0;
-var LastPercent = 0;
-var FirstReady = 0;
+
 var Vframes = {};
 var Loc = {};
 var Chged = {};
@@ -21,6 +18,7 @@ var Chged = {};
  * @borrows Event.fire as fire
  * @borrows Event.off as off
  * @borrows Event.once as once
+ * @borrows Event.rely as rely
  */
 var VOM = Magix.mix({
     /**
@@ -39,7 +37,6 @@ var VOM = Magix.mix({
      */
     add: function(id, vf) {
         if (!Has(Vframes, id)) {
-            VframesCount++;
             Vframes[id] = vf;
             VOM.fire('add', {
                 vframe: vf
@@ -62,27 +59,11 @@ var VOM = Magix.mix({
     remove: function(id, fcc) {
         var vf = Vframes[id];
         if (vf) {
-            VframesCount--;
-            if (fcc) FirstVframesLoaded--; //该处有问题，需要考虑在渲染过程中，直接把根vframe给销毁了，导致进度条中止在当前状态。解决办法是判断VframesCount，如果减到0则进度条为100%，但考虑到线上几乎没有这个需求，所以暂不修复
             delete Vframes[id];
             VOM.fire('remove', {
-                vframe: vf
+                vframe: vf,
+                fcc: fcc
             });
-        }
-    },
-    /**
-     * 通知其中的一个vframe创建完成
-     * @private
-     */
-    vfCreated: function() {
-        if (!FirstReady) {
-            FirstVframesLoaded++;
-            var np = FirstVframesLoaded / VframesCount;
-            if (LastPercent < np) {
-                VOM.fire('progress', {
-                    percent: LastPercent = np
-                }, FirstReady = (np == 1));
-            }
         }
     },
     /**
@@ -112,13 +93,6 @@ var VOM = Magix.mix({
         }
     }
     /**
-     * view加载完成进度
-     * @name VOM.progress
-     * @event
-     * @param {Object} e
-     * @param {Float} e.precent 百分比
-     */
-    /**
      * 注册vframe对象时触发
      * @name VOM.add
      * @event
@@ -131,6 +105,7 @@ var VOM = Magix.mix({
      * @event
      * @param {Object} e
      * @param {Vframe} e.vframe
+     * @param {Boolean} e.fcc 是否派发过created事件
      */
 }, Event);
     return VOM;

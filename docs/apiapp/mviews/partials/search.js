@@ -16,9 +16,9 @@ KISSY.add('apiapp/mviews/partials/search', function(S, View, MM, Crox, Magix) {
                 }
                 me.$lastSearch = MM.searchInfos(val, function(e, m) {
                     if (e) {
-                        me.setViewHTML(e.msg);
+                        me.setViewHTML(me.id, e.msg);
                     } else {
-                        me.setViewHTML(Crox.render(me.template, {
+                        me.setViewHTML(me.id, Crox.render(me.template, {
                             search: m,
                             infos: Magix.local('APIPathInfo')
                         }));
@@ -30,5 +30,5 @@ KISSY.add('apiapp/mviews/partials/search', function(S, View, MM, Crox, Magix) {
         }
     });
 }, {
-    requires: ['mxext/view', 'apiapp/models/manager', 'apiapp/helpers/crox', 'magix/magix']
+    requires: ['magix/view', 'apiapp/models/manager', 'apiapp/helpers/crox', 'magix/magix']
 });

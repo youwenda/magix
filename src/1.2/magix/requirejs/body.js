@@ -5,19 +5,24 @@
  **/
 define("magix/body", ["magix/magix"], function(Magix) {
     eval(Magix.include('../tmpl/body'));
-    var Unbubbles = {
+    var Delegates = {
         focus: 2,
         blur: 2,
         mouseenter: 2,
         mouseleave: 2
     };
-    Body.special(Unbubbles);
-    Body.lib = function(node, type, cb, remove) {
-        var flag = Unbubbles[type];
-        if (flag == 1) {
-            $(node)[remove ? 'off' : 'on'](type, cb);
-        } else {
+    Body.lib = function(node, type, cb, remove, scope, direct) {
+        var flag = Delegates[type];
+        if (scope && !cb.$fn) {
+            cb.$fn = function() {
+                cb.apply(scope, arguments);
+            };
+        }
+        if (cb.$fn) cb = cb.$fn;
+        if (!direct && flag == 2) {
             $(node)[(remove ? 'un' : '') + 'delegate']('[mx-' + type + ']', type, cb);
+        } else {
+            $(node)[remove ? 'off' : 'on'](type, cb);
         }
     };
     return Body;

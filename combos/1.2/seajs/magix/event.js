@@ -96,6 +96,31 @@ var Event = {
         }
     },
     /**
+     * 依托另外一个对象的事件自动解绑
+     * @param {String} name 事件名称
+     * @param {Function} fn 事件回调
+     * @param {Object} relyObj 依托的对象
+     * @param {String} relyName 依托的名称
+     * @param {Interger} insert 事件监听插入的位置
+     * @example
+     * var a=Magix.mix({},Event);
+     * var b=Magix.mix({},Event);
+     * a.rely('test',function(e){
+     *
+     * },b,'destroy');
+     *
+     * a.fire('test');//正常
+     * b.fire('destroy');
+     * a.fire('test');//不再打印console.log
+     */
+    rely: function(name, fn, relyObj, relyName, insert) {
+        var me = this;
+        me.on(name, fn, insert);
+        relyObj.on(relyName, function() {
+            me.off(name, fn);
+        }, GenKey);
+    },
+    /**
      * 解除事件绑定
      * @param {String} name 事件名称
      * @param {Function} fn 事件回调

@@ -22,7 +22,7 @@ define('magix/view', ["magix/magix", "magix/event", "magix/body", "magix/router"
 
 
     var Tmpls = {}, Locker = {};
-    View.prototype.fetchTmpl = function(path, fn) {
+    VProto.fetchTmpl = function(path, fn) {
         var me = this;
         var hasTemplate = 'template' in me;
         if (!hasTemplate) {

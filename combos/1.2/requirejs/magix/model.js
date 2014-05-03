@@ -14,10 +14,6 @@ define('magix/model', ['magix/magix'], function(Magix) {
             }
         };
 
-        Magix.mix(BaseModel, me, {
-            prototype: true
-        });
-
         return Magix.extend(BaseModel, me, props);
 
     };

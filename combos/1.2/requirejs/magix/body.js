@@ -5,18 +5,13 @@
  **/
 define("magix/body", ["magix/magix"], function(Magix) {
     var Has = Magix.has;
-var Mix = Magix.mix;
 //依赖类库才能支持冒泡的事件
-var DependLibEvents = {};
 var RootEvents = {};
 var MxEvtSplit = String.fromCharCode(26);
 
 var MxIgnore = 'mx-ei';
 var MxOwner = 'mx-owner';
-var AddEvent = 'addEventListener';
-var RemoveEvent = 'removeEventListener';
 var RootNode = document.body;
-var W3C = RootNode[AddEvent];
 var ParentNode = 'parentNode';
 var TypesRegCache = {};
 var IdCounter = 1 << 16;
@@ -34,23 +29,27 @@ var GetSetAttribute = function(dom, attrKey, attrVal) {
     }
     return attrVal;
 };
-var PreventDefault = function() {
-    this.returnValue = false;
-};
-var StopPropagation = function() {
-    this.cancelBubble = true;
+var Halt = function() {
+    this.prevent();
+    this.stop();
 };
 var VOM;
 var Body = {
     lib: Magix.unimpl,
-    special: function(events) {
-        Mix(DependLibEvents, events);
-    },
     process: function(e) {
-        e = e || window.event;
         if (e && !e[On]) {
             var target = e.target || e.srcElement || RootNode; //原生事件对象Cordova没有target对象
             e[On] = 1;
+            /*
+                考虑如ff浏览器支持向e设置属性，但不显示，也有可能后续版本不支持设置属性，需如下修正
+                if(!e[On]){
+                    var temp=Mix({},e);
+                    temp.oe=e;
+                    temp.stopPropagation=function(){this.oe.stopPropagation();};
+                    temp.preventDefault=function(){this.oe.preventDefault();};
+                    e=temp;
+                }
+             */
             //var cTarget = e.currentTarget; //只处理类库(比如KISSY)处理后的currentTarget
             //if (cTarget && cTarget != RootNode) target = cTarget; //类库处理后代理事件的currentTarget并不是根节点
             while (target && target.nodeType != 1) {
@@ -101,17 +100,12 @@ var Body = {
                     var vframe = VOM.get(vId);
                     var view = vframe && vframe.view;
                     if (view) {
-                        if (!W3C) {
-                            e.preventDefault = PreventDefault;
-                            e.stopPropagation = StopPropagation;
-                        }
-                        view.pEvt({
-                            info: info,
-                            se: e,
-                            st: eventType,
-                            tId: IdIt(target),
-                            cId: IdIt(current)
-                        });
+                        e.currentId = IdIt(current);
+                        e.targetId = IdIt(target);
+                        e.prevent = e.preventDefault;
+                        e.stop = e.stopPropagation;
+                        e.halt = Halt;
+                        view.pEvt(info, eventType, e);
                     }
                 } else {
                     throw Error('bad:' + info);
@@ -119,7 +113,7 @@ var Body = {
             } else {
                 var node;
                 while (arr.length) {
-                    node = arr.shift();
+                    node = arr.pop();
                     ignore = GetSetAttribute(node, MxIgnore) || On;
                     if (!eventReg.test(ignore)) {
                         ignore = ignore + Comma + eventType;
@@ -141,14 +135,7 @@ var Body = {
             if (vom) {
                 VOM = vom;
             }
-            var lib = DependLibEvents[type];
-            if (lib) {
-                Body.lib(RootNode, type, fn, remove);
-            } else if (W3C) { //chrome 模拟touch事件时，需要使用addEventListener方式添加，不能使用node.onx的形式
-                RootNode[remove ? RemoveEvent : AddEvent](type, fn, false);
-            } else {
-                RootNode[On + type] = remove ? null : fn;
-            }
+            Body.lib(RootNode, type, fn, remove);
             if (!remove) {
                 counter = 1;
             }
@@ -156,19 +143,24 @@ var Body = {
         RootEvents[type] = counter;
     }
 };
-    var Unbubbles = {
+    var Delegates = {
         focus: 2,
         blur: 2,
         mouseenter: 2,
         mouseleave: 2
     };
-    Body.special(Unbubbles);
-    Body.lib = function(node, type, cb, remove) {
-        var flag = Unbubbles[type];
-        if (flag == 1) {
-            $(node)[remove ? 'off' : 'on'](type, cb);
-        } else {
+    Body.lib = function(node, type, cb, remove, scope, direct) {
+        var flag = Delegates[type];
+        if (scope && !cb.$fn) {
+            cb.$fn = function() {
+                cb.apply(scope, arguments);
+            };
+        }
+        if (cb.$fn) cb = cb.$fn;
+        if (!direct && flag == 2) {
             $(node)[(remove ? 'un' : '') + 'delegate']('[mx-' + type + ']', type, cb);
+        } else {
+            $(node)[remove ? 'off' : 'on'](type, cb);
         }
     };
     return Body;

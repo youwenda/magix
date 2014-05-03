@@ -75,6 +75,7 @@ var RefLoc, RefChged, RefVOM;
  * @borrows Event.fire as #fire
  * @borrows Event.off as #off
  * @borrows Event.once as #once
+ * @borrows Event.rely as #rely
  * @param {String} id vframe id
  * @property {String} id vframe id
  * @property {View} view view对象
@@ -193,21 +194,21 @@ Mix(Mix(Vframe.prototype, Event), {
                         location: RefLoc
                     });
                     me.view = view;
-                    var mountZoneVframes = function() {
-                        me.mountZoneVframes();
+                    var mountZoneVframes = function(e) {
+                        me.mountZoneVframes(e.id);
                     };
                     view.on('interact', function(e) { //view准备好后触发
                         if (!e.tmpl) {
                             node.innerHTML = me._t;
-                            mountZoneVframes();
+                            mountZoneVframes($);
                         }
                         view.on('primed', function() {
                             me.viewPrimed = 1;
                             me.fire('viewMounted');
                         });
                         view.on('rendered', mountZoneVframes);
-                        view.on('prerender', function() {
-                            if (!me.unmountZoneVframes(0, 1)) {
+                        view.on('prerender', function(e) {
+                            if (!me.unmountZoneVframes(e.id, 1)) {
                                 me.cAlter();
                             }
                         });
@@ -288,11 +289,10 @@ Mix(Mix(Vframe.prototype, Event), {
      */
     mountZoneVframes: function(zoneId, viewInitParams) {
         var me = this;
+        zoneId = zoneId || me.id;
+        me.unmountZoneVframes(zoneId, 1);
 
-        var node = zoneId || me.id;
-        me.unmountZoneVframes(node, 1);
-
-        var vframes = $$(node);
+        var vframes = $$(zoneId);
         var count = vframes.length;
         var subs = {};
 
@@ -397,9 +397,6 @@ Mix(Mix(Vframe.prototype, Event), {
                 view.fire(Created, e);
                 me.fire(Created, e);
             }
-            //var vom = me.owner;
-            RefVOM.vfCreated();
-
             var mId = me.id;
             var p = RefVOM.get(me.pId);
             if (p && !Has(p.rM, mId)) {
@@ -469,17 +466,15 @@ Mix(Mix(Vframe.prototype, Event), {
                  * @ignore
                  */
                 to: function(c) {
-                    c = c || EmptyArr;
+                    //c = c || EmptyArr;
                     if (Magix._s(c)) {
                         c = c.split(',');
                     }
-                    this.cs = c;
+                    this.cs = c || EmptyArr;
                 }
             };
             if (isChanged) { //检测view所关注的相应的参数是否发生了变化
-                //safeExec(view.render,[],view);//如果关注的参数有变化，默认调用render方法
-                //否定了这个想法，有时关注的参数有变化，不一定需要调用render方法
-                SafeExec(view.locationChange, args, view);
+                view.render(args);
             }
             var cs = args.cs || Magix.keys(me.cM);
             //

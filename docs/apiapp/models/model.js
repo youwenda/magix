@@ -5,8 +5,9 @@ KISSY.add('apiapp/models/model', function(S, Model, IO, Magix) {
     return Model.extend({
         sync: function(callback) {
             var pathInfos = Magix.local('APIPathInfo');
+            var apiPath = Magix.config('apiPath');
             var url = this.get('url');
-            var path = pathInfos.loader + '/' + pathInfos.ver + '/';
+            var path = apiPath + pathInfos.loader + '/' + pathInfos.ver + '/';
             if (url) {
                 path += url;
             } else {
@@ -31,5 +32,5 @@ KISSY.add('apiapp/models/model', function(S, Model, IO, Magix) {
         }
     });
 }, {
-    requires: ['mxext/model', 'ajax', 'magix/magix']
+    requires: ['magix/model', 'ajax', 'magix/magix']
 });

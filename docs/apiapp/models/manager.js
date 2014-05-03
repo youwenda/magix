@@ -2,7 +2,7 @@
     author:xinglie.lkf@taobao.com
  */
 KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
-    var MM = MManager.create(Model);
+    var MM = MManager.create(Model, ['cKeys']);
     var InfosCache = Magix.cache();
     var SearchCache = Magix.cache(40);
     var ColorKeywords = function(name) {
@@ -11,9 +11,10 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
     MM.registerModels([{
         name: 'Class_List',
         url: 'index.json',
-        cacheKey: function(meta) {
-            var infos = Magix.local('APIPathInfo');
-            return meta.name + '_' + [infos.loader, infos.ver].join('_');
+        cache: true,
+        cKeys: function() {
+            var ai = Magix.local('APIPathInfo');
+            return [ai.loader, ai.ver].join('_');
         },
         after: function(m) {
             var list = m.get('list');
@@ -35,10 +36,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
         }
     }, {
         name: 'Class_Entity',
-        cacheKey: function(meta, req) {
-            var infos = Magix.local('APIPathInfo');
-            return meta.name + '_' + [infos.loader, infos.ver, req.cName].join('_');
-        },
+        cache: true,
         after: function(m) {
             var isa = m.get('isa');
             if (isa == 'CONSTRUCTOR') {
@@ -102,7 +100,12 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
                         e = list[i];
                         models.push({
                             name: 'Class_Entity',
-                            cName: e.name
+                            cName: e.name,
+                            cKeys: {
+                                name: e.name,
+                                platform: infos.loader,
+                                ver: infos.ver
+                            }
                         });
                     }
                     return models;
@@ -258,5 +261,5 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
     MM._sKeyMaxLegth = -1;
     return MM;
 }, {
-    requires: ['mxext/mmanager', 'apiapp/models/model', 'magix/magix']
+    requires: ['magix/mmanager', 'apiapp/models/model', 'magix/magix']
 });

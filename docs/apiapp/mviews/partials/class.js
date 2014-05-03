@@ -88,8 +88,9 @@ KISSY.add('apiapp/mviews/partials/class', function(S, View, MM, Magix, Crox) {
             var me = this;
             var infos = Magix.local('APIPathInfo');
             MM.fetchClassInfos(function(e, i) {
+                console.log(e, i);
                 if (e) {
-                    me.setViewHTML(e.msg);
+                    me.setViewHTML(me.id, e.msg);
                 } else {
                     var m = i.map[infos.action];
                     if (m) {
@@ -98,7 +99,7 @@ KISSY.add('apiapp/mviews/partials/class', function(S, View, MM, Magix, Crox) {
                         ExtendClass.infos = i;
                         ExtendClass.view = me;
                         var html = Crox.render(me.template, ExtendClass);
-                        me.setViewHTML(html);
+                        me.setViewHTML(me.id, html);
                         var focus = me.location.get('focus');
                         if (focus) {
                             var node = S.one('#J_' + focus);
@@ -121,7 +122,7 @@ KISSY.add('apiapp/mviews/partials/class', function(S, View, MM, Magix, Crox) {
                             }
                         }
                     } else {
-                        me.setViewHTML('not found:' + infos.action);
+                        me.setViewHTML(me.id, 'not found:' + infos.action);
                     }
                 }
             }, me);
@@ -174,5 +175,5 @@ KISSY.add('apiapp/mviews/partials/class', function(S, View, MM, Magix, Crox) {
         }
     });
 }, {
-    requires: ['mxext/view', 'apiapp/models/manager', 'magix/magix', 'apiapp/helpers/crox', 'anim']
+    requires: ['magix/view', 'apiapp/models/manager', 'magix/magix', 'apiapp/helpers/crox', 'anim']
 });

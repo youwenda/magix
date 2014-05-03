@@ -73,6 +73,7 @@ var Path = function(path) {
  * @borrows Event.fire as fire
  * @borrows Event.off as off
  * @borrows Event.once as once
+ * @borrows Event.rely as rely
  */
 var Router = Mix({
     /**

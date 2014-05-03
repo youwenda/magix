@@ -14,10 +14,7 @@ KISSY.add('apiapp/mviews/partials/header', function(S, View, Crox, MM, Magix) {
             data.viewId = me.id;
             data.q = me.location.get('q');
             var html = Crox.render(me.template, data);
-            me.setViewHTML(html);
-        },
-        locationChange: function() {
-            this.render();
+            me.setViewHTML(me.id, html);
         },
         render: function() {
             var me = this;
@@ -34,7 +31,7 @@ KISSY.add('apiapp/mviews/partials/header', function(S, View, Crox, MM, Magix) {
                     name: 'Class_List'
                 }, function(e, m) {
                     if (e) {
-                        me.setViewHTML(e.msg);
+                        me.setViewHTML(me.id, e.msg);
                     } else {
                         me.updateUI({
                             coreList: m.get('coreList'),
@@ -67,7 +64,7 @@ KISSY.add('apiapp/mviews/partials/header', function(S, View, Crox, MM, Magix) {
         },
         'search<click,keydown>': function(e) {
             if (e.type == 'keydown') {
-                if (e.domEvent.keyCode == 13) {
+                if (e.keyCode == 13) {
                     this.search();
                 }
             } else {
@@ -76,5 +73,5 @@ KISSY.add('apiapp/mviews/partials/header', function(S, View, Crox, MM, Magix) {
         }
     });
 }, {
-    requires: ['mxext/view', 'apiapp/helpers/crox', 'apiapp/models/manager', 'magix/magix']
+    requires: ['magix/view', 'apiapp/helpers/crox', 'apiapp/models/manager', 'magix/magix']
 });

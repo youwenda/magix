@@ -27,7 +27,6 @@ var Noop = function() {};
 var Cfg = {
     tagName: DefaultTagName,
     rootId: 'magix_vf_root',
-    progress: Noop,
     coded: 1,
     execError: function(e) {
         if (SupportError) {
@@ -174,7 +173,7 @@ Mix(Cache.prototype, {
     }
 });
 
-var PathToObjCache = Cache(60);
+var PathToObjCache = Cache(40);
 var PathCache = Cache();
 
 /**
@@ -406,7 +405,6 @@ var Magix = {
 
             R.on('!ul', V.locChged);
             R.on('changed', V.locChged);
-            V.on('progress', Cfg.progress);
 
             me.use(Cfg.extensions, R.start);
         });

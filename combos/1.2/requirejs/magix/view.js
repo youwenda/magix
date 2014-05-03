@@ -14,7 +14,6 @@ var Mix = Magix.mix;
 var WIN = window;
 var ResCounter = 0;
 var WrapKey = '~';
-var RenderCallStr = 'rendercall';
 var DestroyStr = 'destroy';
 
 var WrapFn = function(fn) {
@@ -22,7 +21,7 @@ var WrapFn = function(fn) {
         var me = this;
         var u = me.notifyUpdate();
         if (u > 0) {
-            fn.apply(me, arguments);
+            SafeExec(fn, arguments, me);
         }
     };
 };
@@ -57,20 +56,6 @@ var MxEvt = /\smx-(?!view|defer|owner|vframe)[a-z]+\s*=\s*"/g;
 var MxEvtSplit = String.fromCharCode(26);
 
 
-var WEvent = {
-    prevent: function(e) {
-        e = e || this.srcEvent;
-        e.preventDefault();
-    },
-    stop: function(e) {
-        e = e || this.srcEvent;
-        e.stopPropagation();
-    },
-    halt: function(e) {
-        this.prevent(e);
-        this.stop(e);
-    }
-};
 var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(?{([\s\S]*)}\)?)?/;
 var EvtParamsReg = /(\w+):([^,]+)/g;
 var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
@@ -83,6 +68,7 @@ var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
  * @borrows Event.fire as #fire
  * @borrows Event.off as #off
  * @borrows Event.once as #once
+ * @borrows Event.rely as #rely
  * @param {Object} ops 创建view时，需要附加到view对象上的其它属性
  * @property {String} id 当前view与页面vframe节点对应的id
  * @property {Vframe} owner 拥有当前view的vframe对象
@@ -96,8 +82,8 @@ var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
  * 示例：
  *   html写法：
  *
- *   &lt;input type="button" mx-click="test{id:100,name:xinglie}" value="test" /&gt;
- *   &lt;a href="http://etao.com" mx-click="test&lt;prevent&gt;{com:etao.com}"&gt;http://etao.com&lt;/a&gt;
+ *   &lt;input type="button" mx-click="test({id:100,name:xinglie})" value="test" /&gt;
+ *   &lt;a href="http://etao.com" mx-click="test&lt;prevent&gt;({com:etao.com})"&gt;http://etao.com&lt;/a&gt;
  *
  *   view写法：
  *
@@ -126,8 +112,8 @@ var View = function(ops) {
     };
     me.$ns = {};
     me.$res = {};
-    me.addNode(me.id);
     me.sign = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
+    me.addNode(me.id);
     SafeExec(View.ms, [ops], me);
 };
 var VProto = View.prototype;
@@ -254,7 +240,7 @@ Mix(Mix(VProto, Event), {
      *     //...
      * }
      */
-    locationChange: Noop,
+    //locationChange: Noop,
     /**
      * 初始化方法，供最终的view开发人员进行覆盖
      * @param {Object} extra 初始化时，外部传递的参数
@@ -308,7 +294,7 @@ Mix(Mix(VProto, Event), {
             SafeExec(me.init, args, me);
             me.fire('inited', 0, 1);
             me.owner.viewInited = 1;
-            SafeExec(me.render, EMPTY_ARRAY, me);
+            me.render();
             //
             var noTemplateAndNoRendered = !hasTmpl && !me.rendered; //没模板，调用render后，render里面也没调用setViewHTML
 
@@ -325,18 +311,22 @@ Mix(Mix(VProto, Event), {
     },
     /**
      * 通知当前view即将开始进行html的更新
+     * @param {String} [id] 哪块区域需要更新，默认整个view
      */
-    beginUpdate: function() {
+    beginUpdate: function(id) {
         var me = this;
         if (me.sign > 0 && me.rendered) {
-            me.fire('prerender');
+            me.fire('prerender', {
+                id: id
+            });
             DestroyAllManaged(0, 1);
         }
     },
     /**
      * 通知当前view结束html的更新
+     * @param {String} [id] 哪块区域结束更新，默认整个view
      */
-    endUpdate: function() {
+    endUpdate: function(id) {
         var me = this;
         if (me.sign > 0) {
             /*if(me.rendered&&me.enableAnim){
@@ -347,7 +337,9 @@ Mix(Mix(VProto, Event), {
                 me.fire('primed', 0, 1);
                 me.rendered = 1;
             }
-            me.fire('rendered'); //可以在rendered事件中访问view.rendered属性
+            me.fire('rendered', {
+                id: id
+            }); //可以在rendered事件中访问view.rendered属性
         }
     },
     /**
@@ -397,10 +389,11 @@ Mix(Mix(VProto, Event), {
     },
     /**
      * 设置view的html内容
+     * @param {String} id 更新节点的id
      * @param {Strig} html html字符串
      * @example
      * render:function(){
-     *     this.setViewHTML(this.template);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
+     *     this.setViewHTML(this.id,this.template);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
      * }
      */
     /*
@@ -416,15 +409,15 @@ Mix(Mix(VProto, Event), {
 
         rendered : loadSubVframes
      */
-    setViewHTML: function(html) {
+    setViewHTML: function(id, html) {
         var me = this,
             n;
-        me.beginUpdate();
+        me.beginUpdate(id);
         if (me.sign > 0) {
-            n = me.$(me.id);
+            n = me.$(id);
             if (n) n.innerHTML = html;
         }
-        me.endUpdate();
+        me.endUpdate(id);
     },
     /**
      * 监视地址栏中的参数或pathname，有变动时，才调用当前view的locationChange方法。通常情况下location有变化就会引起当前view的locationChange被调用，但这会带来一些不必要的麻烦，所以你可以指定地址栏中哪些参数有变化时才引起locationChange调用，使得view只关注与自已需要刷新有关的参数
@@ -442,7 +435,7 @@ Mix(Mix(VProto, Event), {
      *          //    pathname:true
      *          //})
      *      },
-     *      locationChange:function(e){
+     *      render:function(e){
      *          if(e.changed.isParam('page')){};//检测是否是page发生的改变
      *          if(e.changed.isParam('rows')){};//检测是否是rows发生的改变
      *      }
@@ -508,9 +501,8 @@ Mix(Mix(VProto, Event), {
     olChg: function(changed) {
         var me = this;
         var loc = me.$ol;
-        var res = 1;
+        var res;
         if (loc.f) {
-            res = 0;
             if (loc.pn) {
                 res = changed.pathname;
             }
@@ -529,7 +521,7 @@ Mix(Mix(VProto, Event), {
         var me = this;
         if (me.sign > 0) {
             me.sign = 0;
-            me.fire('destroy', 0, 1, 1);
+            me.fire(DestroyStr, 0, 1, 1);
             DestroyAllManaged();
             me.dEvts(1);
         }
@@ -555,12 +547,9 @@ Mix(Mix(VProto, Event), {
      * @param {Object} e 事件信息对象
      * @private
      */
-    pEvt: function(e) {
+    pEvt: function(info, eventType, e) {
         var me = this;
         if ( /*me.enableEvent &&*/ me.sign > 0) {
-            var info = e.info;
-            var domEvent = e.se;
-
             var m = EvtInfoCache.get(info);
 
             if (!m) {
@@ -578,23 +567,15 @@ Mix(Mix(VProto, Event), {
                 }
                 EvtInfoCache.set(info, m);
             }
-            var name = m.n + Left + e.st + Right;
+            var name = m.n + Left + eventType + Right;
             var fn = me[name];
             if (fn) {
-                var tfn = WEvent[m.f];
+                var tfn = e[m.f];
                 if (tfn) {
-                    tfn.call(WEvent, domEvent);
+                    tfn.call(e);
                 }
-                SafeExec(fn, {
-                    currentId: e.cId,
-                    targetId: e.tId,
-                    type: e.st,
-                    srcEvent: domEvent,
-                    halt: WEvent.halt,
-                    prevent: WEvent.prevent,
-                    stop: WEvent.stop,
-                    params: m.p
-                }, me);
+                e.params = m.p;
+                SafeExec(fn, e, me);
             }
         }
     },
@@ -614,7 +595,7 @@ Mix(Mix(VProto, Event), {
         p = events.length;
         while (p-- > 0) {
             vom = events[p];
-            Body.lib(vom.h, vom.t, vom.f, destroy, me);
+            Body.lib(vom.h, vom.t, vom.f, destroy, me, 1);
         }
     },
     /**
@@ -1056,7 +1037,7 @@ Mix(Mix(VProto, Event), {
 
 
     var Tmpls = {}, Locker = {};
-    View.prototype.fetchTmpl = function(path, fn) {
+    VProto.fetchTmpl = function(path, fn) {
         var me = this;
         var hasTemplate = 'template' in me;
         if (!hasTemplate) {

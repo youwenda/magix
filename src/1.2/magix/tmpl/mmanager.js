@@ -1,6 +1,7 @@
 var Has = Magix.has;
 var SafeExec = Magix.safeExec;
 var IsArray = Magix._a;
+var IsFunction = Magix._f;
 
 var Mix = Magix.mix;
 var Prefix = 'mr';
@@ -8,8 +9,12 @@ var Split = String.fromCharCode(26);
 var DefaultCacheTime = 20 * 60 * 1000;
 var Ser = function(o, a, p) {
     a = [];
-    for (p in o) {
-        a.push(p, Prefix, o[p]);
+    if (IsFunction(o)) {
+        a = SafeExec(o);
+    } else {
+        for (p in o) {
+            a.push(p, Prefix, o[p]);
+        }
     }
     return a;
 };
@@ -60,6 +65,7 @@ var TError = function(e) {
  * @borrows Event.fire as #fire
  * @borrows Event.off as #off
  * @borrows Event.once as #once
+ * @borrows Event.rely as #rely
  * @param {Model} modelClass Model类
  * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和postParams外，额外使用的key
  */
@@ -307,7 +313,7 @@ Mix(MRequest.prototype, {
             c: me.$reqs,
             d: new Array(total),
             //e hasError,
-            //f latestMsg
+            //f lastMsg
             g: {},
             h: total,
             i: modelsCache,
@@ -471,7 +477,7 @@ Mix(MRequest.prototype, {
         var me = this;
         me.$queue.push(callback);
         if (!me.$busy) {
-            var args = me.$latest;
+            var args = me.$args;
             me.doNext(args);
         }
         return me;
@@ -491,10 +497,10 @@ Mix(MRequest.prototype, {
                 SafeExec(one, preArgs, me);
             }
         }
-        me.$latest = preArgs;
+        me.$args = preArgs;
     },
     /**
-     * 销毁当前请求，与abort的区别是：abort后还可以继续发起新请求，而destroy后则不可以，而且不再调用相应的回调
+     * 销毁当前请求，与stop的区别是：stop后还可以继续发起新请求，而destroy后则不可以，而且不再调用相应的回调
      */
     destroy: function() {
         var me = this;
@@ -651,7 +657,6 @@ Mix(Mix(MManager.prototype, Event), {
 
         var meta = me.getModelMeta(modelAttrs);
         var cache = ProcessCache(modelAttrs) || meta.cache;
-
         var entity = new me.$mClass();
         var mm;
         entity.set(meta);
@@ -974,7 +979,7 @@ Mix(Mix(MManager.prototype, Event), {
 
 /**
  * Model对象请求处理失败后触发
- * @name MManager#failb
+ * @name MManager#fail
  * @event
  * @param {Object} e
  * @param {Object} e.meta 注册model时提供的信息

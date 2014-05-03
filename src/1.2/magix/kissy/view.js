@@ -21,7 +21,7 @@ KISSY.add('magix/view', function(S, Magix, Event, Body, Router, IO) {
     };*/
 
     var Tmpls = {}, Locker = {};
-    View.prototype.fetchTmpl = function(path, fn) {
+    VProto.fetchTmpl = function(path, fn) {
         var me = this;
         var hasTemplate = 'template' in me;
         if (!hasTemplate) {

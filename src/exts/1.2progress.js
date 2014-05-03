@@ -5,8 +5,8 @@
         <script src="exts/progress.js"></script>
  */
 KISSY.use('magix/magix,magix/vom', function(S, Magix, VOM) {
-    var pNode = document.getElementById('magix_percent');
-    //var wNode = pNode.getElementsByTagName('span')[0];
+    //var pNode = document.getElementById('magix_percent');
+    //var wNode=pNode.getElementsByTagName('span')[0];
     //var tNode=pNode.getElementsByTagName('b')[0];
 
     var T = {
@@ -23,9 +23,8 @@ KISSY.use('magix/magix,magix/vom', function(S, Magix, VOM) {
             clearTimeout(me.$checker);
         },
         progress: function(p) {
-            pNode.style.width = p * 100 + '%';
+            console.log(p); //在这里更新进度条
             if (p == 1) {
-                pNode.parentNode.removeChild(pNode);
                 Magix.config('progress', null);
                 T.stopChecker();
             }

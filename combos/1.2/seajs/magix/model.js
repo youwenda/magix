@@ -13,11 +13,6 @@ define('magix/model', ['magix/magix'], function(require) {
                 Magix.safeExec(ctor, arguments, this);
             }
         };
-
-        Magix.mix(BaseModel, me, {
-            prototype: true
-        });
-
         return Magix.extend(BaseModel, me, props);
 
     };

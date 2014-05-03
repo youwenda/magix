@@ -5,20 +5,14 @@
  **/
 KISSY.add('magix/body', function(S, Magix) {
     eval(Magix.include('../tmpl/body'));
-    var Unbubbles = {
-        change: 1,
-        submit: 1,
-        focusin: 1,
-        focusout: 1,
+    var Delegates = {
         mouseenter: 2,
-        mouseleave: 2,
-        mousewheel: 1
+        mouseleave: 2
     };
-    Body.special(Unbubbles);
-    Body.lib = function(node, type, cb, remove, scope) {
+    Body.lib = function(node, type, cb, remove, scope, direct) {
         S.use('event', function(S, SE) {
-            var flag = Unbubbles[type];
-            if (flag == 2) {
+            var flag = Delegates[type];
+            if (!direct && flag == 2) {
                 flag = (remove ? 'un' : '') + 'delegate';
                 SE[flag](node, type, '[mx-' + type + ']', cb);
             } else {

@@ -11,9 +11,6 @@ KISSY.add('magix/model', function(S, Magix) {
                 Magix.safeExec(ctor, [], this);
             }
         };
-        Magix.mix(BaseModel, this, {
-            prototype: true
-        });
         return S.extend(BaseModel, this, props);
     };
     /**

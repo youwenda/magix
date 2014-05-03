@@ -45,7 +45,6 @@ var Noop = function() {};
 var Cfg = {
     tagName: DefaultTagName,
     rootId: 'magix_vf_root',
-    progress: Noop,
     coded: 1,
     execError: function(e) {
         if (SupportError) {
@@ -192,7 +191,7 @@ Mix(Cache.prototype, {
     }
 });
 
-var PathToObjCache = Cache(60);
+var PathToObjCache = Cache(40);
 var PathCache = Cache();
 
 /**
@@ -424,7 +423,6 @@ var Magix = {
 
             R.on('!ul', V.locChged);
             R.on('changed', V.locChged);
-            V.on('progress', Cfg.progress);
 
             me.use(Cfg.extensions, R.start);
         });
@@ -762,6 +760,7 @@ var Path = function(path) {
  * @borrows Event.fire as fire
  * @borrows Event.off as off
  * @borrows Event.once as once
+ * @borrows Event.rely as rely
  */
 var Router = Mix({
     /**
@@ -1158,18 +1157,13 @@ var Router = Mix({
  **/
 LIB.add('magix/body', function(S, Magix) {
     var Has = Magix.has;
-var Mix = Magix.mix;
 //依赖类库才能支持冒泡的事件
-var DependLibEvents = {};
 var RootEvents = {};
 var MxEvtSplit = String.fromCharCode(26);
 
 var MxIgnore = 'mx-ei';
 var MxOwner = 'mx-owner';
-var AddEvent = 'addEventListener';
-var RemoveEvent = 'removeEventListener';
 var RootNode = DOCUMENT.body;
-var W3C = RootNode[AddEvent];
 var ParentNode = 'parentNode';
 var TypesRegCache = {};
 var IdCounter = 1 << 16;
@@ -1185,23 +1179,27 @@ var GetSetAttribute = function(dom, attrKey, attrVal) {
     }
     return attrVal;
 };
-var PreventDefault = function() {
-    this.returnValue = false;
-};
-var StopPropagation = function() {
-    this.cancelBubble = true;
+var Halt = function() {
+    this.prevent();
+    this.stop();
 };
 var VOM;
 var Body = {
     
-    special: function(events) {
-        Mix(DependLibEvents, events);
-    },
     process: function(e) {
-        e = e || WINDOW.event;
         if (e && !e[On]) {
             var target = e.target || e.srcElement || RootNode; //原生事件对象Cordova没有target对象
             e[On] = 1;
+            /*
+                考虑如ff浏览器支持向e设置属性，但不显示，也有可能后续版本不支持设置属性，需如下修正
+                if(!e[On]){
+                    var temp=Mix({},e);
+                    temp.oe=e;
+                    temp.stopPropagation=function(){this.oe.stopPropagation();};
+                    temp.preventDefault=function(){this.oe.preventDefault();};
+                    e=temp;
+                }
+             */
             //var cTarget = e.currentTarget; //只处理类库(比如KISSY)处理后的currentTarget
             //if (cTarget && cTarget != RootNode) target = cTarget; //类库处理后代理事件的currentTarget并不是根节点
             while (target && target.nodeType != 1) {
@@ -1252,17 +1250,12 @@ var Body = {
                     var vframe = VOM.get(vId);
                     var view = vframe && vframe.view;
                     if (view) {
-                        if (!W3C) {
-                            e.preventDefault = PreventDefault;
-                            e.stopPropagation = StopPropagation;
-                        }
-                        view.pEvt({
-                            info: info,
-                            se: e,
-                            st: eventType,
-                            tId: IdIt(target),
-                            cId: IdIt(current)
-                        });
+                        e.currentId = IdIt(current);
+                        e.targetId = IdIt(target);
+                        e.prevent = e.preventDefault;
+                        e.stop = e.stopPropagation;
+                        e.halt = Halt;
+                        view.pEvt(info, eventType, e);
                     }
                 } else {
                     throw Error('bad:' + info);
@@ -1270,7 +1263,7 @@ var Body = {
             } else {
                 var node;
                 while (arr.length) {
-                    node = arr.shift();
+                    node = arr.pop();
                     ignore = GetSetAttribute(node, MxIgnore) || On;
                     if (!eventReg.test(ignore)) {
                         ignore = ignore + Comma + eventType;
@@ -1292,14 +1285,7 @@ var Body = {
             if (vom) {
                 VOM = vom;
             }
-            var lib = DependLibEvents[type];
-            if (lib) {
-                Body.lib(RootNode, type, fn, remove);
-            } else if (W3C) { //chrome 模拟touch事件时，需要使用addEventListener方式添加，不能使用node.onx的形式
-                RootNode[remove ? RemoveEvent : AddEvent](type, fn, false);
-            } else {
-                RootNode[On + type] = remove ?NULL : fn;
-            }
+            Body.lib(RootNode, type, fn, remove);
             if (!remove) {
                 counter = 1;
             }
@@ -1307,20 +1293,14 @@ var Body = {
         RootEvents[type] = counter;
     }
 };
-    var Unbubbles = {
-        change: 1,
-        submit: 1,
-        focusin: 1,
-        focusout: 1,
+    var Delegates = {
         mouseenter: 2,
-        mouseleave: 2,
-        mousewheel: 1
+        mouseleave: 2
     };
-    Body.special(Unbubbles);
-    Body.lib = function(node, type, cb, remove, scope) {
+    Body.lib = function(node, type, cb, remove, scope, direct) {
         S.use('event', function(S, SE) {
-            var flag = Unbubbles[type];
-            if (flag == 2) {
+            var flag = Delegates[type];
+            if (!direct && flag == 2) {
                 flag = (remove ? 'un' : '') + 'delegate';
                 SE[flag](node, type, '[mx-' + type + ']', cb);
             } else {
@@ -1430,6 +1410,31 @@ var Event = {
         }
     },
     /**
+     * 依托另外一个对象的事件自动解绑
+     * @param {String} name 事件名称
+     * @param {Function} fn 事件回调
+     * @param {Object} relyObj 依托的对象
+     * @param {String} relyName 依托的名称
+     * @param {Interger} insert 事件监听插入的位置
+     * @example
+     * var a=Magix.mix({},Event);
+     * var b=Magix.mix({},Event);
+     * a.rely('test',function(e){
+     *
+     * },b,'destroy');
+     *
+     * a.fire('test');//正常
+     * b.fire('destroy');
+     * a.fire('test');//不再打印console.log
+     */
+    rely: function(name, fn, relyObj, relyName, insert) {
+        var me = this;
+        me.on(name, fn, insert);
+        relyObj.on(relyName, function() {
+            me.off(name, fn);
+        }, GenKey);
+    },
+    /**
      * 解除事件绑定
      * @param {String} name 事件名称
      * @param {Function} fn 事件回调
@@ -1537,6 +1542,7 @@ var RefLoc, RefChged, RefVOM;
  * @borrows Event.fire as #fire
  * @borrows Event.off as #off
  * @borrows Event.once as #once
+ * @borrows Event.rely as #rely
  * @param {String} id vframe id
  * @property {String} id vframe id
  * @property {View} view view对象
@@ -1655,21 +1661,21 @@ Mix(Mix(Vframe.prototype, Event), {
                         location: RefLoc
                     });
                     me.view = view;
-                    var mountZoneVframes = function() {
-                        me.mountZoneVframes();
+                    var mountZoneVframes = function(e) {
+                        me.mountZoneVframes(e.id);
                     };
                     view.on('interact', function(e) { //view准备好后触发
                         if (!e.tmpl) {
                             node.innerHTML = me._t;
-                            mountZoneVframes();
+                            mountZoneVframes($);
                         }
                         view.on('primed', function() {
                             me.viewPrimed = 1;
                             me.fire('viewMounted');
                         });
                         view.on('rendered', mountZoneVframes);
-                        view.on('prerender', function() {
-                            if (!me.unmountZoneVframes(0, 1)) {
+                        view.on('prerender', function(e) {
+                            if (!me.unmountZoneVframes(e.id, 1)) {
                                 me.cAlter();
                             }
                         });
@@ -1750,11 +1756,10 @@ Mix(Mix(Vframe.prototype, Event), {
      */
     mountZoneVframes: function(zoneId, viewInitParams) {
         var me = this;
+        zoneId = zoneId || me.id;
+        me.unmountZoneVframes(zoneId, 1);
 
-        var node = zoneId || me.id;
-        me.unmountZoneVframes(node, 1);
-
-        var vframes = $$(node);
+        var vframes = $$(zoneId);
         var count = vframes.length;
         var subs = {};
 
@@ -1859,9 +1864,6 @@ Mix(Mix(Vframe.prototype, Event), {
                 view.fire(Created, e);
                 me.fire(Created, e);
             }
-            //var vom = me.owner;
-            RefVOM.vfCreated();
-
             var mId = me.id;
             var p = RefVOM.get(me.pId);
             if (p && !Has(p.rM, mId)) {
@@ -1931,17 +1933,15 @@ Mix(Mix(Vframe.prototype, Event), {
                  * @ignore
                  */
                 to: function(c) {
-                    c = c || EmptyArr;
+                    //c = c || EmptyArr;
                     if (Magix._s(c)) {
                         c = c.split(',');
                     }
-                    this.cs = c;
+                    this.cs = c || EmptyArr;
                 }
             };
             if (isChanged) { //检测view所关注的相应的参数是否发生了变化
-                //safeExec(view.render,[],view);//如果关注的参数有变化，默认调用render方法
-                //否定了这个想法，有时关注的参数有变化，不一定需要调用render方法
-                SafeExec(view.locationChange, args, view);
+                view.render(args);
             }
             var cs = args.cs || Magix.keys(me.cM);
             //
@@ -2015,7 +2015,6 @@ var Mix = Magix.mix;
 var WIN = window;
 var ResCounter = 0;
 var WrapKey = '~';
-var RenderCallStr = 'rendercall';
 var DestroyStr = 'destroy';
 
 var WrapFn = function(fn) {
@@ -2023,7 +2022,7 @@ var WrapFn = function(fn) {
         var me = this;
         var u = me.notifyUpdate();
         if (u > 0) {
-            fn.apply(me, arguments);
+            SafeExec(fn, arguments, me);
         }
     };
 };
@@ -2058,20 +2057,6 @@ var MxEvt = /\smx-(?!view|defer|owner|vframe)[a-z]+\s*=\s*"/g;
 var MxEvtSplit = String.fromCharCode(26);
 
 
-var WEvent = {
-    prevent: function(e) {
-        e = e || this.srcEvent;
-        e.preventDefault();
-    },
-    stop: function(e) {
-        e = e || this.srcEvent;
-        e.stopPropagation();
-    },
-    halt: function(e) {
-        this.prevent(e);
-        this.stop(e);
-    }
-};
 var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(?{([\s\S]*)}\)?)?/;
 var EvtParamsReg = /(\w+):([^,]+)/g;
 var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
@@ -2084,6 +2069,7 @@ var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
  * @borrows Event.fire as #fire
  * @borrows Event.off as #off
  * @borrows Event.once as #once
+ * @borrows Event.rely as #rely
  * @param {Object} ops 创建view时，需要附加到view对象上的其它属性
  * @property {String} id 当前view与页面vframe节点对应的id
  * @property {Vframe} owner 拥有当前view的vframe对象
@@ -2097,8 +2083,8 @@ var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
  * 示例：
  *   html写法：
  *
- *   &lt;input type="button" mx-click="test{id:100,name:xinglie}" value="test" /&gt;
- *   &lt;a href="http://etao.com" mx-click="test&lt;prevent&gt;{com:etao.com}"&gt;http://etao.com&lt;/a&gt;
+ *   &lt;input type="button" mx-click="test({id:100,name:xinglie})" value="test" /&gt;
+ *   &lt;a href="http://etao.com" mx-click="test&lt;prevent&gt;({com:etao.com})"&gt;http://etao.com&lt;/a&gt;
  *
  *   view写法：
  *
@@ -2127,8 +2113,8 @@ var View = function(ops) {
     };
     me.$ns = {};
     me.$res = {};
-    me.addNode(me.id);
     me.sign = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
+    me.addNode(me.id);
     SafeExec(View.ms, [ops], me);
 };
 var VProto = View.prototype;
@@ -2255,7 +2241,7 @@ Mix(Mix(VProto, Event), {
      *     //...
      * }
      */
-    locationChange: Noop,
+    //locationChange: Noop,
     /**
      * 初始化方法，供最终的view开发人员进行覆盖
      * @param {Object} extra 初始化时，外部传递的参数
@@ -2309,7 +2295,7 @@ Mix(Mix(VProto, Event), {
             SafeExec(me.init, args, me);
             me.fire('inited', 0, 1);
             me.owner.viewInited = 1;
-            SafeExec(me.render, EMPTY_ARRAY, me);
+            me.render();
             //
             var noTemplateAndNoRendered = !hasTmpl && !me.rendered; //没模板，调用render后，render里面也没调用setViewHTML
 
@@ -2326,18 +2312,22 @@ Mix(Mix(VProto, Event), {
     },
     /**
      * 通知当前view即将开始进行html的更新
+     * @param {String} [id] 哪块区域需要更新，默认整个view
      */
-    beginUpdate: function() {
+    beginUpdate: function(id) {
         var me = this;
         if (me.sign > 0 && me.rendered) {
-            me.fire('prerender');
+            me.fire('prerender', {
+                id: id
+            });
             DestroyAllManaged(0, 1);
         }
     },
     /**
      * 通知当前view结束html的更新
+     * @param {String} [id] 哪块区域结束更新，默认整个view
      */
-    endUpdate: function() {
+    endUpdate: function(id) {
         var me = this;
         if (me.sign > 0) {
             /*if(me.rendered&&me.enableAnim){
@@ -2348,7 +2338,9 @@ Mix(Mix(VProto, Event), {
                 me.fire('primed', 0, 1);
                 me.rendered = 1;
             }
-            me.fire('rendered'); //可以在rendered事件中访问view.rendered属性
+            me.fire('rendered', {
+                id: id
+            }); //可以在rendered事件中访问view.rendered属性
         }
     },
     /**
@@ -2398,10 +2390,11 @@ Mix(Mix(VProto, Event), {
     },
     /**
      * 设置view的html内容
+     * @param {String} id 更新节点的id
      * @param {Strig} html html字符串
      * @example
      * render:function(){
-     *     this.setViewHTML(this.template);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
+     *     this.setViewHTML(this.id,this.template);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
      * }
      */
     /*
@@ -2417,15 +2410,15 @@ Mix(Mix(VProto, Event), {
 
         rendered : loadSubVframes
      */
-    setViewHTML: function(html) {
+    setViewHTML: function(id, html) {
         var me = this,
             n;
-        me.beginUpdate();
+        me.beginUpdate(id);
         if (me.sign > 0) {
-            n = me.$(me.id);
+            n = me.$(id);
             if (n) n.innerHTML = html;
         }
-        me.endUpdate();
+        me.endUpdate(id);
     },
     /**
      * 监视地址栏中的参数或pathname，有变动时，才调用当前view的locationChange方法。通常情况下location有变化就会引起当前view的locationChange被调用，但这会带来一些不必要的麻烦，所以你可以指定地址栏中哪些参数有变化时才引起locationChange调用，使得view只关注与自已需要刷新有关的参数
@@ -2443,7 +2436,7 @@ Mix(Mix(VProto, Event), {
      *          //    pathname:true
      *          //})
      *      },
-     *      locationChange:function(e){
+     *      render:function(e){
      *          if(e.changed.isParam('page')){};//检测是否是page发生的改变
      *          if(e.changed.isParam('rows')){};//检测是否是rows发生的改变
      *      }
@@ -2509,9 +2502,8 @@ Mix(Mix(VProto, Event), {
     olChg: function(changed) {
         var me = this;
         var loc = me.$ol;
-        var res = 1;
+        var res;
         if (loc.f) {
-            res = 0;
             if (loc.pn) {
                 res = changed.pathname;
             }
@@ -2530,7 +2522,7 @@ Mix(Mix(VProto, Event), {
         var me = this;
         if (me.sign > 0) {
             me.sign = 0;
-            me.fire('destroy', 0, 1, 1);
+            me.fire(DestroyStr, 0, 1, 1);
             DestroyAllManaged();
             me.dEvts(1);
         }
@@ -2556,12 +2548,9 @@ Mix(Mix(VProto, Event), {
      * @param {Object} e 事件信息对象
      * @private
      */
-    pEvt: function(e) {
+    pEvt: function(info, eventType, e) {
         var me = this;
         if ( /*me.enableEvent &&*/ me.sign > 0) {
-            var info = e.info;
-            var domEvent = e.se;
-
             var m = EvtInfoCache.get(info);
 
             if (!m) {
@@ -2579,23 +2568,15 @@ Mix(Mix(VProto, Event), {
                 }
                 EvtInfoCache.set(info, m);
             }
-            var name = m.n + Left + e.st + Right;
+            var name = m.n + Left + eventType + Right;
             var fn = me[name];
             if (fn) {
-                var tfn = WEvent[m.f];
+                var tfn = e[m.f];
                 if (tfn) {
-                    tfn.call(WEvent, domEvent);
+                    tfn.call(e);
                 }
-                SafeExec(fn, {
-                    currentId: e.cId,
-                    targetId: e.tId,
-                    type: e.st,
-                    srcEvent: domEvent,
-                    halt: WEvent.halt,
-                    prevent: WEvent.prevent,
-                    stop: WEvent.stop,
-                    params: m.p
-                }, me);
+                e.params = m.p;
+                SafeExec(fn, e, me);
             }
         }
     },
@@ -2615,7 +2596,7 @@ Mix(Mix(VProto, Event), {
         p = events.length;
         while (p-- > 0) {
             vom = events[p];
-            Body.lib(vom.h, vom.t, vom.f, destroy, me);
+            Body.lib(vom.h, vom.t, vom.f, destroy, me, 1);
         }
     },
     /**
@@ -3056,7 +3037,7 @@ Mix(Mix(VProto, Event), {
     };*/
 
     var Tmpls = {}, Locker = {};
-    View.prototype.fetchTmpl = function(path, fn) {
+    VProto.fetchTmpl = function(path, fn) {
         var me = this;
         var hasTemplate = 'template' in me;
         if (!hasTemplate) {
@@ -3116,10 +3097,7 @@ Mix(Mix(VProto, Event), {
 LIB.add("magix/vom", function(S, Vframe, Magix, Event) {
     var Has = Magix.has;
 var Mix = Magix.mix;
-var VframesCount = 0;
-var FirstVframesLoaded = 0;
-var LastPercent = 0;
-var FirstReady = 0;
+
 var Vframes = {};
 var Loc = {};
 var Chged = {};
@@ -3131,6 +3109,7 @@ var Chged = {};
  * @borrows Event.fire as fire
  * @borrows Event.off as off
  * @borrows Event.once as once
+ * @borrows Event.rely as rely
  */
 var VOM = Magix.mix({
     /**
@@ -3149,7 +3128,6 @@ var VOM = Magix.mix({
      */
     add: function(id, vf) {
         if (!Has(Vframes, id)) {
-            VframesCount++;
             Vframes[id] = vf;
             VOM.fire('add', {
                 vframe: vf
@@ -3172,27 +3150,11 @@ var VOM = Magix.mix({
     remove: function(id, fcc) {
         var vf = Vframes[id];
         if (vf) {
-            VframesCount--;
-            if (fcc) FirstVframesLoaded--; //该处有问题，需要考虑在渲染过程中，直接把根vframe给销毁了，导致进度条中止在当前状态。解决办法是判断VframesCount，如果减到0则进度条为100%，但考虑到线上几乎没有这个需求，所以暂不修复
             delete Vframes[id];
             VOM.fire('remove', {
-                vframe: vf
+                vframe: vf,
+                fcc: fcc
             });
-        }
-    },
-    /**
-     * 通知其中的一个vframe创建完成
-     * @private
-     */
-    vfCreated: function() {
-        if (!FirstReady) {
-            FirstVframesLoaded++;
-            var np = FirstVframesLoaded / VframesCount;
-            if (LastPercent < np) {
-                VOM.fire('progress', {
-                    percent: LastPercent = np
-                }, FirstReady = (np == 1));
-            }
         }
     },
     /**
@@ -3222,13 +3184,6 @@ var VOM = Magix.mix({
         }
     }
     /**
-     * view加载完成进度
-     * @name VOM.progress
-     * @event
-     * @param {Object} e
-     * @param {Float} e.precent 百分比
-     */
-    /**
      * 注册vframe对象时触发
      * @name VOM.add
      * @event
@@ -3241,6 +3196,7 @@ var VOM = Magix.mix({
      * @event
      * @param {Object} e
      * @param {Vframe} e.vframe
+     * @param {Boolean} e.fcc 是否派发过created事件
      */
 }, Event);
     return VOM;
@@ -3271,6 +3227,7 @@ LIB.add("magix/mmanager", function(S, Magix, Event) {
     var Has = Magix.has;
 var SafeExec = Magix.safeExec;
 var IsArray = Magix._a;
+var IsFunction = Magix._f;
 
 var Mix = Magix.mix;
 var Prefix = 'mr';
@@ -3278,8 +3235,12 @@ var Split = String.fromCharCode(26);
 var DefaultCacheTime = 20 * 60 * 1000;
 var Ser = function(o, a, p) {
     a = [];
-    for (p in o) {
-        a.push(p, Prefix, o[p]);
+    if (IsFunction(o)) {
+        a = SafeExec(o);
+    } else {
+        for (p in o) {
+            a.push(p, Prefix, o[p]);
+        }
     }
     return a;
 };
@@ -3329,6 +3290,7 @@ var TError = function(e) {
  * @borrows Event.fire as #fire
  * @borrows Event.off as #off
  * @borrows Event.once as #once
+ * @borrows Event.rely as #rely
  * @param {Model} modelClass Model类
  * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和postParams外，额外使用的key
  */
@@ -3575,7 +3537,7 @@ Mix(MRequest.prototype, {
             c: me.$reqs,
             d: new Array(total),
             //e hasError,
-            //f latestMsg
+            //f lastMsg
             g: {},
             h: total,
             i: modelsCache,
@@ -3737,7 +3699,7 @@ Mix(MRequest.prototype, {
         var me = this;
         me.$queue.push(callback);
         if (!me.$busy) {
-            var args = me.$latest;
+            var args = me.$args;
             me.doNext(args);
         }
         return me;
@@ -3757,10 +3719,10 @@ Mix(MRequest.prototype, {
                 SafeExec(one, preArgs, me);
             }
         }
-        me.$latest = preArgs;
+        me.$args = preArgs;
     },
     /**
-     * 销毁当前请求，与abort的区别是：abort后还可以继续发起新请求，而destroy后则不可以，而且不再调用相应的回调
+     * 销毁当前请求，与stop的区别是：stop后还可以继续发起新请求，而destroy后则不可以，而且不再调用相应的回调
      */
     destroy: function() {
         var me = this;
@@ -3917,7 +3879,6 @@ Mix(Mix(MManager.prototype, Event), {
 
         var meta = me.getModelMeta(modelAttrs);
         var cache = ProcessCache(modelAttrs) || meta.cache;
-
         var entity = new me.$mClass();
         var mm;
         entity.set(meta);
@@ -4248,7 +4209,7 @@ Mix(Mix(MManager.prototype, Event), {
 
 /**
  * Model对象请求处理失败后触发
- * @name MManager#failb
+ * @name MManager#fail
  * @event
  * @param {Object} e
  * @param {Object} e.meta 注册model时提供的信息
@@ -4271,9 +4232,6 @@ LIB.add('magix/model', function(S, Magix) {
                 Magix.safeExec(ctor, [], this);
             }
         };
-        Magix.mix(BaseModel, this, {
-            prototype: true
-        });
         return S.extend(BaseModel, this, props);
     };
     /**
