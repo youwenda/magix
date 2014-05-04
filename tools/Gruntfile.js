@@ -42,7 +42,6 @@ module.exports = function(grunt) {
                 distDir: distDir,
                 loaderType: loaderType,
                 platType: platType,
-                combosDir: combosDir,
                 addMagixStartFile: addMagixStartFile
             }
         },
@@ -58,6 +57,14 @@ module.exports = function(grunt) {
                 distDir: distDir,
                 loaderType: loaderType,
                 platType: platType
+            }
+        },
+        copytocombos:{
+            build:{
+                distDir:distDir,
+                loaderType:loaderType,
+                platType:platType,
+                combosDir:combosDir
             }
         },
         unsetry: {
@@ -91,6 +98,6 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-exec');
     grunt.loadTasks('tasks');
-    grunt.registerTask('default', ['cpsource', 'deconsole', 'subtmpls', 'generatedoc', 'concatfiles', 'removeunimpl', 'compresslibs', 'unsetry', 'clean']);
+    grunt.registerTask('default', ['cpsource', 'deconsole', 'subtmpls', 'generatedoc', 'concatfiles', 'removeunimpl', 'compresslibs','copytocombos', 'unsetry', 'clean']);
     // grunt.registerTask('default', ['exec']);
 };

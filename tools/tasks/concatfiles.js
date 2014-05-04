@@ -33,7 +33,7 @@ module.exports = function(grunt) {
         var platType = this.data.platType;
         var loaderType = this.data.loaderType;
         var distDir = this.data.distDir;
-        var addMagixStartFile = this.data.addMagixStartFile;
+        //var addMagixStartFile = this.data.addMagixStartFile;
 
         var combosDir = this.data.combosDir;
 

@@ -92,4 +92,19 @@ module.exports = function(grunt) {
             });
         });
     });
+
+    grunt.registerMultiTask('copytocombos', 'to combos', function() {
+        var platType = this.data.platType;
+        var loaderType = this.data.loaderType;
+        var distDir = this.data.distDir;
+        var combosDir = this.data.combosDir;
+
+        var o1 = distDir + SEP + platType + SEP + loaderType + '-magix.js';
+        var d1 = combosDir + SEP + platType + SEP + loaderType + SEP + loaderType + '-magix.js';
+        var o2 = distDir + SEP + platType + SEP + loaderType + '-magix-min.js';
+        var d2 = combosDir + SEP + platType + SEP + loaderType + SEP + loaderType + '-magix-min.js';
+        console.log(o1, d1);
+        grunt.file.copy(o1, d1);
+        grunt.file.copy(o2, d2);
+    });
 };
