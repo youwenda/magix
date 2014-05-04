@@ -3,7 +3,7 @@
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.1
  **/
-LIB.add('magix/magix', function(S) {
+  LIB.add('magix/magix', function(S) {
     var Slice = [].slice;
     var Include = function(path, mxext) {
         var magixPackages = S.Config.packages[mxext ? 'mxext' : 'magix'];
@@ -210,12 +210,12 @@ var SafeExec = function(fns, args, context, i, r, e) {
         args = [args];
     }
     for (i = 0; i < fns.length; i++) {
-        
+
         e = fns[i];
         r = e && e.apply(context, args);
-        
-             
-        
+
+
+
     }
     return r;
 };
@@ -287,7 +287,7 @@ var Magix = {
      * @param {Function} fn 加载完成后的回调方法
      * @private
      */
-    
+
     /**
      * 通过xhr同步获取文件的内容，仅开发magix自身时使用
      * @function
@@ -295,7 +295,7 @@ var Magix = {
      * @return {String} 文件内容
      * @private
      */
-    
+
     /**
      * 把src对象的值混入到aim对象上
      * @function
@@ -325,7 +325,7 @@ var Magix = {
      * @type {Function}
      * @private
      */
-    
+
     /**
      * 检测某个对象是否拥有某个属性
      * @function
@@ -672,7 +672,7 @@ var Magix = {
     cache: Cache
 };
     return Mix(Magix, {
-        
+
         use: function(name, fn) {
             S.use(name && (name + EMPTY), function(S) {
                 if (fn) {
@@ -772,13 +772,13 @@ var Router = Mix({
      * @function
      * @private
      */
-    
+
     /**
      * 使用hash做为改变url的方式来保存当前页面的状态
      * @function
      * @private
      */
-    
+
     /**
      * 根据地址栏中的pathname获取对应的前端view
      * @param  {String} pathname 形如/list/index这样的pathname
@@ -1193,7 +1193,7 @@ var StopPropagation = function() {
 };
 var VOM;
 var Body = {
-    
+
     special: function(events) {
         Mix(DependLibEvents, events);
     },
@@ -2161,7 +2161,7 @@ Mix(Mix(VProto, Event), {
      * @param {Function} fn 获取完成后的回调
      * @private
      */
-    
+
     /**
      * 渲染view，供最终view开发者覆盖
      * @function
@@ -3781,9 +3781,9 @@ Mix(Mix(MManager.prototype, Event), {
      * @return {MRequest}
      * @example
         //定义
-        
+
         LIB.add('testMM',function(S,MM,Model){
-        
+
             var TestMM=MM.create(Model);
             TestMM.registerModels([{
                 name:'Test1',
@@ -3796,15 +3796,15 @@ Mix(Mix(MManager.prototype, Event), {
                 }
             }]);
             return TestMM;
-        
+
         },{
             requires:["mxext/mmanager","mxext/model"]
         });
-        
+
         //使用
-        
+
         LIB.use('testMM',function(S,TM){
-        
+
             TM.fetchAll([{
                 name:'Test1'
             },{
