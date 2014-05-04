@@ -184,8 +184,7 @@ Mix(Cache.prototype, {
         }
     },
     has: function(k) {
-        k = PATHNAME + k;
-        return Has(this.c, k);
+        return Has(this.c, PATHNAME + k);
     }
 });
 
@@ -4291,7 +4290,11 @@ var Model = function(ops) {
     this.set(ops);
     this.id = 'm' + GUID--;
 };
-
+var GenSetParams = function(type, iv) {
+    return function(o1, o2) {
+        this.setParams(o1, o2, type, iv);
+    };
+};
 Magix.mix(Model, {
     /**
      * @lends Model
@@ -4397,32 +4400,34 @@ Magix.mix(Model.prototype, {
         var v;
         for (var p in params) {
             v = params[p];
-            if (!Magix._a(v)) {
+            if (v == Model.X && p.indexOf('=') > -1) { //undefined and key like a=b&c=d
+                arr.push(p);
+            } else {
+                arr.push(p + '=' + Encode(v));
+            }
+            /*if (!Magix._a(v)) {
                 v = [v];
             }
             for (var i = 0; i < v.length; i++) {
                 arr.push(p + '=' + Encode(v[i]));
-            }
+            }*/
         }
         return arr.join('&');
     },
     /**
      * 设置url参数，只有未设置过的参数才进行设置
+     * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setUrlParamsIf: function(obj1, obj2) {
-        this.setParams(obj1, obj2, Model.GET, true);
-    },
+    setUrlParamsIf: GenSetParams(Model.GET, 1),
     /**
      * 设置post参数，只有未设置过的参数才进行设置
+     * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setPostParamsIf: function(obj1, obj2) {
-        var me = this;
-        me.setParams(obj1, obj2, Model.POST, true);
-    },
+    setPostParamsIf: GenSetParams(Model.POST, 1),
     /**
      * 设置参数
      * @param {Object|String} obj1 参数对象或者参数key
@@ -4451,21 +4456,18 @@ Magix.mix(Model.prototype, {
     },
     /**
      * 设置post参数
+     * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setPostParams: function(obj1, obj2) {
-        var me = this;
-        me.setParams(obj1, obj2, Model.POST);
-    },
+    setPostParams: GenSetParams(Model.POST),
     /**
      * 设置url参数
+     * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setUrlParams: function(obj1, obj2) {
-        this.setParams(obj1, obj2, Model.GET);
-    },
+    setUrlParams: GenSetParams(Model.GET),
     /**
      * @private
      */

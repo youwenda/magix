@@ -168,8 +168,7 @@ Mix(Cache.prototype, {
         }
     },
     has: function(k) {
-        k = PATHNAME + k;
-        return Has(this.c, k);
+        return Has(this.c, PATHNAME + k);
     }
 });
 
