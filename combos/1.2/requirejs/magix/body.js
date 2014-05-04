@@ -149,14 +149,19 @@ var Body = {
         mouseenter: 2,
         mouseleave: 2
     };
+    var G = $.now();
     Body.lib = function(node, type, cb, remove, scope, direct) {
         var flag = Delegates[type];
-        if (scope && !cb.$fn) {
-            cb.$fn = function() {
-                cb.apply(scope, arguments);
-            };
+        if (scope) {
+            if (!cb.$n) cb.$n = G--;
+            var key = '_$' + cb.$n;
+            if (!scope[key]) {
+                scope[key] = function() {
+                    cb.apply(scope, arguments);
+                };
+            }
+            cb = scope[key];
         }
-        if (cb.$fn) cb = cb.$fn;
         if (!direct && flag == 2) {
             $(node)[(remove ? 'un' : '') + 'delegate']('[mx-' + type + ']', type, cb);
         } else {

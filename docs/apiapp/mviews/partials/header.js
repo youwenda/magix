@@ -49,17 +49,20 @@ KISSY.add('apiapp/mviews/partials/header', function(S, View, Crox, MM, Magix) {
                 q: val
             });
         },
-        'toggleMenu<click>': function() {
+        'toggleMenu<click>': function(e) {
             var menu = S.one('.menu-extended');
             var height = menu.height();
             if (!height) {
+                var h = (e.params.ver == '1.0' || e.params.ver == '1.1') ? 234 : 280;
                 menu.animate({
-                    height: '234px'
+                    height: h
                 }, 0.4, 'easeOut');
+                this.$dropShown = true;
             } else {
                 menu.animate({
                     height: '0'
                 }, 0.4, 'easeBoth');
+                this.$dropShown = false;
             }
         },
         'search<click,keydown>': function(e) {
@@ -69,6 +72,11 @@ KISSY.add('apiapp/mviews/partials/header', function(S, View, Crox, MM, Magix) {
                 }
             } else {
                 this.search();
+            }
+        },
+        '$root<click>': function(e) {
+            if (this.$dropShown && !this.inside(e.target)) {
+                this['toggleMenu<click>']();
             }
         }
     });
