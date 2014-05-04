@@ -312,7 +312,7 @@ Mix(Mix(VProto, Event), {
             me.fire('prerender', {
                 id: id
             });
-            DestroyAllManaged(0, 1);
+            DestroyAllManaged.call(me, 0, 1);
         }
     },
     /**
@@ -344,7 +344,7 @@ Mix(Mix(VProto, Event), {
         if (me.sign > 0) {
             me.sign++;
             me.fire('rendercall');
-            DestroyAllManaged(1, 1);
+            DestroyAllManaged.call(me, 1, 1);
         }
         return me.sign;
     },
@@ -515,7 +515,7 @@ Mix(Mix(VProto, Event), {
         if (me.sign > 0) {
             me.sign = 0;
             me.fire(DestroyStr, 0, 1, 1);
-            DestroyAllManaged();
+            DestroyAllManaged.call(me);
             me.dEvts(1);
         }
         me.sign--;
