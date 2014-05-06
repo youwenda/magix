@@ -5,7 +5,7 @@ KISSY.add('apiapp/mviews/partials/header', function(S, View, Crox, MM, Magix) {
     return View.extend({
         init: function() {
             this.observeLocation({
-                pathname: true,
+                path: true,
                 keys: 'q'
             });
         },
@@ -20,10 +20,10 @@ KISSY.add('apiapp/mviews/partials/header', function(S, View, Crox, MM, Magix) {
             var me = this;
             var loc = me.location;
             var data = {};
-            if (loc.pathname == '/home') {
+            if (loc.path == '/home') {
                 data.isHome = true;
                 me.updateUI(data);
-            } else if (S.endsWith(loc.pathname, '/index')) {
+            } else if (S.endsWith(loc.path, '/index')) {
                 data.isIndex = true;
                 me.updateUI(data);
             } else {
@@ -51,6 +51,10 @@ KISSY.add('apiapp/mviews/partials/header', function(S, View, Crox, MM, Magix) {
         },
         'toggleMenu<click>': function(e) {
             var menu = S.one('.menu-extended');
+            if (!menu) {
+                this.$dropShown = false;
+                return;
+            }
             var height = menu.height();
             if (!height) {
                 var h = (e.params.ver == '1.0' || e.params.ver == '1.1') ? 234 : 280;

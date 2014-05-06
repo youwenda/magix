@@ -3,7 +3,7 @@ var PathTrimFileReg = /\/[^\/]*$/;
 var PathTrimParamsReg = /[#?].*$/;
 var EMPTY = '';
 var ParamsReg = /([^=&?\/#]+)=?([^&=#?]*)/g;
-var PATHNAME = 'pathname';
+var Path = 'path';
 var ProtocalReg = /^https?:\/\//i;
 //var Templates = {};
 var CacheLatest = 0;
@@ -105,7 +105,7 @@ Mix(Cache.prototype, {
         var me = this;
         var c = me.c;
         var r;
-        key = PATHNAME + key;
+        key = Path + key;
         if (Has(c, key)) {
             r = c[key];
             if (r.f >= 1) {
@@ -125,7 +125,7 @@ Mix(Cache.prototype, {
         var me = this;
         var c = me.c;
 
-        var key = PATHNAME + okey;
+        var key = Path + okey;
         var r = c[key];
 
         if (!Has(c, key)) {
@@ -154,7 +154,7 @@ Mix(Cache.prototype, {
         return value;
     },
     del: function(k) {
-        k = PATHNAME + k;
+        k = Path + k;
         var c = this.c;
         var r = c[k];
         if (r) {
@@ -168,7 +168,7 @@ Mix(Cache.prototype, {
         }
     },
     has: function(k) {
-        return Has(this.c, PATHNAME + k);
+        return Has(this.c, Path + k);
     }
 });
 
@@ -502,18 +502,18 @@ var Magix = {
      * @return {Object} 解析后的对象
      * @example
      * var obj=Magix.pathToObject('/xxx/?a=b&c=d');
-     * //obj={pathname:'/xxx/',params:{a:'b',c:'d'}}
+     * //obj={path:'/xxx/',params:{a:'b',c:'d'}}
      */
     pathToObject: function(path, decode) {
-        //把形如 /xxx/a=b&c=d 转换成对象 {pathname:'/xxx/',params:{a:'b',c:'d'}}
-        //1. /xxx/a.b.c.html?a=b&c=d  pathname /xxx/a.b.c.html
-        //2. /xxx/?a=b&c=d  pathname /xxx/
-        //3. /xxx/#?a=b => pathname /xxx/
-        //4. /xxx/index.html# => pathname /xxx/index.html
-        //5. /xxx/index.html  => pathname /xxx/index.html
-        //6. /xxx/#           => pathname /xxx/
-        //7. a=b&c=d          => pathname ''
-        //8. /s?src=b#        => pathname /s params:{src:'b'}
+        //把形如 /xxx/a=b&c=d 转换成对象 {path:'/xxx/',params:{a:'b',c:'d'}}
+        //1. /xxx/a.b.c.html?a=b&c=d  path /xxx/a.b.c.html
+        //2. /xxx/?a=b&c=d  path /xxx/
+        //3. /xxx/#?a=b => path /xxx/
+        //4. /xxx/index.html# => path /xxx/index.html
+        //5. /xxx/index.html  => path /xxx/index.html
+        //6. /xxx/#           => path /xxx/
+        //7. a=b&c=d          => path ''
+        //8. /s?src=b#        => path /s params:{src:'b'}
         var key = path + Newline + decode;
         var r = PathToObjCache.get(key);
         if (!r) {
@@ -547,7 +547,7 @@ var Magix = {
                 }
                 params[name] = value;
             });
-            r[PATHNAME] = pathname;
+            r[Path] = pathname;
             r.params = params;
             PathToObjCache.set(key, r);
         }
@@ -560,19 +560,19 @@ var Magix = {
      * @param {Object} [keo] 是否保留空白值的对象
      * @return {String} 字符串路径
      * @example
-     * var str=Magix.objectToPath({pathname:'/xxx/',params:{a:'b',c:'d'}});
+     * var str=Magix.objectToPath({path:'/xxx/',params:{a:'b',c:'d'}});
      * //str==/xxx/?a=b&c=d
      *
-     * var str=Magix.objectToPath({pathname:'/xxx/',params:{a:'',c:2}});
+     * var str=Magix.objectToPath({path:'/xxx/',params:{a:'',c:2}});
      *
      * //str==/xxx/?c=2
      *
-     * var str=Magix.objectToPath({pathname:'/xxx/',params:{a:'',c:2}},{a:1});
+     * var str=Magix.objectToPath({path:'/xxx/',params:{a:'',c:2}},{a:1});
      *
      * //str==/xxx/?a=&c=2
      */
     objectToPath: function(obj, encode, keo) { //上个方法的逆向
-        var pn = obj[PATHNAME];
+        var pn = obj[Path];
         var params = [];
         var oPs = obj.params;
         var v;

@@ -10,8 +10,9 @@ var MxConfig = Magix.config();
 var TagName;
 var TagNameChanged;
 var UseQSA;
+var ReadMxVframe;
 var Selector;
-var MxBuild;
+var MxVframe = 'mx-vframe';
 
 var Has = Magix.has;
 var SupportContains;
@@ -84,7 +85,6 @@ var Vframe = function(id) {
     me.rC = 0;
     me.sign = 1 << 30;
     me.rM = {};
-    me.ns = {};
     me.owner = RefVOM;
     RefVOM.add(id, me);
 };
@@ -103,9 +103,10 @@ Vframe.root = function(owner, refLoc, refChged) {
         */
         TagName = MxConfig.tagName;
         TagNameChanged = MxConfig['!tnc'];
-        MxBuild = TagNameChanged ? 'mx-vframe' : 'mx-defer';
         UseQSA = TagNameChanged && document[QSA];
-        Selector = ' ' + TagName + '[mx-vframe]';
+        Selector = ' ' + TagName + '[' + MxVframe + '=true]';
+        ReadMxVframe = TagNameChanged && !UseQSA;
+
         var body = document.body;
         SupportContains = body.contains;
 
@@ -167,8 +168,8 @@ Mix(Mix(Vframe.prototype, Event), {
         //var useTurnaround=me.viewInited&&me.useAnimUpdate();
         me.unmountView();
         if (viewPath) {
-            var path = Magix.pathToObject(viewPath, MxConfig.coded);
-            var vn = path.pathname;
+            var po = Magix.pathToObject(viewPath, MxConfig.coded);
+            var vn = po.path;
             var sign = --me.sign;
             Magix.use(vn, function(View) {
                 if (sign == me.sign) { //有可能在view载入后，vframe已经卸载了
@@ -205,7 +206,7 @@ Mix(Mix(Vframe.prototype, Event), {
                         });
                     }, 0);
                     viewInitParams = viewInitParams || {};
-                    view.load(Mix(viewInitParams, path.params, viewInitParams), RefChged);
+                    view.load(Mix(viewInitParams, po.params, viewInitParams), RefChged);
                 }
             });
         }
@@ -294,8 +295,7 @@ Mix(Mix(Vframe.prototype, Event), {
                 key = IdIt(vframe);
                 if (!Has(subs, key)) {
                     mxView = vframe.getAttribute('mx-view');
-                    mxBuild = !vframe.getAttribute(MxBuild);
-                    mxBuild = mxBuild != TagNameChanged;
+                    mxBuild = ReadMxVframe ? vframe.getAttribute(MxVframe) : 1;
 
                     if (mxBuild || mxView) {
                         me.mountVframe(key, mxView, viewInitParams);

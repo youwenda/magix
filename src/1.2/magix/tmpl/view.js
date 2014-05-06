@@ -45,12 +45,12 @@ var EvtInfoCache = Magix.cache(40);
 var Left = '<';
 var Right = '>';
 
-var MxEvt = /\smx-(?!view|defer|owner|vframe)[a-z]+\s*=\s*"/g;
+var MxEvt = /\smx-(?!view|owner|vframe)[a-z]+\s*=\s*"/g;
 var MxEvtSplit = String.fromCharCode(26);
 
 
 var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(?{([\s\S]*)}\)?)?/;
-var EvtParamsReg = /(\w+):([^,]+)/g;
+var EvtParamsReg = /(\w+):(['"]?)([^,]+)\2/g;
 var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
 /**
  * View类
@@ -214,7 +214,7 @@ Mix(Mix(VProto, Event), {
      * @example
      * //example1
      * locationChange:function(e){
-     *     if(e.changed.isPathname()){//pathname的改变
+     *     if(e.changed.isPath()){//path的改变
      *         //...
      *         e.prevent();//阻止向所有子view传递改变的消息
      *     }
@@ -237,7 +237,7 @@ Mix(Mix(VProto, Event), {
     /**
      * 初始化方法，供最终的view开发人员进行覆盖
      * @param {Object} extra 初始化时，外部传递的参数
-     * @param {Object} locChanged 地址栏变化的相关信息，比如从某个pathname过来的
+     * @param {Object} locChanged 地址栏变化的相关信息，比如从某个path过来的
      * @function
      */
     init: Noop,
@@ -413,19 +413,19 @@ Mix(Mix(VProto, Event), {
         me.endUpdate(id);
     },
     /**
-     * 监视地址栏中的参数或pathname，有变动时，才调用当前view的locationChange方法。通常情况下location有变化就会引起当前view的locationChange被调用，但这会带来一些不必要的麻烦，所以你可以指定地址栏中哪些参数有变化时才引起locationChange调用，使得view只关注与自已需要刷新有关的参数
+     * 监视地址栏中的参数或path，有变动时，才调用当前view的locationChange方法。通常情况下location有变化就会引起当前view的locationChange被调用，但这会带来一些不必要的麻烦，所以你可以指定地址栏中哪些参数有变化时才引起locationChange调用，使得view只关注与自已需要刷新有关的参数
      * @param {Array|String|Object} args  数组字符串或对象
      * @example
      * return View.extend({
      *      init:function(){
      *          this.observeLocation('page,rows');//关注地址栏中的page rows2个参数的变化，当其中的任意一个改变时，才引起当前view的locationChange被调用
      *          this.observeLocation({
-     *              pathname:true//关注pathname的变化
+     *              path:true//关注path的变化
      *          });
      *          //也可以写成下面的形式
      *          //this.observeLocation({
      *          //    keys:['page','rows'],
-     *          //    pathname:true
+     *          //    path:true
      *          //})
      *      },
      *      render:function(e){
@@ -441,7 +441,7 @@ Mix(Mix(VProto, Event), {
         loc.f = 1;
         var keys = loc.ks;
         if (Magix._o(args)) {
-            loc.pn = args.pathname;
+            loc.pn = args.path;
             args = args.keys;
         }
         if (args) {
@@ -449,14 +449,14 @@ Mix(Mix(VProto, Event), {
         }
     },
     /**
-     * 指定监控地址栏中pathname的改变
+     * 指定监控地址栏中path的改变
      * @example
      * return View.extend({
      *      init:function(){
-     *          this.observePathname();//关注地址栏中pathname的改变，pathname改变才引起当前view的locationChange被调用
+     *          this.observePathname();//关注地址栏中path的改变，path改变才引起当前view的locationChange被调用
      *      },
      *      locationChange:function(e){
-     *          if(e.changed.isPathname()){};//是否是pathname发生的改变
+     *          if(e.changed.isPath()){};//是否是path发生的改变
      *      }
      * });
      */
@@ -468,7 +468,7 @@ Mix(Mix(VProto, Event), {
     /**
      * 指定要监视地址栏中的哪些值有变化时，当前view的locationChange才会被调用。通常情况下location有变化就会引起当前view的locationChange被调用，但这会带来一些不必要的麻烦，所以你可以指定地址栏中哪些值有变化时才引起locationChange调用，使得view只关注与自已需要刷新有关的参数
      * @param {Array|String} keys            key数组或字符串
-     * @param {Boolean} observePathname 是否监视pathname
+     * @param {Boolean} observePathname 是否监视path
      * @example
      * return View.extend({
      *      init:function(){
@@ -497,7 +497,7 @@ Mix(Mix(VProto, Event), {
         var res;
         if (loc.f) {
             if (loc.pn) {
-                res = changed.pathname;
+                res = changed.path;
             }
             if (!res) {
                 res = changed.isParam(loc.ks);
@@ -554,7 +554,7 @@ Mix(Mix(VProto, Event), {
                     p: {}
                 };
                 if (m.i) {
-                    m.i.replace(EvtParamsReg, function(x, a, b) {
+                    m.i.replace(EvtParamsReg, function(x, a, q, b) {
                         m.p[a] = b;
                     });
                 }

@@ -9,7 +9,7 @@ KISSY.add('apiapp/mviews/default', function(S, View, Magix, VOM) {
     return View.extend({
         init: function() {
             this.observeLocation({
-                pathname: true
+                path: true
             });
         },
         render: function() {
@@ -22,7 +22,7 @@ KISSY.add('apiapp/mviews/default', function(S, View, Magix, VOM) {
         mountMainVframe: function() {
             var pnReg = /\/([^\/]+)\/(\d+\.\d+)\/([^\/]+)/;
             var loc = this.location;
-            var infos = loc.pathname.match(pnReg);
+            var infos = loc.path.match(pnReg);
             var vf = VOM.get('magix_vf_main');
             if (infos) {
                 Magix.local('APIPathInfo', {

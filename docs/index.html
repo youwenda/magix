@@ -17,7 +17,7 @@
     <div id="magix_vf_root"></div>
     <div class="app_progress_bar" id="magix_percent"></div>
     <script type="text/javascript" src="http://g.tbcdn.cn/kissy/k/1.4.2/seed.js"></script>
-    <script type="text/javascript" src="/magix/dist/1.2/kissy-magix-min.js"></script>
+    <script type="text/javascript" src="/magix/dist/1.2/kissy-magix.js"></script>
     <script type="text/javascript" src="apiapp/progress.js"></script>
     <script type="text/javascript" src="apiapp/crox.js"></script>
     <script type="text/javascript">
@@ -29,14 +29,9 @@
                 path:'./'
             }]
         });
-        UA.mobile=true;
-        var views=UA.mobile?'mviews':'views';
-        var exts=['node','apiapp/assets/blue/'+(UA.mobile?'m':'pc')+'.css','apiapp/sub-tmpl'];
-        if(UA.mobile){
-            exts.push('apiapp/vanim');
-        }
+        var exts=['node','apiapp/assets/blue/m.css','apiapp/sub-tmpl','apiapp/vanim'];
         Magix.start({
-            defaultView:'apiapp/'+views+'/default',
+            defaultView:'apiapp/mviews/default',
             defaultPathname:'/home',
             extensions:exts,
             apiPath:'./',

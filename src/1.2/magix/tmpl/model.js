@@ -158,7 +158,7 @@ Magix.mix(Model.prototype, {
     setPostParamsIf: GenSetParams(Model.POST, 1),
     /**
      * 设置参数
-     * @param {Object|String} obj1 参数对象或者参数key
+     * @param {Object|String|Function} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      * @param {String}   type      参数分组的key
      * @param {Boolean}   ignoreIfExist   如果存在同名的参数则不覆盖，忽略掉这次传递的参数
@@ -171,7 +171,10 @@ Magix.mix(Model.prototype, {
         var k = '$' + type;
         if (!me[k]) me[k] = {};
         var obj = me[k];
-        if (!IsObject(obj1) && obj1) {
+        if (Magix._f(obj1)) {
+            obj1 = Magix.safeExec(obj1);
+        }
+        if (obj1 && !IsObject(obj1)) {
             var t = {};
             t[obj1] = obj2;
             obj1 = t;

@@ -88,7 +88,6 @@ KISSY.add('apiapp/mviews/partials/class', function(S, View, MM, Magix, Crox) {
             var me = this;
             var infos = Magix.local('APIPathInfo');
             MM.fetchClassInfos(function(e, i) {
-                console.log(e, i);
                 if (e) {
                     me.setViewHTML(me.id, e.msg);
                 } else {

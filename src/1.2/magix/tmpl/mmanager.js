@@ -2,19 +2,35 @@ var Has = Magix.has;
 var SafeExec = Magix.safeExec;
 var IsArray = Magix._a;
 var IsFunction = Magix._f;
+var IsObject = Magix._o;
 
+var FetchFlags_ONE = 1;
+var FetchFlags_ORDER = 2;
+var FetchFlags_ALL = 4;
+
+var Now = Date.now || function() {
+        return +new Date();
+    };
+var Guid = Now();
+var WJSON = window.JSON;
 var Mix = Magix.mix;
 var Prefix = 'mr';
 var Split = String.fromCharCode(26);
 var DefaultCacheTime = 20 * 60 * 1000;
-var Ser = function(o, a, p) {
-    a = [];
-    if (IsFunction(o)) {
-        a = SafeExec(o);
-    } else {
+var Ser = function(o, f, a, p) {
+    if (IsFunction(o)) { //一定要先判断
+        if (f) a = Ser(SafeExec(o));
+    } else if (WJSON) {
+        a = WJSON.stringify(o);
+    } else if (IsObject(o) || IsArray(o)) {
+        a = [];
         for (p in o) {
-            a.push(p, Prefix, o[p]);
+            if (Has(o, p)) {
+                a.push(p, Prefix, Ser(o[p]));
+            }
         }
+    } else {
+        a = o;
     }
     return a;
 };
@@ -23,15 +39,12 @@ var Ser = function(o, a, p) {
     b=['1','2','']
  */
 var DefaultCacheKey = function(keys, meta, attrs) {
-    var arr = [meta.name];
+    var arr = [meta.name, Ser(attrs)];
     var locker = {};
     for (var i = keys.length - 1, key; i > -1; i--) {
         key = keys[i];
         if (!locker[key]) {
-            console.log(key);
-            arr.push(locker[key] = Ser(meta[key]), Ser(attrs[key]));
-        } else {
-            keys.splice(i, 1);
+            arr.push(locker[key] = Ser(meta[key], 1), Ser(attrs[key], 1));
         }
     }
     return arr.join(Split);
@@ -39,20 +52,12 @@ var DefaultCacheKey = function(keys, meta, attrs) {
 var ProcessCache = function(attrs) {
     var cache = attrs.cache;
     if (cache) {
-        var ctime = attrs.cacheTime | 0;
-        if (ctime) {
-            cache = ctime;
-        } else {
-            cache = cache === true ? DefaultCacheTime : cache | 0;
-        }
+        cache = cache === true ? DefaultCacheTime : cache | 0;
     }
     return cache;
 };
 
-var Now = Date.now || function() {
-        return +new Date();
-    };
-var Guid = Now();
+
 var TError = function(e) {
     throw Error(e);
 };
@@ -75,12 +80,7 @@ var MManager = function(modelClass, serKeys) {
     me.$mCache = Magix.cache();
     me.$mCacheKeys = {};
     me.$mMetas = {};
-    if (serKeys) {
-        serKeys = IsArray(serKeys) ? serKeys : [serKeys];
-    } else {
-        serKeys = [];
-    }
-    me.$sKeys = ['postParams', 'urlParams'].concat(serKeys);
+    me.$sKeys = ['postParams', 'urlParams'].concat(serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []);
     me.id = 'mm' + Guid--;
     SafeExec(MManager.ms, arguments, me);
 };
@@ -130,7 +130,6 @@ var DoneFn = function(idx, ops, err) {
     //console.log(reqs[model.id]);
     var mm = model.$mm;
     var cacheKey = mm.key;
-    var meta = mm.meta;
     doneArr[idx] = model;
     if (err) {
         ops.e = 1;
@@ -140,7 +139,6 @@ var DoneFn = function(idx, ops, err) {
         errorArgs[idx] = err;
         host.fire('fail', {
             model: model,
-            meta: meta,
             msg: err
         });
     } else {
@@ -148,15 +146,14 @@ var DoneFn = function(idx, ops, err) {
             if (cacheKey) {
                 modelsCache.set(cacheKey, model);
             }
-            mm.done = Now();
-            var after = mm.after;
+            mm.time = Now();
+            var succ = mm.done;
 
-            if (after) { //有after
-                SafeExec(after, [model, meta]);
+            if (succ) { //有succ
+                SafeExec(succ, model);
             }
             host.fire('done', {
-                model: model,
-                meta: meta
+                model: model
             });
         }
         if (mm.used > 0) {
@@ -165,12 +162,12 @@ var DoneFn = function(idx, ops, err) {
         mm.used++;
     }
     if (!request.$oust) { //销毁，啥也不做
-        if (flag == FetchFlags.ONE) { //如果是其中一个成功，则每次成功回调一次
+        if (flag == FetchFlags_ONE) { //如果是其中一个成功，则每次成功回调一次
             var m = doneIsArray ? done[idx] : done;
             if (m) {
                 doneArgs[idx] = SafeExec(m, [currentError ? errorArgs : null, model, errorArgs], request);
             }
-        } else if (flag == FetchFlags.ORDER) {
+        } else if (flag == FetchFlags_ORDER) {
             //var m=doneIsArray?done[idx]:done;
             orderlyArr[idx] = {
                 m: model,
@@ -192,7 +189,7 @@ var DoneFn = function(idx, ops, err) {
             if (!ops.e) {
                 errorArgs = null;
             }
-            if (flag == FetchFlags.ALL) {
+            if (flag == FetchFlags_ALL) {
                 doneArr.unshift(errorArgs);
                 doneArgs[0] = errorArgs;
                 doneArgs[1] = SafeExec(done, doneArr, request);
@@ -247,11 +244,6 @@ Mix(MManager, {
     ms: []
 });
 
-var FetchFlags = {
-    ALL: 1,
-    ONE: 2,
-    ORDER: 4
-};
 
 /**
  * 辅助MManager
@@ -368,7 +360,7 @@ Mix(MRequest.prototype, {
      * @return {MRequest}
      */
     fetchAll: function(models, done) {
-        return this.send(models, done, FetchFlags.ALL);
+        return this.send(models, done, FetchFlags_ALL);
     },
     /**
      * 保存models，所有请求完成回调done
@@ -378,7 +370,7 @@ Mix(MRequest.prototype, {
      * @return {MRequest}
      */
     saveAll: function(models, done) {
-        return this.send(models, done, FetchFlags.ALL, 1);
+        return this.send(models, done, FetchFlags_ALL, 1);
     },
     /**
      * 获取models，按顺序执行回调done
@@ -387,7 +379,7 @@ Mix(MRequest.prototype, {
      * @param {Function} done   完成时的回调
      * @return {MRequest}
      */
-    fetchOrder: GenRequestMethod(FetchFlags.ORDER),
+    fetchOrder: GenRequestMethod(FetchFlags_ORDER),
     /**
      * 保存models，按顺序执行回调done
      * @function
@@ -395,7 +387,7 @@ Mix(MRequest.prototype, {
      * @param {Function} done   完成时的回调
      * @return {MRequest}
      */
-    saveOrder: GenRequestMethod(FetchFlags.ORDER, 1),
+    saveOrder: GenRequestMethod(FetchFlags_ORDER, 1),
     /**
      * 保存models，其中任意一个成功均立即回调，回调会被调用多次
      * @function
@@ -403,7 +395,7 @@ Mix(MRequest.prototype, {
      * @param {Function} callback   完成时的回调
      * @return {MRequest}
      */
-    saveOne: GenRequestMethod(FetchFlags.ONE, 1),
+    saveOne: GenRequestMethod(FetchFlags_ONE, 1),
     /**
      * 获取models，其中任意一个成功均立即回调，回调会被调用多次
      * @function
@@ -411,7 +403,7 @@ Mix(MRequest.prototype, {
      * @param {Function} callback   完成时的回调
      * @return {MRequest}
      */
-    fetchOne: GenRequestMethod(FetchFlags.ONE),
+    fetchOne: GenRequestMethod(FetchFlags_ONE),
     /**
      * 中止所有model的请求
      * 注意：调用该方法后会中止请求，并调用回调传递abort异常消息
@@ -520,18 +512,14 @@ Mix(Mix(MManager.prototype, Event), {
      * @param {Object} models.urlParams 发起请求时，默认的get参数对象
      * @param {Object} models.postParams 发起请求时，默认的post参数对象
      * @param {Boolean|Integer} models.cache指定当前请求缓存多长时间,为true默认20分钟，可传入整数表示缓存多少毫秒
-     * @param {Function} models.before model在发起请求前的回调
-     * @param {Function} models.after model在结束请求，并且成功后回调
+     * @param {Function} models.done model在结束请求，并且成功后回调
      */
     registerModels: function(models) {
         /*
                 name:'',
                 urlParams:{},
                 postParams:{},
-                before:function(m){
-
-                },
-                after:function(m){
+                done:function(m){
 
                 }
              */
@@ -664,24 +652,20 @@ Mix(Mix(MManager.prototype, Event), {
             used: 0
         };
 
-        var before = modelAttrs.before || meta.before;
 
-        if (before) {
-            SafeExec(before, [entity, meta]);
-        }
+        var done = modelAttrs.done || meta.done;
 
-        var after = modelAttrs.after || meta.after;
-
-        mm.after = after;
+        mm.done = done;
 
         if (cache) {
             mm.key = DefaultCacheKey(me.$sKeys, meta, modelAttrs);
         }
 
-        mm.meta = meta;
+
         if (modelAttrs.name) {
             entity.set(modelAttrs);
         }
+
         //默认设置的
         entity.setUrlParams(meta.urlParams);
         entity.setPostParams(meta.postParams);
@@ -691,8 +675,7 @@ Mix(Mix(MManager.prototype, Event), {
         entity.setPostParams(modelAttrs.postParams);
 
         me.fire('inited', {
-            model: entity,
-            meta: meta
+            model: entity
         });
         return entity;
     },
@@ -948,7 +931,7 @@ Mix(Mix(MManager.prototype, Event), {
             } else { //缓存
                 entity = modelsCache.get(cacheKey);
                 if (entity) {
-                    if (cache > 0 && Now() - entity.$mm.done > cache) {
+                    if (cache > 0 && Now() - entity.$mm.time > cache) {
                         me.clearCacheByKey(cacheKey);
                         entity = 0;
                     }
@@ -964,7 +947,6 @@ Mix(Mix(MManager.prototype, Event), {
  * @name MManager#inited
  * @event
  * @param {Object} e
- * @param {Object} e.meta 注册model时提供的信息
  * @param {Model} e.model model对象
  */
 
@@ -973,7 +955,6 @@ Mix(Mix(MManager.prototype, Event), {
  * @name MManager#done
  * @event
  * @param {Object} e
- * @param {Object} e.meta 注册model时提供的信息
  * @param {Model} e.model model对象
  */
 
@@ -982,6 +963,5 @@ Mix(Mix(MManager.prototype, Event), {
  * @name MManager#fail
  * @event
  * @param {Object} e
- * @param {Object} e.meta 注册model时提供的信息
  * @param {Model} e.msg 错误描述信息
  */
