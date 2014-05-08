@@ -100,7 +100,7 @@
     <h4>参数：</h4>
     <div class="callout">
         {{each data.info._params as key=>val}}
-        {{val.name}}&#123;{{val.type}}&#125;{{if val.desc}}{{val.desc}}{{/if}}{{if key<data.info._params.length-1}}<br /><br />{{/if}}
+        {{val.name}} &#123;{{val.type}}&#125; {{if val.isOptional}}[可选参数] {{/if}}{{if val.desc}}{{val.desc}}{{/if}}{{if key<data.info._params.length-1}}<br /><br />{{/if}}
         {{/each}}
     </div>
     {{/if}}

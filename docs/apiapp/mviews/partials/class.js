@@ -47,8 +47,9 @@ KISSY.add('apiapp/mviews/partials/class', function(S, View, MM, Magix, Crox) {
         method_params: function(params) {
             var a = [];
             if (params) {
-                for (var i = 0, name; i < params.length; i++) {
-                    name = params[i].name;
+                for (var i = 0, name, info; i < params.length; i++) {
+                    info = params[i];
+                    name = info.name;
                     if (name.indexOf('.') == -1) {
                         a.push(name);
                     }

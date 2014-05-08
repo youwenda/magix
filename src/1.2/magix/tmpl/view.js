@@ -305,12 +305,14 @@ Mix(Mix(VProto, Event), {
     /**
      * 通知当前view即将开始进行html的更新
      * @param {String} [id] 哪块区域需要更新，默认整个view
+     * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML
      */
-    beginUpdate: function(id) {
+    beginUpdate: function(id, keepPreHTML) {
         var me = this;
         if (me.sign > 0 && me.rendered) {
             me.fire('prerender', {
-                id: id
+                id: id,
+                keep: keepPreHTML
             });
             DestroyAllManaged.call(me, 0, 1);
         }
@@ -950,6 +952,8 @@ Mix(Mix(VProto, Event), {
      * @name View#prerender
      * @event
      * @param {Object} e
+     * @param {String} e.id 指示哪块区域要进行更新
+     * @param {Boolean} e.keep 指示是否保留前view渲染的html
      */
 
     /**
@@ -964,6 +968,7 @@ Mix(Mix(VProto, Event), {
      * @name View#rendered
      * @event
      * @param {Object} e view每次调用setViewHTML完成后触发，当hasTmpl属性为false时，并不会触发该事 件，但会触发primed首次完成创建界面的事件
+     * @param {String} e.id 指示哪块区域完成的渲染
      */
 
     /**

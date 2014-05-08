@@ -649,14 +649,9 @@ Mix(Mix(MManager.prototype, Event), {
         var mm;
         entity.set(meta);
         entity.$mm = mm = {
-            used: 0
+            used: 0,
+            done: meta.done
         };
-
-
-        var done = modelAttrs.done || meta.done;
-
-        mm.done = done;
-
         if (cache) {
             mm.key = DefaultCacheKey(me.$sKeys, meta, modelAttrs);
         }

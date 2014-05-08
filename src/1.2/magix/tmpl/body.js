@@ -77,7 +77,7 @@ var Body = {
                     vId = ts[0];
                     info = ts.pop();
                 }
-                vId = vId || GetSetAttribute(current, MxOwner);
+                vId = GetSetAttribute(current, MxOwner) || vId;
                 if (!vId) { //如果没有则找最近的vframe
                     var begin = current;
                     var vfs = VOM.all();

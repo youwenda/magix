@@ -1254,7 +1254,7 @@ var Body = {
                     vId = ts[0];
                     info = ts.pop();
                 }
-                vId = vId || GetSetAttribute(current, MxOwner);
+                vId = GetSetAttribute(current, MxOwner) || vId;
                 if (!vId) { //如果没有则找最近的vframe
                     var begin = current;
                     var vfs = VOM.all();
@@ -1659,8 +1659,9 @@ Mix(Mix(Vframe.prototype, Event), {
      * 加载对应的view
      * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的view路径
      * @param {Object|Null} viewInitParams 调用view的init方法时传递的参数
+     * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML，默认false
      */
-    mountView: function(viewPath, viewInitParams) {
+    mountView: function(viewPath, viewInitParams, keepPreHTML) {
         var me = this;
         var node = $(me.id);
         if (!me._a) {
@@ -1668,7 +1669,8 @@ Mix(Mix(Vframe.prototype, Event), {
             me._t = node.innerHTML; //.replace(ScriptsReg, '');
         }
         //var useTurnaround=me.viewInited&&me.useAnimUpdate();
-        me.unmountView();
+        me.unmountView(keepPreHTML);
+        me._d = 0;
         if (viewPath) {
             var po = Magix.pathToObject(viewPath, MxConfig.coded);
             var vn = po.path;
@@ -1702,7 +1704,7 @@ Mix(Mix(Vframe.prototype, Event), {
                         });
                         view.on('rendered', mountZoneVframes);
                         view.on('prerender', function(e) {
-                            if (!me.unmountZoneVframes(e.id, 1)) {
+                            if (!me.unmountZoneVframes(e.id, e.keep, 1)) {
                                 me.cAlter();
                             }
                         });
@@ -1715,22 +1717,24 @@ Mix(Mix(Vframe.prototype, Event), {
     },
     /**
      * 销毁对应的view
+     * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML，默认false
      */
-    unmountView: function() {
+    unmountView: function(keepPreHTML) {
         var me = this;
         var view = me.view;
         if (view) {
             if (!GlobalAlter) {
                 GlobalAlter = {};
             }
-            me.unmountZoneVframes(0, 1);
+            me._d = 1;
+            me.unmountZoneVframes(0, keepPreHTML, 1);
             me.cAlter(GlobalAlter);
 
             me.view = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZoneVframes方法引起的多次created
             view.oust();
 
             var node = $(me.id);
-            if (node && me._a) {
+            if (node && me._a && !keepPreHTML) {
                 node.innerHTML = me._t;
             }
 
@@ -1748,6 +1752,8 @@ Mix(Mix(Vframe.prototype, Event), {
      * @param  {String} id             节点id
      * @param  {String} viewPath       view路径
      * @param  {Object} viewInitParams 传递给view init方法的参数
+     * @param {Boolean} [cancelTriggerEvent] 是否取消触发alter与created事件，默认false
+     * @param  {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML，默认false
      * @return {Vframe} vframe对象
      * @example
      * //html
@@ -1758,9 +1764,10 @@ Mix(Mix(Vframe.prototype, Event), {
      * view.owner.mountVframe('magix_vf_defer','app/views/list',{page:2})
      * //注意：动态向某个节点渲染view时，该节点无须是vframe标签
      */
-    mountVframe: function(id, viewPath, viewInitParams) {
+    mountVframe: function(id, viewPath, viewInitParams, cancelTriggerEvent, keepPreHTML) {
         var me = this;
-        if (me.fcc) me.cAlter(); //如果在就绪的vframe上渲染新的vframe，则通知有变化
+        //me._p = cancelTriggerEvent;
+        if (me.fcc && !cancelTriggerEvent) me.cAlter(); //如果在就绪的vframe上渲染新的vframe，则通知有变化
         //var vom = me.owner;
         var vf = RefVOM.get(id);
         if (!vf) {
@@ -1773,18 +1780,21 @@ Mix(Mix(Vframe.prototype, Event), {
             }
             me.cM[id] = 1;
         }
-        vf.mountView(viewPath, viewInitParams);
+        vf._p = cancelTriggerEvent;
+        vf.mountView(viewPath, viewInitParams, keepPreHTML);
         return vf;
     },
     /**
      * 加载当前view下面的子view，因为view的持有对象是vframe，所以是加载vframes
      * @param {HTMLElement|String} zoneId 节点对象或id
      * @param {Object} viewInitParams 传递给view init方法的参数
+     * @param {Boolean} [cancelTriggerEvent] 是否取消触发alter与created事件，默认false
+     * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML，默认false
      */
-    mountZoneVframes: function(zoneId, viewInitParams) {
+    mountZoneVframes: function(zoneId, viewInitParams, cancelTriggerEvent, keepPreHTML) {
         var me = this;
         zoneId = zoneId || me.id;
-        me.unmountZoneVframes(zoneId, 1);
+        me.unmountZoneVframes(zoneId, keepPreHTML, 1);
 
         var vframes = $$(zoneId);
         var count = vframes.length;
@@ -1800,7 +1810,7 @@ Mix(Mix(Vframe.prototype, Event), {
                     mxBuild = ReadMxVframe ? vframe.getAttribute(MxVframe) : 1;
 
                     if (mxBuild || mxView) {
-                        me.mountVframe(key, mxView, viewInitParams);
+                        me.mountVframe(key, mxView, viewInitParams, cancelTriggerEvent, keepPreHTML);
                         var svs = $$(vframe);
                         for (var j = 0, c = svs.length, temp; j < c; j++) {
                             temp = svs[j];
@@ -1817,22 +1827,23 @@ Mix(Mix(Vframe.prototype, Event), {
     /**
      * 销毁vframe
      * @param  {String} [id]      节点id
+     * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML，默认false
      * @param {Boolean} [inner] 内部调用时传递
      */
-    unmountVframe: function(id, inner) { //inner 标识是否是由内部调用，外部不应该传递该参数
+    unmountVframe: function(id, keepPreHTML, inner) { //inner 标识是否是由内部调用，外部不应该传递该参数
         var me = this;
         id = id || me.id;
         //var vom = me.owner;
         var vf = RefVOM.get(id);
         if (vf) {
             var fcc = vf.fcc;
-            vf.unmountView();
+            vf.unmountView(keepPreHTML);
             RefVOM.remove(id, fcc);
             var p = RefVOM.get(vf.pId);
             if (p && Has(p.cM, id)) {
                 delete p.cM[id];
                 p.cC--;
-                if (!inner) {
+                if (!inner && !me._d) {
                     p.cCreated();
                 }
             }
@@ -1841,19 +1852,20 @@ Mix(Mix(Vframe.prototype, Event), {
     /**
      * 销毁某个区域下面的所有子vframes
      * @param {HTMLElement|String} [zoneId]节点对象或id
+     * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML，默认false
      * @param {Boolean} [inner] 内部调用时传递，用于判断在这个区域内稍后是否还有vframes渲染，如果有，则为true，否则为false
      */
-    unmountZoneVframes: function(zoneId, inner) {
+    unmountZoneVframes: function(zoneId, keepPreHTML, inner) {
         var me = this;
         var hasVframe;
         var p;
         var cm = me.cM;
         for (p in cm) {
             if (!zoneId || NodeIn(p, zoneId)) {
-                me.unmountVframe(p, hasVframe = 1);
+                me.unmountVframe(p, keepPreHTML, hasVframe = 1);
             }
         }
-        if (!inner) {
+        if (!inner && !me._d) { //已调用父view的unmountView卸载时，子view的不再响应alter与created事件
             me.cCreated();
         }
         return hasVframe;
@@ -1897,7 +1909,6 @@ Mix(Mix(Vframe.prototype, Event), {
                 p.rM[mId] = p.cM[mId];
                 p.rC++;
                 p.cCreated(e);
-
             }
         }
     },
@@ -1908,9 +1919,8 @@ Mix(Mix(Vframe.prototype, Event), {
     cAlter: function(e) {
         var me = this;
         if (!e) e = {};
-        var fcc = me.fcc;
-        me.fcc = 0;
-        if (!me.fca && fcc) { //当前vframe触发过created才可以触发alter事件
+        if (!me.fca && me.fcc) { //当前vframe触发过created才可以触发alter事件
+            me.fcc = 0;
             var view = me.view;
             var mId = me.id;
             if (view) {
@@ -1920,11 +1930,12 @@ Mix(Mix(Vframe.prototype, Event), {
             }
             //var vom = me.owner;
             var p = RefVOM.get(me.pId);
-
             if (p && Has(p.rM, mId)) {
                 p.rC--;
                 delete p.rM[mId];
-                p.cAlter(e);
+                if (!me._p) {
+                    p.cAlter(e);
+                }
             }
         }
     },
@@ -2337,12 +2348,14 @@ Mix(Mix(VProto, Event), {
     /**
      * 通知当前view即将开始进行html的更新
      * @param {String} [id] 哪块区域需要更新，默认整个view
+     * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML
      */
-    beginUpdate: function(id) {
+    beginUpdate: function(id, keepPreHTML) {
         var me = this;
         if (me.sign > 0 && me.rendered) {
             me.fire('prerender', {
-                id: id
+                id: id,
+                keep: keepPreHTML
             });
             DestroyAllManaged.call(me, 0, 1);
         }
@@ -2982,6 +2995,8 @@ Mix(Mix(VProto, Event), {
      * @name View#prerender
      * @event
      * @param {Object} e
+     * @param {String} e.id 指示哪块区域要进行更新
+     * @param {Boolean} e.keep 指示是否保留前view渲染的html
      */
 
     /**
@@ -2996,6 +3011,7 @@ Mix(Mix(VProto, Event), {
      * @name View#rendered
      * @event
      * @param {Object} e view每次调用setViewHTML完成后触发，当hasTmpl属性为false时，并不会触发该事 件，但会触发primed首次完成创建界面的事件
+     * @param {String} e.id 指示哪块区域完成的渲染
      */
 
     /**
@@ -3893,14 +3909,9 @@ Mix(Mix(MManager.prototype, Event), {
         var mm;
         entity.set(meta);
         entity.$mm = mm = {
-            used: 0
+            used: 0,
+            done: meta.done
         };
-
-
-        var done = modelAttrs.done || meta.done;
-
-        mm.done = done;
-
         if (cache) {
             mm.key = DefaultCacheKey(me.$sKeys, meta, modelAttrs);
         }
