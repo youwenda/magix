@@ -19,12 +19,10 @@
 KISSY.add('exts/vtmpl', function(S, View) {
     var Base = View.prototype;
     var Load = Base.load;
-    var EmptyObject = {};
     var Mods = S.Env.mods;
 
-    var DefaultContent = '{{@magix-tmpl-all}}';
     var TmplReg = /\{\{#magix-tmpl-(\w+)\}\}([\s\S]*?)\{\{\/magix-tmpl-\1\}\}/g;
-    var TmplIncludeReg = /\{\{@magix-tmpl-(\w+)\}\}/g;
+    var TmplIncludeReg = /\{\{@magix-tmpl-(\w+)\}\}([\s\S]*?)\{\{\/magix-tmpl-\1\}\}/g;
 
     var InnerTmplReg = /\{\{#magix-inner-(\w+)\}\}([\s\S]*?)\{\{\/magix-inner-\1\}\}/g;
     var InnerTmplIncludeReg = /\{\{@magix-inner-(\w+)\}\}/g;
@@ -33,8 +31,7 @@ KISSY.add('exts/vtmpl', function(S, View) {
         var proto = entity.constructor.prototype;
         var result = [{
             path: entity.path,
-            ctx: proto,
-            ownTmpl: proto.hasOwnProperty('template')
+            ctx: proto
         }];
         while (proto) {
             var tmpl = proto.extendTmpl;
@@ -51,8 +48,7 @@ KISSY.add('exts/vtmpl', function(S, View) {
                 }
                 result.push({
                     path: ctor.path,
-                    ctx: parent,
-                    ownTmpl: parent.hasOwnProperty('template')
+                    ctx: parent
                 });
             }
             proto = parent;
@@ -61,34 +57,35 @@ KISSY.add('exts/vtmpl', function(S, View) {
     };
     var FetchTmpls = function(tmpls, done, preTmpl) {
         var item = tmpls.pop();
+        var alen = arguments.length;
+
         if (item) {
-            item.ctx.fetchTmpl.call(item.ownTmpl ? item.ctx : EmptyObject, item.path, function(tmpl) {
+            item.ctx.fetchTmpl.call(item.ctx, item.path, function(tmpl) {
                 var subTmpls = {};
                 tmpl.replace(TmplReg, function(match, name, content) {
                     subTmpls[name] = content;
                 });
-                FetchTmpls(tmpls, done, preTmpl.replace(TmplIncludeReg, function(match, name) {
-                    if (name == 'all') {
-                        return tmpl;
-                    }
-                    return subTmpls[name] || '';
-                }));
+                if (alen < 3) {
+                    preTmpl = tmpl;
+                } else {
+                    preTmpl = preTmpl.replace(TmplIncludeReg, function(match, name) {
+                        return subTmpls[name] || '';
+                    });
+                }
+                FetchTmpls(tmpls, done, preTmpl);
             });
         } else {
-            done(preTmpl);
+            done(preTmpl.replace(TmplIncludeReg, '$2'));
         }
     };
     return View.mixin({
         load: function() {
             var me = this;
             var args = arguments;
-            var sign = me.sign;
-            FetchTmpls(FindExtendTmpls(me), function(tmpl) {
-                if (sign == me.sign) {
-                    me.template = me.hasTmpl ? tmpl : me.wrapMxEvent(tmpl);
-                    Load.apply(me, args);
-                }
-            }, DefaultContent);
+            FetchTmpls(FindExtendTmpls(me), me.wrapAsync(function(tmpl) {
+                me.template = me.hasTmpl ? tmpl : me.wrapMxEvent(tmpl);
+                Load.apply(me, args);
+            }));
         },
         getSubTmpl: function(name) {
             var me = this;

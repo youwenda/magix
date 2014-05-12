@@ -28,7 +28,7 @@ var Cfg = {
     tagName: DefaultTagName,
     rootId: 'magix_vf_root',
     coded: 1,
-    execError: function(e) {
+    error: function(e) {
         if (SupportError) {
             Console.error(e);
         }
@@ -194,7 +194,7 @@ var SafeExec = function(fns, args, context, i, r, e) {
         e = fns[i];
         r = e && e.apply(context, args);
         //KEEP /*_*/}catch(x){/*_*/
-        //KEEP      Cfg.execError(x);/*_*/
+        //KEEP      Cfg.error(x);/*_*/
         //KEEP /*_*/}/*_*/
     }
     return r;
@@ -382,7 +382,7 @@ var Magix = {
      * @param {String} cfg.rootId 根view的id
      * @param {Array} cfg.extensions 需要加载的扩展
      * @param {Boolean} cfg.coded 是否对地址栏中的参数进行编码或解码，默认true
-     * @param {Function} cfg.execError 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
+     * @param {Function} cfg.error 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
      * @example
      * Magix.start({
      *      useHistoryState:true,
@@ -586,7 +586,7 @@ var Magix = {
             }
         }
         if (arr.length) {
-            path = path + '?' + arr.join('&');
+            path += '?' + arr.join('&');
         }
         return path;
     },

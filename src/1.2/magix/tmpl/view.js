@@ -104,14 +104,14 @@ var View = function(ops) {
     me.$res = {};
     me.sign = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     me.addNode(me.id);
-    SafeExec(View.ms, [ops], me);
+    SafeExec(View._, [ops], me);
 };
 var VProto = View.prototype;
 var Globals = {
     $win: window,
     $doc: document
 };
-View.ms = [];
+View._ = [];
 View.prepare = function(oView) {
     if (!oView[WrapKey]) { //只处理一次
         oView[WrapKey] = 1;
@@ -179,7 +179,7 @@ View.prepare = function(oView) {
  *
  */
 View.mixin = function(props, ctor) {
-    if (ctor) View.ms.push(ctor);
+    if (ctor) View._.push(ctor);
     Mix(VProto, props);
 };
 

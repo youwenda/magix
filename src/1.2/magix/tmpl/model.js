@@ -24,7 +24,7 @@ var GenSetParams = function(type, iv) {
 };
 var And = '&';
 var Empty = '';
-var FixParamsReg = /^&\?|=(?=&|$)/g;
+var FixParamsReg = /^\?|=(?=&|$)/g;
 Magix.mix(Model, {
     /**
      * @lends Model
@@ -119,10 +119,8 @@ Magix.mix(Model.prototype, {
      * @return {String}
      */
     getParams: function(type) {
-        var params = Magix.toUrl(And, this[And + (type || Model.GET)]);
-        if (this.$r) {
-            params = params.replace(FixParamsReg, Empty);
-        }
+        var params = Magix.toUrl(Empty, this[And + (type || Model.GET)]);
+        params = params.replace(FixParamsReg, Empty);
         return params;
         /*var k = And + type;
         var params = me[k];
@@ -171,7 +169,7 @@ Magix.mix(Model.prototype, {
         me.$types[type] = true;*/
 
         var k = And + type,
-            t, p, obj, f;
+            t, p, obj;
         if (!me[k]) me[k] = {};
         obj = me[k];
         if (Magix._f(obj1)) {
@@ -179,9 +177,7 @@ Magix.mix(Model.prototype, {
         }
         if (obj1 && Magix._s(obj1)) {
             t = {};
-            f = ~obj1.indexOf('=');
-            me.$r = f || me.$r;
-            t[obj1] = f ? Empty : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
+            t[obj1] = ~obj1.indexOf('=') ? Empty : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
             obj1 = t;
         }
         for (p in obj1) {

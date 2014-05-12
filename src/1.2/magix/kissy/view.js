@@ -60,9 +60,10 @@ KISSY.add('magix/view', function(S, Magix, Event, Body, Router, IO) {
     View.extend = function(props, statics, ctor) {
         var me = this;
         var BaseView = function() {
-            BaseView.superclass.constructor.apply(this, arguments);
+            var a = arguments;
+            BaseView.superclass.constructor.apply(this, a);
             if (ctor) {
-                SafeExec(ctor, arguments, this);
+                SafeExec(ctor, a, this);
             }
         };
         BaseView.extend = me.extend;

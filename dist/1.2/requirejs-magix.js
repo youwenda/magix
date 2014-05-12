@@ -44,7 +44,7 @@ var Cfg = {
     tagName: DefaultTagName,
     rootId: 'magix_vf_root',
     coded: 1,
-    execError: function(e) {
+    error: function(e) {
         if (SupportError) {
             Console.error(e);
         }
@@ -398,7 +398,7 @@ var Magix = {
      * @param {String} cfg.rootId 根view的id
      * @param {Array} cfg.extensions 需要加载的扩展
      * @param {Boolean} cfg.coded 是否对地址栏中的参数进行编码或解码，默认true
-     * @param {Function} cfg.execError 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
+     * @param {Function} cfg.error 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
      * @example
      * Magix.start({
      *      useHistoryState:true,
@@ -601,7 +601,7 @@ var Magix = {
             }
         }
         if (arr.length) {
-            path = path + '?' + arr.join('&');
+            path += '?' + arr.join('&');
         }
         return path;
     },
@@ -2146,14 +2146,14 @@ var View = function(ops) {
     me.$res = {};
     me.sign = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     me.addNode(me.id);
-    SafeExec(View.ms, [ops], me);
+    SafeExec(View._, [ops], me);
 };
 var VProto = View.prototype;
 var Globals = {
     $win: WINDOW,
     $doc: DOCUMENT
 };
-View.ms = [];
+View._ = [];
 View.prepare = function(oView) {
     if (!oView[WrapKey]) { //只处理一次
         oView[WrapKey] = 1;
@@ -2221,7 +2221,7 @@ View.prepare = function(oView) {
  *
  */
 View.mixin = function(props, ctor) {
-    if (ctor) View.ms.push(ctor);
+    if (ctor) View._.push(ctor);
     Mix(VProto, props);
 };
 
@@ -2230,11 +2230,10 @@ Mix(Mix(VProto, Event), {
      * @lends View#
      */
     /**
-     * 使用xhr获取当前view对应的模板内容，仅在开发app阶段时使用，打包上线后html与js打包在一起，不会调用这个方法
+     获取当前view对应的模板内容，开发app阶段使用xhr获取，打包上线后html作为view的template属性与js打包在一起，可以重写该方法，以实现模板的继承或共享基类的模板
      * @function
      * @param {String} path 路径
      * @param {Function} fn 获取完成后的回调
-     * @private
      */
     
     /**
@@ -3796,7 +3795,7 @@ Mix(Mix(MManager.prototype, Event), {
         if (!IsArray(models)) {
             models = [models];
         }
-        for (var i = 0, model, name; i < models.length; i++) {
+        for (var i = 0, model, name, cache; i < models.length; i++) {
             model = models[i];
             if (model) {
                 name = model.name;
@@ -3805,7 +3804,10 @@ Mix(Mix(MManager.prototype, Event), {
                 } else if (metas[name]) {
                     TError('already exist:' + name);
                 }
-                model.cache = ProcessCache(model);
+                cache = ProcessCache(model);
+                if (cache) {
+                    model.cache = cache;
+                }
                 metas[name] = model;
             }
         }
@@ -4281,7 +4283,7 @@ var GenSetParams = function(type, iv) {
 };
 var And = '&';
 var Empty = '';
-var FixParamsReg = /^&\?|=(?=&|$)/g;
+var FixParamsReg = /^\?|=(?=&|$)/g;
 Magix.mix(Model, {
     /**
      * @lends Model
@@ -4376,10 +4378,8 @@ Magix.mix(Model.prototype, {
      * @return {String}
      */
     getParams: function(type) {
-        var params = Magix.toUrl(And, this[And + (type || Model.GET)]);
-        if (this.$r) {
-            params = params.replace(FixParamsReg, Empty);
-        }
+        var params = Magix.toUrl(Empty, this[And + (type || Model.GET)]);
+        params = params.replace(FixParamsReg, Empty);
         return params;
         /*var k = And + type;
         var params = me[k];
@@ -4428,7 +4428,7 @@ Magix.mix(Model.prototype, {
         me.$types[type] = true;*/
 
         var k = And + type,
-            t, p, obj, f;
+            t, p, obj;
         if (!me[k]) me[k] = {};
         obj = me[k];
         if (Magix._f(obj1)) {
@@ -4436,9 +4436,7 @@ Magix.mix(Model.prototype, {
         }
         if (obj1 && Magix._s(obj1)) {
             t = {};
-            f = ~obj1.indexOf('=');
-            me.$r = f || me.$r;
-            t[obj1] = f ? Empty : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
+            t[obj1] = ~obj1.indexOf('=') ? Empty : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
             obj1 = t;
         }
         for (p in obj1) {

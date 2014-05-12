@@ -528,7 +528,7 @@ Mix(Mix(MManager.prototype, Event), {
         if (!IsArray(models)) {
             models = [models];
         }
-        for (var i = 0, model, name; i < models.length; i++) {
+        for (var i = 0, model, name, cache; i < models.length; i++) {
             model = models[i];
             if (model) {
                 name = model.name;
@@ -537,7 +537,10 @@ Mix(Mix(MManager.prototype, Event), {
                 } else if (metas[name]) {
                     TError('already exist:' + name);
                 }
-                model.cache = ProcessCache(model);
+                cache = ProcessCache(model);
+                if (cache) {
+                    model.cache = cache;
+                }
                 metas[name] = model;
             }
         }
