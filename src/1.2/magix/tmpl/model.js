@@ -10,7 +10,6 @@
  */
 
 var GUID = +new Date();
-var Encode = encodeURIComponent;
 var Has = Magix.has;
 var IsObject = Magix._o;
 var ToString = Magix.toString;
@@ -23,6 +22,9 @@ var GenSetParams = function(type, iv) {
         this.setParams(o1, o2, type, iv);
     };
 };
+var And = '&';
+var Empty = '';
+var FixParamsReg = /^&\?|=(?=&|$)/g;
 Magix.mix(Model, {
     /**
      * @lends Model
@@ -81,7 +83,7 @@ Magix.mix(Model.prototype, {
      */
     /*getParamsObject:function(type){
             if(!type)type=Model.GET;
-            return this['$'+type]||null;
+            return this[And+type]||null;
         },*/
     /**
      * 获取参数对象
@@ -117,12 +119,12 @@ Magix.mix(Model.prototype, {
      * @return {String}
      */
     getParams: function(type) {
-        var me = this;
-        if (!type) {
-            type = Model.GET;
+        var params = Magix.toUrl(And, this[And + (type || Model.GET)]);
+        if (this.$r) {
+            params = params.replace(FixParamsReg, Empty);
         }
-
-        var k = '$' + type;
+        return params;
+        /*var k = And + type;
         var params = me[k];
         var arr = [];
         var v;
@@ -139,8 +141,8 @@ Magix.mix(Model.prototype, {
             for (var i = 0; i < v.length; i++) {
                 arr.push(p + '=' + Encode(v[i]));
             }*/
-        }
-        return arr.join('&');
+        /*}
+        return arr.join(And);*/
     },
     /**
      * 设置url参数，只有未设置过的参数才进行设置
@@ -168,18 +170,21 @@ Magix.mix(Model.prototype, {
         /*if (!me.$types) me.$types = {};
         me.$types[type] = true;*/
 
-        var k = '$' + type;
+        var k = And + type,
+            t, p, obj, f;
         if (!me[k]) me[k] = {};
-        var obj = me[k];
+        obj = me[k];
         if (Magix._f(obj1)) {
-            obj1 = Magix.safeExec(obj1);
+            obj1 = Magix.tryCall(obj1);
         }
-        if (obj1 && !IsObject(obj1)) {
-            var t = {};
-            t[obj1] = obj2;
+        if (obj1 && Magix._s(obj1)) {
+            t = {};
+            f = ~obj1.indexOf('=');
+            me.$r = f || me.$r;
+            t[obj1] = f ? Empty : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
             obj1 = t;
         }
-        for (var p in obj1) {
+        for (p in obj1) {
             if (!ignoreIfExist || !Has(obj, p)) {
                 obj[p] = obj1[p];
             }
@@ -204,7 +209,7 @@ Magix.mix(Model.prototype, {
      */
     /*removeParamsObject:function(type){
             if(!type)type=Model.GET;
-            delete this['$'+type];
+            delete this[And+type];
         },*/
     /**
      * @private
@@ -226,7 +231,7 @@ Magix.mix(Model.prototype, {
         var keysCache = me.$types;
         if (keysCache) {
             for (var p in keysCache) {
-                delete me['$' + p];
+                delete me[And + p];
             }
             delete me.$types;
         }

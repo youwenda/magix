@@ -7,7 +7,7 @@ var GenKey = function(name) {
     return '~' + name;
 };
 
-var SafeExec = Magix.safeExec;
+var SafeExec = Magix.tryCall;
 /**
  * 多播事件对象
  * @name Event

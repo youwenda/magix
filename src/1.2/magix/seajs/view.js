@@ -65,7 +65,7 @@ define('magix/view', function(require) {
         }
     };
 
-    View.extend = function(props, ctor, statics) {
+    View.extend = function(props, statics, ctor) {
         var me = this;
         var BaseView = function() {
             BaseView.superclass.constructor.apply(this, arguments);

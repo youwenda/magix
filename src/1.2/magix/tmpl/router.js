@@ -18,8 +18,7 @@ var TrimHashReg = /#.*$/,
     TrimQueryReg = /^[^#]*#?!?/;
 var PARAMS = 'params';
 var UseNativeHistory;
-var Coded;
-var SupportState, HashAsNativeHistory;
+var SupportState, HashAsNativeHistory, ReadLocSrc;
 
 var IsParam = function(params, r, ps) {
     if (params) {
@@ -48,7 +47,7 @@ var GetSetParam = function(key, value, me, params) {
 
 
 var Path = function(path) {
-    var o = Magix.pathToObject(path, Coded);
+    var o = Magix.toObject(path);
     var pn = o[PATH];
     if (pn && HashAsNativeHistory) { //如果不是以/开头的并且要使用history state,当前浏览器又不支持history state则放hash中的path要进行处理
         o[PATH] = Magix.path(window.location.pathname, pn);
@@ -138,10 +137,11 @@ var Router = Mix({
         尽可能的延迟配置，防止被依赖时，配置信息不正确
          */
         UseNativeHistory = MxConfig.nativeHistory;
-        Coded = MxConfig.coded;
 
         SupportState = UseNativeHistory && H.pushState;
         HashAsNativeHistory = UseNativeHistory && !SupportState;
+
+        ReadLocSrc = SupportState ? 'srcQuery' : 'srcHash';
 
         if (SupportState) {
             Router.useState();
@@ -344,10 +344,7 @@ var Router = Mix({
             pn = EMPTY;
         }
         if (params) {
-            pn = Magix.objectToPath({
-                params: params,
-                path: pn
-            }, Coded);
+            pn = Magix.toUrl(pn, params);
         }
         //TLoc引用
         //pathObj引用
@@ -364,25 +361,25 @@ var Router = Mix({
             var temp = {};
             temp[PARAMS] = Mix({}, pathObj[PARAMS]);
             temp[PATH] = pathObj[PATH];
+            var querys = TLoc.query[PARAMS];
 
-            if (temp[PATH]) {
+            if (temp[PATH]) { //设置路径带参数的形式，如:/abc?q=b&c=e
                 if (HashAsNativeHistory) { //指定使用history state但浏览器不支持，需要把query中的存在的参数以空格替换掉
-                    var query = TLoc.query[PARAMS];
-                    for (var p in query) {
-                        if (Has(query, p) && !Has(temp[PARAMS], p)) {
+                    for (var p in querys) {
+                        if (Has(querys, p) && !Has(temp[PARAMS], p)) {
                             temp[PARAMS][p] = EMPTY;
                         }
                     }
                 }
-            } else {
-                var ps = Mix({}, TLoc[PARAMS]);
-                temp[PARAMS] = Mix(ps, temp[PARAMS]);
-                temp[PATH] = TLoc[PATH];
+            } else { //只有参数，如:a=b&c=d
+                var ps = Mix({}, TLoc[PARAMS]); //复制原来的参数
+                temp[PARAMS] = Mix(ps, temp[PARAMS]); //覆盖原来的参数
+                temp[PATH] = TLoc[PATH]; //使用原来的路径
             }
-            var tempPath = Magix.objectToPath(temp, Coded, TLoc.query[PARAMS]);
+            var tempPath = Magix.toUrl(temp[PATH], temp[PARAMS], querys); //保留query中的空白值参数
             var navigate;
 
-            navigate = tempPath != TLoc[SupportState ? 'srcQuery' : 'srcHash'];
+            navigate = tempPath != TLoc[ReadLocSrc];
 
             if (navigate) {
 

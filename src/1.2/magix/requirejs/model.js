@@ -5,16 +5,16 @@
  */
 define('magix/model', ['magix/magix'], function(Magix) {
 
-    var Extend = function(props, ctor) {
+    var Extend = function(props, statics, ctor) {
         var me = this;
         var BaseModel = function() {
             BaseModel.superclass.constructor.apply(this, arguments);
             if (ctor) {
-                Magix.safeExec(ctor, arguments, this);
+                ctor.apply(this, arguments);
             }
         };
 
-        return Magix.extend(BaseModel, me, props);
+        return Magix.extend(BaseModel, me, props, statics);
 
     };
     eval(Magix.include('../tmpl/model', 1));

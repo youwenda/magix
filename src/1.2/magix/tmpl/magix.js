@@ -341,11 +341,11 @@ var Magix = {
      *      return 'new_'+msg;
      * };
      *
-     * var result=Magix.safeExec([f1,f2],new Date().getTime());
+     * var result=Magix.tryCall([f1,f2],new Date().getTime());
      *
      * S.log(result);//得到f2的返回值
      */
-    safeExec: SafeExec,
+    tryCall: SafeExec,
     /**
      * 空方法
      * @function
@@ -498,13 +498,12 @@ var Magix = {
     /**
      * 把路径字符串转换成对象
      * @param  {String} path 路径字符串
-     * @param {Boolean} decode 是否对value进行decodeURIComponent
      * @return {Object} 解析后的对象
      * @example
-     * var obj=Magix.pathToObject('/xxx/?a=b&c=d');
+     * var obj=Magix.toObject('/xxx/?a=b&c=d');
      * //obj={path:'/xxx/',params:{a:'b',c:'d'}}
      */
-    pathToObject: function(path, decode) {
+    toObject: function(path) {
         //把形如 /xxx/a=b&c=d 转换成对象 {path:'/xxx/',params:{a:'b',c:'d'}}
         //1. /xxx/a.b.c.html?a=b&c=d  path /xxx/a.b.c.html
         //2. /xxx/?a=b&c=d  path /xxx/
@@ -514,7 +513,7 @@ var Magix = {
         //6. /xxx/#           => path /xxx/
         //7. a=b&c=d          => path ''
         //8. /s?src=b#        => path /s params:{src:'b'}
-        var key = path + Newline + decode;
+        var key = path + Newline;
         var r = PathToObjCache.get(key);
         if (!r) {
             r = {};
@@ -538,7 +537,7 @@ var Magix = {
                 }
             }
             querys.replace(ParamsReg, function(match, name, value) {
-                if (decode) {
+                if (Cfg.coded) {
                     try {
                         value = decodeURIComponent(value);
                     } catch (e) {
@@ -554,41 +553,42 @@ var Magix = {
         return r;
     },
     /**
-     * 把对象内容转换成字符串路径
-     * @param  {Object} obj 对象
-     * @param {Boolean} [encode] 是否对value进行encodeURIComponent
+     * 转换成字符串路径
+     * @param  {String} path 路径
+     * @param {Object} params 参数对象
      * @param {Object} [keo] 是否保留空白值的对象
      * @return {String} 字符串路径
      * @example
-     * var str=Magix.objectToPath({path:'/xxx/',params:{a:'b',c:'d'}});
+     * var str=Magix.toUrl('/xxx/',{a:'b',c:'d'});
      * //str==/xxx/?a=b&c=d
      *
-     * var str=Magix.objectToPath({path:'/xxx/',params:{a:'',c:2}});
+     * var str=Magix.toUrl('/xxx/',{a:'',c:2});
+     *
+     * //str==/xxx/?a=&c=2
+     *
+     * var str=Magix.toUrl('/xxx/',{a:'',c:2},{c:1});
      *
      * //str==/xxx/?c=2
-     *
-     * var str=Magix.objectToPath({path:'/xxx/',params:{a:'',c:2}},{a:1});
+     * var str=Magix.toUrl('/xxx/',{a:'',c:2},{a:1,c:1});
      *
      * //str==/xxx/?a=&c=2
      */
-    objectToPath: function(obj, encode, keo) { //上个方法的逆向
-        var pn = obj[Path];
-        var params = [];
-        var oPs = obj.params;
+    toUrl: function(path, params, keo) { //上个方法的逆向
+        var arr = [];
         var v;
-        for (var p in oPs) {
-            v = oPs[p];
+        for (var p in params) {
+            v = params[p];
             if (!keo || v || Has(keo, p)) {
-                if (encode) {
+                if (Cfg.coded) {
                     v = encodeURIComponent(v);
                 }
-                params.push(p + '=' + v);
+                arr.push(p + '=' + v);
             }
         }
-        if (params.length) {
-            pn = pn + '?' + params.join('&');
+        if (arr.length) {
+            path = path + '?' + arr.join('&');
         }
-        return pn;
+        return path;
     },
     /**
      * 读取或设置view的模板
@@ -612,18 +612,18 @@ var Magix = {
      * @param  {String} key  以数组中对象的哪个key的value做为hahs的key
      * @return {Object}
      * @example
-     * var map=Magix.listToMap([1,2,3,5,6]);
+     * var map=Magix.toMap([1,2,3,5,6]);
      * //=> {1:1,2:1,3:1,4:1,5:1,6:1}
      *
-     * var map=Magix.listToMap([{id:20},{id:30},{id:40}],'id');
+     * var map=Magix.toMap([{id:20},{id:30},{id:40}],'id');
      * //=>{20:{id:20},30:{id:30},40:{id:40}}
      *
-     * var map=Magix.listToMap('submit,focusin,focusout,mouseenter,mouseleave,mousewheel,change');
+     * var map=Magix.toMap('submit,focusin,focusout,mouseenter,mouseleave,mousewheel,change');
      *
      * //=>{submit:1,focusin:1,focusout:1,mouseenter:1,mouseleave:1,mousewheel:1,change:1}
      *
      */
-    listToMap: function(list, key) {
+    toMap: function(list, key) {
         var i, e, map = {}, l;
         if (Magix._s(list)) {
             list = list.split(',');

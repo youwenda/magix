@@ -357,11 +357,11 @@ var Magix = {
      *      return 'new_'+msg;
      * };
      *
-     * var result=Magix.safeExec([f1,f2],new Date().getTime());
+     * var result=Magix.tryCall([f1,f2],new Date().getTime());
      *
      * S.log(result);//得到f2的返回值
      */
-    safeExec: SafeExec,
+    tryCall: SafeExec,
     /**
      * 空方法
      * @function
@@ -513,13 +513,12 @@ var Magix = {
     /**
      * 把路径字符串转换成对象
      * @param  {String} path 路径字符串
-     * @param {Boolean} decode 是否对value进行decodeURIComponent
      * @return {Object} 解析后的对象
      * @example
-     * var obj=Magix.pathToObject('/xxx/?a=b&c=d');
+     * var obj=Magix.toObject('/xxx/?a=b&c=d');
      * //obj={path:'/xxx/',params:{a:'b',c:'d'}}
      */
-    pathToObject: function(path, decode) {
+    toObject: function(path) {
         //把形如 /xxx/a=b&c=d 转换成对象 {path:'/xxx/',params:{a:'b',c:'d'}}
         //1. /xxx/a.b.c.html?a=b&c=d  path /xxx/a.b.c.html
         //2. /xxx/?a=b&c=d  path /xxx/
@@ -529,7 +528,7 @@ var Magix = {
         //6. /xxx/#           => path /xxx/
         //7. a=b&c=d          => path ''
         //8. /s?src=b#        => path /s params:{src:'b'}
-        var key = path + Newline + decode;
+        var key = path + Newline;
         var r = PathToObjCache.get(key);
         if (!r) {
             r = {};
@@ -553,7 +552,7 @@ var Magix = {
                 }
             }
             querys.replace(ParamsReg, function(match, name, value) {
-                if (decode) {
+                if (Cfg.coded) {
                     try {
                         value = decodeURIComponent(value);
                     } catch (e) {
@@ -569,41 +568,42 @@ var Magix = {
         return r;
     },
     /**
-     * 把对象内容转换成字符串路径
-     * @param  {Object} obj 对象
-     * @param {Boolean} [encode] 是否对value进行encodeURIComponent
+     * 转换成字符串路径
+     * @param  {String} path 路径
+     * @param {Object} params 参数对象
      * @param {Object} [keo] 是否保留空白值的对象
      * @return {String} 字符串路径
      * @example
-     * var str=Magix.objectToPath({path:'/xxx/',params:{a:'b',c:'d'}});
+     * var str=Magix.toUrl('/xxx/',{a:'b',c:'d'});
      * //str==/xxx/?a=b&c=d
      *
-     * var str=Magix.objectToPath({path:'/xxx/',params:{a:'',c:2}});
+     * var str=Magix.toUrl('/xxx/',{a:'',c:2});
+     *
+     * //str==/xxx/?a=&c=2
+     *
+     * var str=Magix.toUrl('/xxx/',{a:'',c:2},{c:1});
      *
      * //str==/xxx/?c=2
-     *
-     * var str=Magix.objectToPath({path:'/xxx/',params:{a:'',c:2}},{a:1});
+     * var str=Magix.toUrl('/xxx/',{a:'',c:2},{a:1,c:1});
      *
      * //str==/xxx/?a=&c=2
      */
-    objectToPath: function(obj, encode, keo) { //上个方法的逆向
-        var pn = obj[Path];
-        var params = [];
-        var oPs = obj.params;
+    toUrl: function(path, params, keo) { //上个方法的逆向
+        var arr = [];
         var v;
-        for (var p in oPs) {
-            v = oPs[p];
+        for (var p in params) {
+            v = params[p];
             if (!keo || v || Has(keo, p)) {
-                if (encode) {
+                if (Cfg.coded) {
                     v = encodeURIComponent(v);
                 }
-                params.push(p + '=' + v);
+                arr.push(p + '=' + v);
             }
         }
-        if (params.length) {
-            pn = pn + '?' + params.join('&');
+        if (arr.length) {
+            path = path + '?' + arr.join('&');
         }
-        return pn;
+        return path;
     },
     /**
      * 读取或设置view的模板
@@ -627,18 +627,18 @@ var Magix = {
      * @param  {String} key  以数组中对象的哪个key的value做为hahs的key
      * @return {Object}
      * @example
-     * var map=Magix.listToMap([1,2,3,5,6]);
+     * var map=Magix.toMap([1,2,3,5,6]);
      * //=> {1:1,2:1,3:1,4:1,5:1,6:1}
      *
-     * var map=Magix.listToMap([{id:20},{id:30},{id:40}],'id');
+     * var map=Magix.toMap([{id:20},{id:30},{id:40}],'id');
      * //=>{20:{id:20},30:{id:30},40:{id:40}}
      *
-     * var map=Magix.listToMap('submit,focusin,focusout,mouseenter,mouseleave,mousewheel,change');
+     * var map=Magix.toMap('submit,focusin,focusout,mouseenter,mouseleave,mousewheel,change');
      *
      * //=>{submit:1,focusin:1,focusout:1,mouseenter:1,mouseleave:1,mousewheel:1,change:1}
      *
      */
-    listToMap: function(list, key) {
+    toMap: function(list, key) {
         var i, e, map = {}, l;
         if (Magix._s(list)) {
             list = list.split(',');
@@ -667,6 +667,7 @@ var Magix = {
     cache: Cache
 };
     var ToString = Object.prototype.toString;
+    var T = function() {};
     return Mix(Magix, {
         
         use: function(name, fn) {
@@ -691,14 +692,15 @@ var Magix = {
             return ToString.call(r) == '[object RegExp]';
         },*/
         extend: function(ctor, base, props, statics) {
-            ctor.superclass = base.prototype;
-            base.prototype.constructor = base;
-            var T = function() {};
-            T.prototype = base.prototype;
-            ctor.prototype = new T();
-            Magix.mix(ctor.prototype, props);
+            var bProto = base.prototype;
+            var cProto = ctor.prototype;
+            ctor.superclass = bProto;
+            bProto.constructor = base;
+            T.prototype = bProto;
+            cProto = new T();
+            Magix.mix(cProto, props);
             Magix.mix(ctor, statics);
-            ctor.prototype.constructor = ctor;
+            cProto.constructor = ctor;
             return ctor;
         }
     });
@@ -732,8 +734,7 @@ var TrimHashReg = /#.*$/,
     TrimQueryReg = /^[^#]*#?!?/;
 var PARAMS = 'params';
 var UseNativeHistory;
-var Coded;
-var SupportState, HashAsNativeHistory;
+var SupportState, HashAsNativeHistory, ReadLocSrc;
 
 var IsParam = function(params, r, ps) {
     if (params) {
@@ -762,7 +763,7 @@ var GetSetParam = function(key, value, me, params) {
 
 
 var Path = function(path) {
-    var o = Magix.pathToObject(path, Coded);
+    var o = Magix.toObject(path);
     var pn = o[PATH];
     if (pn && HashAsNativeHistory) { //如果不是以/开头的并且要使用history state,当前浏览器又不支持history state则放hash中的path要进行处理
         o[PATH] = Magix.path(WINDOW.location.pathname, pn);
@@ -852,10 +853,11 @@ var Router = Mix({
         尽可能的延迟配置，防止被依赖时，配置信息不正确
          */
         UseNativeHistory = MxConfig.nativeHistory;
-        Coded = MxConfig.coded;
 
         SupportState = UseNativeHistory && H.pushState;
         HashAsNativeHistory = UseNativeHistory && !SupportState;
+
+        ReadLocSrc = SupportState ? 'srcQuery' : 'srcHash';
 
         if (SupportState) {
             Router.useState();
@@ -1056,10 +1058,7 @@ var Router = Mix({
             pn = EMPTY;
         }
         if (params) {
-            pn = Magix.objectToPath({
-                params: params,
-                path: pn
-            }, Coded);
+            pn = Magix.toUrl(pn, params);
         }
         //TLoc引用
         //pathObj引用
@@ -1076,25 +1075,25 @@ var Router = Mix({
             var temp = {};
             temp[PARAMS] = Mix({}, pathObj[PARAMS]);
             temp[PATH] = pathObj[PATH];
+            var querys = TLoc.query[PARAMS];
 
-            if (temp[PATH]) {
+            if (temp[PATH]) { //设置路径带参数的形式，如:/abc?q=b&c=e
                 if (HashAsNativeHistory) { //指定使用history state但浏览器不支持，需要把query中的存在的参数以空格替换掉
-                    var query = TLoc.query[PARAMS];
-                    for (var p in query) {
-                        if (Has(query, p) && !Has(temp[PARAMS], p)) {
+                    for (var p in querys) {
+                        if (Has(querys, p) && !Has(temp[PARAMS], p)) {
                             temp[PARAMS][p] = EMPTY;
                         }
                     }
                 }
-            } else {
-                var ps = Mix({}, TLoc[PARAMS]);
-                temp[PARAMS] = Mix(ps, temp[PARAMS]);
-                temp[PATH] = TLoc[PATH];
+            } else { //只有参数，如:a=b&c=d
+                var ps = Mix({}, TLoc[PARAMS]); //复制原来的参数
+                temp[PARAMS] = Mix(ps, temp[PARAMS]); //覆盖原来的参数
+                temp[PATH] = TLoc[PATH]; //使用原来的路径
             }
-            var tempPath = Magix.objectToPath(temp, Coded, TLoc.query[PARAMS]);
+            var tempPath = Magix.toUrl(temp[PATH], temp[PARAMS], querys); //保留query中的空白值参数
             var navigate;
 
-            navigate = tempPath != TLoc[SupportState ? 'srcQuery' : 'srcHash'];
+            navigate = tempPath != TLoc[ReadLocSrc];
 
             if (navigate) {
 
@@ -1180,6 +1179,7 @@ LIB("magix/body", ["magix/magix"], function(require) {
 //依赖类库才能支持冒泡的事件
 var RootEvents = {};
 var MxEvtSplit = String.fromCharCode(26);
+var Noop = Magix.noop;
 
 var MxIgnore = 'mx-ei';
 var MxOwner = 'mx-owner';
@@ -1272,8 +1272,8 @@ var Body = {
                     if (view) {
                         e.currentId = IdIt(current);
                         e.targetId = IdIt(target);
-                        e.prevent = e.preventDefault;
-                        e.stop = e.stopPropagation;
+                        e.prevent = e.preventDefault || Noop;
+                        e.stop = e.stopPropagation || Noop;
                         e.halt = Halt;
                         view.pEvt(info, eventType, e);
                     }
@@ -1356,7 +1356,7 @@ var GenKey = function(name) {
     return '~' + name;
 };
 
-var SafeExec = Magix.safeExec;
+var SafeExec = Magix.tryCall;
 /**
  * 多播事件对象
  * @name Event
@@ -1506,7 +1506,7 @@ LIB('magix/vframe', ["magix/magix", "magix/event", "magix/view"], function(requi
     var Event = require("magix/event");
     var BaseView = require("magix/view");
     var VframeIdCounter = 1 << 16;
-var SafeExec = Magix.safeExec;
+var SafeExec = Magix.tryCall;
 var EmptyArr = [];
 
 
@@ -1675,7 +1675,7 @@ Mix(Mix(Vframe.prototype, Event), {
         me.unmountView(keepPreHTML);
         me._d = 0;
         if (viewPath) {
-            var po = Magix.pathToObject(viewPath, MxConfig.coded);
+            var po = Magix.toObject(viewPath);
             var vn = po.path;
             var sign = --me.sign;
             Magix.use(vn, function(View) {
@@ -2048,13 +2048,12 @@ LIB('magix/view', function(require) {
     var Body = require("magix/body");
     var Router = require("magix/router");
 
-    var SafeExec = Magix.safeExec;
+    var SafeExec = Magix.tryCall;
 var Has = Magix.has;
 var COMMA = ',';
 var EMPTY_ARRAY = [];
 var Noop = Magix.noop;
 var Mix = Magix.mix;
-var WIN = window;
 var ResCounter = 0;
 var WrapKey = '~';
 var DestroyStr = 'destroy';
@@ -2076,8 +2075,8 @@ var Destroy = function(res) {
     }
 };
 var DestroyTimer = function(id) {
-    WIN.clearTimeout(id);
-    WIN.clearInterval(id);
+    clearTimeout(id);
+    clearInterval(id);
 };
 var DestroyAllManaged = function(onlyMR, keepIt) {
     var me = this;
@@ -2092,8 +2091,6 @@ var DestroyAllManaged = function(onlyMR, keepIt) {
 };
 
 var EvtInfoCache = Magix.cache(40);
-var Left = '<';
-var Right = '>';
 
 var MxEvt = /\smx-(?!view|owner|vframe)[a-z]+\s*=\s*"/g;
 var MxEvtSplit = String.fromCharCode(26);
@@ -2161,8 +2158,8 @@ var View = function(ops) {
 };
 var VProto = View.prototype;
 var Globals = {
-    $host: WINDOW,
-    $root: DOCUMENT
+    $win: WINDOW,
+    $doc: DOCUMENT
 };
 View.ms = [];
 View.prepare = function(oView) {
@@ -2191,7 +2188,7 @@ View.prepare = function(oView) {
                         });
                     } else {
                         revts[temp] = 1;
-                        prop[name + Left + temp + Right] = old;
+                        prop[name + MxEvtSplit + temp] = old;
                     }
                 }
             } else if (p == 'render' && old != Noop) {
@@ -2612,7 +2609,7 @@ Mix(Mix(VProto, Event), {
                 }
                 EvtInfoCache.set(info, m);
             }
-            var name = m.n + Left + eventType + Right;
+            var name = m.n + MxEvtSplit + eventType;
             var fn = me[name];
             if (fn) {
                 var tfn = e[m.f];
@@ -2809,6 +2806,18 @@ Mix(Mix(VProto, Event), {
             });*/
         }
         return res;
+    },
+    /**
+     * 派发绑定在vframe的mx-event事件
+     * @param  {String} type 事件类型
+     * @param  {Object} data 数据对象
+     */
+    dispatch: function(type, data, me) {
+        me = this;
+        if (!data) data = {};
+        data.type = type;
+        data.target = me.$(me.id);
+        Body.process(data);
     }
     /**
      * 当您采用setViewHTML方法异步更新html时，通知view做好异步更新的准备，<b>注意:该方法最好和manage，setViewHTML一起使用。当您采用其它方式异步更新整个view的html时，仍需调用该方法</b>，建议对所有的异步更新回调使用manage方法托管，对更新整个view html前，调用beginAsyncUpdate进行更新通知
@@ -3124,7 +3133,7 @@ Mix(Mix(VProto, Event), {
         }
     };
 
-    View.extend = function(props, ctor, statics) {
+    View.extend = function(props, statics, ctor) {
         var me = this;
         var BaseView = function() {
             BaseView.superclass.constructor.apply(this, arguments);
@@ -3276,7 +3285,7 @@ LIB("magix/mmanager", ["magix/magix", "magix/event"], function(require) {
     var Magix = require("magix/magix");
     var Event = require("magix/event");
     var Has = Magix.has;
-var SafeExec = Magix.safeExec;
+var SafeExec = Magix.tryCall;
 var IsArray = Magix._a;
 var IsFunction = Magix._f;
 var IsObject = Magix._o;
@@ -4251,15 +4260,15 @@ Mix(Mix(MManager.prototype, Event), {
  */
 LIB('magix/model', ['magix/magix'], function(require) {
     var Magix = require('magix/magix');
-    var Extend = function(props, ctor) {
+    var Extend = function(props, statics, ctor) {
         var me = this;
         var BaseModel = function() {
             BaseModel.superclass.constructor.apply(this, arguments);
             if (ctor) {
-                Magix.safeExec(ctor, arguments, this);
+                ctor.apply(this, arguments);
             }
         };
-        return Magix.extend(BaseModel, me, props);
+        return Magix.extend(BaseModel, me, props, statics);
 
     };
     /**
@@ -4274,7 +4283,6 @@ LIB('magix/model', ['magix/magix'], function(require) {
  */
 
 var GUID = +new Date();
-var Encode = encodeURIComponent;
 var Has = Magix.has;
 var IsObject = Magix._o;
 var ToString = Magix.toString;
@@ -4287,6 +4295,9 @@ var GenSetParams = function(type, iv) {
         this.setParams(o1, o2, type, iv);
     };
 };
+var And = '&';
+var Empty = '';
+var FixParamsReg = /^&\?|=(?=&|$)/g;
 Magix.mix(Model, {
     /**
      * @lends Model
@@ -4345,7 +4356,7 @@ Magix.mix(Model.prototype, {
      */
     /*getParamsObject:function(type){
             if(!type)type=Model.GET;
-            return this['$'+type]||null;
+            return this[And+type]||null;
         },*/
     /**
      * 获取参数对象
@@ -4381,12 +4392,12 @@ Magix.mix(Model.prototype, {
      * @return {String}
      */
     getParams: function(type) {
-        var me = this;
-        if (!type) {
-            type = Model.GET;
+        var params = Magix.toUrl(And, this[And + (type || Model.GET)]);
+        if (this.$r) {
+            params = params.replace(FixParamsReg, Empty);
         }
-
-        var k = '$' + type;
+        return params;
+        /*var k = And + type;
         var params = me[k];
         var arr = [];
         var v;
@@ -4403,8 +4414,8 @@ Magix.mix(Model.prototype, {
             for (var i = 0; i < v.length; i++) {
                 arr.push(p + '=' + Encode(v[i]));
             }*/
-        }
-        return arr.join('&');
+        /*}
+        return arr.join(And);*/
     },
     /**
      * 设置url参数，只有未设置过的参数才进行设置
@@ -4432,18 +4443,21 @@ Magix.mix(Model.prototype, {
         /*if (!me.$types) me.$types = {};
         me.$types[type] = true;*/
 
-        var k = '$' + type;
+        var k = And + type,
+            t, p, obj, f;
         if (!me[k]) me[k] = {};
-        var obj = me[k];
+        obj = me[k];
         if (Magix._f(obj1)) {
-            obj1 = Magix.safeExec(obj1);
+            obj1 = Magix.tryCall(obj1);
         }
-        if (obj1 && !IsObject(obj1)) {
-            var t = {};
-            t[obj1] = obj2;
+        if (obj1 && Magix._s(obj1)) {
+            t = {};
+            f = ~obj1.indexOf('=');
+            me.$r = f || me.$r;
+            t[obj1] = f ? Empty : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
             obj1 = t;
         }
-        for (var p in obj1) {
+        for (p in obj1) {
             if (!ignoreIfExist || !Has(obj, p)) {
                 obj[p] = obj1[p];
             }
@@ -4468,7 +4482,7 @@ Magix.mix(Model.prototype, {
      */
     /*removeParamsObject:function(type){
             if(!type)type=Model.GET;
-            delete this['$'+type];
+            delete this[And+type];
         },*/
     /**
      * @private
@@ -4490,7 +4504,7 @@ Magix.mix(Model.prototype, {
         var keysCache = me.$types;
         if (keysCache) {
             for (var p in keysCache) {
-                delete me['$' + p];
+                delete me[And + p];
             }
             delete me.$types;
         }

@@ -16,6 +16,7 @@ define('magix/magix', function() {
     };
     eval(Include('../tmpl/magix'));
     var ToString = Object.prototype.toString;
+    var T = function() {};
     return Mix(Magix, {
         include: Include,
         use: function(name, fn) {
@@ -40,14 +41,15 @@ define('magix/magix', function() {
             return ToString.call(r) == '[object RegExp]';
         },*/
         extend: function(ctor, base, props, statics) {
-            ctor.superclass = base.prototype;
-            base.prototype.constructor = base;
-            var T = function() {};
-            T.prototype = base.prototype;
-            ctor.prototype = new T();
-            Magix.mix(ctor.prototype, props);
+            var bProto = base.prototype;
+            var cProto = ctor.prototype;
+            ctor.superclass = bProto;
+            bProto.constructor = base;
+            T.prototype = bProto;
+            cProto = new T();
+            Magix.mix(cProto, props);
             Magix.mix(ctor, statics);
-            ctor.prototype.constructor = ctor;
+            cProto.constructor = ctor;
             return ctor;
         }
     });

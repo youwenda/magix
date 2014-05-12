@@ -1,5 +1,5 @@
 var VframeIdCounter = 1 << 16;
-var SafeExec = Magix.safeExec;
+var SafeExec = Magix.tryCall;
 var EmptyArr = [];
 
 
@@ -170,7 +170,7 @@ Mix(Mix(Vframe.prototype, Event), {
         me.unmountView(keepPreHTML);
         me._d = 0;
         if (viewPath) {
-            var po = Magix.pathToObject(viewPath, MxConfig.coded);
+            var po = Magix.toObject(viewPath);
             var vn = po.path;
             var sign = --me.sign;
             Magix.use(vn, function(View) {

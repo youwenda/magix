@@ -1,5 +1,5 @@
 var Has = Magix.has;
-var SafeExec = Magix.safeExec;
+var SafeExec = Magix.tryCall;
 var IsArray = Magix._a;
 var IsFunction = Magix._f;
 var IsObject = Magix._o;

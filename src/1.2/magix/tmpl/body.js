@@ -2,6 +2,7 @@ var Has = Magix.has;
 //依赖类库才能支持冒泡的事件
 var RootEvents = {};
 var MxEvtSplit = String.fromCharCode(26);
+var Noop = Magix.noop;
 
 var MxIgnore = 'mx-ei';
 var MxOwner = 'mx-owner';
@@ -96,8 +97,8 @@ var Body = {
                     if (view) {
                         e.currentId = IdIt(current);
                         e.targetId = IdIt(target);
-                        e.prevent = e.preventDefault;
-                        e.stop = e.stopPropagation;
+                        e.prevent = e.preventDefault || Noop;
+                        e.stop = e.stopPropagation || Noop;
                         e.halt = Halt;
                         view.pEvt(info, eventType, e);
                     }

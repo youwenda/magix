@@ -1,10 +1,9 @@
-var SafeExec = Magix.safeExec;
+var SafeExec = Magix.tryCall;
 var Has = Magix.has;
 var COMMA = ',';
 var EMPTY_ARRAY = [];
 var Noop = Magix.noop;
 var Mix = Magix.mix;
-var WIN = window;
 var ResCounter = 0;
 var WrapKey = '~';
 var DestroyStr = 'destroy';
@@ -26,8 +25,8 @@ var Destroy = function(res) {
     }
 };
 var DestroyTimer = function(id) {
-    WIN.clearTimeout(id);
-    WIN.clearInterval(id);
+    clearTimeout(id);
+    clearInterval(id);
 };
 var DestroyAllManaged = function(onlyMR, keepIt) {
     var me = this;
@@ -42,8 +41,6 @@ var DestroyAllManaged = function(onlyMR, keepIt) {
 };
 
 var EvtInfoCache = Magix.cache(40);
-var Left = '<';
-var Right = '>';
 
 var MxEvt = /\smx-(?!view|owner|vframe)[a-z]+\s*=\s*"/g;
 var MxEvtSplit = String.fromCharCode(26);
@@ -111,8 +108,8 @@ var View = function(ops) {
 };
 var VProto = View.prototype;
 var Globals = {
-    $host: window,
-    $root: document
+    $win: window,
+    $doc: document
 };
 View.ms = [];
 View.prepare = function(oView) {
@@ -141,7 +138,7 @@ View.prepare = function(oView) {
                         });
                     } else {
                         revts[temp] = 1;
-                        prop[name + Left + temp + Right] = old;
+                        prop[name + MxEvtSplit + temp] = old;
                     }
                 }
             } else if (p == 'render' && old != Noop) {
@@ -191,11 +188,10 @@ Mix(Mix(VProto, Event), {
      * @lends View#
      */
     /**
-     * 使用xhr获取当前view对应的模板内容，仅在开发app阶段时使用，打包上线后html与js打包在一起，不会调用这个方法
+     获取当前view对应的模板内容，开发app阶段使用xhr获取，打包上线后html作为view的template属性与js打包在一起，可以重写该方法，以实现模板的继承或共享基类的模板
      * @function
      * @param {String} path 路径
      * @param {Function} fn 获取完成后的回调
-     * @private
      */
     fetchTmpl: Magix.unimpl,
     /**
@@ -562,7 +558,7 @@ Mix(Mix(VProto, Event), {
                 }
                 EvtInfoCache.set(info, m);
             }
-            var name = m.n + Left + eventType + Right;
+            var name = m.n + MxEvtSplit + eventType;
             var fn = me[name];
             if (fn) {
                 var tfn = e[m.f];
@@ -759,6 +755,18 @@ Mix(Mix(VProto, Event), {
             });*/
         }
         return res;
+    },
+    /**
+     * 派发绑定在vframe的mx-event事件
+     * @param  {String} type 事件类型
+     * @param  {Object} data 数据对象
+     */
+    dispatch: function(type, data, me) {
+        me = this;
+        if (!data) data = {};
+        data.type = type;
+        data.target = me.$(me.id);
+        Body.process(data);
     }
     /**
      * 当您采用setViewHTML方法异步更新html时，通知view做好异步更新的准备，<b>注意:该方法最好和manage，setViewHTML一起使用。当您采用其它方式异步更新整个view的html时，仍需调用该方法</b>，建议对所有的异步更新回调使用manage方法托管，对更新整个view html前，调用beginAsyncUpdate进行更新通知

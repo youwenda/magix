@@ -4,14 +4,14 @@
  * @author 行列
  */
 KISSY.add('magix/model', function(S, Magix) {
-    var Extend = function(props, ctor) {
+    var Extend = function(props, statics, ctor) {
         var BaseModel = function() {
             BaseModel.superclass.constructor.apply(this, arguments);
             if (ctor) {
-                Magix.safeExec(ctor, [], this);
+                ctor.apply(this, arguments);
             }
         };
-        return S.extend(BaseModel, this, props);
+        return S.extend(BaseModel, this, props, statics);
     };
     eval(Magix.include('../tmpl/model', 1));
     return Model;
