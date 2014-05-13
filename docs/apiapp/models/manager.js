@@ -79,7 +79,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
             }
             var inherits = m.get('inherits');
             if (inherits) {
-                m.set('inheritsMap', Magix.listToMap(inherits, 'as'));
+                m.set('inheritsMap', Magix.toMap(inherits, 'as'));
             }
         }
     }]);

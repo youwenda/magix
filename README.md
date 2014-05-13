@@ -2,7 +2,7 @@
 
 ##  简介
 
-<http://magixjs.github.com/>
+<http://thx.github.io/magix>
 
 Magix适合用来构建大型的,面向前后端开发者以及IE6友好的,基于MVC结构和Hash驱动的OPOA(One Page One Application)应用.
 

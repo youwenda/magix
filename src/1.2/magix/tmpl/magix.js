@@ -373,10 +373,10 @@ var Magix = {
     /**
      * 应用初始化入口
      * @param  {Object} cfg 初始化配置参数对象
-     * @param {Boolean} cfg.nativeHistory 是否使用history state,当为true，并且浏览器支持的情况下会用history.pushState修改url，您应该确保服务器能给予支持。如果nativeHistory为false将使用hash修改url
+     * @param {Boolean} cfg.edge 是否使用浏览器最新的行为处理history，如html5时，浏览器支持的情况下会用history.pushState修改url，您应该确保服务器能给予支持。如果edge为false将使用hash修改url
      * @param {String} cfg.defaultView 默认加载的view
-     * @param {String} cfg.defaultPathname 默认view对应的pathname
-     * @param {String} cfg.notFoundView 404时加载的view
+     * @param {String} cfg.defaultPath 默认view对应的pathname
+     * @param {String} cfg.notFound 404时加载的view
      * @param {Object} cfg.routes pathname与view映射关系表
      * @param {String} cfg.iniFile ini文件位置
      * @param {String} cfg.rootId 根view的id
@@ -385,11 +385,11 @@ var Magix = {
      * @param {Function} cfg.error 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
      * @example
      * Magix.start({
-     *      useHistoryState:true,
+     *      edge:true,
      *      rootId:'J_app_main',
      *      iniFile:'',//是否有ini配置文件
      *      defaultView:'app/views/layouts/default',//默认加载的view
-     *      defaultPathname:'/home',
+     *      defaultPath:'/home',
      *      routes:{
      *          "/home":"app/views/layouts/default"
      *      }

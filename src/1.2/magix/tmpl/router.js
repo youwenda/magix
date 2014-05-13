@@ -17,7 +17,7 @@ var TLoc, LLoc = {
 var TrimHashReg = /#.*$/,
     TrimQueryReg = /^[^#]*#?!?/;
 var PARAMS = 'params';
-var UseNativeHistory;
+var UseEdgeHistory;
 var SupportState, HashAsNativeHistory, ReadLocSrc;
 
 var IsParam = function(params, r, ps) {
@@ -95,23 +95,23 @@ var Router = Mix({
         if (!Pnr) {
             Pnr = {
                 rs: MxConfig.routes || {},
-                nf: MxConfig.notFoundView
+                nf: MxConfig.notFound
             };
             //var home=pathCfg.defaultView;//处理默认加载的view
-            //var dPathname=pathCfg.defaultPathname||EMPTY;
+            //var dPathname=pathCfg.defaultPath||EMPTY;
             var defaultView = MxConfig.defaultView;
             /*if (!defaultView) {
                 throw new Error('unset defaultView');
             }*/
             Pnr.dv = defaultView;
-            var defaultPathname = MxConfig.defaultPathname || EMPTY;
+            var defaultPath = MxConfig.defaultPath || EMPTY;
             //if(!Magix.isFunction(temp.rs)){
             r = Pnr.rs;
             Pnr.f = Magix._f(r);
-            if (!Pnr.f && !r[defaultPathname] && defaultView) {
-                r[defaultPathname] = defaultView;
+            if (!Pnr.f && !r[defaultPath] && defaultView) {
+                r[defaultPath] = defaultView;
             }
-            Pnr[PATH] = defaultPathname;
+            Pnr[PATH] = defaultPath;
         }
 
         if (!path) path = Pnr[PATH];
@@ -136,10 +136,10 @@ var Router = Mix({
         /*
         尽可能的延迟配置，防止被依赖时，配置信息不正确
          */
-        UseNativeHistory = MxConfig.nativeHistory;
+        UseEdgeHistory = MxConfig.edge;
 
-        SupportState = UseNativeHistory && H.pushState;
-        HashAsNativeHistory = UseNativeHistory && !SupportState;
+        SupportState = UseEdgeHistory && H.pushState;
+        HashAsNativeHistory = UseEdgeHistory && !SupportState;
 
         ReadLocSrc = SupportState ? 'srcQuery' : 'srcHash';
 
@@ -210,7 +210,7 @@ var Router = Mix({
                 // 情形A. path不变 http://etao.com/list?page=3#!/list?page=2 到支持history state的浏览器上 参数合并;
                 // 情形B .path有变化 http://etao.com/list?page=3#!/home?page=2 到支持history state的浏览器上 参数合并,path以hash中的为准;
             */
-            //if (UseNativeHistory) { //指定使用history state
+            //if (UseEdgeHistory) { //指定使用history state
             /*
                 if(Router.supportState()){//当前浏览器也支持
                     if(hashObj[PATH]){//优先使用hash中的，理由见上1
@@ -233,7 +233,7 @@ var Router = Mix({
             //tempPathname = result.hash[PATH];
             //}
             //上述if else简写成以下形式，方便压缩
-            tempPathname = result.hash[PATH] || (UseNativeHistory && result.query[PATH]);
+            tempPathname = result.hash[PATH] || (UseEdgeHistory && result.query[PATH]);
             var view = Router.viewInfo(tempPathname, result);
             Mix(result, view);
         }
@@ -421,22 +421,13 @@ var Router = Mix({
     }
 
     /**
-     * 当window.location.href有改变化时触发
+     * 当window.location.href有改变化后触发
      * @name Router.changed
      * @event
      * @param {Object} e 事件对象
      * @param {Object} e.location 地址解析出来的对象，包括query hash 以及 query和hash合并出来的params等
      * @param {Object} e.changed 有哪些值发生改变的对象，可通过读取该对象下面的path,view或params，来识别值是从(from)什么值变成(to)什么值
      * @param {Boolean} e.force 标识是否是第一次强制触发的changed，对于首次加载完Magix，会强制触发一次changed
-     */
-
-    /**
-     * 当window.location.href有改变化时触发（该事件在扩展中实现）
-     * @name Router.change
-     * @event
-     * @param {Object} e 事件对象
-     * @param {Object} e.location 地址解析出来的对象，包括query hash 以及 query和hash合并出来的params等
-     * @param {Function} e.back 回退到变化前的地址上，阻止跳转
      */
 
 }, Event);
