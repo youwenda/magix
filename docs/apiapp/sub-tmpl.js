@@ -4,6 +4,7 @@
 KISSY.add('apiapp/sub-tmpl', function(S, View) {
     var SubTmplReg = /\{{2}#magix-tmpl-(\w+)\}{2}([\s\S]*?)\{{2}\/magix-tmpl-\1\}{2}/g;
     var IncludeReg = /\{{2}magix-include-(\w+)\}{2}/g;
+    console.log(View.mixin);
     return View.mixin({
         getSubTmpl: function(name) {
             var me = this;
@@ -25,6 +26,7 @@ KISSY.add('apiapp/sub-tmpl', function(S, View) {
             }).replace(IncludeReg, function(match, name) {
                 return me.$subTmpls[name] || '';
             });
+            console.log(me.template);
         });
     });
 }, {

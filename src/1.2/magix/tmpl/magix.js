@@ -3,13 +3,11 @@ var PathTrimFileReg = /\/[^\/]*$/;
 var PathTrimParamsReg = /[#?].*$/;
 var EMPTY = '';
 var ParamsReg = /([^=&?\/#]+)=?([^&=#?]*)/g;
-var Path = 'path';
 var ProtocalReg = /^https?:\/\//i;
 //var Templates = {};
 var CacheLatest = 0;
 var Slash = '/';
 var DefaultTagName = 'vframe';
-var Newline = '\n';
 var Console = window.console;
 var SupportError = Console && Console.error;
 /**
@@ -105,7 +103,7 @@ Mix(Cache.prototype, {
         var me = this;
         var c = me.c;
         var r;
-        key = Path + key;
+        key = '\u001a' + key;
         if (Has(c, key)) {
             r = c[key];
             if (r.f >= 1) {
@@ -125,7 +123,7 @@ Mix(Cache.prototype, {
         var me = this;
         var c = me.c;
 
-        var key = Path + okey;
+        var key = '\u001a' + okey;
         var r = c[key];
 
         if (!Has(c, key)) {
@@ -154,7 +152,7 @@ Mix(Cache.prototype, {
         return value;
     },
     del: function(k) {
-        k = Path + k;
+        k = '\u001a' + k;
         var c = this.c;
         var r = c[k];
         if (r) {
@@ -168,7 +166,7 @@ Mix(Cache.prototype, {
         }
     },
     has: function(k) {
-        return Has(this.c, Path + k);
+        return Has(this.c, '\u001a' + k);
     }
 });
 
@@ -402,8 +400,8 @@ var Magix = {
             Cfg = Mix(Cfg, I, cfg);
             Cfg['!tnc'] = Cfg.tagName != DefaultTagName;
 
-            R.on('!ul', V.locChged);
-            R.on('changed', V.locChged);
+            R.on('!ul', V.loc);
+            R.on('changed', V.loc);
 
             me.use(Cfg.extensions, R.start);
         });
@@ -464,7 +462,7 @@ var Magix = {
      * http://www.a.com/a/b.html?a=b#!/home?e=f   ./../  => http://www.a.com/
      */
     path: function(url, part) {
-        var key = url + Newline + part;
+        var key = url + '\u001a' + part;
         var result = PathCache.get(key);
         if (!result) {
             if (ProtocalReg.test(part)) {
@@ -513,7 +511,7 @@ var Magix = {
         //6. /xxx/#           => path /xxx/
         //7. a=b&c=d          => path ''
         //8. /s?src=b#        => path /s params:{src:'b'}
-        var key = path + Newline;
+        var key = path + '\u001a';
         var r = PathToObjCache.get(key);
         if (!r) {
             r = {};
@@ -546,7 +544,7 @@ var Magix = {
                 }
                 params[name] = value;
             });
-            r[Path] = pathname;
+            r.path = pathname;
             r.params = params;
             PathToObjCache.set(key, r);
         }

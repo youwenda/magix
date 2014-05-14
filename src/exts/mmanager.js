@@ -105,6 +105,7 @@ KISSY.add('exts/mmanager', function(S, MM, Magix) {
 
                 m.registerModels(MConvert(manager.$mMetas, prefix));
                 m.registerMethods(MConvert(manager.$mMetods, prefix, 1));
+                //inited done fail 事件处理...
                 JoinedCache.set(key, m);
             }
             return m;

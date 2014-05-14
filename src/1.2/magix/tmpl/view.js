@@ -5,7 +5,6 @@ var EMPTY_ARRAY = [];
 var Noop = Magix.noop;
 var Mix = Magix.mix;
 var ResCounter = 0;
-var WrapKey = '~';
 var DestroyStr = 'destroy';
 
 var WrapFn = function(fn) {
@@ -43,7 +42,6 @@ var DestroyAllManaged = function(onlyMR, keepIt) {
 var EvtInfoCache = Magix.cache(40);
 
 var MxEvt = /\smx-(?!view|owner|vframe)[a-z]+\s*=\s*"/g;
-var MxEvtSplit = String.fromCharCode(26);
 
 
 var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(?{([\s\S]*)}\)?)?/;
@@ -67,6 +65,7 @@ var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
  * @property {String} template 当前view对应的模板字符串(当hasTmpl为true时)，该属性在interact事件触发后才存在
  * @property {Boolean} rendered 标识当前view有没有渲染过，即primed事件有没有触发过
  * @property {Object} location window.locaiton.href解析出来的对象
+ * @property {String} path 当前view的包路径名
  * @example
  * 关于事件:
  * 示例：
@@ -104,17 +103,17 @@ var View = function(ops) {
     me.$res = {};
     me.sign = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     me.addNode(me.id);
-    SafeExec(View._, [ops], me);
+    SafeExec(View.$, [ops], me);
 };
 var VProto = View.prototype;
 var Globals = {
     $win: window,
     $doc: document
 };
-View._ = [];
+View.$ = [];
 View.prepare = function(oView) {
-    if (!oView[WrapKey]) { //只处理一次
-        oView[WrapKey] = 1;
+    if (!oView['\u001a']) { //只处理一次
+        oView['\u001a'] = 1;
         //oView.extend = me.extend;
         var prop = oView.prototype;
         var old, temp, name, evts, idx, revts = {}, rsevts = [],
@@ -138,7 +137,7 @@ View.prepare = function(oView) {
                         });
                     } else {
                         revts[temp] = 1;
-                        prop[name + MxEvtSplit + temp] = old;
+                        prop[name + '\u001a' + temp] = old;
                     }
                 }
             } else if (p == 'render' && old != Noop) {
@@ -179,7 +178,7 @@ View.prepare = function(oView) {
  *
  */
 View.mixin = function(props, ctor) {
-    if (ctor) View._.push(ctor);
+    if (ctor) View.$.push(ctor);
     Mix(VProto, props);
 };
 
@@ -352,7 +351,7 @@ Mix(Mix(VProto, Event), {
      * @returns {String} 返回处理后的字符串
      */
     wrapMxEvent: function(html) {
-        return (html + '').replace(MxEvt, '$&' + this.id + MxEvtSplit);
+        return (html + '').replace(MxEvt, '$&' + this.id + '\u001a');
     },
     /**
      * 包装异步回调
@@ -411,7 +410,7 @@ Mix(Mix(VProto, Event), {
         me.endUpdate(id);
     },
     /**
-     * 监视地址栏中的参数或path，有变动时，才调用当前view的locationChange方法。通常情况下location有变化就会引起当前view的locationChange被调用，但这会带来一些不必要的麻烦，所以你可以指定地址栏中哪些参数有变化时才引起locationChange调用，使得view只关注与自已需要刷新有关的参数
+     * 监视地址栏中的参数或path，有变动时，才调用当前view的render方法。通常情况下location有变化不会引起当前view的render被调用，所以你需要指定地址栏中哪些参数有变化时才引起render调用，使得view只关注与自已需要刷新有关的参数
      * @param {Array|String|Object} args  数组字符串或对象
      * @example
      * return View.extend({
@@ -558,7 +557,7 @@ Mix(Mix(VProto, Event), {
                 }
                 EvtInfoCache.set(info, m);
             }
-            var name = m.n + MxEvtSplit + eventType;
+            var name = m.n + '\u001a' + eventType;
             var fn = me[name];
             if (fn) {
                 var tfn = e[m.f];
@@ -611,15 +610,21 @@ Mix(Mix(VProto, Event), {
     inside: function(node) {
         var me = this;
         var contained;
+        console.log(node);
         for (var t in me.$ns) {
             contained = me.$c(node, t);
             if (contained) break;
         }
         if (!contained) {
-            for (var p in me.cM) {
-                var vframe = me.owner.get(p);
-                contained = vframe.inside(node);
-                if (contained) break;
+            var vf = me.owner,
+                vom = me.vom,
+                p, cm = vf.cM;
+            for (p in cm) {
+                vf = vom.get(p);
+                if (vf) {
+                    contained = vf.invokeView('inside', node);
+                    if (contained) break;
+                }
             }
         }
         return contained;

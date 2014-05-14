@@ -15,7 +15,6 @@ var Guid = Now();
 var WJSON = window.JSON;
 var Mix = Magix.mix;
 var Prefix = 'mr';
-var Split = String.fromCharCode(26);
 var DefaultCacheTime = 20 * 60 * 1000;
 var Ser = function(o, f, a, p) {
     if (IsFunction(o)) { //一定要先判断
@@ -47,7 +46,7 @@ var DefaultCacheKey = function(keys, meta, attrs) {
             arr.push(locker[key] = Ser(meta[key], 1), Ser(attrs[key], 1));
         }
     }
-    return arr.join(Split);
+    return arr.join('\u001a');
 };
 var ProcessCache = function(attrs) {
     var cache = attrs.cache;
@@ -82,7 +81,7 @@ var MManager = function(modelClass, serKeys) {
     me.$mMetas = {};
     me.$sKeys = ['postParams', 'urlParams'].concat(serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []);
     me.id = 'mm' + Guid--;
-    SafeExec(MManager.ms, arguments, me);
+    SafeExec(MManager.$, arguments, me);
 };
 
 var Slice = [].slice;
@@ -202,18 +201,6 @@ var DoneFn = function(idx, ops, err) {
         }
     }
 };
-var GenMRequest = function(method) {
-    return function() {
-        var mr = new MRequest(this);
-        var args = arguments;
-        var last = args[args.length - 1];
-        if (last && last.manage) {
-            last.manage(mr);
-            args = Slice.call(args, 0, -1);
-        }
-        return mr[method].apply(mr, args);
-    };
-};
 var GenRequestMethod = function(flag, save) {
     return function(models, done) {
         var cbs = Slice.call(arguments, 1);
@@ -238,10 +225,10 @@ Mix(MManager, {
      * @param  {Function} ctor  在初始化MManager时进行调用的方法
      */
     mixin: function(props, ctor) {
-        if (ctor) MManager.ms.push(ctor);
+        if (ctor) MManager.$.push(ctor);
         Mix(MManager.prototype, props);
     },
-    ms: []
+    $: []
 });
 
 
@@ -358,6 +345,32 @@ Mix(MRequest.prototype, {
      * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {MRequest}
+     * @example
+        //定义
+        #mm_fetchall_1#
+            var TestMM=MM.create(Model);
+            TestMM.registerModels([{
+                name:'Test1',
+                url:'/api/test1.json'
+            },{
+                name:'Test2',
+                url:'/api/test2.json',
+                urlParams:{
+                    type:'2'
+                }
+            }]);
+            return TestMM;
+        #mm_fetchall_2#
+        //使用
+        #mm_fetchall_3#
+            TM.fetchAll([{
+                name:'Test1'
+            },{
+                name:'Test2'
+            }],function(err,m1,m2){
+
+            });
+        });
      */
     fetchAll: function(models, done) {
         return this.send(models, done, FetchFlags_ALL);
@@ -378,6 +391,39 @@ Mix(MRequest.prototype, {
      * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {MRequest}
+     * @example
+        //代码片断：
+        //1：获取多个model，回调只有一个时
+        var r=MM.fetchOrder([
+            {name:'M1'},
+            {name:'M2'},
+            {name:'M3'}
+        ],function(err,model){//m1,m2,m3，谁快先调用谁，且被调用三次
+            if(err){
+                alert(err.msg);
+            }else{
+                alert(model.get('name'));
+            }
+        });
+
+        //2:获取多个model，回调多于一个时
+        var r=MM.fetchOrder([
+            {name:'M1'},
+            {name:'M2'},
+            {name:'M3'}
+        ],function(err,model){//m1什么时间返回，该回调什么时间被调用
+            if(err){
+                alert(err.msg);
+            }else{
+                alert(model.get('name'));
+            }
+        },function(err,model){//m2什么时间返回，该回调什么时间被调用
+            if(err){
+                alert(err.msg);
+            }else{
+                alert(model.get('name'));
+            }
+        });
      */
     fetchOrder: GenRequestMethod(FetchFlags_ORDER),
     /**
@@ -402,6 +448,39 @@ Mix(MRequest.prototype, {
      * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
      * @param {Function} callback   完成时的回调
      * @return {MRequest}
+     * @example
+        //代码片断：
+        //1：获取多个model，回调只有一个时
+        var r=MM.fetchOrder([
+            {name:'M1'},
+            {name:'M2'},
+            {name:'M3'}
+        ],function(err,model){//m1,m2,m3，谁快先调用谁，且被调用三次
+            if(err){
+                alert(err.msg);
+            }else{
+                alert(model.get('name'));
+            }
+        });
+
+        //2:获取多个model，回调多于一个时
+        var r=MM.fetchOrder([
+            {name:'M1'},
+            {name:'M2'},
+            {name:'M3'}
+        ],function(err,model){//m1什么时间返回，该回调什么时间被调用
+            if(err){
+                alert(err.msg);
+            }else{
+                alert(model.get('name'));
+            }
+        },function(err,model){//m2什么时间返回，该回调什么时间被调用
+            if(err){
+                alert(err.msg);
+            }else{
+                alert(model.get('name'));
+            }
+        });
      */
     fetchOne: GenRequestMethod(FetchFlags_ONE),
     /**
@@ -500,8 +579,8 @@ Mix(MRequest.prototype, {
         me.stop();
     }
 });
-
-Mix(Mix(MManager.prototype, Event), {
+MManager.mixin(Event);
+MManager.mixin({
     /**
      * @lends MManager#
      */
@@ -718,154 +797,8 @@ Mix(Mix(MManager.prototype, Event), {
         };
     },
     /**
-     * 保存models，所有请求完成回调done
-     * @function
-     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home'urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} done   完成时的回调
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
-     * @return {MRequest}
-     */
-    saveAll: GenMRequest('saveAll'),
-    /**
-     * 获取models，所有请求完成回调done
-     * @function
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} done   完成时的回调
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
-     * @return {MRequest}
-     * @example
-        //定义
-        #mm_fetchall_1#
-            var TestMM=MM.create(Model);
-            TestMM.registerModels([{
-                name:'Test1',
-                url:'/api/test1.json'
-            },{
-                name:'Test2',
-                url:'/api/test2.json',
-                urlParams:{
-                    type:'2'
-                }
-            }]);
-            return TestMM;
-        #mm_fetchall_2#
-        //使用
-        #mm_fetchall_3#
-            TM.fetchAll([{
-                name:'Test1'
-            },{
-                name:'Test2'
-            }],function(err,m1,m2){
-
-            });
-        });
-     */
-    fetchAll: GenMRequest('fetchAll'),
-    /**
-     * 保存models，按顺序回调done
-     * @function
-     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home'urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} done   完成时的回调
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
-     * @return {MRequest}
-     */
-    saveOrder: GenMRequest('saveOrder'),
-    /**
-     * 获取models，按顺序回调done
-     * @function
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} done   完成时的回调
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
-     * @return {MRequest}
-     * @example
-        //代码片断：
-        //1：当按顺序获取多个model，回调只有一个时
-        var r=MM.fetchOrder([
-            {name:'M1'},
-            {name:'M2'},
-            {name:'M3'}
-        ],function(err,model){//回调按M1,M2,M3的顺序被调用3次
-            if(err){
-                alert(err.msg);
-            }else{
-                alert(model.get('name'));
-            }
-        });
-
-        //2:当按顺序获取多个model，回调多于一个时
-        var r=MM.fetchOrder([
-            {name:'M1'},
-            {name:'M2'},
-            {name:'M3'}
-        ],function(err,model){//首先被调用
-            if(err){
-                alert(err.msg);
-            }else{
-                alert(model.get('name'));
-            }
-        },function(err,model){//其次被调用
-            if(err){
-                alert(err.msg);
-            }else{
-                alert(model.get('name'));
-            }
-        });
-     */
-    fetchOrder: GenMRequest('fetchOrder'),
-    /**
-     * 保存models，其中任意一个成功均立即回调，回调会被调用多次
-     * @function
-     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home',urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} callback   完成时的回调
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
-     * @return {MRequest}
-     */
-    saveOne: GenMRequest('saveOne'),
-    /**
-     * 获取models，其中任意一个成功均立即回调，回调会被调用多次
-     * @function
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} callback   完成时的回调
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
-     * @return {MRequest}
-     * @example
-        //代码片断：
-        //1：获取多个model，回调只有一个时
-        var r=MM.fetchOrder([
-            {name:'M1'},
-            {name:'M2'},
-            {name:'M3'}
-        ],function(err,model){//m1,m2,m3，谁快先调用谁，且被调用三次
-            if(err){
-                alert(err.msg);
-            }else{
-                alert(model.get('name'));
-            }
-        });
-
-        //2:获取多个model，回调多于一个时
-        var r=MM.fetchOrder([
-            {name:'M1'},
-            {name:'M2'},
-            {name:'M3'}
-        ],function(err,model){//m1什么时间返回，该回调什么时间被调用
-            if(err){
-                alert(err.msg);
-            }else{
-                alert(model.get('name'));
-            }
-        },function(err,model){//m2什么时间返回，该回调什么时间被调用
-            if(err){
-                alert(err.msg);
-            }else{
-                alert(model.get('name'));
-            }
-        });
-     */
-    fetchOne: GenMRequest('fetchOne'),
-    /**
      * 创建MRequest对象
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
+     * @param {MxView} view 传递MxView对象，托管MRequest
      * @return {MRequest} 返回MRequest对象
      */
     createMRequest: function(view) {

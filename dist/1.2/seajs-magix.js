@@ -1,4 +1,4 @@
-(function(NULL,WINDOW,DOCUMENT,LIB,IdIt,COUNTER){COUNTER=0;IdIt=function(n){return n.id||(n.id='mx_n_'+(++COUNTER))};/**
+(function(NULL,WINDOW,DOCUMENT,SPLITER,LIB,IdIt,COUNTER){COUNTER=0;IdIt=function(n){return n.id||(n.id='mx_n_'+(++COUNTER))};/**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.1
@@ -19,13 +19,11 @@ var PathTrimFileReg = /\/[^\/]*$/;
 var PathTrimParamsReg = /[#?].*$/;
 var EMPTY = '';
 var ParamsReg = /([^=&?\/#]+)=?([^&=#?]*)/g;
-var Path = 'path';
 var ProtocalReg = /^https?:\/\//i;
 //var Templates = {};
 var CacheLatest = 0;
 var Slash = '/';
 var DefaultTagName = 'vframe';
-var Newline = '\n';
 var Console = WINDOW.console;
 var SupportError = Console && Console.error;
 /**
@@ -121,7 +119,7 @@ Mix(Cache.prototype, {
         var me = this;
         var c = me.c;
         var r;
-        key = Path + key;
+        key = SPLITER + key;
         if (Has(c, key)) {
             r = c[key];
             if (r.f >= 1) {
@@ -141,7 +139,7 @@ Mix(Cache.prototype, {
         var me = this;
         var c = me.c;
 
-        var key = Path + okey;
+        var key = SPLITER + okey;
         var r = c[key];
 
         if (!Has(c, key)) {
@@ -170,7 +168,7 @@ Mix(Cache.prototype, {
         return value;
     },
     del: function(k) {
-        k = Path + k;
+        k = SPLITER + k;
         var c = this.c;
         var r = c[k];
         if (r) {
@@ -184,7 +182,7 @@ Mix(Cache.prototype, {
         }
     },
     has: function(k) {
-        return Has(this.c, Path + k);
+        return Has(this.c, SPLITER + k);
     }
 });
 
@@ -418,8 +416,8 @@ var Magix = {
             Cfg = Mix(Cfg, I, cfg);
             Cfg['!tnc'] = Cfg.tagName != DefaultTagName;
 
-            R.on('!ul', V.locChged);
-            R.on('changed', V.locChged);
+            R.on('!ul', V.loc);
+            R.on('changed', V.loc);
 
             me.use(Cfg.extensions, R.start);
         });
@@ -480,7 +478,7 @@ var Magix = {
      * http://www.a.com/a/b.html?a=b#!/home?e=f   ./../  => http://www.a.com/
      */
     path: function(url, part) {
-        var key = url + Newline + part;
+        var key = url + SPLITER + part;
         var result = PathCache.get(key);
         if (!result) {
             if (ProtocalReg.test(part)) {
@@ -528,7 +526,7 @@ var Magix = {
         //6. /xxx/#           => path /xxx/
         //7. a=b&c=d          => path ''
         //8. /s?src=b#        => path /s params:{src:'b'}
-        var key = path + Newline;
+        var key = path + SPLITER;
         var r = PathToObjCache.get(key);
         if (!r) {
             r = {};
@@ -561,7 +559,7 @@ var Magix = {
                 }
                 params[name] = value;
             });
-            r[Path] = pathname;
+            r.path = pathname;
             r.params = params;
             PathToObjCache.set(key, r);
         }
@@ -1134,22 +1132,13 @@ var Router = Mix({
     }
 
     /**
-     * 当WINDOW.location.href有改变化时触发
+     * 当WINDOW.location.href有改变化后触发
      * @name Router.changed
      * @event
      * @param {Object} e 事件对象
      * @param {Object} e.location 地址解析出来的对象，包括query hash 以及 query和hash合并出来的params等
      * @param {Object} e.changed 有哪些值发生改变的对象，可通过读取该对象下面的path,view或params，来识别值是从(from)什么值变成(to)什么值
      * @param {Boolean} e.force 标识是否是第一次强制触发的changed，对于首次加载完Magix，会强制触发一次changed
-     */
-
-    /**
-     * 当WINDOW.location.href有改变化时触发（该事件在扩展中实现）
-     * @name Router.change
-     * @event
-     * @param {Object} e 事件对象
-     * @param {Object} e.location 地址解析出来的对象，包括query hash 以及 query和hash合并出来的params等
-     * @param {Function} e.back 回退到变化前的地址上，阻止跳转
      */
 
 }, Event);
@@ -1178,7 +1167,6 @@ LIB("magix/body", ["magix/magix"], function(require) {
     var Has = Magix.has;
 //依赖类库才能支持冒泡的事件
 var RootEvents = {};
-var MxEvtSplit = String.fromCharCode(26);
 var Noop = Magix.noop;
 
 var MxIgnore = 'mx-ei';
@@ -1248,7 +1236,7 @@ var Body = {
             if (info) { //有事件
                 //找处理事件的vframe
                 var vId;
-                var ts = info.split(MxEvtSplit);
+                var ts = info.split(SPLITER);
                 if (ts.length > 1) {
                     vId = ts[0];
                     info = ts.pop();
@@ -1347,16 +1335,7 @@ var Body = {
  **/
 LIB("magix/event", ["magix/magix"], function(require) {
     var Magix = require("magix/magix");
-    /**
- * 根据名称生成事件数组的key
- * @param {Strig} name 事件名称
- * @return {String} 包装后的key
- */
-var GenKey = function(name) {
-    return '~' + name;
-};
-
-var SafeExec = Magix.tryCall;
+    var SafeExec = Magix.tryCall;
 /**
  * 多播事件对象
  * @name Event
@@ -1374,7 +1353,7 @@ var Event = {
      * @param {Boolean} lastToFirst 是否从后向前触发事件的监听列表
      */
     fire: function(name, data, remove, lastToFirst) {
-        var key = GenKey(name),
+        var key = SPLITER + name,
             me = this,
             list = me[key];
         if (list) {
@@ -1425,12 +1404,12 @@ var Event = {
         T.fire('done',{data:'test2'});
      */
     on: function(name, fn, insert) {
-        var key = GenKey(name);
+        var key = SPLITER + name;
         var list = this[key] || (this[key] = []);
         var wrap = {
             f: fn
         };
-        if (isNaN(insert)) {
+        if (insert == SafeExec) {
             wrap.r = insert;
             list.push(wrap);
         } else {
@@ -1458,9 +1437,9 @@ var Event = {
     rely: function(name, fn, relyObj, relyName, insert) {
         var me = this;
         me.on(name, fn, insert);
-        relyObj.on(relyName, function() {
+        relyObj.on(relyName, function() { //once
             me.off(name, fn);
-        }, GenKey);
+        }, SafeExec);
     },
     /**
      * 解除事件绑定
@@ -1468,7 +1447,7 @@ var Event = {
      * @param {Function} fn 事件回调
      */
     off: function(name, fn) {
-        var key = GenKey(name),
+        var key = SPLITER + name,
             list = this[key];
         if (list) {
             if (fn) {
@@ -1490,7 +1469,7 @@ var Event = {
      * @param {Function} fn 事件回调
      */
     once: function(name, fn) {
-        this.on(name, fn, GenKey);
+        this.on(name, fn, SafeExec);
     }
 };
 Magix.mix(Magix.local, Event);
@@ -2055,7 +2034,6 @@ var EMPTY_ARRAY = [];
 var Noop = Magix.noop;
 var Mix = Magix.mix;
 var ResCounter = 0;
-var WrapKey = '~';
 var DestroyStr = 'destroy';
 
 var WrapFn = function(fn) {
@@ -2093,7 +2071,6 @@ var DestroyAllManaged = function(onlyMR, keepIt) {
 var EvtInfoCache = Magix.cache(40);
 
 var MxEvt = /\smx-(?!view|owner|vframe)[a-z]+\s*=\s*"/g;
-var MxEvtSplit = String.fromCharCode(26);
 
 
 var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(?{([\s\S]*)}\)?)?/;
@@ -2117,6 +2094,7 @@ var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
  * @property {String} template 当前view对应的模板字符串(当hasTmpl为true时)，该属性在interact事件触发后才存在
  * @property {Boolean} rendered 标识当前view有没有渲染过，即primed事件有没有触发过
  * @property {Object} location WINDOW.locaiton.href解析出来的对象
+ * @property {String} path 当前view的包路径名
  * @example
  * 关于事件:
  * 示例：
@@ -2154,17 +2132,17 @@ var View = function(ops) {
     me.$res = {};
     me.sign = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     me.addNode(me.id);
-    SafeExec(View._, [ops], me);
+    SafeExec(View.$, [ops], me);
 };
 var VProto = View.prototype;
 var Globals = {
     $win: WINDOW,
     $doc: DOCUMENT
 };
-View._ = [];
+View.$ = [];
 View.prepare = function(oView) {
-    if (!oView[WrapKey]) { //只处理一次
-        oView[WrapKey] = 1;
+    if (!oView[SPLITER]) { //只处理一次
+        oView[SPLITER] = 1;
         //oView.extend = me.extend;
         var prop = oView.prototype;
         var old, temp, name, evts, idx, revts = {}, rsevts = [],
@@ -2188,7 +2166,7 @@ View.prepare = function(oView) {
                         });
                     } else {
                         revts[temp] = 1;
-                        prop[name + MxEvtSplit + temp] = old;
+                        prop[name + SPLITER + temp] = old;
                     }
                 }
             } else if (p == 'render' && old != Noop) {
@@ -2229,7 +2207,7 @@ View.prepare = function(oView) {
  *
  */
 View.mixin = function(props, ctor) {
-    if (ctor) View._.push(ctor);
+    if (ctor) View.$.push(ctor);
     Mix(VProto, props);
 };
 
@@ -2402,7 +2380,7 @@ Mix(Mix(VProto, Event), {
      * @returns {String} 返回处理后的字符串
      */
     wrapMxEvent: function(html) {
-        return (html + '').replace(MxEvt, '$&' + this.id + MxEvtSplit);
+        return (html + '').replace(MxEvt, '$&' + this.id + SPLITER);
     },
     /**
      * 包装异步回调
@@ -2461,7 +2439,7 @@ Mix(Mix(VProto, Event), {
         me.endUpdate(id);
     },
     /**
-     * 监视地址栏中的参数或path，有变动时，才调用当前view的locationChange方法。通常情况下location有变化就会引起当前view的locationChange被调用，但这会带来一些不必要的麻烦，所以你可以指定地址栏中哪些参数有变化时才引起locationChange调用，使得view只关注与自已需要刷新有关的参数
+     * 监视地址栏中的参数或path，有变动时，才调用当前view的render方法。通常情况下location有变化不会引起当前view的render被调用，所以你需要指定地址栏中哪些参数有变化时才引起render调用，使得view只关注与自已需要刷新有关的参数
      * @param {Array|String|Object} args  数组字符串或对象
      * @example
      * return View.extend({
@@ -2608,7 +2586,7 @@ Mix(Mix(VProto, Event), {
                 }
                 EvtInfoCache.set(info, m);
             }
-            var name = m.n + MxEvtSplit + eventType;
+            var name = m.n + SPLITER + eventType;
             var fn = me[name];
             if (fn) {
                 var tfn = e[m.f];
@@ -2666,10 +2644,15 @@ Mix(Mix(VProto, Event), {
             if (contained) break;
         }
         if (!contained) {
-            for (var p in me.cM) {
-                var vframe = me.owner.get(p);
-                contained = vframe.inside(node);
-                if (contained) break;
+            var vf = me.owner,
+                vom = me.vom,
+                p, cm = vf.cM;
+            for (p in cm) {
+                vf = vom.get(p);
+                if (vf) {
+                    contained = vf.invokeView('inside', node);
+                    if (contained) break;
+                }
             }
         }
         return contained;
@@ -3223,7 +3206,7 @@ var VOM = Magix.mix({
      * @param {Object} e.changed 包含有哪些变化的对象
      * @private
      */
-    locChged: function(e) {
+    loc: function(e) {
         var loc = e.loc;
         var hack;
         if (loc) {
@@ -3300,7 +3283,6 @@ var Guid = Now();
 var WJSON = WINDOW.JSON;
 var Mix = Magix.mix;
 var Prefix = 'mr';
-var Split = String.fromCharCode(26);
 var DefaultCacheTime = 20 * 60 * 1000;
 var Ser = function(o, f, a, p) {
     if (IsFunction(o)) { //一定要先判断
@@ -3332,7 +3314,7 @@ var DefaultCacheKey = function(keys, meta, attrs) {
             arr.push(locker[key] = Ser(meta[key], 1), Ser(attrs[key], 1));
         }
     }
-    return arr.join(Split);
+    return arr.join(SPLITER);
 };
 var ProcessCache = function(attrs) {
     var cache = attrs.cache;
@@ -3367,7 +3349,7 @@ var MManager = function(modelClass, serKeys) {
     me.$mMetas = {};
     me.$sKeys = ['postParams', 'urlParams'].concat(serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []);
     me.id = 'mm' + Guid--;
-    SafeExec(MManager.ms, arguments, me);
+    SafeExec(MManager.$, arguments, me);
 };
 
 var Slice = [].slice;
@@ -3486,18 +3468,6 @@ var DoneFn = function(idx, ops, err) {
         }
     }
 };
-var GenMRequest = function(method) {
-    return function() {
-        var mr = new MRequest(this);
-        var args = arguments;
-        var last = args[args.length - 1];
-        if (last && last.manage) {
-            last.manage(mr);
-            args = Slice.call(args, 0, -1);
-        }
-        return mr[method].apply(mr, args);
-    };
-};
 var GenRequestMethod = function(flag, save) {
     return function(models, done) {
         var cbs = Slice.call(arguments, 1);
@@ -3522,10 +3492,10 @@ Mix(MManager, {
      * @param  {Function} ctor  在初始化MManager时进行调用的方法
      */
     mixin: function(props, ctor) {
-        if (ctor) MManager.ms.push(ctor);
+        if (ctor) MManager.$.push(ctor);
         Mix(MManager.prototype, props);
     },
-    ms: []
+    $: []
 });
 
 
@@ -3642,6 +3612,40 @@ Mix(MRequest.prototype, {
      * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {MRequest}
+     * @example
+        //定义
+        
+        LIB('testMM',["magix/mmanager","magix/model"],function(require){
+            var MM=require("magix/mmanager");
+            var Model=require("magix/model");
+        
+            var TestMM=MM.create(Model);
+            TestMM.registerModels([{
+                name:'Test1',
+                url:'/api/test1.json'
+            },{
+                name:'Test2',
+                url:'/api/test2.json',
+                urlParams:{
+                    type:'2'
+                }
+            }]);
+            return TestMM;
+        
+        });
+        
+        //使用
+        
+        seajs.use('testMM',function(TM){
+        
+            TM.fetchAll([{
+                name:'Test1'
+            },{
+                name:'Test2'
+            }],function(err,m1,m2){
+
+            });
+        });
      */
     fetchAll: function(models, done) {
         return this.send(models, done, FetchFlags_ALL);
@@ -3662,6 +3666,39 @@ Mix(MRequest.prototype, {
      * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {MRequest}
+     * @example
+        //代码片断：
+        //1：获取多个model，回调只有一个时
+        var r=MM.fetchOrder([
+            {name:'M1'},
+            {name:'M2'},
+            {name:'M3'}
+        ],function(err,model){//m1,m2,m3，谁快先调用谁，且被调用三次
+            if(err){
+                alert(err.msg);
+            }else{
+                alert(model.get('name'));
+            }
+        });
+
+        //2:获取多个model，回调多于一个时
+        var r=MM.fetchOrder([
+            {name:'M1'},
+            {name:'M2'},
+            {name:'M3'}
+        ],function(err,model){//m1什么时间返回，该回调什么时间被调用
+            if(err){
+                alert(err.msg);
+            }else{
+                alert(model.get('name'));
+            }
+        },function(err,model){//m2什么时间返回，该回调什么时间被调用
+            if(err){
+                alert(err.msg);
+            }else{
+                alert(model.get('name'));
+            }
+        });
      */
     fetchOrder: GenRequestMethod(FetchFlags_ORDER),
     /**
@@ -3686,6 +3723,39 @@ Mix(MRequest.prototype, {
      * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
      * @param {Function} callback   完成时的回调
      * @return {MRequest}
+     * @example
+        //代码片断：
+        //1：获取多个model，回调只有一个时
+        var r=MM.fetchOrder([
+            {name:'M1'},
+            {name:'M2'},
+            {name:'M3'}
+        ],function(err,model){//m1,m2,m3，谁快先调用谁，且被调用三次
+            if(err){
+                alert(err.msg);
+            }else{
+                alert(model.get('name'));
+            }
+        });
+
+        //2:获取多个model，回调多于一个时
+        var r=MM.fetchOrder([
+            {name:'M1'},
+            {name:'M2'},
+            {name:'M3'}
+        ],function(err,model){//m1什么时间返回，该回调什么时间被调用
+            if(err){
+                alert(err.msg);
+            }else{
+                alert(model.get('name'));
+            }
+        },function(err,model){//m2什么时间返回，该回调什么时间被调用
+            if(err){
+                alert(err.msg);
+            }else{
+                alert(model.get('name'));
+            }
+        });
      */
     fetchOne: GenRequestMethod(FetchFlags_ONE),
     /**
@@ -3782,8 +3852,8 @@ Mix(MRequest.prototype, {
         me.stop();
     }
 });
-
-Mix(Mix(MManager.prototype, Event), {
+MManager.mixin(Event);
+MManager.mixin({
     /**
      * @lends MManager#
      */
@@ -4000,162 +4070,8 @@ Mix(Mix(MManager.prototype, Event), {
         };
     },
     /**
-     * 保存models，所有请求完成回调done
-     * @function
-     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home'urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} done   完成时的回调
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
-     * @return {MRequest}
-     */
-    saveAll: GenMRequest('saveAll'),
-    /**
-     * 获取models，所有请求完成回调done
-     * @function
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} done   完成时的回调
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
-     * @return {MRequest}
-     * @example
-        //定义
-        
-        LIB('testMM',["magix/mmanager","magix/model"],function(require){
-            var MM=require("magix/mmanager");
-            var Model=require("magix/model");
-        
-            var TestMM=MM.create(Model);
-            TestMM.registerModels([{
-                name:'Test1',
-                url:'/api/test1.json'
-            },{
-                name:'Test2',
-                url:'/api/test2.json',
-                urlParams:{
-                    type:'2'
-                }
-            }]);
-            return TestMM;
-        
-        });
-        
-        //使用
-        
-        seajs.use('testMM',function(TM){
-        
-            TM.fetchAll([{
-                name:'Test1'
-            },{
-                name:'Test2'
-            }],function(err,m1,m2){
-
-            });
-        });
-     */
-    fetchAll: GenMRequest('fetchAll'),
-    /**
-     * 保存models，按顺序回调done
-     * @function
-     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home'urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} done   完成时的回调
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
-     * @return {MRequest}
-     */
-    saveOrder: GenMRequest('saveOrder'),
-    /**
-     * 获取models，按顺序回调done
-     * @function
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} done   完成时的回调
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
-     * @return {MRequest}
-     * @example
-        //代码片断：
-        //1：当按顺序获取多个model，回调只有一个时
-        var r=MM.fetchOrder([
-            {name:'M1'},
-            {name:'M2'},
-            {name:'M3'}
-        ],function(err,model){//回调按M1,M2,M3的顺序被调用3次
-            if(err){
-                alert(err.msg);
-            }else{
-                alert(model.get('name'));
-            }
-        });
-
-        //2:当按顺序获取多个model，回调多于一个时
-        var r=MM.fetchOrder([
-            {name:'M1'},
-            {name:'M2'},
-            {name:'M3'}
-        ],function(err,model){//首先被调用
-            if(err){
-                alert(err.msg);
-            }else{
-                alert(model.get('name'));
-            }
-        },function(err,model){//其次被调用
-            if(err){
-                alert(err.msg);
-            }else{
-                alert(model.get('name'));
-            }
-        });
-     */
-    fetchOrder: GenMRequest('fetchOrder'),
-    /**
-     * 保存models，其中任意一个成功均立即回调，回调会被调用多次
-     * @function
-     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home',urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} callback   完成时的回调
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
-     * @return {MRequest}
-     */
-    saveOne: GenMRequest('saveOne'),
-    /**
-     * 获取models，其中任意一个成功均立即回调，回调会被调用多次
-     * @function
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} callback   完成时的回调
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
-     * @return {MRequest}
-     * @example
-        //代码片断：
-        //1：获取多个model，回调只有一个时
-        var r=MM.fetchOrder([
-            {name:'M1'},
-            {name:'M2'},
-            {name:'M3'}
-        ],function(err,model){//m1,m2,m3，谁快先调用谁，且被调用三次
-            if(err){
-                alert(err.msg);
-            }else{
-                alert(model.get('name'));
-            }
-        });
-
-        //2:获取多个model，回调多于一个时
-        var r=MM.fetchOrder([
-            {name:'M1'},
-            {name:'M2'},
-            {name:'M3'}
-        ],function(err,model){//m1什么时间返回，该回调什么时间被调用
-            if(err){
-                alert(err.msg);
-            }else{
-                alert(model.get('name'));
-            }
-        },function(err,model){//m2什么时间返回，该回调什么时间被调用
-            if(err){
-                alert(err.msg);
-            }else{
-                alert(model.get('name'));
-            }
-        });
-     */
-    fetchOne: GenMRequest('fetchOne'),
-    /**
      * 创建MRequest对象
-     * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
+     * @param {MxView} view 传递MxView对象，托管MRequest
      * @return {MRequest} 返回MRequest对象
      */
     createMRequest: function(view) {
@@ -4297,7 +4213,6 @@ var GenSetParams = function(type, iv) {
         this.setParams(o1, o2, type, iv);
     };
 };
-var And = '&';
 var Empty = '';
 var FixParamsReg = /^\?|=(?=&|$)/g;
 Magix.mix(Model, {
@@ -4358,7 +4273,7 @@ Magix.mix(Model.prototype, {
      */
     /*getParamsObject:function(type){
             if(!type)type=Model.GET;
-            return this[And+type]||null;
+            return this[SPLITER+type]||null;
         },*/
     /**
      * 获取参数对象
@@ -4394,10 +4309,10 @@ Magix.mix(Model.prototype, {
      * @return {String}
      */
     getParams: function(type) {
-        var params = Magix.toUrl(Empty, this[And + (type || Model.GET)]);
+        var params = Magix.toUrl(Empty, this[SPLITER + (type || Model.GET)]);
         params = params.replace(FixParamsReg, Empty);
         return params;
-        /*var k = And + type;
+        /*var k = SPLITER + type;
         var params = me[k];
         var arr = [];
         var v;
@@ -4415,7 +4330,7 @@ Magix.mix(Model.prototype, {
                 arr.push(p + '=' + Encode(v[i]));
             }*/
         /*}
-        return arr.join(And);*/
+        return arr.join(SPLITER);*/
     },
     /**
      * 设置url参数，只有未设置过的参数才进行设置
@@ -4443,7 +4358,7 @@ Magix.mix(Model.prototype, {
         /*if (!me.$types) me.$types = {};
         me.$types[type] = true;*/
 
-        var k = And + type,
+        var k = SPLITER + type,
             t, p, obj;
         if (!me[k]) me[k] = {};
         obj = me[k];
@@ -4480,7 +4395,7 @@ Magix.mix(Model.prototype, {
      */
     /*removeParamsObject:function(type){
             if(!type)type=Model.GET;
-            delete this[And+type];
+            delete this[SPLITER+type];
         },*/
     /**
      * @private
@@ -4502,7 +4417,7 @@ Magix.mix(Model.prototype, {
         var keysCache = me.$types;
         if (keysCache) {
             for (var p in keysCache) {
-                delete me[And + p];
+                delete me[SPLITER + p];
             }
             delete me.$types;
         }
@@ -4622,4 +4537,4 @@ Magix.mix(Model.prototype, {
     }
 });
     return Model;
-});;DOCUMENT.createElement("vframe");})(null,this,document,define)
+});;DOCUMENT.createElement("vframe");})(null,this,document,"\u001f",define)

@@ -91,7 +91,8 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
                 callback(null, InfosCache.get(key));
                 return;
             }
-            var r = MM.fetchAll({
+            var r = MM.createMRequest(view);
+            r.fetchAll({
                 name: 'Class_List'
             }, function(e, m) {
                 if (e) {
@@ -113,7 +114,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
                     }
                     return models;
                 }
-            }, view);
+            });
             r.next(function(e, results) {
                 r.fetchAll(results, function(e) {
                     if (e) {

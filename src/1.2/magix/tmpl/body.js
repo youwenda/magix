@@ -1,7 +1,6 @@
 var Has = Magix.has;
 //依赖类库才能支持冒泡的事件
 var RootEvents = {};
-var MxEvtSplit = String.fromCharCode(26);
 var Noop = Magix.noop;
 
 var MxIgnore = 'mx-ei';
@@ -73,7 +72,7 @@ var Body = {
             if (info) { //有事件
                 //找处理事件的vframe
                 var vId;
-                var ts = info.split(MxEvtSplit);
+                var ts = info.split('\u001a');
                 if (ts.length > 1) {
                     vId = ts[0];
                     info = ts.pop();

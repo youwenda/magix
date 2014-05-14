@@ -22,7 +22,6 @@ var GenSetParams = function(type, iv) {
         this.setParams(o1, o2, type, iv);
     };
 };
-var And = '&';
 var Empty = '';
 var FixParamsReg = /^\?|=(?=&|$)/g;
 Magix.mix(Model, {
@@ -83,7 +82,7 @@ Magix.mix(Model.prototype, {
      */
     /*getParamsObject:function(type){
             if(!type)type=Model.GET;
-            return this[And+type]||null;
+            return this['\u001a'+type]||null;
         },*/
     /**
      * 获取参数对象
@@ -119,10 +118,10 @@ Magix.mix(Model.prototype, {
      * @return {String}
      */
     getParams: function(type) {
-        var params = Magix.toUrl(Empty, this[And + (type || Model.GET)]);
+        var params = Magix.toUrl(Empty, this['\u001a' + (type || Model.GET)]);
         params = params.replace(FixParamsReg, Empty);
         return params;
-        /*var k = And + type;
+        /*var k = '\u001a' + type;
         var params = me[k];
         var arr = [];
         var v;
@@ -140,7 +139,7 @@ Magix.mix(Model.prototype, {
                 arr.push(p + '=' + Encode(v[i]));
             }*/
         /*}
-        return arr.join(And);*/
+        return arr.join('\u001a');*/
     },
     /**
      * 设置url参数，只有未设置过的参数才进行设置
@@ -168,7 +167,7 @@ Magix.mix(Model.prototype, {
         /*if (!me.$types) me.$types = {};
         me.$types[type] = true;*/
 
-        var k = And + type,
+        var k = '\u001a' + type,
             t, p, obj;
         if (!me[k]) me[k] = {};
         obj = me[k];
@@ -205,7 +204,7 @@ Magix.mix(Model.prototype, {
      */
     /*removeParamsObject:function(type){
             if(!type)type=Model.GET;
-            delete this[And+type];
+            delete this['\u001a'+type];
         },*/
     /**
      * @private
@@ -227,7 +226,7 @@ Magix.mix(Model.prototype, {
         var keysCache = me.$types;
         if (keysCache) {
             for (var p in keysCache) {
-                delete me[And + p];
+                delete me['\u001a' + p];
             }
             delete me.$types;
         }

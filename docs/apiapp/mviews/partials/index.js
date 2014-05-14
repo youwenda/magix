@@ -9,7 +9,7 @@ KISSY.add('apiapp/mviews/partials/index', function(S, View, MM, Crox, Magix) {
                 if (e) {
                     me.setViewHTML(me.id, e.msg);
                 }
-                MM.fetchAll({
+                MM.createMRequest(me).fetchAll({
                     name: 'Class_List'
                 }, function(e, m) {
                     if (e) {
@@ -30,7 +30,7 @@ KISSY.add('apiapp/mviews/partials/index', function(S, View, MM, Crox, Magix) {
                         });
                         me.setViewHTML(me.id, html);
                     }
-                }, me);
+                });
             }, me);
         }
     });

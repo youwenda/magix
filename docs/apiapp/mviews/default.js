@@ -24,12 +24,14 @@ KISSY.add('apiapp/mviews/default', function(S, View, Magix, VOM) {
             var loc = this.location;
             var infos = loc.path.match(pnReg);
             var vf = VOM.get('magix_vf_main');
+            console.log(vf, infos, loc);
             if (infos) {
                 Magix.local('APIPathInfo', {
                     loader: infos[1],
                     ver: infos[2],
                     action: infos[3]
                 });
+                console.log('xxxx');
                 var view = infos[3];
                 if (!NonClass[view]) {
                     view = 'class';
