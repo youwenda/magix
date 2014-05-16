@@ -76,7 +76,7 @@ var VOM = Magix.mix({
      * @param {Object} e.changed 包含有哪些变化的对象
      * @private
      */
-    locChged: function(e) {
+    loc: function(e) {
         var loc = e.loc;
         var hack;
         if (loc) {

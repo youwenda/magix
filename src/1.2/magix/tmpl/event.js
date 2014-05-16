@@ -72,7 +72,8 @@ var Event = {
         var wrap = {
             f: fn
         };
-        if (insert == SafeExec) {
+
+        if (isNaN(insert)) {
             wrap.r = insert;
             list.push(wrap);
         } else {

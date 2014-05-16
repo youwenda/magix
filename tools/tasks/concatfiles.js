@@ -50,7 +50,6 @@ module.exports = function(grunt) {
                 });
             }
         }
-
         grunt.config.set('copy', {
             main: {
                 files: [{

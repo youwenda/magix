@@ -964,39 +964,29 @@ var Router = Mix({
     getChged: function(oldLocation, newLocation) {
         var oKey = oldLocation.href;
         var nKey = newLocation.href;
-        var tKey = oKey + '\n' + nKey;
+        var tKey = oKey + SPLITER + nKey;
         var result = ChgdCache.get(tKey);
         if (!result) {
             var hasChanged, from, to;
-            result = {};
+            result = {
+                isParam: IsParam,
+                isPath: IsPath,
+                isView: IsView
+            };
             result[VIEW] = to;
             result[PATH] = to;
             result[PARAMS] = {};
-            var tArr = [PATH, VIEW],
-                idx, key;
-            for (idx = 1; idx >= 0; idx--) {
-                key = tArr[idx];
-                from = oldLocation[key];
-                to = newLocation[key];
-                if (from != to) {
-                    result[key] = {
-                        from: from,
-                        to: to
-                    };
-                    hasChanged = 1;
-                }
-            }
-
 
             var oldParams = oldLocation[PARAMS],
                 newParams = newLocation[PARAMS];
-            tArr = OKeys(oldParams).concat(OKeys(newParams));
+            var tArr = [PATH, VIEW].concat(OKeys(oldParams), OKeys(newParams)),
+                idx, key;
             for (idx = tArr.length - 1; idx >= 0; idx--) {
                 key = tArr[idx];
-                from = oldParams[key];
-                to = newParams[key];
+                from = (idx > 1 ? oldParams : oldLocation)[key];
+                to = (idx > 1 ? newParams : newLocation)[key];
                 if (from != to) {
-                    result[PARAMS][key] = {
+                    (idx > 1 ? result[PARAMS] : result)[key] = {
                         from: from,
                         to: to
                     };
@@ -1004,9 +994,6 @@ var Router = Mix({
                 }
             }
             result.occur = hasChanged;
-            result.isParam = IsParam;
-            result.isPath = IsPath;
-            result.isView = IsView;
             ChgdCache.set(tKey, result);
         }
         return result;
@@ -1167,7 +1154,6 @@ LIB("magix/body", ["magix/magix"], function(Magix) {
     var Has = Magix.has;
 //依赖类库才能支持冒泡的事件
 var RootEvents = {};
-var Noop = Magix.noop;
 
 var MxIgnore = 'mx-ei';
 var MxOwner = 'mx-owner';
@@ -1190,6 +1176,9 @@ var GetSetAttribute = function(dom, attrKey, attrVal) {
 var Halt = function() {
     this.prevent();
     this.stop();
+};
+var Prevented = function() {
+    this.prevented = 1;
 };
 var VOM;
 var Body = {
@@ -1260,8 +1249,8 @@ var Body = {
                     if (view) {
                         e.currentId = IdIt(current);
                         e.targetId = IdIt(target);
-                        e.prevent = e.preventDefault || Noop;
-                        e.stop = e.stopPropagation || Noop;
+                        e.prevent = e.preventDefault || Prevented;
+                        e.stop = e.stopPropagation || Magix.noop;
                         e.halt = Halt;
                         view.pEvt(info, eventType, e);
                     }
@@ -1408,7 +1397,8 @@ var Event = {
         var wrap = {
             f: fn
         };
-        if (insert == SafeExec) {
+
+        if (isNaN(insert)) {
             wrap.r = insert;
             list.push(wrap);
         } else {
@@ -2626,23 +2616,24 @@ Mix(Mix(VProto, Event), {
     /**
      * 判断节点是否在当前view控制的dom节点内
      * @param  {String} node 节点id
+     * @param {Boolean} [deep] 是否深度遍历子view，默认false
      * @return {Boolean}
      */
-    inside: function(node) {
+    inside: function(node, deep) {
         var me = this;
         var contained;
         for (var t in me.$ns) {
             contained = me.$c(node, t);
             if (contained) break;
         }
-        if (!contained) {
+        if (!contained && deep) {
             var vf = me.owner,
                 vom = me.vom,
                 p, cm = vf.cM;
             for (p in cm) {
                 vf = vom.get(p);
                 if (vf) {
-                    contained = vf.invokeView('inside', node);
+                    contained = vf.invokeView('inside', [node, deep]);
                     if (contained) break;
                 }
             }
@@ -3332,7 +3323,7 @@ var MManager = function(modelClass, serKeys) {
     me.$mCache = Magix.cache();
     me.$mCacheKeys = {};
     me.$mMetas = {};
-    me.$sKeys = ['postParams', 'urlParams'].concat(serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []);
+    me.$sKeys = (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
     me.id = 'mm' + Guid--;
     SafeExec(MManager.$, arguments, me);
 };
@@ -3341,8 +3332,8 @@ var Slice = [].slice;
 
 
 var WrapDone = function(fn, model, idx, ops) {
-    return function() {
-        return fn.apply(model, [idx, ops].concat(Slice.call(arguments)));
+    return function(err) {
+        return fn.apply(model, [idx, ops, err]);
     };
 };
 var CacheDone = function(err, ops) {
@@ -3560,8 +3551,10 @@ Mix(MRequest.prototype, {
             model = models[i];
             if (model) {
                 var modelInfo = host.getModel(model, save);
-                var cacheKey = modelInfo.cKey;
+
                 var modelEntity = modelInfo.entity;
+                var cacheKey = modelEntity.$mm.key;
+
                 var wrapDoneFn = WrapDone(DoneFn, modelEntity, i, options);
                 wrapDoneFn.id = me.id;
 
@@ -4048,7 +4041,6 @@ MManager.mixin({
         }
         return {
             entity: entity,
-            cKey: entity.$mm.key,
             update: needUpdate
         };
     },
@@ -4199,20 +4191,12 @@ var GenSetParams = function(type, iv) {
 };
 var Empty = '';
 var FixParamsReg = /^\?|=(?=&|$)/g;
+var GET = 'GET',
+    POST = 'POST';
 Magix.mix(Model, {
     /**
      * @lends Model
      */
-    /**
-     * GET枚举
-     * @type {String}
-     */
-    GET: 'GET',
-    /**
-     * POST枚举
-     * @type {String}
-     */
-    POST: 'POST',
     /**
      * 继承
      * @function
@@ -4252,11 +4236,11 @@ Magix.mix(Model.prototype, {
     },*/
     /**
      * 获取参数对象
-     * @param  {String} [type] 参数分组的key[Model.GET,Model.POST]，默认为Model.GET
+     * @param  {String} [type] 参数分组的key[GET,POST]，默认为GET
      * @return {Object}
      */
     /*getParamsObject:function(type){
-            if(!type)type=Model.GET;
+            if(!type)type=GET;
             return this[SPLITER+type]||null;
         },*/
     /**
@@ -4264,36 +4248,36 @@ Magix.mix(Model.prototype, {
      * @return {Object}
      */
     /* getUrlParamsObject:function(){
-            return this.getParamsObject(Model.GET);
+            return this.getParamsObject(GET);
         },*/
     /**
      * 获取Post参数对象
      * @return {Object}
      */
     /*getPostParamsObject:function(){
-            return this.getParamsObject(Model.POST);
+            return this.getParamsObject(POST);
         },*/
     /**
      * 获取通过setPostParams放入的参数
      * @return {String}
      */
     getPostParams: function() {
-        return this.getParams(Model.POST);
+        return this.getParams(POST);
     },
     /**
      * 获取通过setUrlParams放入的参数
      * @return {String}
      */
     getUrlParams: function() {
-        return this.getParams(Model.GET);
+        return this.getParams(GET);
     },
     /**
      * 获取参数
-     * @param {String} [type] 参数分组的key[Model.GET,Model.POST]，默认为Model.GET
+     * @param {String} [type] 参数分组的key[GET,POST]，默认为GET
      * @return {String}
      */
     getParams: function(type) {
-        var params = Magix.toUrl(Empty, this[SPLITER + (type || Model.GET)]);
+        var params = Magix.toUrl(Empty, this[SPLITER + (type || GET)]);
         params = params.replace(FixParamsReg, Empty);
         return params;
         /*var k = SPLITER + type;
@@ -4322,14 +4306,14 @@ Magix.mix(Model.prototype, {
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setUrlParamsIf: GenSetParams(Model.GET, 1),
+    setUrlParamsIf: GenSetParams(GET, 1),
     /**
      * 设置post参数，只有未设置过的参数才进行设置
      * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setPostParamsIf: GenSetParams(Model.POST, 1),
+    setPostParamsIf: GenSetParams(POST, 1),
     /**
      * 设置参数
      * @param {Object|String|Function} obj1 参数对象或者参数key
@@ -4366,32 +4350,32 @@ Magix.mix(Model.prototype, {
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setPostParams: GenSetParams(Model.POST),
+    setPostParams: GenSetParams(POST),
     /**
      * 设置url参数
      * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setUrlParams: GenSetParams(Model.GET),
+    setUrlParams: GenSetParams(GET),
     /**
      * @private
      */
     /*removeParamsObject:function(type){
-            if(!type)type=Model.GET;
+            if(!type)type=GET;
             delete this[SPLITER+type];
         },*/
     /**
      * @private
      */
     /*removePostParamsObject:function(){
-            this.removeParamsObject(Model.POST);
+            this.removeParamsObject(POST);
         },*/
     /**
      * @private
      */
     /*removeUrlParamsObject:function(){
-            this.removeParamsObject(Model.GET);
+            this.removeParamsObject(GET);
         },*/
     /**
      * 重置缓存的参数对象，对于同一个model反复使用前，最好能reset一下，防止把上次请求的参数也带上
@@ -4438,7 +4422,7 @@ Magix.mix(Model.prototype, {
         var hasDValue = alen == 2;
         var attrs = me.$attrs;
         if (alen) {
-            var tks = (key + '').split('.');
+            var tks = (key + Empty).split('.');
             while (attrs && tks[0]) {
                 attrs = attrs[tks.shift()];
             }

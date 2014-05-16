@@ -605,9 +605,10 @@ Mix(Mix(VProto, Event), {
     /**
      * 判断节点是否在当前view控制的dom节点内
      * @param  {String} node 节点id
+     * @param {Boolean} [deep] 是否深度遍历子view，默认false
      * @return {Boolean}
      */
-    inside: function(node) {
+    inside: function(node, deep) {
         var me = this;
         var contained;
         console.log(node);
@@ -615,14 +616,14 @@ Mix(Mix(VProto, Event), {
             contained = me.$c(node, t);
             if (contained) break;
         }
-        if (!contained) {
+        if (!contained && deep) {
             var vf = me.owner,
                 vom = me.vom,
                 p, cm = vf.cM;
             for (p in cm) {
                 vf = vom.get(p);
                 if (vf) {
-                    contained = vf.invokeView('inside', node);
+                    contained = vf.invokeView('inside', [node, deep]);
                     if (contained) break;
                 }
             }

@@ -79,7 +79,7 @@ var MManager = function(modelClass, serKeys) {
     me.$mCache = Magix.cache();
     me.$mCacheKeys = {};
     me.$mMetas = {};
-    me.$sKeys = ['postParams', 'urlParams'].concat(serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []);
+    me.$sKeys = (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
     me.id = 'mm' + Guid--;
     SafeExec(MManager.$, arguments, me);
 };
@@ -88,8 +88,8 @@ var Slice = [].slice;
 
 
 var WrapDone = function(fn, model, idx, ops) {
-    return function() {
-        return fn.apply(model, [idx, ops].concat(Slice.call(arguments)));
+    return function(err) {
+        return fn.apply(model, [idx, ops, err]);
     };
 };
 var CacheDone = function(err, ops) {
@@ -308,8 +308,10 @@ Mix(MRequest.prototype, {
             model = models[i];
             if (model) {
                 var modelInfo = host.getModel(model, save);
-                var cacheKey = modelInfo.cKey;
+
                 var modelEntity = modelInfo.entity;
+                var cacheKey = modelEntity.$mm.key;
+
                 var wrapDoneFn = WrapDone(DoneFn, modelEntity, i, options);
                 wrapDoneFn.id = me.id;
 
@@ -792,7 +794,6 @@ MManager.mixin({
         }
         return {
             entity: entity,
-            cKey: entity.$mm.key,
             update: needUpdate
         };
     },

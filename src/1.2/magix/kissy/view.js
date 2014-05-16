@@ -72,5 +72,5 @@ KISSY.add('magix/view', function(S, Magix, Event, Body, Router, IO) {
 
     return View;
 }, {
-    requires: ['magix/magix', 'magix/event', 'magix/body', 'magix/router', 'ajax']
+    requires: ['magix/magix', 'magix/event', 'magix/body', 'magix/router', 'io']
 });

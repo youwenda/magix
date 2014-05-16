@@ -55,7 +55,6 @@ module.exports = function(grunt) {
                     var commentsReg = /#begin\s+([^#]+)#([\S\s]*?)#end#/g;
                     grunt.file.copy(file, file, {
                         process: function(content) {
-
                             content = content.replace(evalReg, function() {
                                 return tmpls;
                             });

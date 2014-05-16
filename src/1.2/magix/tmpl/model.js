@@ -24,20 +24,12 @@ var GenSetParams = function(type, iv) {
 };
 var Empty = '';
 var FixParamsReg = /^\?|=(?=&|$)/g;
+var GET = 'GET',
+    POST = 'POST';
 Magix.mix(Model, {
     /**
      * @lends Model
      */
-    /**
-     * GET枚举
-     * @type {String}
-     */
-    GET: 'GET',
-    /**
-     * POST枚举
-     * @type {String}
-     */
-    POST: 'POST',
     /**
      * 继承
      * @function
@@ -77,11 +69,11 @@ Magix.mix(Model.prototype, {
     },*/
     /**
      * 获取参数对象
-     * @param  {String} [type] 参数分组的key[Model.GET,Model.POST]，默认为Model.GET
+     * @param  {String} [type] 参数分组的key[GET,POST]，默认为GET
      * @return {Object}
      */
     /*getParamsObject:function(type){
-            if(!type)type=Model.GET;
+            if(!type)type=GET;
             return this['\u001a'+type]||null;
         },*/
     /**
@@ -89,36 +81,36 @@ Magix.mix(Model.prototype, {
      * @return {Object}
      */
     /* getUrlParamsObject:function(){
-            return this.getParamsObject(Model.GET);
+            return this.getParamsObject(GET);
         },*/
     /**
      * 获取Post参数对象
      * @return {Object}
      */
     /*getPostParamsObject:function(){
-            return this.getParamsObject(Model.POST);
+            return this.getParamsObject(POST);
         },*/
     /**
      * 获取通过setPostParams放入的参数
      * @return {String}
      */
     getPostParams: function() {
-        return this.getParams(Model.POST);
+        return this.getParams(POST);
     },
     /**
      * 获取通过setUrlParams放入的参数
      * @return {String}
      */
     getUrlParams: function() {
-        return this.getParams(Model.GET);
+        return this.getParams(GET);
     },
     /**
      * 获取参数
-     * @param {String} [type] 参数分组的key[Model.GET,Model.POST]，默认为Model.GET
+     * @param {String} [type] 参数分组的key[GET,POST]，默认为GET
      * @return {String}
      */
     getParams: function(type) {
-        var params = Magix.toUrl(Empty, this['\u001a' + (type || Model.GET)]);
+        var params = Magix.toUrl(Empty, this['\u001a' + (type || GET)]);
         params = params.replace(FixParamsReg, Empty);
         return params;
         /*var k = '\u001a' + type;
@@ -147,14 +139,14 @@ Magix.mix(Model.prototype, {
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setUrlParamsIf: GenSetParams(Model.GET, 1),
+    setUrlParamsIf: GenSetParams(GET, 1),
     /**
      * 设置post参数，只有未设置过的参数才进行设置
      * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setPostParamsIf: GenSetParams(Model.POST, 1),
+    setPostParamsIf: GenSetParams(POST, 1),
     /**
      * 设置参数
      * @param {Object|String|Function} obj1 参数对象或者参数key
@@ -191,32 +183,32 @@ Magix.mix(Model.prototype, {
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setPostParams: GenSetParams(Model.POST),
+    setPostParams: GenSetParams(POST),
     /**
      * 设置url参数
      * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setUrlParams: GenSetParams(Model.GET),
+    setUrlParams: GenSetParams(GET),
     /**
      * @private
      */
     /*removeParamsObject:function(type){
-            if(!type)type=Model.GET;
+            if(!type)type=GET;
             delete this['\u001a'+type];
         },*/
     /**
      * @private
      */
     /*removePostParamsObject:function(){
-            this.removeParamsObject(Model.POST);
+            this.removeParamsObject(POST);
         },*/
     /**
      * @private
      */
     /*removeUrlParamsObject:function(){
-            this.removeParamsObject(Model.GET);
+            this.removeParamsObject(GET);
         },*/
     /**
      * 重置缓存的参数对象，对于同一个model反复使用前，最好能reset一下，防止把上次请求的参数也带上
@@ -263,7 +255,7 @@ Magix.mix(Model.prototype, {
         var hasDValue = alen == 2;
         var attrs = me.$attrs;
         if (alen) {
-            var tks = (key + '').split('.');
+            var tks = (key + Empty).split('.');
             while (attrs && tks[0]) {
                 attrs = attrs[tks.shift()];
             }

@@ -249,40 +249,30 @@ var Router = Mix({
     getChged: function(oldLocation, newLocation) {
         var oKey = oldLocation.href;
         var nKey = newLocation.href;
-        var tKey = oKey + '\n' + nKey;
+        var tKey = oKey + '\u001a' + nKey;
         var result = ChgdCache.get(tKey);
         if (!result) {
             var hasChanged, from, to;
-            result = {};
+            result = {
+                isParam: IsParam,
+                isPath: IsPath,
+                isView: IsView
+            };
             result[VIEW] = to;
             result[PATH] = to;
             result[PARAMS] = {};
-            var tArr = [PATH, VIEW],
-                idx, key;
-            for (idx = 1; idx >= 0; idx--) {
-                key = tArr[idx];
-                from = oldLocation[key];
-                to = newLocation[key];
-                console.log(from, to);
-                if (from != to) {
-                    result[key] = {
-                        from: from,
-                        to: to
-                    };
-                    hasChanged = 1;
-                }
-            }
-
 
             var oldParams = oldLocation[PARAMS],
                 newParams = newLocation[PARAMS];
-            tArr = OKeys(oldParams).concat(OKeys(newParams));
+            var tArr = [PATH, VIEW].concat(OKeys(oldParams), OKeys(newParams)),
+                idx, key;
             for (idx = tArr.length - 1; idx >= 0; idx--) {
                 key = tArr[idx];
-                from = oldParams[key];
-                to = newParams[key];
+                console.log(key, idx);
+                from = (idx > 1 ? oldParams : oldLocation)[key];
+                to = (idx > 1 ? newParams : newLocation)[key];
                 if (from != to) {
-                    result[PARAMS][key] = {
+                    (idx > 1 ? result[PARAMS] : result)[key] = {
                         from: from,
                         to: to
                     };
@@ -290,9 +280,6 @@ var Router = Mix({
                 }
             }
             result.occur = hasChanged;
-            result.isParam = IsParam;
-            result.isPath = IsPath;
-            result.isView = IsView;
             ChgdCache.set(tKey, result);
         }
         return result;

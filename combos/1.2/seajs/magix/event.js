@@ -5,16 +5,7 @@
  **/
 define("magix/event", ["magix/magix"], function(require) {
     var Magix = require("magix/magix");
-    /**
- * 根据名称生成事件数组的key
- * @param {Strig} name 事件名称
- * @return {String} 包装后的key
- */
-var GenKey = function(name) {
-    return '~' + name;
-};
-
-var SafeExec = Magix.safeExec;
+    var SafeExec = Magix.tryCall;
 /**
  * 多播事件对象
  * @name Event
@@ -32,7 +23,7 @@ var Event = {
      * @param {Boolean} lastToFirst 是否从后向前触发事件的监听列表
      */
     fire: function(name, data, remove, lastToFirst) {
-        var key = GenKey(name),
+        var key = '\u001a' + name,
             me = this,
             list = me[key];
         if (list) {
@@ -83,11 +74,12 @@ var Event = {
         T.fire('done',{data:'test2'});
      */
     on: function(name, fn, insert) {
-        var key = GenKey(name);
+        var key = '\u001a' + name;
         var list = this[key] || (this[key] = []);
         var wrap = {
             f: fn
         };
+
         if (isNaN(insert)) {
             wrap.r = insert;
             list.push(wrap);
@@ -116,9 +108,9 @@ var Event = {
     rely: function(name, fn, relyObj, relyName, insert) {
         var me = this;
         me.on(name, fn, insert);
-        relyObj.on(relyName, function() {
+        relyObj.on(relyName, function() { //once
             me.off(name, fn);
-        }, GenKey);
+        }, SafeExec);
     },
     /**
      * 解除事件绑定
@@ -126,7 +118,7 @@ var Event = {
      * @param {Function} fn 事件回调
      */
     off: function(name, fn) {
-        var key = GenKey(name),
+        var key = '\u001a' + name,
             list = this[key];
         if (list) {
             if (fn) {
@@ -148,7 +140,7 @@ var Event = {
      * @param {Function} fn 事件回调
      */
     once: function(name, fn) {
-        this.on(name, fn, GenKey);
+        this.on(name, fn, SafeExec);
     }
 };
 Magix.mix(Magix.local, Event);

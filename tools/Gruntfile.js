@@ -10,7 +10,6 @@ module.exports = function(grunt) {
     var combosDir = '../combos';
     var platType = String(grunt.option('platType')).replace(/'/g, ''); //'1.0' or 'm1.0'
     var loaderType = String(grunt.option('loaderType')).replace(/'/g, ''); //'kissy' or 'seajs'
-    var addMagixStartFile = platType == '1.0';
 
     if (!platType || !loaderType) {
         grunt.fail.warn('please enter right params');
@@ -42,7 +41,7 @@ module.exports = function(grunt) {
                 distDir: distDir,
                 loaderType: loaderType,
                 platType: platType,
-                addMagixStartFile: addMagixStartFile
+                combosDir: combosDir
             }
         },
         removeunimpl: {
@@ -59,12 +58,12 @@ module.exports = function(grunt) {
                 platType: platType
             }
         },
-        copytocombos:{
-            build:{
-                distDir:distDir,
-                loaderType:loaderType,
-                platType:platType,
-                combosDir:combosDir
+        copytocombos: {
+            build: {
+                distDir: distDir,
+                loaderType: loaderType,
+                platType: platType,
+                combosDir: combosDir
             }
         },
         unsetry: {
@@ -98,6 +97,6 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-exec');
     grunt.loadTasks('tasks');
-    grunt.registerTask('default', ['cpsource', 'deconsole', 'subtmpls', 'generatedoc', 'concatfiles', 'removeunimpl', 'compresslibs','copytocombos', 'unsetry', 'clean']);
+    grunt.registerTask('default', ['cpsource', 'deconsole', 'subtmpls', 'generatedoc', 'concatfiles', 'removeunimpl', 'compresslibs', 'copytocombos', 'unsetry', 'clean']);
     // grunt.registerTask('default', ['exec']);
 };

@@ -19,13 +19,11 @@ var PathTrimFileReg = /\/[^\/]*$/;
 var PathTrimParamsReg = /[#?].*$/;
 var EMPTY = '';
 var ParamsReg = /([^=&?\/#]+)=?([^&=#?]*)/g;
-var PATHNAME = 'pathname';
 var ProtocalReg = /^https?:\/\//i;
 //var Templates = {};
 var CacheLatest = 0;
 var Slash = '/';
 var DefaultTagName = 'vframe';
-var Newline = '\n';
 var Console = window.console;
 var SupportError = Console && Console.error;
 /**
@@ -44,7 +42,7 @@ var Cfg = {
     tagName: DefaultTagName,
     rootId: 'magix_vf_root',
     coded: 1,
-    execError: function(e) {
+    error: function(e) {
         if (SupportError) {
             Console.error(e);
         }
@@ -121,7 +119,7 @@ Mix(Cache.prototype, {
         var me = this;
         var c = me.c;
         var r;
-        key = PATHNAME + key;
+        key = '\u001a' + key;
         if (Has(c, key)) {
             r = c[key];
             if (r.f >= 1) {
@@ -141,7 +139,7 @@ Mix(Cache.prototype, {
         var me = this;
         var c = me.c;
 
-        var key = PATHNAME + okey;
+        var key = '\u001a' + okey;
         var r = c[key];
 
         if (!Has(c, key)) {
@@ -170,7 +168,7 @@ Mix(Cache.prototype, {
         return value;
     },
     del: function(k) {
-        k = PATHNAME + k;
+        k = '\u001a' + k;
         var c = this.c;
         var r = c[k];
         if (r) {
@@ -184,8 +182,7 @@ Mix(Cache.prototype, {
         }
     },
     has: function(k) {
-        k = PATHNAME + k;
-        return Has(this.c, k);
+        return Has(this.c, '\u001a' + k);
     }
 });
 
@@ -211,7 +208,7 @@ var SafeExec = function(fns, args, context, i, r, e) {
         e = fns[i];
         r = e && e.apply(context, args);
         /*_*/}catch(x){/*_*/
-             Cfg.execError(x);/*_*/
+             Cfg.error(x);/*_*/
         /*_*/}/*_*/
     }
     return r;
@@ -358,11 +355,11 @@ var Magix = {
      *      return 'new_'+msg;
      * };
      *
-     * var result=Magix.safeExec([f1,f2],new Date().getTime());
+     * var result=Magix.tryCall([f1,f2],new Date().getTime());
      *
      * S.log(result);//得到f2的返回值
      */
-    safeExec: SafeExec,
+    tryCall: SafeExec,
     /**
      * 空方法
      * @function
@@ -390,23 +387,23 @@ var Magix = {
     /**
      * 应用初始化入口
      * @param  {Object} cfg 初始化配置参数对象
-     * @param {Boolean} cfg.nativeHistory 是否使用history state,当为true，并且浏览器支持的情况下会用history.pushState修改url，您应该确保服务器能给予支持。如果nativeHistory为false将使用hash修改url
+     * @param {Boolean} cfg.edge 是否使用浏览器最新的行为处理history，如html5时，浏览器支持的情况下会用history.pushState修改url，您应该确保服务器能给予支持。如果edge为false将使用hash修改url
      * @param {String} cfg.defaultView 默认加载的view
-     * @param {String} cfg.defaultPathname 默认view对应的pathname
-     * @param {String} cfg.notFoundView 404时加载的view
+     * @param {String} cfg.defaultPath 默认view对应的pathname
+     * @param {String} cfg.notFound 404时加载的view
      * @param {Object} cfg.routes pathname与view映射关系表
      * @param {String} cfg.iniFile ini文件位置
      * @param {String} cfg.rootId 根view的id
      * @param {Array} cfg.extensions 需要加载的扩展
      * @param {Boolean} cfg.coded 是否对地址栏中的参数进行编码或解码，默认true
-     * @param {Function} cfg.execError 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
+     * @param {Function} cfg.error 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
      * @example
      * Magix.start({
-     *      useHistoryState:true,
+     *      edge:true,
      *      rootId:'J_app_main',
      *      iniFile:'',//是否有ini配置文件
      *      defaultView:'app/views/layouts/default',//默认加载的view
-     *      defaultPathname:'/home',
+     *      defaultPath:'/home',
      *      routes:{
      *          "/home":"app/views/layouts/default"
      *      }
@@ -419,8 +416,8 @@ var Magix = {
             Cfg = Mix(Cfg, I, cfg);
             Cfg['!tnc'] = Cfg.tagName != DefaultTagName;
 
-            R.on('!ul', V.locChged);
-            R.on('changed', V.locChged);
+            R.on('!ul', V.loc);
+            R.on('changed', V.loc);
 
             me.use(Cfg.extensions, R.start);
         });
@@ -481,7 +478,7 @@ var Magix = {
      * http://www.a.com/a/b.html?a=b#!/home?e=f   ./../  => http://www.a.com/
      */
     path: function(url, part) {
-        var key = url + Newline + part;
+        var key = url + '\u001a' + part;
         var result = PathCache.get(key);
         if (!result) {
             if (ProtocalReg.test(part)) {
@@ -514,23 +511,22 @@ var Magix = {
     /**
      * 把路径字符串转换成对象
      * @param  {String} path 路径字符串
-     * @param {Boolean} decode 是否对value进行decodeURIComponent
      * @return {Object} 解析后的对象
      * @example
-     * var obj=Magix.pathToObject('/xxx/?a=b&c=d');
-     * //obj={pathname:'/xxx/',params:{a:'b',c:'d'}}
+     * var obj=Magix.toObject('/xxx/?a=b&c=d');
+     * //obj={path:'/xxx/',params:{a:'b',c:'d'}}
      */
-    pathToObject: function(path, decode) {
-        //把形如 /xxx/a=b&c=d 转换成对象 {pathname:'/xxx/',params:{a:'b',c:'d'}}
-        //1. /xxx/a.b.c.html?a=b&c=d  pathname /xxx/a.b.c.html
-        //2. /xxx/?a=b&c=d  pathname /xxx/
-        //3. /xxx/#?a=b => pathname /xxx/
-        //4. /xxx/index.html# => pathname /xxx/index.html
-        //5. /xxx/index.html  => pathname /xxx/index.html
-        //6. /xxx/#           => pathname /xxx/
-        //7. a=b&c=d          => pathname ''
-        //8. /s?src=b#        => pathname /s params:{src:'b'}
-        var key = path + Newline + decode;
+    toObject: function(path) {
+        //把形如 /xxx/a=b&c=d 转换成对象 {path:'/xxx/',params:{a:'b',c:'d'}}
+        //1. /xxx/a.b.c.html?a=b&c=d  path /xxx/a.b.c.html
+        //2. /xxx/?a=b&c=d  path /xxx/
+        //3. /xxx/#?a=b => path /xxx/
+        //4. /xxx/index.html# => path /xxx/index.html
+        //5. /xxx/index.html  => path /xxx/index.html
+        //6. /xxx/#           => path /xxx/
+        //7. a=b&c=d          => path ''
+        //8. /s?src=b#        => path /s params:{src:'b'}
+        var key = path + '\u001a';
         var r = PathToObjCache.get(key);
         if (!r) {
             r = {};
@@ -554,7 +550,7 @@ var Magix = {
                 }
             }
             querys.replace(ParamsReg, function(match, name, value) {
-                if (decode) {
+                if (Cfg.coded) {
                     try {
                         value = decodeURIComponent(value);
                     } catch (e) {
@@ -563,48 +559,49 @@ var Magix = {
                 }
                 params[name] = value;
             });
-            r[PATHNAME] = pathname;
+            r.path = pathname;
             r.params = params;
             PathToObjCache.set(key, r);
         }
         return r;
     },
     /**
-     * 把对象内容转换成字符串路径
-     * @param  {Object} obj 对象
-     * @param {Boolean} [encode] 是否对value进行encodeURIComponent
+     * 转换成字符串路径
+     * @param  {String} path 路径
+     * @param {Object} params 参数对象
      * @param {Object} [keo] 是否保留空白值的对象
      * @return {String} 字符串路径
      * @example
-     * var str=Magix.objectToPath({pathname:'/xxx/',params:{a:'b',c:'d'}});
+     * var str=Magix.toUrl('/xxx/',{a:'b',c:'d'});
      * //str==/xxx/?a=b&c=d
      *
-     * var str=Magix.objectToPath({pathname:'/xxx/',params:{a:'',c:2}});
+     * var str=Magix.toUrl('/xxx/',{a:'',c:2});
+     *
+     * //str==/xxx/?a=&c=2
+     *
+     * var str=Magix.toUrl('/xxx/',{a:'',c:2},{c:1});
      *
      * //str==/xxx/?c=2
-     *
-     * var str=Magix.objectToPath({pathname:'/xxx/',params:{a:'',c:2}},{a:1});
+     * var str=Magix.toUrl('/xxx/',{a:'',c:2},{a:1,c:1});
      *
      * //str==/xxx/?a=&c=2
      */
-    objectToPath: function(obj, encode, keo) { //上个方法的逆向
-        var pn = obj[PATHNAME];
-        var params = [];
-        var oPs = obj.params;
+    toUrl: function(path, params, keo) { //上个方法的逆向
+        var arr = [];
         var v;
-        for (var p in oPs) {
-            v = oPs[p];
+        for (var p in params) {
+            v = params[p];
             if (!keo || v || Has(keo, p)) {
-                if (encode) {
+                if (Cfg.coded) {
                     v = encodeURIComponent(v);
                 }
-                params.push(p + '=' + v);
+                arr.push(p + '=' + v);
             }
         }
-        if (params.length) {
-            pn = pn + '?' + params.join('&');
+        if (arr.length) {
+            path += '?' + arr.join('&');
         }
-        return pn;
+        return path;
     },
     /**
      * 读取或设置view的模板
@@ -628,18 +625,18 @@ var Magix = {
      * @param  {String} key  以数组中对象的哪个key的value做为hahs的key
      * @return {Object}
      * @example
-     * var map=Magix.listToMap([1,2,3,5,6]);
+     * var map=Magix.toMap([1,2,3,5,6]);
      * //=> {1:1,2:1,3:1,4:1,5:1,6:1}
      *
-     * var map=Magix.listToMap([{id:20},{id:30},{id:40}],'id');
+     * var map=Magix.toMap([{id:20},{id:30},{id:40}],'id');
      * //=>{20:{id:20},30:{id:30},40:{id:40}}
      *
-     * var map=Magix.listToMap('submit,focusin,focusout,mouseenter,mouseleave,mousewheel,change');
+     * var map=Magix.toMap('submit,focusin,focusout,mouseenter,mouseleave,mousewheel,change');
      *
      * //=>{submit:1,focusin:1,focusout:1,mouseenter:1,mouseleave:1,mousewheel:1,change:1}
      *
      */
-    listToMap: function(list, key) {
+    toMap: function(list, key) {
         var i, e, map = {}, l;
         if (Magix._s(list)) {
             list = list.split(',');
@@ -668,6 +665,7 @@ var Magix = {
     cache: Cache
 };
     var ToString = Object.prototype.toString;
+    var T = function() {};
     return Mix(Magix, {
         include: Include,
         use: function(name, fn) {
@@ -692,14 +690,15 @@ var Magix = {
             return ToString.call(r) == '[object RegExp]';
         },*/
         extend: function(ctor, base, props, statics) {
-            ctor.superclass = base.prototype;
-            base.prototype.constructor = base;
-            var T = function() {};
-            T.prototype = base.prototype;
-            ctor.prototype = new T();
-            Magix.mix(ctor.prototype, props);
+            var bProto = base.prototype;
+            var cProto = ctor.prototype;
+            ctor.superclass = bProto;
+            bProto.constructor = base;
+            T.prototype = bProto;
+            cProto = new T();
+            Magix.mix(cProto, props);
             Magix.mix(ctor, statics);
-            ctor.prototype.constructor = ctor;
+            cProto.constructor = ctor;
             return ctor;
         }
     });

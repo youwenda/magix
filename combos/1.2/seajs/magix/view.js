@@ -9,15 +9,13 @@ define('magix/view', function(require) {
     var Body = require("magix/body");
     var Router = require("magix/router");
 
-    var SafeExec = Magix.safeExec;
+    var SafeExec = Magix.tryCall;
 var Has = Magix.has;
 var COMMA = ',';
 var EMPTY_ARRAY = [];
 var Noop = Magix.noop;
 var Mix = Magix.mix;
-var WIN = window;
 var ResCounter = 0;
-var WrapKey = '~';
 var DestroyStr = 'destroy';
 
 var WrapFn = function(fn) {
@@ -37,8 +35,8 @@ var Destroy = function(res) {
     }
 };
 var DestroyTimer = function(id) {
-    WIN.clearTimeout(id);
-    WIN.clearInterval(id);
+    clearTimeout(id);
+    clearInterval(id);
 };
 var DestroyAllManaged = function(onlyMR, keepIt) {
     var me = this;
@@ -53,15 +51,12 @@ var DestroyAllManaged = function(onlyMR, keepIt) {
 };
 
 var EvtInfoCache = Magix.cache(40);
-var Left = '<';
-var Right = '>';
 
-var MxEvt = /\smx-(?!view|defer|owner|vframe)[a-z]+\s*=\s*"/g;
-var MxEvtSplit = String.fromCharCode(26);
+var MxEvt = /\smx-(?!view|owner|vframe)[a-z]+\s*=\s*"/g;
 
 
 var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(?{([\s\S]*)}\)?)?/;
-var EvtParamsReg = /(\w+):([^,]+)/g;
+var EvtParamsReg = /(\w+):(['"]?)([^,]+)\2/g;
 var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
 /**
  * View类
@@ -81,6 +76,7 @@ var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
  * @property {String} template 当前view对应的模板字符串(当hasTmpl为true时)，该属性在interact事件触发后才存在
  * @property {Boolean} rendered 标识当前view有没有渲染过，即primed事件有没有触发过
  * @property {Object} location window.locaiton.href解析出来的对象
+ * @property {String} path 当前view的包路径名
  * @example
  * 关于事件:
  * 示例：
@@ -118,17 +114,17 @@ var View = function(ops) {
     me.$res = {};
     me.sign = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     me.addNode(me.id);
-    SafeExec(View.ms, [ops], me);
+    SafeExec(View.$, [ops], me);
 };
 var VProto = View.prototype;
 var Globals = {
-    $host: window,
-    $root: document
+    $win: window,
+    $doc: document
 };
-View.ms = [];
+View.$ = [];
 View.prepare = function(oView) {
-    if (!oView[WrapKey]) { //只处理一次
-        oView[WrapKey] = 1;
+    if (!oView['\u001a']) { //只处理一次
+        oView['\u001a'] = 1;
         //oView.extend = me.extend;
         var prop = oView.prototype;
         var old, temp, name, evts, idx, revts = {}, rsevts = [],
@@ -152,7 +148,7 @@ View.prepare = function(oView) {
                         });
                     } else {
                         revts[temp] = 1;
-                        prop[name + Left + temp + Right] = old;
+                        prop[name + '\u001a' + temp] = old;
                     }
                 }
             } else if (p == 'render' && old != Noop) {
@@ -193,7 +189,7 @@ View.prepare = function(oView) {
  *
  */
 View.mixin = function(props, ctor) {
-    if (ctor) View.ms.push(ctor);
+    if (ctor) View.$.push(ctor);
     Mix(VProto, props);
 };
 
@@ -202,11 +198,10 @@ Mix(Mix(VProto, Event), {
      * @lends View#
      */
     /**
-     * 使用xhr获取当前view对应的模板内容，仅在开发app阶段时使用，打包上线后html与js打包在一起，不会调用这个方法
+     获取当前view对应的模板内容，开发app阶段使用xhr获取，打包上线后html作为view的template属性与js打包在一起，可以重写该方法，以实现模板的继承或共享基类的模板
      * @function
      * @param {String} path 路径
      * @param {Function} fn 获取完成后的回调
-     * @private
      */
     fetchTmpl: Magix.unimpl,
     /**
@@ -225,7 +220,7 @@ Mix(Mix(VProto, Event), {
      * @example
      * //example1
      * locationChange:function(e){
-     *     if(e.changed.isPathname()){//pathname的改变
+     *     if(e.changed.isPath()){//path的改变
      *         //...
      *         e.prevent();//阻止向所有子view传递改变的消息
      *     }
@@ -248,7 +243,7 @@ Mix(Mix(VProto, Event), {
     /**
      * 初始化方法，供最终的view开发人员进行覆盖
      * @param {Object} extra 初始化时，外部传递的参数
-     * @param {Object} locChanged 地址栏变化的相关信息，比如从某个pathname过来的
+     * @param {Object} locChanged 地址栏变化的相关信息，比如从某个path过来的
      * @function
      */
     init: Noop,
@@ -316,12 +311,14 @@ Mix(Mix(VProto, Event), {
     /**
      * 通知当前view即将开始进行html的更新
      * @param {String} [id] 哪块区域需要更新，默认整个view
+     * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML
      */
-    beginUpdate: function(id) {
+    beginUpdate: function(id, keepPreHTML) {
         var me = this;
         if (me.sign > 0 && me.rendered) {
             me.fire('prerender', {
-                id: id
+                id: id,
+                keep: keepPreHTML
             });
             DestroyAllManaged.call(me, 0, 1);
         }
@@ -365,7 +362,7 @@ Mix(Mix(VProto, Event), {
      * @returns {String} 返回处理后的字符串
      */
     wrapMxEvent: function(html) {
-        return (html + '').replace(MxEvt, '$&' + this.id + MxEvtSplit);
+        return (html + '').replace(MxEvt, '$&' + this.id + '\u001a');
     },
     /**
      * 包装异步回调
@@ -424,19 +421,19 @@ Mix(Mix(VProto, Event), {
         me.endUpdate(id);
     },
     /**
-     * 监视地址栏中的参数或pathname，有变动时，才调用当前view的locationChange方法。通常情况下location有变化就会引起当前view的locationChange被调用，但这会带来一些不必要的麻烦，所以你可以指定地址栏中哪些参数有变化时才引起locationChange调用，使得view只关注与自已需要刷新有关的参数
+     * 监视地址栏中的参数或path，有变动时，才调用当前view的render方法。通常情况下location有变化不会引起当前view的render被调用，所以你需要指定地址栏中哪些参数有变化时才引起render调用，使得view只关注与自已需要刷新有关的参数
      * @param {Array|String|Object} args  数组字符串或对象
      * @example
      * return View.extend({
      *      init:function(){
      *          this.observeLocation('page,rows');//关注地址栏中的page rows2个参数的变化，当其中的任意一个改变时，才引起当前view的locationChange被调用
      *          this.observeLocation({
-     *              pathname:true//关注pathname的变化
+     *              path:true//关注path的变化
      *          });
      *          //也可以写成下面的形式
      *          //this.observeLocation({
      *          //    keys:['page','rows'],
-     *          //    pathname:true
+     *          //    path:true
      *          //})
      *      },
      *      render:function(e){
@@ -452,7 +449,7 @@ Mix(Mix(VProto, Event), {
         loc.f = 1;
         var keys = loc.ks;
         if (Magix._o(args)) {
-            loc.pn = args.pathname;
+            loc.pn = args.path;
             args = args.keys;
         }
         if (args) {
@@ -460,14 +457,14 @@ Mix(Mix(VProto, Event), {
         }
     },
     /**
-     * 指定监控地址栏中pathname的改变
+     * 指定监控地址栏中path的改变
      * @example
      * return View.extend({
      *      init:function(){
-     *          this.observePathname();//关注地址栏中pathname的改变，pathname改变才引起当前view的locationChange被调用
+     *          this.observePathname();//关注地址栏中path的改变，path改变才引起当前view的locationChange被调用
      *      },
      *      locationChange:function(e){
-     *          if(e.changed.isPathname()){};//是否是pathname发生的改变
+     *          if(e.changed.isPath()){};//是否是path发生的改变
      *      }
      * });
      */
@@ -479,7 +476,7 @@ Mix(Mix(VProto, Event), {
     /**
      * 指定要监视地址栏中的哪些值有变化时，当前view的locationChange才会被调用。通常情况下location有变化就会引起当前view的locationChange被调用，但这会带来一些不必要的麻烦，所以你可以指定地址栏中哪些值有变化时才引起locationChange调用，使得view只关注与自已需要刷新有关的参数
      * @param {Array|String} keys            key数组或字符串
-     * @param {Boolean} observePathname 是否监视pathname
+     * @param {Boolean} observePathname 是否监视path
      * @example
      * return View.extend({
      *      init:function(){
@@ -508,7 +505,7 @@ Mix(Mix(VProto, Event), {
         var res;
         if (loc.f) {
             if (loc.pn) {
-                res = changed.pathname;
+                res = changed.path;
             }
             if (!res) {
                 res = changed.isParam(loc.ks);
@@ -565,13 +562,13 @@ Mix(Mix(VProto, Event), {
                     p: {}
                 };
                 if (m.i) {
-                    m.i.replace(EvtParamsReg, function(x, a, b) {
+                    m.i.replace(EvtParamsReg, function(x, a, q, b) {
                         m.p[a] = b;
                     });
                 }
                 EvtInfoCache.set(info, m);
             }
-            var name = m.n + Left + eventType + Right;
+            var name = m.n + '\u001a' + eventType;
             var fn = me[name];
             if (fn) {
                 var tfn = e[m.f];
@@ -619,20 +616,26 @@ Mix(Mix(VProto, Event), {
     /**
      * 判断节点是否在当前view控制的dom节点内
      * @param  {String} node 节点id
+     * @param {Boolean} [deep] 是否深度遍历子view，默认false
      * @return {Boolean}
      */
-    inside: function(node) {
+    inside: function(node, deep) {
         var me = this;
         var contained;
         for (var t in me.$ns) {
             contained = me.$c(node, t);
             if (contained) break;
         }
-        if (!contained) {
-            for (var p in me.cM) {
-                var vframe = me.owner.get(p);
-                contained = vframe.inside(node);
-                if (contained) break;
+        if (!contained && deep) {
+            var vf = me.owner,
+                vom = me.vom,
+                p, cm = vf.cM;
+            for (p in cm) {
+                vf = vom.get(p);
+                if (vf) {
+                    contained = vf.invokeView('inside', [node, deep]);
+                    if (contained) break;
+                }
             }
         }
         return contained;
@@ -768,6 +771,18 @@ Mix(Mix(VProto, Event), {
             });*/
         }
         return res;
+    },
+    /**
+     * 派发绑定在vframe的mx-event事件
+     * @param  {String} type 事件类型
+     * @param  {Object} data 数据对象
+     */
+    dispatch: function(type, data, me) {
+        me = this;
+        if (!data) data = {};
+        data.type = type;
+        data.target = me.$(me.id);
+        Body.process(data);
     }
     /**
      * 当您采用setViewHTML方法异步更新html时，通知view做好异步更新的准备，<b>注意:该方法最好和manage，setViewHTML一起使用。当您采用其它方式异步更新整个view的html时，仍需调用该方法</b>，建议对所有的异步更新回调使用manage方法托管，对更新整个view html前，调用beginAsyncUpdate进行更新通知
@@ -961,6 +976,8 @@ Mix(Mix(VProto, Event), {
      * @name View#prerender
      * @event
      * @param {Object} e
+     * @param {String} e.id 指示哪块区域要进行更新
+     * @param {Boolean} e.keep 指示是否保留前view渲染的html
      */
 
     /**
@@ -975,6 +992,7 @@ Mix(Mix(VProto, Event), {
      * @name View#rendered
      * @event
      * @param {Object} e view每次调用setViewHTML完成后触发，当hasTmpl属性为false时，并不会触发该事 件，但会触发primed首次完成创建界面的事件
+     * @param {String} e.id 指示哪块区域完成的渲染
      */
 
     /**
@@ -1080,7 +1098,7 @@ Mix(Mix(VProto, Event), {
         }
     };
 
-    View.extend = function(props, ctor, statics) {
+    View.extend = function(props, statics, ctor) {
         var me = this;
         var BaseView = function() {
             BaseView.superclass.constructor.apply(this, arguments);

@@ -4,14 +4,14 @@
  * @author 行列
  */
 KISSY.add('magix/model', function(S, Magix) {
-    var Extend = function(props, ctor) {
+    var Extend = function(props, statics, ctor) {
         var BaseModel = function() {
             BaseModel.superclass.constructor.apply(this, arguments);
             if (ctor) {
-                Magix.safeExec(ctor, [], this);
+                ctor.apply(this, arguments);
             }
         };
-        return S.extend(BaseModel, this, props);
+        return S.extend(BaseModel, this, props, statics);
     };
     /**
  * Model类
@@ -25,7 +25,6 @@ KISSY.add('magix/model', function(S, Magix) {
  */
 
 var GUID = +new Date();
-var Encode = encodeURIComponent;
 var Has = Magix.has;
 var IsObject = Magix._o;
 var ToString = Magix.toString;
@@ -33,21 +32,19 @@ var Model = function(ops) {
     this.set(ops);
     this.id = 'm' + GUID--;
 };
-
+var GenSetParams = function(type, iv) {
+    return function(o1, o2) {
+        this.setParams(o1, o2, type, iv);
+    };
+};
+var Empty = '';
+var FixParamsReg = /^\?|=(?=&|$)/g;
+var GET = 'GET',
+    POST = 'POST';
 Magix.mix(Model, {
     /**
      * @lends Model
      */
-    /**
-     * GET枚举
-     * @type {String}
-     */
-    GET: 'GET',
-    /**
-     * POST枚举
-     * @type {String}
-     */
-    POST: 'POST',
     /**
      * 继承
      * @function
@@ -87,87 +84,87 @@ Magix.mix(Model.prototype, {
     },*/
     /**
      * 获取参数对象
-     * @param  {String} [type] 参数分组的key[Model.GET,Model.POST]，默认为Model.GET
+     * @param  {String} [type] 参数分组的key[GET,POST]，默认为GET
      * @return {Object}
      */
     /*getParamsObject:function(type){
-            if(!type)type=Model.GET;
-            return this['$'+type]||null;
+            if(!type)type=GET;
+            return this['\u001a'+type]||null;
         },*/
     /**
      * 获取参数对象
      * @return {Object}
      */
     /* getUrlParamsObject:function(){
-            return this.getParamsObject(Model.GET);
+            return this.getParamsObject(GET);
         },*/
     /**
      * 获取Post参数对象
      * @return {Object}
      */
     /*getPostParamsObject:function(){
-            return this.getParamsObject(Model.POST);
+            return this.getParamsObject(POST);
         },*/
     /**
      * 获取通过setPostParams放入的参数
      * @return {String}
      */
     getPostParams: function() {
-        return this.getParams(Model.POST);
+        return this.getParams(POST);
     },
     /**
      * 获取通过setUrlParams放入的参数
      * @return {String}
      */
     getUrlParams: function() {
-        return this.getParams(Model.GET);
+        return this.getParams(GET);
     },
     /**
      * 获取参数
-     * @param {String} [type] 参数分组的key[Model.GET,Model.POST]，默认为Model.GET
+     * @param {String} [type] 参数分组的key[GET,POST]，默认为GET
      * @return {String}
      */
     getParams: function(type) {
-        var me = this;
-        if (!type) {
-            type = Model.GET;
-        }
-
-        var k = '$' + type;
+        var params = Magix.toUrl(Empty, this['\u001a' + (type || GET)]);
+        params = params.replace(FixParamsReg, Empty);
+        return params;
+        /*var k = '\u001a' + type;
         var params = me[k];
         var arr = [];
         var v;
         for (var p in params) {
             v = params[p];
-            if (!Magix._a(v)) {
+            if (v == Model.X && p.indexOf('=') > -1) { //undefined and key like a=b&c=d
+                arr.push(p);
+            } else {
+                arr.push(p + '=' + Encode(v));
+            }
+            /*if (!Magix._a(v)) {
                 v = [v];
             }
             for (var i = 0; i < v.length; i++) {
                 arr.push(p + '=' + Encode(v[i]));
-            }
-        }
-        return arr.join('&');
+            }*/
+        /*}
+        return arr.join('\u001a');*/
     },
     /**
      * 设置url参数，只有未设置过的参数才进行设置
+     * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setUrlParamsIf: function(obj1, obj2) {
-        this.setParams(obj1, obj2, Model.GET, true);
-    },
+    setUrlParamsIf: GenSetParams(GET, 1),
     /**
      * 设置post参数，只有未设置过的参数才进行设置
+     * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setPostParamsIf: function(obj1, obj2) {
-        var me = this;
-        me.setParams(obj1, obj2, Model.POST, true);
-    },
+    setPostParamsIf: GenSetParams(POST, 1),
     /**
      * 设置参数
-     * @param {Object|String} obj1 参数对象或者参数key
+     * @param {Object|String|Function} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      * @param {String}   type      参数分组的key
      * @param {Boolean}   ignoreIfExist   如果存在同名的参数则不覆盖，忽略掉这次传递的参数
@@ -177,15 +174,19 @@ Magix.mix(Model.prototype, {
         /*if (!me.$types) me.$types = {};
         me.$types[type] = true;*/
 
-        var k = '$' + type;
+        var k = '\u001a' + type,
+            t, p, obj;
         if (!me[k]) me[k] = {};
-        var obj = me[k];
-        if (!IsObject(obj1) && obj1) {
-            var t = {};
-            t[obj1] = obj2;
+        obj = me[k];
+        if (Magix._f(obj1)) {
+            obj1 = Magix.tryCall(obj1);
+        }
+        if (obj1 && Magix._s(obj1)) {
+            t = {};
+            t[obj1] = ~obj1.indexOf('=') ? Empty : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
             obj1 = t;
         }
-        for (var p in obj1) {
+        for (p in obj1) {
             if (!ignoreIfExist || !Has(obj, p)) {
                 obj[p] = obj1[p];
             }
@@ -193,39 +194,36 @@ Magix.mix(Model.prototype, {
     },
     /**
      * 设置post参数
+     * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setPostParams: function(obj1, obj2) {
-        var me = this;
-        me.setParams(obj1, obj2, Model.POST);
-    },
+    setPostParams: GenSetParams(POST),
     /**
      * 设置url参数
+     * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      */
-    setUrlParams: function(obj1, obj2) {
-        this.setParams(obj1, obj2, Model.GET);
-    },
+    setUrlParams: GenSetParams(GET),
     /**
      * @private
      */
     /*removeParamsObject:function(type){
-            if(!type)type=Model.GET;
-            delete this['$'+type];
+            if(!type)type=GET;
+            delete this['\u001a'+type];
         },*/
     /**
      * @private
      */
     /*removePostParamsObject:function(){
-            this.removeParamsObject(Model.POST);
+            this.removeParamsObject(POST);
         },*/
     /**
      * @private
      */
     /*removeUrlParamsObject:function(){
-            this.removeParamsObject(Model.GET);
+            this.removeParamsObject(GET);
         },*/
     /**
      * 重置缓存的参数对象，对于同一个model反复使用前，最好能reset一下，防止把上次请求的参数也带上
@@ -235,7 +233,7 @@ Magix.mix(Model.prototype, {
         var keysCache = me.$types;
         if (keysCache) {
             for (var p in keysCache) {
-                delete me['$' + p];
+                delete me['\u001a' + p];
             }
             delete me.$types;
         }
@@ -272,7 +270,7 @@ Magix.mix(Model.prototype, {
         var hasDValue = alen == 2;
         var attrs = me.$attrs;
         if (alen) {
-            var tks = (key + '').split('.');
+            var tks = (key + Empty).split('.');
             while (attrs && tks[0]) {
                 attrs = attrs[tks.shift()];
             }

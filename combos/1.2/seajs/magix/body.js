@@ -8,7 +8,6 @@ define("magix/body", ["magix/magix"], function(require) {
     var Has = Magix.has;
 //依赖类库才能支持冒泡的事件
 var RootEvents = {};
-var MxEvtSplit = String.fromCharCode(26);
 
 var MxIgnore = 'mx-ei';
 var MxOwner = 'mx-owner';
@@ -33,6 +32,9 @@ var GetSetAttribute = function(dom, attrKey, attrVal) {
 var Halt = function() {
     this.prevent();
     this.stop();
+};
+var Prevented = function() {
+    this.prevented = 1;
 };
 var VOM;
 var Body = {
@@ -79,12 +81,12 @@ var Body = {
             if (info) { //有事件
                 //找处理事件的vframe
                 var vId;
-                var ts = info.split(MxEvtSplit);
+                var ts = info.split('\u001a');
                 if (ts.length > 1) {
                     vId = ts[0];
                     info = ts.pop();
                 }
-                vId = vId || GetSetAttribute(current, MxOwner);
+                vId = GetSetAttribute(current, MxOwner) || vId;
                 if (!vId) { //如果没有则找最近的vframe
                     var begin = current;
                     var vfs = VOM.all();
@@ -103,8 +105,8 @@ var Body = {
                     if (view) {
                         e.currentId = IdIt(current);
                         e.targetId = IdIt(target);
-                        e.prevent = e.preventDefault;
-                        e.stop = e.stopPropagation;
+                        e.prevent = e.preventDefault || Prevented;
+                        e.stop = e.stopPropagation || Magix.noop;
                         e.halt = Halt;
                         view.pEvt(info, eventType, e);
                     }
