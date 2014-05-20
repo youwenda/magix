@@ -92,8 +92,8 @@ var Cache = function(max, buffer) {
     var me = this;
     if (me.get) {
         me.c = [];
-        me.x = max || 20;
-        me.b = me.x + (buffer | 0 || 5); //buffer先取整，如果为0则再默认5
+        me.b = buffer | 0 || 5; //buffer先取整，如果为0则再默认5
+        me.x = me.b + (max || 20);
     } else {
         me = new Cache(max, buffer);
     }
@@ -145,24 +145,20 @@ Mix(Cache.prototype, {
         var r = c[key];
 
         if (!Has(c, key)) {
-            if (c.length >= me.b) {
+            if (c.length >= me.x) {
                 c.sort(CacheSort);
-                var t = me.b - me.x;
+                var t = me.b;
                 while (t--) {
                     r = c.pop();
-                    //
-                    delete c[r.k];
-                    if (r.m) {
-                        SafeExec(r.m, r.o, r);
-                    }
+                    me.del(r.o);
                 }
             }
-            r = {};
+            r = {
+                o: okey
+            };
             c.push(r);
             c[key] = r;
         }
-        r.o = okey;
-        r.k = key;
         r.v = value;
         r.f = 1;
         r.t = CacheLatest++;
@@ -174,7 +170,7 @@ Mix(Cache.prototype, {
         var c = this.c;
         var r = c[k];
         if (r) {
-            r.f = -1E5;
+            r.f = -1;
             r.v = EMPTY;
             delete c[k];
             if (r.m) {
@@ -391,8 +387,8 @@ var Magix = {
      * @param  {Object} cfg 初始化配置参数对象
      * @param {Boolean} cfg.edge 是否使用浏览器最新的行为处理history，如html5时，浏览器支持的情况下会用history.pushState修改url，您应该确保服务器能给予支持。如果edge为false将使用hash修改url
      * @param {String} cfg.defaultView 默认加载的view
-     * @param {String} cfg.defaultPath 默认view对应的pathname
-     * @param {String} cfg.notFound 404时加载的view
+     * @param {String} cfg.defaultPath 当无法从地址栏取到path时的默认值。比如使用hash保存路由信息，而初始进入时并没有hash,此时defaultPath会起作用
+     * @param {String} cfg.unfoundView 404时加载的view
      * @param {Object} cfg.routes pathname与view映射关系表
      * @param {String} cfg.iniFile ini文件位置
      * @param {String} cfg.rootId 根view的id
@@ -786,7 +782,7 @@ var Router = Mix({
         if (!Pnr) {
             Pnr = {
                 rs: MxConfig.routes || {},
-                nf: MxConfig.notFound
+                nf: MxConfig.unfoundView
             };
             //var home=pathCfg.defaultView;//处理默认加载的view
             //var dPathname=pathCfg.defaultPath||EMPTY;
@@ -1741,6 +1737,8 @@ Mix(Mix(Vframe.prototype, Event), {
         var subs = {};
 
         if (count) {
+            var views = [],
+                keys = [];
             for (var i = 0, vframe, key, mxView, mxBuild; i < count; i++) {
                 vframe = vframes[i];
 
@@ -1750,7 +1748,8 @@ Mix(Mix(Vframe.prototype, Event), {
                     mxBuild = ReadMxVframe ? vframe.getAttribute(MxVframe) : 1;
 
                     if (mxBuild || mxView) {
-                        me.mountVframe(key, mxView, viewInitParams, cancelTriggerEvent, keepPreHTML);
+                        views.push(mxView);
+                        keys.push(key);
                         var svs = $$(vframe);
                         for (var j = 0, c = svs.length, temp; j < c; j++) {
                             temp = svs[j];
@@ -1758,6 +1757,11 @@ Mix(Mix(Vframe.prototype, Event), {
                         }
                     }
                 }
+            }
+            Magix.use(views);
+            count = 0;
+            while (keys[count]) {
+                me.mountVframe(keys[count], views[count++], viewInitParams, cancelTriggerEvent, keepPreHTML);
             }
         }
         //if (me.cC == me.rC) { //有可能在渲染某个vframe时，里面有n个vframes，但立即调用了mountZoneVframes，这个下面没有vframes，所以要等待
@@ -2406,7 +2410,7 @@ Mix(Mix(VProto, Event), {
      *          });
      *          //也可以写成下面的形式
      *          //this.observeLocation({
-     *          //    keys:['page','rows'],
+     *          //    params:['page','rows'],
      *          //    path:true
      *          //})
      *      },
@@ -2424,7 +2428,7 @@ Mix(Mix(VProto, Event), {
         var keys = loc.ks;
         if (Magix._o(args)) {
             loc.pn = args.path;
-            args = args.keys;
+            args = args.params;
         }
         if (args) {
             loc.ks = keys.concat((args + '').split(COMMA));
@@ -3629,7 +3633,7 @@ Mix(MRequest.prototype, {
             {name:'M1'},
             {name:'M2'},
             {name:'M3'}
-        ],function(err,model){//m1,m2,m3，谁快先调用谁，且被调用三次
+        ],function(err,model){//按m1,m2,m3顺序回调，即使m2的请求先于m1的返回，也是m1调用后才调用m2，只提供一个回调时，回调会被调用三次
             if(err){
                 alert(err.msg);
             }else{
@@ -3642,19 +3646,20 @@ Mix(MRequest.prototype, {
             {name:'M1'},
             {name:'M2'},
             {name:'M3'}
-        ],function(err,model){//m1什么时间返回，该回调什么时间被调用
+        ],function(err,model){//调用m1
             if(err){
                 alert(err.msg);
             }else{
                 alert(model.get('name'));
             }
-        },function(err,model){//m2什么时间返回，该回调什么时间被调用
+        },function(err,model){//m1调用完成后调用m2
             if(err){
                 alert(err.msg);
             }else{
                 alert(model.get('name'));
             }
         });
+        //注意，回调多于一个时，当提供的回调多于或少于model个数时，多或少的会被忽略掉
      */
     fetchOrder: GenRequestMethod(FetchFlags_ORDER),
     /**
@@ -3699,13 +3704,13 @@ Mix(MRequest.prototype, {
             {name:'M1'},
             {name:'M2'},
             {name:'M3'}
-        ],function(err,model){//m1什么时间返回，该回调什么时间被调用
+        ],function(err,model){//m1返回即调用
             if(err){
                 alert(err.msg);
             }else{
                 alert(model.get('name'));
             }
-        },function(err,model){//m2什么时间返回，该回调什么时间被调用
+        },function(err,model){//m2返回即调用
             if(err){
                 alert(err.msg);
             }else{

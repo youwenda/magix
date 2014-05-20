@@ -421,7 +421,7 @@ Mix(Mix(VProto, Event), {
      *          });
      *          //也可以写成下面的形式
      *          //this.observeLocation({
-     *          //    keys:['page','rows'],
+     *          //    params:['page','rows'],
      *          //    path:true
      *          //})
      *      },
@@ -439,7 +439,7 @@ Mix(Mix(VProto, Event), {
         var keys = loc.ks;
         if (Magix._o(args)) {
             loc.pn = args.path;
-            args = args.keys;
+            args = args.params;
         }
         if (args) {
             loc.ks = keys.concat((args + '').split(COMMA));

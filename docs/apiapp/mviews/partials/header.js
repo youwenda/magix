@@ -78,7 +78,7 @@ KISSY.add('apiapp/mviews/partials/header', function(S, View, Crox, MM, Magix) {
                 this.search();
             }
         },
-        '$root<click>': function(e) {
+        '$doc<click>': function(e) {
             if (this.$dropShown && !this.inside(e.target)) {
                 this['toggleMenu<click>']();
             }

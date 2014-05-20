@@ -74,8 +74,8 @@ var Cache = function(max, buffer) {
     var me = this;
     if (me.get) {
         me.c = [];
-        me.x = max || 20;
-        me.b = me.x + (buffer | 0 || 5); //buffer先取整，如果为0则再默认5
+        me.b = buffer | 0 || 5; //buffer先取整，如果为0则再默认5
+        me.x = me.b + (max || 20);
     } else {
         me = new Cache(max, buffer);
     }
@@ -127,24 +127,20 @@ Mix(Cache.prototype, {
         var r = c[key];
 
         if (!Has(c, key)) {
-            if (c.length >= me.b) {
+            if (c.length >= me.x) {
                 c.sort(CacheSort);
-                var t = me.b - me.x;
+                var t = me.b;
                 while (t--) {
                     r = c.pop();
-                    //console.log('delete from cache:'+r.k);
-                    delete c[r.k];
-                    if (r.m) {
-                        SafeExec(r.m, r.o, r);
-                    }
+                    me.del(r.o);
                 }
             }
-            r = {};
+            r = {
+                o: okey
+            };
             c.push(r);
             c[key] = r;
         }
-        r.o = okey;
-        r.k = key;
         r.v = value;
         r.f = 1;
         r.t = CacheLatest++;
@@ -156,7 +152,7 @@ Mix(Cache.prototype, {
         var c = this.c;
         var r = c[k];
         if (r) {
-            r.f = -1E5;
+            r.f = -1;
             r.v = EMPTY;
             delete c[k];
             if (r.m) {
@@ -373,8 +369,8 @@ var Magix = {
      * @param  {Object} cfg 初始化配置参数对象
      * @param {Boolean} cfg.edge 是否使用浏览器最新的行为处理history，如html5时，浏览器支持的情况下会用history.pushState修改url，您应该确保服务器能给予支持。如果edge为false将使用hash修改url
      * @param {String} cfg.defaultView 默认加载的view
-     * @param {String} cfg.defaultPath 默认view对应的pathname
-     * @param {String} cfg.notFound 404时加载的view
+     * @param {String} cfg.defaultPath 当无法从地址栏取到path时的默认值。比如使用hash保存路由信息，而初始进入时并没有hash,此时defaultPath会起作用
+     * @param {String} cfg.unfoundView 404时加载的view
      * @param {Object} cfg.routes pathname与view映射关系表
      * @param {String} cfg.iniFile ini文件位置
      * @param {String} cfg.rootId 根view的id

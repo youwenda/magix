@@ -424,7 +424,7 @@ Mix(MRequest.prototype, {
             {name:'M1'},
             {name:'M2'},
             {name:'M3'}
-        ],function(err,model){//m1,m2,m3，谁快先调用谁，且被调用三次
+        ],function(err,model){//按m1,m2,m3顺序回调，即使m2的请求先于m1的返回，也是m1调用后才调用m2，只提供一个回调时，回调会被调用三次
             if(err){
                 alert(err.msg);
             }else{
@@ -437,19 +437,20 @@ Mix(MRequest.prototype, {
             {name:'M1'},
             {name:'M2'},
             {name:'M3'}
-        ],function(err,model){//m1什么时间返回，该回调什么时间被调用
+        ],function(err,model){//调用m1
             if(err){
                 alert(err.msg);
             }else{
                 alert(model.get('name'));
             }
-        },function(err,model){//m2什么时间返回，该回调什么时间被调用
+        },function(err,model){//m1调用完成后调用m2
             if(err){
                 alert(err.msg);
             }else{
                 alert(model.get('name'));
             }
         });
+        //注意，回调多于一个时，当提供的回调多于或少于model个数时，多或少的会被忽略掉
      */
     fetchOrder: GenRequestMethod(FetchFlags_ORDER),
     /**
@@ -494,13 +495,13 @@ Mix(MRequest.prototype, {
             {name:'M1'},
             {name:'M2'},
             {name:'M3'}
-        ],function(err,model){//m1什么时间返回，该回调什么时间被调用
+        ],function(err,model){//m1返回即调用
             if(err){
                 alert(err.msg);
             }else{
                 alert(model.get('name'));
             }
-        },function(err,model){//m2什么时间返回，该回调什么时间被调用
+        },function(err,model){//m2返回即调用
             if(err){
                 alert(err.msg);
             }else{

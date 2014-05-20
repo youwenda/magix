@@ -95,7 +95,7 @@ var Router = Mix({
         if (!Pnr) {
             Pnr = {
                 rs: MxConfig.routes || {},
-                nf: MxConfig.notFound
+                nf: MxConfig.unfoundView
             };
             //var home=pathCfg.defaultView;//处理默认加载的view
             //var dPathname=pathCfg.defaultPath||EMPTY;
