@@ -28,6 +28,8 @@ var IsObject = Magix._o;
 var FetchFlags_ONE = 1;
 var FetchFlags_ORDER = 2;
 var FetchFlags_ALL = 4;
+var PostParams = 'postParams';
+var UrlParams = 'urlParams';
 
 var Now = Date.now || function() {
         return +new Date();
@@ -35,7 +37,6 @@ var Now = Date.now || function() {
 var Guid = Now();
 var WJSON = window.JSON;
 var Mix = Magix.mix;
-var Prefix = 'mr';
 var DefaultCacheTime = 20 * 60 * 1000;
 var Ser = function(o, f, a, p) {
     if (IsFunction(o)) { //一定要先判断
@@ -46,7 +47,7 @@ var Ser = function(o, f, a, p) {
         a = [];
         for (p in o) {
             if (Has(o, p)) {
-                a.push(p, Prefix, Ser(o[p]));
+                a.push(p, '\u001a', Ser(o[p]));
             }
         }
     } else {
@@ -100,7 +101,7 @@ var MManager = function(modelClass, serKeys) {
     me.$mCache = Magix.cache();
     me.$mCacheKeys = {};
     me.$mMetas = {};
-    me.$sKeys = (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
+    me.$sKeys = (serKeys && ('' + serKeys).split(',') || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
     me.id = 'mm' + Guid--;
     SafeExec(MManager.$, arguments, me);
 };
@@ -263,7 +264,7 @@ var MRequest = function(host) {
     var me = this;
     me.$host = host;
     me.$reqs = {};
-    me.id = Prefix + Guid--;
+    me.id = 'mr' + Guid--;
     me.$queue = [];
 };
 
@@ -773,12 +774,12 @@ MManager.mixin({
         }
 
         //默认设置的
-        entity.setUrlParams(meta.urlParams);
-        entity.setPostParams(meta.postParams);
+        entity.setUrlParams(meta[UrlParams]);
+        entity.setPostParams(meta[PostParams]);
 
         //临时传递的
-        entity.setUrlParams(modelAttrs.urlParams);
-        entity.setPostParams(modelAttrs.postParams);
+        entity.setUrlParams(modelAttrs[UrlParams]);
+        entity.setPostParams(modelAttrs[PostParams]);
 
         me.fire('inited', {
             model: entity
@@ -889,11 +890,9 @@ MManager.mixin({
                 entity = info.e;
             } else { //缓存
                 entity = modelsCache.get(cacheKey);
-                if (entity) {
-                    if (cache > 0 && Now() - entity.$mm.time > cache) {
-                        me.clearCacheByKey(cacheKey);
-                        entity = 0;
-                    }
+                if (entity && cache > 0 && Now() - entity.$mm.time > cache) {
+                    me.clearCacheByKey(cacheKey);
+                    entity = 0;
                 }
             }
         }

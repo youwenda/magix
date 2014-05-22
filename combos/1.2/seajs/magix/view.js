@@ -52,8 +52,6 @@ var DestroyAllManaged = function(onlyMR, keepIt) {
 
 var EvtInfoCache = Magix.cache(40);
 
-var MxEvt = /\smx-(?!view|owner|vframe)[a-z]+\s*=\s*"/g;
-
 
 var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(?{([\s\S]*)}\)?)?/;
 var EvtParamsReg = /(\w+):(['"]?)([^,]+)\2/g;
@@ -210,6 +208,15 @@ Mix(Mix(VProto, Event), {
      */
     render: Noop,
     /**
+     * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^ftest<prevent>({key:'field})"，以方便识别交由哪个view处理
+     * @function
+     * @param {String} id 交由view处理的view id
+     * @param {String} html 处理的代码片断
+     * @param {Boolean} [onlyAddPrefix] 是否只添加前缀
+     * @return {String} 处理后的字符串
+     */
+    wrapEvent: Body.wrap,
+    /**
      * 当window.location.href有变化时调用该方法（如果您通过observeLocation指定了相关参数，则这些相关参数有变化时才调用locationChange，否则不会调用），供最终的view开发人员进行覆盖
      * @function
      * @param {Object} e 事件对象
@@ -277,7 +284,7 @@ Mix(Mix(VProto, Event), {
         // var tmplReady = Has(me, 'template');
         var ready = function(tmpl) {
             if (hasTmpl) {
-                me.template = me.wrapMxEvent(tmpl);
+                me.template = Body.wrap(me.id, tmpl);
             }
             me.dEvts();
             /*
@@ -355,14 +362,6 @@ Mix(Mix(VProto, Event), {
             DestroyAllManaged.call(me, 1, 1);
         }
         return me.sign;
-    },
-    /**
-     * 包装mx-event，自动添加vframe id,用于事件发生时，调用该view处理
-     * @param {String} html html字符串
-     * @returns {String} 返回处理后的字符串
-     */
-    wrapMxEvent: function(html) {
-        return (html + '').replace(MxEvt, '$&' + this.id + '\u001a');
     },
     /**
      * 包装异步回调
@@ -713,7 +712,7 @@ Mix(Mix(VProto, Event), {
             hk: hk,
             res: res,
             ol: lastly,
-            mr: res && res.$reqs,
+            mr: res && res.$host,
             oust: oust
         };
         cache[key] = wrapObj;

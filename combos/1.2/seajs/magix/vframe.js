@@ -216,8 +216,7 @@ Mix(Mix(Vframe.prototype, Event), {
                             }
                         });
                     }, 0);
-                    viewInitParams = viewInitParams || {};
-                    view.load(Mix(viewInitParams, po.params, viewInitParams), RefChged);
+                    view.load(Mix(po.params, viewInitParams), RefChged);
                 }
             });
         }
@@ -308,8 +307,6 @@ Mix(Mix(Vframe.prototype, Event), {
         var subs = {};
 
         if (count) {
-            var views = [],
-                keys = [];
             for (var i = 0, vframe, key, mxView, mxBuild; i < count; i++) {
                 vframe = vframes[i];
 
@@ -319,8 +316,7 @@ Mix(Mix(Vframe.prototype, Event), {
                     mxBuild = ReadMxVframe ? vframe.getAttribute(MxVframe) : 1;
 
                     if (mxBuild || mxView) {
-                        views.push(mxView);
-                        keys.push(key);
+                        me.mountVframe(key, mxView, viewInitParams, cancelTriggerEvent, keepPreHTML);
                         var svs = $$(vframe);
                         for (var j = 0, c = svs.length, temp; j < c; j++) {
                             temp = svs[j];
@@ -328,11 +324,6 @@ Mix(Mix(Vframe.prototype, Event), {
                         }
                     }
                 }
-            }
-            Magix.use(views);
-            count = 0;
-            while (keys[count]) {
-                me.mountVframe(keys[count], views[count++], viewInitParams, cancelTriggerEvent, keepPreHTML);
             }
         }
         //if (me.cC == me.rC) { //有可能在渲染某个vframe时，里面有n个vframes，但立即调用了mountZoneVframes，这个下面没有vframes，所以要等待

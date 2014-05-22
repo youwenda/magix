@@ -522,12 +522,13 @@ var Magix = {
         //6. /xxx/#           => path /xxx/
         //7. a=b&c=d          => path ''
         //8. /s?src=b#        => path /s params:{src:'b'}
-        var key = path + SPLITER;
-        var r = PathToObjCache.get(key);
-        if (!r) {
+        var temp = PathToObjCache.get(path),
             r = {};
+        if (temp) {
+            r.path = temp.path;
+            r.params = Mix({}, temp.params);
+        } else {
             var params = {};
-
             var pathname = EMPTY;
             if (PathTrimParamsReg.test(path)) { //有#?号，表示有pathname
                 pathname = path.replace(PathTrimParamsReg, EMPTY);
@@ -557,7 +558,7 @@ var Magix = {
             });
             r.path = pathname;
             r.params = params;
-            PathToObjCache.set(key, r);
+            PathToObjCache.set(path, r);
         }
         return r;
     },
@@ -720,7 +721,8 @@ var OKeys = Magix.keys;
 var MxConfig = Magix.config();
 var HrefCache = Magix.cache();
 var ChgdCache = Magix.cache(40);
-
+var WinLoc = WINDOW.location;
+var WinHistory = WINDOW.history;
 var TLoc, LLoc = {
     params: {},
     href: EMPTY
@@ -761,7 +763,7 @@ var Path = function(path) {
     var o = Magix.toObject(path);
     var pn = o[PATH];
     if (pn && HashAsNativeHistory) { //如果不是以/开头的并且要使用history state,当前浏览器又不支持history state则放hash中的path要进行处理
-        o[PATH] = Magix.path(WINDOW.location.pathname, pn);
+        o[PATH] = Magix.path(WinLoc.pathname, pn);
     }
     return o;
 };
@@ -843,13 +845,12 @@ var Router = Mix({
      * @private
      */
     start: function() {
-        var H = WINDOW.history;
         /*
         尽可能的延迟配置，防止被依赖时，配置信息不正确
          */
         UseEdgeHistory = MxConfig.edge;
 
-        SupportState = UseEdgeHistory && H.pushState;
+        SupportState = UseEdgeHistory && WinHistory.pushState;
         HashAsNativeHistory = UseEdgeHistory && !SupportState;
 
         ReadLocSrc = SupportState ? 'srcQuery' : 'srcHash';
@@ -868,7 +869,7 @@ var Router = Mix({
      * @return {Object} 解析的对象
      */
     parseQH: function(href, inner) {
-        href = href || WINDOW.location.href;
+        href = href || WinLoc.href;
         /*var cfg=Magix.config();
         if(!cfg.originalHREF){
             try{
@@ -963,7 +964,7 @@ var Router = Mix({
         var tKey = oKey + SPLITER + nKey;
         var result = ChgdCache.get(tKey);
         if (!result) {
-            var hasChanged, from, to;
+            var hasChanged, from, to, rps;
             result = {
                 isParam: IsParam,
                 isPath: IsPath,
@@ -971,7 +972,7 @@ var Router = Mix({
             };
             result[VIEW] = to;
             result[PATH] = to;
-            result[PARAMS] = {};
+            result[PARAMS] = rps = {};
 
             var oldParams = oldLocation[PARAMS],
                 newParams = newLocation[PARAMS];
@@ -979,10 +980,15 @@ var Router = Mix({
                 idx, key;
             for (idx = tArr.length - 1; idx >= 0; idx--) {
                 key = tArr[idx];
-                from = (idx > 1 ? oldParams : oldLocation)[key];
-                to = (idx > 1 ? newParams : newLocation)[key];
+                if (idx == 1) {
+                    oldParams = oldLocation;
+                    newParams = newLocation;
+                    rps = result;
+                }
+                from = oldParams[key];
+                to = newParams[key];
                 if (from != to) {
-                    (idx > 1 ? result[PARAMS] : result)[key] = {
+                    rps[key] = {
                         from: from,
                         to: to
                     };
@@ -1051,12 +1057,13 @@ var Router = Mix({
         //
         //
 
-        if (pn) {
+        if (pn && TLoc) {
 
-            var pathObj = Path(pn);
+            /*var pathObj = Path(pn);
             var temp = {};
             temp[PARAMS] = Mix({}, pathObj[PARAMS]);
-            temp[PATH] = pathObj[PATH];
+            temp[PATH] = pathObj[PATH];*/
+            var temp = Path(pn);
             var querys = TLoc.query[PARAMS];
 
             if (temp[PATH]) { //设置路径带参数的形式，如:/abc?q=b&c=e
@@ -1069,10 +1076,11 @@ var Router = Mix({
                 }
             } else { //只有参数，如:a=b&c=d
                 var ps = Mix({}, TLoc[PARAMS]); //复制原来的参数
+                // Mix(temp[PARAMS], TLoc[PARAMS], temp[PARAMS]);
                 temp[PARAMS] = Mix(ps, temp[PARAMS]); //覆盖原来的参数
                 temp[PATH] = TLoc[PATH]; //使用原来的路径
             }
-            var tempPath = Magix.toUrl(temp[PATH], temp[PARAMS], querys); //保留query中的空白值参数
+            var tempPath = Magix.toUrl(temp[PATH], temp[PARAMS], UseEdgeHistory ? PATH : querys); //hash需要保留query中的空白值参数
             var navigate;
 
             navigate = tempPath != TLoc[ReadLocSrc];
@@ -1081,15 +1089,15 @@ var Router = Mix({
 
                 if (SupportState) { //如果使用pushState
                     Router.poped = 1;
-                    history[replace ? 'replaceState' : 'pushState'](EMPTY, EMPTY, tempPath);
+                    WinHistory[replace ? 'replaceState' : 'pushState'](EMPTY, EMPTY, tempPath);
                     Router.route();
                 } else {
                     Mix(temp, TLoc, temp);
                     temp.srcHash = tempPath;
-                    temp.hash = {
+                    /*temp.hash = {
                         params: temp[PARAMS],
                         path: temp[PATH]
-                    };
+                    };*/
                     /*
                         WINDOW.onhashchange=function(e){
                         };
@@ -1106,9 +1114,9 @@ var Router = Mix({
                     }); //hack 更新view的location属性
                     tempPath = '#!' + tempPath;
                     if (replace) {
-                        location.replace(tempPath);
+                        WinLoc.replace(tempPath);
                     } else {
-                        location.hash = tempPath;
+                        WinLoc.hash = tempPath;
                     }
                 }
             }
@@ -1152,11 +1160,11 @@ LIB("magix/body", ["magix/magix"], function(Magix) {
 var RootEvents = {};
 
 var MxIgnore = 'mx-ei';
-var MxOwner = 'mx-owner';
 var RootNode = DOCUMENT.body;
 var ParentNode = 'parentNode';
 var TypesRegCache = {};
 var IdCounter = 1 << 16;
+var MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 var On = 'on';
 var Comma = ',';
 
@@ -1177,8 +1185,24 @@ var Prevented = function() {
     this.prevented = 1;
 };
 var VOM;
+var Group = '\u0005';
 var Body = {
     
+    /**
+     * 包装mx-event，自动添加vframe id,用于事件发生时，调用该view处理
+     * @param {String} html html字符串
+     * @returns {String} 返回处理后的字符串
+     */
+    wrap: function(id, html, onlyPrefix, prefix) {
+        html += '';
+        prefix = id + SPLITER;
+        if (onlyPrefix) {
+            html = Group + prefix + html;
+        } else {
+            html = html.replace(MxEvt, '$&' + prefix);
+        }
+        return html;
+    },
     process: function(e) {
         if (e && !e[On]) {
             var target = e.target || e.srcElement || RootNode; //原生事件对象Cordova没有target对象
@@ -1220,38 +1244,40 @@ var Body = {
             }
             if (info) { //有事件
                 //找处理事件的vframe
-                var vId;
-                var ts = info.split(SPLITER);
-                if (ts.length > 1) {
-                    vId = ts[0];
-                    info = ts.pop();
-                }
-                vId = GetSetAttribute(current, MxOwner) || vId;
-                if (!vId) { //如果没有则找最近的vframe
+                var infos = info.split(Group);
+                while (infos.length) {
+                    info = infos.shift();
+                    if (info) {
+                        var ts = info.split(SPLITER);
+                        info = ts.pop();
+                        var vId = ts[0];
+                        /*if (!vId) { //如果没有则找最近的vframe
                     var begin = current;
                     var vfs = VOM.all();
                     while (begin) {
                         if (Has(vfs, begin.id)) {
-                            GetSetAttribute(current, MxOwner, vId = begin.id);
+                            GetSetAttribute(current, type, (vId = begin.id) + SPLITER + info);
                             break;
                         }
                         begin = begin[ParentNode];
                     }
-                }
-                if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
+                }*/
+                        if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
 
-                    var vframe = VOM.get(vId);
-                    var view = vframe && vframe.view;
-                    if (view) {
-                        e.currentId = IdIt(current);
-                        e.targetId = IdIt(target);
-                        e.prevent = e.preventDefault || Prevented;
-                        e.stop = e.stopPropagation || Magix.noop;
-                        e.halt = Halt;
-                        view.pEvt(info, eventType, e);
+                            var vframe = VOM.get(vId);
+                            var view = vframe && vframe.view;
+                            if (view) {
+                                e.currentId = IdIt(current);
+                                e.targetId = IdIt(target);
+                                e.prevent = e.preventDefault || Prevented;
+                                e.stop = e.stopPropagation || Magix.noop;
+                                e.halt = Halt;
+                                view.pEvt(info, eventType, e);
+                            }
+                        } else {
+                            throw Error('bad:' + info);
+                        }
                     }
-                } else {
-                    throw Error('bad:' + info);
                 }
             } else {
                 var node;
@@ -1673,8 +1699,7 @@ Mix(Mix(Vframe.prototype, Event), {
                             }
                         });
                     }, 0);
-                    viewInitParams = viewInitParams || {};
-                    view.load(Mix(viewInitParams, po.params, viewInitParams), RefChged);
+                    view.load(Mix(po.params, viewInitParams), RefChged);
                 }
             });
         }
@@ -1765,8 +1790,6 @@ Mix(Mix(Vframe.prototype, Event), {
         var subs = {};
 
         if (count) {
-            var views = [],
-                keys = [];
             for (var i = 0, vframe, key, mxView, mxBuild; i < count; i++) {
                 vframe = vframes[i];
 
@@ -1776,8 +1799,7 @@ Mix(Mix(Vframe.prototype, Event), {
                     mxBuild = ReadMxVframe ? vframe.getAttribute(MxVframe) : 1;
 
                     if (mxBuild || mxView) {
-                        views.push(mxView);
-                        keys.push(key);
+                        me.mountVframe(key, mxView, viewInitParams, cancelTriggerEvent, keepPreHTML);
                         var svs = $$(vframe);
                         for (var j = 0, c = svs.length, temp; j < c; j++) {
                             temp = svs[j];
@@ -1785,11 +1807,6 @@ Mix(Mix(Vframe.prototype, Event), {
                         }
                     }
                 }
-            }
-            Magix.use(views);
-            count = 0;
-            while (keys[count]) {
-                me.mountVframe(keys[count], views[count++], viewInitParams, cancelTriggerEvent, keepPreHTML);
             }
         }
         //if (me.cC == me.rC) { //有可能在渲染某个vframe时，里面有n个vframes，但立即调用了mountZoneVframes，这个下面没有vframes，所以要等待
@@ -2056,8 +2073,6 @@ var DestroyAllManaged = function(onlyMR, keepIt) {
 
 var EvtInfoCache = Magix.cache(40);
 
-var MxEvt = /\smx-(?!view|owner|vframe)[a-z]+\s*=\s*"/g;
-
 
 var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(?{([\s\S]*)}\)?)?/;
 var EvtParamsReg = /(\w+):(['"]?)([^,]+)\2/g;
@@ -2214,6 +2229,15 @@ Mix(Mix(VProto, Event), {
      */
     render: Noop,
     /**
+     * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^ftest<prevent>({key:'field})"，以方便识别交由哪个view处理
+     * @function
+     * @param {String} id 交由view处理的view id
+     * @param {String} html 处理的代码片断
+     * @param {Boolean} [onlyAddPrefix] 是否只添加前缀
+     * @return {String} 处理后的字符串
+     */
+    wrapEvent: Body.wrap,
+    /**
      * 当WINDOW.location.href有变化时调用该方法（如果您通过observeLocation指定了相关参数，则这些相关参数有变化时才调用locationChange，否则不会调用），供最终的view开发人员进行覆盖
      * @function
      * @param {Object} e 事件对象
@@ -2281,7 +2305,7 @@ Mix(Mix(VProto, Event), {
         // var tmplReady = Has(me, 'template');
         var ready = function(tmpl) {
             if (hasTmpl) {
-                me.template = me.wrapMxEvent(tmpl);
+                me.template = Body.wrap(me.id, tmpl);
             }
             me.dEvts();
             /*
@@ -2359,14 +2383,6 @@ Mix(Mix(VProto, Event), {
             DestroyAllManaged.call(me, 1, 1);
         }
         return me.sign;
-    },
-    /**
-     * 包装mx-event，自动添加vframe id,用于事件发生时，调用该view处理
-     * @param {String} html html字符串
-     * @returns {String} 返回处理后的字符串
-     */
-    wrapMxEvent: function(html) {
-        return (html + '').replace(MxEvt, '$&' + this.id + SPLITER);
     },
     /**
      * 包装异步回调
@@ -2717,7 +2733,7 @@ Mix(Mix(VProto, Event), {
             hk: hk,
             res: res,
             ol: lastly,
-            mr: res && res.$reqs,
+            mr: res && res.$host,
             oust: oust
         };
         cache[key] = wrapObj;
@@ -3255,6 +3271,8 @@ var IsObject = Magix._o;
 var FetchFlags_ONE = 1;
 var FetchFlags_ORDER = 2;
 var FetchFlags_ALL = 4;
+var PostParams = 'postParams';
+var UrlParams = 'urlParams';
 
 var Now = Date.now || function() {
         return +new Date();
@@ -3262,7 +3280,6 @@ var Now = Date.now || function() {
 var Guid = Now();
 var WJSON = WINDOW.JSON;
 var Mix = Magix.mix;
-var Prefix = 'mr';
 var DefaultCacheTime = 20 * 60 * 1000;
 var Ser = function(o, f, a, p) {
     if (IsFunction(o)) { //一定要先判断
@@ -3273,7 +3290,7 @@ var Ser = function(o, f, a, p) {
         a = [];
         for (p in o) {
             if (Has(o, p)) {
-                a.push(p, Prefix, Ser(o[p]));
+                a.push(p, SPLITER, Ser(o[p]));
             }
         }
     } else {
@@ -3327,7 +3344,7 @@ var MManager = function(modelClass, serKeys) {
     me.$mCache = Magix.cache();
     me.$mCacheKeys = {};
     me.$mMetas = {};
-    me.$sKeys = (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
+    me.$sKeys = (serKeys && ('' + serKeys).split(',') || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
     me.id = 'mm' + Guid--;
     SafeExec(MManager.$, arguments, me);
 };
@@ -3490,7 +3507,7 @@ var MRequest = function(host) {
     var me = this;
     me.$host = host;
     me.$reqs = {};
-    me.id = Prefix + Guid--;
+    me.id = 'mr' + Guid--;
     me.$queue = [];
 };
 
@@ -3998,12 +4015,12 @@ MManager.mixin({
         }
 
         //默认设置的
-        entity.setUrlParams(meta.urlParams);
-        entity.setPostParams(meta.postParams);
+        entity.setUrlParams(meta[UrlParams]);
+        entity.setPostParams(meta[PostParams]);
 
         //临时传递的
-        entity.setUrlParams(modelAttrs.urlParams);
-        entity.setPostParams(modelAttrs.postParams);
+        entity.setUrlParams(modelAttrs[UrlParams]);
+        entity.setPostParams(modelAttrs[PostParams]);
 
         me.fire('inited', {
             model: entity
@@ -4114,11 +4131,9 @@ MManager.mixin({
                 entity = info.e;
             } else { //缓存
                 entity = modelsCache.get(cacheKey);
-                if (entity) {
-                    if (cache > 0 && Now() - entity.$mm.time > cache) {
-                        me.clearCacheByKey(cacheKey);
-                        entity = 0;
-                    }
+                if (entity && cache > 0 && Now() - entity.$mm.time > cache) {
+                    me.clearCacheByKey(cacheKey);
+                    entity = 0;
                 }
             }
         }

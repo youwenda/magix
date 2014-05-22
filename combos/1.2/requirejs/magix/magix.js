@@ -522,12 +522,13 @@ var Magix = {
         //6. /xxx/#           => path /xxx/
         //7. a=b&c=d          => path ''
         //8. /s?src=b#        => path /s params:{src:'b'}
-        var key = path + '\u001a';
-        var r = PathToObjCache.get(key);
-        if (!r) {
+        var temp = PathToObjCache.get(path),
             r = {};
+        if (temp) {
+            r.path = temp.path;
+            r.params = Mix({}, temp.params);
+        } else {
             var params = {};
-
             var pathname = EMPTY;
             if (PathTrimParamsReg.test(path)) { //有#?号，表示有pathname
                 pathname = path.replace(PathTrimParamsReg, EMPTY);
@@ -557,7 +558,7 @@ var Magix = {
             });
             r.path = pathname;
             r.params = params;
-            PathToObjCache.set(key, r);
+            PathToObjCache.set(path, r);
         }
         return r;
     },

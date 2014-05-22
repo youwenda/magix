@@ -9,11 +9,11 @@ KISSY.add('magix/body', function(S, Magix) {
 var RootEvents = {};
 
 var MxIgnore = 'mx-ei';
-var MxOwner = 'mx-owner';
 var RootNode = document.body;
 var ParentNode = 'parentNode';
 var TypesRegCache = {};
 var IdCounter = 1 << 16;
+var MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 var On = 'on';
 var Comma = ',';
 
@@ -36,8 +36,24 @@ var Prevented = function() {
     this.prevented = 1;
 };
 var VOM;
+var Group = '\u0005';
 var Body = {
     lib: Magix.unimpl,
+    /**
+     * 包装mx-event，自动添加vframe id,用于事件发生时，调用该view处理
+     * @param {String} html html字符串
+     * @returns {String} 返回处理后的字符串
+     */
+    wrap: function(id, html, onlyPrefix, prefix) {
+        html += '';
+        prefix = id + '\u001a';
+        if (onlyPrefix) {
+            html = Group + prefix + html;
+        } else {
+            html = html.replace(MxEvt, '$&' + prefix);
+        }
+        return html;
+    },
     process: function(e) {
         if (e && !e[On]) {
             var target = e.target || e.srcElement || RootNode; //原生事件对象Cordova没有target对象
@@ -79,38 +95,40 @@ var Body = {
             }
             if (info) { //有事件
                 //找处理事件的vframe
-                var vId;
-                var ts = info.split('\u001a');
-                if (ts.length > 1) {
-                    vId = ts[0];
-                    info = ts.pop();
-                }
-                vId = GetSetAttribute(current, MxOwner) || vId;
-                if (!vId) { //如果没有则找最近的vframe
+                var infos = info.split(Group);
+                while (infos.length) {
+                    info = infos.shift();
+                    if (info) {
+                        var ts = info.split('\u001a');
+                        info = ts.pop();
+                        var vId = ts[0];
+                        /*if (!vId) { //如果没有则找最近的vframe
                     var begin = current;
                     var vfs = VOM.all();
                     while (begin) {
                         if (Has(vfs, begin.id)) {
-                            GetSetAttribute(current, MxOwner, vId = begin.id);
+                            GetSetAttribute(current, type, (vId = begin.id) + '\u001a' + info);
                             break;
                         }
                         begin = begin[ParentNode];
                     }
-                }
-                if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
+                }*/
+                        if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
 
-                    var vframe = VOM.get(vId);
-                    var view = vframe && vframe.view;
-                    if (view) {
-                        e.currentId = IdIt(current);
-                        e.targetId = IdIt(target);
-                        e.prevent = e.preventDefault || Prevented;
-                        e.stop = e.stopPropagation || Magix.noop;
-                        e.halt = Halt;
-                        view.pEvt(info, eventType, e);
+                            var vframe = VOM.get(vId);
+                            var view = vframe && vframe.view;
+                            if (view) {
+                                e.currentId = IdIt(current);
+                                e.targetId = IdIt(target);
+                                e.prevent = e.preventDefault || Prevented;
+                                e.stop = e.stopPropagation || Magix.noop;
+                                e.halt = Halt;
+                                view.pEvt(info, eventType, e);
+                            }
+                        } else {
+                            throw Error('bad:' + info);
+                        }
                     }
-                } else {
-                    throw Error('bad:' + info);
                 }
             } else {
                 var node;
