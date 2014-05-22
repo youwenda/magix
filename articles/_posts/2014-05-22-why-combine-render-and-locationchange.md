@@ -1,4 +1,5 @@
----layout: post
+---
+layout: post
 title: 为什么合并view的render与locationChange方法
 ---
 
