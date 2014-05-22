@@ -5,9 +5,7 @@
  **/
 define("magix/body", ["magix/magix"], function(require) {
     var Magix = require("magix/magix");
-    var Has = Magix.has;
-//依赖类库才能支持冒泡的事件
-var RootEvents = {};
+    var RootEvents = {};
 
 var MxIgnore = 'mx-ei';
 var RootNode = document.body;

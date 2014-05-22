@@ -203,6 +203,30 @@ Mix(Mix(VProto, Event), {
      * @param {String} html 处理的代码片断
      * @param {Boolean} [onlyAddPrefix] 是否只添加前缀
      * @return {String} 处理后的字符串
+     * @example
+     * View.extend({
+     *     'del&lt;click&gt;':function(e){
+     *         S.one('#'+e.currentId).remove();
+     *     },
+     *     'addNode&lt;click&gt;':function(e){
+     *         var tmpl='&lt;div mx-click="del"&gt;delete&lt;/div&gt;';
+     *         //因为tmpl中有mx-click，因此需要下面这行代码进行处理一次
+     *         tmpl=this.wrapEvent(this.id,tmpl);
+     *         S.one('#'+e.currentId).append(tmpl);
+     *     }
+     * });
+     *
+     * //或者：
+     * View.extend({
+     *     'del&lt;click&gt;':function(e){
+     *         S.one('#'+e.currentId).remove();
+     *     },
+     *     'addNode&lt;click&gt;':function(e){
+     *         var tmpl='&lt;div mx-click="'+this.wrapEvent(this.id,'del',true)+'"&gt;delete&lt;/div&gt;';
+     *         S.one('#'+e.currentId).append(tmpl);
+     *     }
+     * });
+     * //注意，只有动态添加的节点才需要处理
      */
     wrapEvent: Body.wrap,
     /**
