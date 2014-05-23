@@ -1,4 +1,4 @@
-(function(NULL,WINDOW,DOCUMENT,SPLITER,LIB,IdIt,COUNTER){COUNTER=0;IdIt=function(n){return n.id||(n.id='mx_n_'+(++COUNTER))};/**
+(function(NULL,WINDOW,DOCUMENT,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=0;IdIt=function(n){return n.id||(n.id='mx_n_'+(++COUNTER))};/**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.1
@@ -19,11 +19,8 @@ LIB.add('magix/magix', function(S) {
     var PathRelativeReg = /\/\.\/|\/[^\/.]+?\/\.{2}\/|([^:\/])\/\/+|\.{2}\//; // ./|/x/../|(b)///
 var PathTrimFileReg = /\/[^\/]*$/;
 var PathTrimParamsReg = /[#?].*$/;
-var EMPTY = '';
 var ParamsReg = /([^=&?\/#]+)=?([^&=#?]*)/g;
 var ProtocalReg = /^https?:\/\//i;
-//var Templates = {};
-var CacheLatest = 0;
 var Slash = '/';
 var DefaultTagName = 'vframe';
 var Console = WINDOW.console;
@@ -44,11 +41,9 @@ var Cfg = {
     tagName: DefaultTagName,
     rootId: 'magix_vf_root',
     coded: 1,
-    error: function(e) {
-        if (SupportError) {
-            Console.error(e);
-        }
-    }
+    error: SupportError ? function(e) {
+        Console.error(e);
+    } : Noop
 };
 var HasProp = Cfg.hasOwnProperty;
 /**
@@ -107,8 +102,8 @@ var Cache = function(max, buffer) {
  * @param  {Object} ignore 在复制时，忽略的值
  * @return {Object}
  */
-var Mix = function(aim, src, ignore) {
-    for (var p in src) {
+var Mix = function(aim, src, ignore, p) {
+    for (p in src) {
         if (!ignore || !Has(ignore, p)) {
             aim[p] = src[p];
         }
@@ -126,7 +121,7 @@ Mix(Cache.prototype, {
             r = c[key];
             if (r.f >= 1) {
                 r.f++;
-                r.t = CacheLatest++;
+                r.t = ++COUNTER;
                 //
                 r = r.v;
                 //
@@ -161,7 +156,7 @@ Mix(Cache.prototype, {
         }
         r.v = value;
         r.f = 1;
-        r.t = CacheLatest++;
+        r.t = ++COUNTER;
         r.m = onRemove;
         return value;
     },
@@ -436,8 +431,9 @@ var Magix = {
      * @return {Array}
      */
     keys: Object.keys || function(obj) {
-        var keys = [];
-        for (var p in obj) {
+        var keys = [],
+            p;
+        for (p in obj) {
             if (Has(obj, p)) {
                 keys.push(p);
             }
@@ -480,26 +476,15 @@ var Magix = {
         var result = PathCache.get(key);
         if (!result) {
             if (ProtocalReg.test(part)) {
-                result = part;
+                url = EMPTY;
             } else {
                 url = url.replace(PathTrimParamsReg, EMPTY).replace(PathTrimFileReg, EMPTY) + Slash;
-
                 if (part.charAt(0) == Slash) {
-                    var ds = ProtocalReg.test(url) ? 8 : 0;
-                    var fs = url.indexOf(Slash, ds);
-
-                    /* if(fs==-1){
-                        result=url+part;
-                    }else{*/
-                    result = url.substring(0, fs) + part;
-                    //}
-
-                } else {
-                    result = url + part;
+                    url = url.substring(0, url.indexOf(Slash, ProtocalReg.test(url) ? 8 : 0));
                 }
             }
+            result = url + part;
             while (PathRelativeReg.test(result)) {
-                //
                 result = result.replace(PathRelativeReg, '$1/');
             }
             PathCache.set(key, result);
@@ -525,22 +510,22 @@ var Magix = {
         //7. a=b&c=d          => path ''
         //8. /s?src=b#        => path /s params:{src:'b'}
         var temp = PathToObjCache.get(path),
-            r = {};
+            r = {}, params, pathname, querys, first;
         if (temp) {
             r.path = temp.path;
             r.params = Mix({}, temp.params);
         } else {
-            var params = {};
-            var pathname = EMPTY;
+            params = {};
+            pathname = EMPTY;
             if (PathTrimParamsReg.test(path)) { //有#?号，表示有pathname
                 pathname = path.replace(PathTrimParamsReg, EMPTY);
             } else if (!~path.indexOf('=')) { //没有=号，路径可能是 xxx 相对路径
                 pathname = path;
             }
-            var querys = path.replace(pathname, EMPTY);
+            querys = path.replace(pathname, EMPTY);
             if (pathname) {
                 if (ProtocalReg.test(pathname)) { //解析以https?:开头的网址
-                    var first = pathname.indexOf(Slash, 8); //找最近的 /
+                    first = pathname.indexOf(Slash, 8); //找最近的 /
                     if (~first) {
                         pathname = pathname.substring(first); //截取
                     } else { //未找到，比如 http://etao.com
@@ -587,8 +572,8 @@ var Magix = {
      */
     toUrl: function(path, params, keo) { //上个方法的逆向
         var arr = [];
-        var v;
-        for (var p in params) {
+        var v, p;
+        for (p in params) {
             v = params[p];
             if (!keo || v || Has(keo, p)) {
                 if (Cfg.coded) {
@@ -622,6 +607,7 @@ var Magix = {
      * 把列表转化成hash对象
      * @param  {Array} list 源数组
      * @param  {String} key  以数组中对象的哪个key的value做为hahs的key
+     * @param {Object} [value] 当list为简单数组时，map使用的value值，默认1
      * @return {Object}
      * @example
      * var map=Magix.toMap([1,2,3,5,6]);
@@ -629,21 +615,14 @@ var Magix = {
      *
      * var map=Magix.toMap([{id:20},{id:30},{id:40}],'id');
      * //=>{20:{id:20},30:{id:30},40:{id:40}}
-     *
-     * var map=Magix.toMap('submit,focusin,focusout,mouseenter,mouseleave,mousewheel,change');
-     *
-     * //=>{submit:1,focusin:1,focusout:1,mouseenter:1,mouseleave:1,mousewheel:1,change:1}
-     *
      */
-    toMap: function(list, key) {
+    toMap: function(list, key, value) {
         var i, e, map = {}, l;
-        if (Magix._s(list)) {
-            list = list.split(',');
-        }
+        value = value || 1;
         if (list && (l = list.length)) {
             for (i = 0; i < l; i++) {
                 e = list[i];
-                map[key ? e[key] : e] = key ? e : 1;
+                map[key ? e[key] : e] = key ? e : value;
             }
         }
         return map;
@@ -674,10 +653,7 @@ var Magix = {
         },
         _a: S.isArray,
         _f: S.isFunction,
-        _o: S.isObject,
-        //isRegExp: S.isRegExp,
-        _s: S.isString,
-        _n: S.isNumber
+        _o: S.isObject
     });
 });
 /**
@@ -712,7 +688,7 @@ var SupportState, HashAsNativeHistory, ReadLocSrc;
 var IsParam = function(params, r, ps) {
     if (params) {
         ps = this[PARAMS];
-        params = (params + EMPTY).split(',');
+        params = (params + EMPTY).split(COMMA);
         for (var i = 0; i < params.length; i++) {
             r = Has(ps, params[i]);
             if (r) break;
@@ -731,7 +707,7 @@ var IsView = function() {
 var GetSetParam = function(key, value, me, params) {
     me = this;
     params = me[PARAMS];
-    return arguments.length > 1 ? params[key] = value : params[key];
+    return arguments.length > 1 ? params[key] = value : params[key] || EMPTY;
 };
 
 
@@ -780,7 +756,7 @@ var Router = Mix({
      * @private
      */
     viewInfo: function(path, loc) {
-        var r, result;
+        var r, result, defaultView, defaultPath;
         if (!Pnr) {
             Pnr = {
                 rs: MxConfig.routes || {},
@@ -788,12 +764,12 @@ var Router = Mix({
             };
             //var home=pathCfg.defaultView;//处理默认加载的view
             //var dPathname=pathCfg.defaultPath||EMPTY;
-            var defaultView = MxConfig.defaultView;
+            defaultView = MxConfig.defaultView;
             /*if (!defaultView) {
                 throw new Error('unset defaultView');
             }*/
             Pnr.dv = defaultView;
-            var defaultPath = MxConfig.defaultPath || EMPTY;
+            defaultPath = MxConfig.defaultPath || EMPTY;
             //if(!Magix.isFunction(temp.rs)){
             r = Pnr.rs;
             Pnr.f = Magix._f(r);
@@ -854,18 +830,19 @@ var Router = Mix({
 
             }
         }*/
-        var result = HrefCache.get(href);
+        var result = HrefCache.get(href),
+            view, tempPathname, query, hash, queryObj, hashObj, comObj;
         if (!result) {
-            var query = href.replace(TrimHashReg, EMPTY);
+            query = href.replace(TrimHashReg, EMPTY);
             //
             //var query=tPathname+params.replace(/^([^#]+).*$/g,'$1');
-            var hash = href.replace(TrimQueryReg, EMPTY); //原始hash
+            hash = href.replace(TrimQueryReg, EMPTY); //原始hash
             //
-            var queryObj = Path(query);
+            queryObj = Path(query);
             //
-            var hashObj = Path(hash); //去掉可能的！开始符号
+            hashObj = Path(hash); //去掉可能的！开始符号
             //
-            var comObj = {}; //把query和hash解析的参数进行合并，用于hash和pushState之间的过度
+            comObj = {}; //把query和hash解析的参数进行合并，用于hash和pushState之间的过度
             Mix(comObj, queryObj[PARAMS]);
             Mix(comObj, hashObj[PARAMS]);
             result = {
@@ -882,8 +859,6 @@ var Router = Mix({
             HrefCache.set(href, result);
         }
         if (inner && !result[VIEW]) {
-            //
-            var tempPathname;
             /*
                 1.在选择path时，不能简单的把hash中的覆盖query中的。有可能是从不支持history state浏览器上拷贝链接到支持的浏览器上，分情况而定：
                 如果hash中存在path则使用hash中的，否则用query中的
@@ -922,7 +897,7 @@ var Router = Mix({
             //}
             //上述if else简写成以下形式，方便压缩
             tempPathname = result.hash[PATH] || (UseEdgeHistory && result.query[PATH]);
-            var view = Router.viewInfo(tempPathname, result);
+            view = Router.viewInfo(tempPathname, result);
             Mix(result, view);
         }
         return result;
@@ -1133,7 +1108,7 @@ var Router = Mix({
  **/
 LIB.add('magix/body', function(S, Magix) {
     var RootEvents = {};
-
+var Has = Magix.has;
 var MxIgnore = 'mx-ei';
 var RootNode = DOCUMENT.body;
 var ParentNode = 'parentNode';
@@ -1141,7 +1116,6 @@ var TypesRegCache = {};
 var IdCounter = 1 << 16;
 var MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 var On = 'on';
-var Comma = ',';
 
 
 var GetSetAttribute = function(dom, attrKey, attrVal) {
@@ -1159,6 +1133,7 @@ var Halt = function() {
 var Prevented = function() {
     this.prevented = 1;
 };
+
 var VOM;
 var Group = '\u0005';
 var Body = {
@@ -1169,10 +1144,10 @@ var Body = {
      * @returns {String} 返回处理后的字符串
      */
     wrap: function(id, html, onlyPrefix, prefix) {
-        html += '';
+        html += EMPTY;
         prefix = id + SPLITER;
         if (onlyPrefix) {
-            html = Group + prefix + html;
+            html = [EMPTY].concat(html).join(Group + prefix);
         } else {
             html = html.replace(MxEvt, '$&' + prefix);
         }
@@ -1180,32 +1155,16 @@ var Body = {
     },
     process: function(e) {
         if (e && !e[On]) {
-            var target = e.target || e.srcElement || RootNode; //原生事件对象Cordova没有target对象
+            var target = e.target;
             e[On] = 1;
-            /*
-                考虑如ff浏览器支持向e设置属性，但不显示，也有可能后续版本不支持设置属性，需如下修正
-                if(!e[On]){
-                    var temp=Mix({},e);
-                    temp.oe=e;
-                    temp.stopPropagation=function(){this.oe.stopPropagation();};
-                    temp.preventDefault=function(){this.oe.preventDefault();};
-                    e=temp;
-                }
-             */
-            //var cTarget = e.currentTarget; //只处理类库(比如KISSY)处理后的currentTarget
-            //if (cTarget && cTarget != RootNode) target = cTarget; //类库处理后代理事件的currentTarget并不是根节点
-            while (target && target.nodeType != 1) {
-                target = target[ParentNode];
-            }
             var current = target;
             var eventType = e.type;
-            var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(Comma + eventType + '(?:,|$)'));
-            //
-            //if (!eventReg.test(GetSetAttribute(target, MxIgnore))) {
+            var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(COMMA + eventType + '(?:,|$)'));
             var type = 'mx-' + eventType;
             var info;
             var ignore;
             var arr = [];
+            var node;
 
             while (current && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点
                 info = GetSetAttribute(current, type);
@@ -1219,48 +1178,49 @@ var Body = {
             }
             if (info) { //有事件
                 //找处理事件的vframe
-                var infos = info.split(Group);
+                var infos = info.split(Group),
+                    firstProcessed,
+                    oinfo, ts, vframe, view, vId, begin, vfs, tempId;
                 while (infos.length) {
-                    info = infos.shift();
-                    if (info) {
-                        var ts = info.split(SPLITER);
-                        info = ts.pop();
-                        var vId = ts[0];
-                        /*if (!vId) { //如果没有则找最近的vframe
-                    var begin = current;
-                    var vfs = VOM.all();
-                    while (begin) {
-                        if (Has(vfs, begin.id)) {
-                            GetSetAttribute(current, type, (vId = begin.id) + SPLITER + info);
-                            break;
+                    oinfo = infos.shift();
+                    if (oinfo) {
+                        ts = oinfo.split(SPLITER);
+                        oinfo = ts.pop();
+                        vId = ts[0];
+                        if (!vId && !firstProcessed) { //如果没有则找最近的vframe
+                            begin = current;
+                            vfs = VOM.all();
+                            while (begin) {
+                                if (Has(vfs, tempId = begin.id)) {
+                                    GetSetAttribute(current, type, (vId = tempId) + SPLITER + info);
+                                    break;
+                                }
+                                begin = begin[ParentNode];
+                            }
                         }
-                        begin = begin[ParentNode];
-                    }
-                }*/
+                        firstProcessed = 1;
                         if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
-
-                            var vframe = VOM.get(vId);
-                            var view = vframe && vframe.view;
+                            vframe = VOM.get(vId);
+                            view = vframe && vframe.view;
                             if (view) {
                                 e.currentId = IdIt(current);
                                 e.targetId = IdIt(target);
                                 e.prevent = e.preventDefault || Prevented;
                                 e.stop = e.stopPropagation || Magix.noop;
                                 e.halt = Halt;
-                                view.pEvt(info, eventType, e);
+                                view.pEvt(oinfo, eventType, e);
                             }
                         } else {
-                            throw Error('bad:' + info);
+                            throw Error('bad:' + oinfo);
                         }
                     }
                 }
             } else {
-                var node;
                 while (arr.length) {
                     node = arr.pop();
                     ignore = GetSetAttribute(node, MxIgnore) || On;
                     if (!eventReg.test(ignore)) {
-                        ignore = ignore + Comma + eventType;
+                        ignore = ignore + COMMA + eventType;
                         GetSetAttribute(node, MxIgnore, ignore);
                     }
                 }
@@ -1295,10 +1255,10 @@ var Body = {
         S.use('event', function(S, SE) {
             var flag = Delegates[type];
             if (!direct && flag == 2) {
-                flag = (remove ? 'un' : '') + 'delegate';
+                flag = (remove ? 'un' : EMPTY) + 'delegate';
                 SE[flag](node, type, '[mx-' + type + ']', cb);
             } else {
-                flag = remove ? 'detach' : 'on';
+                flag = remove ? 'detach' : On;
                 SE[flag](node, type, cb, scope);
             }
         });
@@ -1545,7 +1505,7 @@ var Vframe = function(id) {
     me.cM = {};
     me.cC = 0;
     me.rC = 0;
-    me.sign = 1 << 30;
+    me.sign = 1;
     me.rM = {};
     me.owner = RefVOM;
     RefVOM.add(id, me);
@@ -1634,7 +1594,7 @@ Mix(Mix(Vframe.prototype, Event), {
         if (viewPath) {
             var po = Magix.toObject(viewPath);
             var vn = po.path;
-            var sign = --me.sign;
+            var sign = ++me.sign;
             Magix.use(vn, function(View) {
                 if (sign == me.sign) { //有可能在view载入后，vframe已经卸载了
 
@@ -1704,7 +1664,7 @@ Mix(Mix(Vframe.prototype, Event), {
             }
             GlobalAlter = 0;
         }
-        me.sign--;
+        me.sign++;
     },
     /**
      * 加载vframe
@@ -1929,10 +1889,7 @@ Mix(Mix(Vframe.prototype, Event), {
                  * @ignore
                  */
                 to: function(c) {
-                    //c = c || EmptyArr;
-                    if (Magix._s(c)) {
-                        c = c.split(',');
-                    }
+                    c = (c + EMPTY).split(COMMA);
                     this.cs = c || EmptyArr;
                 }
             };
@@ -2004,7 +1961,6 @@ LIB.add('magix/view', function(S, Magix, Event, Body, Router, IO) {
 
     var SafeExec = Magix.tryCall;
 var Has = Magix.has;
-var COMMA = ',';
 var EMPTY_ARRAY = [];
 var Noop = Magix.noop;
 var Mix = Magix.mix;
@@ -2469,7 +2425,7 @@ Mix(Mix(VProto, Event), {
             args = args.params;
         }
         if (args) {
-            loc.ks = keys.concat((args + '').split(COMMA));
+            loc.ks = keys.concat((args + EMPTY).split(COMMA));
         }
     },
     /**
@@ -2720,7 +2676,7 @@ Mix(Mix(VProto, Event), {
             //}
         }
         var oust;
-        if (Magix._n(res)) {
+        if ((res | 0) === res) { //数字
             oust = DestroyTimer;
         } else {
             oust = Destroy;
@@ -3277,7 +3233,6 @@ var UrlParams = 'urlParams';
 var Now = Date.now || function() {
         return +new Date();
     };
-var Guid = Now();
 var WJSON = WINDOW.JSON;
 var Mix = Magix.mix;
 var DefaultCacheTime = 20 * 60 * 1000;
@@ -3344,8 +3299,8 @@ var MManager = function(modelClass, serKeys) {
     me.$mCache = Magix.cache();
     me.$mCacheKeys = {};
     me.$mMetas = {};
-    me.$sKeys = (serKeys && ('' + serKeys).split(',') || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
-    me.id = 'mm' + Guid--;
+    me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
+    me.id = 'mm' + (++COUNTER);
     SafeExec(MManager.$, arguments, me);
 };
 
@@ -3507,7 +3462,7 @@ var MRequest = function(host) {
     var me = this;
     me.$host = host;
     me.$reqs = {};
-    me.id = 'mr' + Guid--;
+    me.id = 'mr' + (++COUNTER);
     me.$queue = [];
 };
 
@@ -4209,7 +4164,6 @@ var GenSetParams = function(type, iv) {
         this.setParams(o1, o2, type, iv);
     };
 };
-var Empty = '';
 var FixParamsReg = /^\?|=(?=&|$)/g;
 var GET = 'GET',
     POST = 'POST';
@@ -4297,8 +4251,8 @@ Magix.mix(Model.prototype, {
      * @return {String}
      */
     getParams: function(type) {
-        var params = Magix.toUrl(Empty, this[SPLITER + (type || GET)]);
-        params = params.replace(FixParamsReg, Empty);
+        var params = Magix.toUrl(EMPTY, this[SPLITER + (type || GET)]);
+        params = params.replace(FixParamsReg, EMPTY);
         return params;
         /*var k = SPLITER + type;
         var params = me[k];
@@ -4353,9 +4307,9 @@ Magix.mix(Model.prototype, {
         if (Magix._f(obj1)) {
             obj1 = Magix.tryCall(obj1);
         }
-        if (obj1 && Magix._s(obj1)) {
+        if (obj1 && !IsObject(obj1)) {
             t = {};
-            t[obj1] = ~obj1.indexOf('=') ? Empty : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
+            t[obj1] = ~ (obj1 + EMPTY).indexOf('=') ? EMPTY : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
             obj1 = t;
         }
         for (p in obj1) {
@@ -4442,7 +4396,7 @@ Magix.mix(Model.prototype, {
         var hasDValue = alen == 2;
         var attrs = me.$attrs;
         if (alen) {
-            var tks = (key + Empty).split('.');
+            var tks = (key + EMPTY).split('.');
             while (attrs && tks[0]) {
                 attrs = attrs[tks.shift()];
             }
@@ -4527,4 +4481,4 @@ Magix.mix(Model.prototype, {
     return Model;
 }, {
     requires: ['magix/magix']
-});;DOCUMENT.createElement("vframe");})(null,this,document,"\u001f",KISSY)
+});;DOCUMENT.createElement("vframe");})(null,this,document,"\u001f","",",",KISSY)

@@ -1,6 +1,5 @@
 var SafeExec = Magix.tryCall;
 var Has = Magix.has;
-var COMMA = ',';
 var EMPTY_ARRAY = [];
 var Noop = Magix.noop;
 var Mix = Magix.mix;
@@ -465,7 +464,7 @@ Mix(Mix(VProto, Event), {
             args = args.params;
         }
         if (args) {
-            loc.ks = keys.concat((args + '').split(COMMA));
+            loc.ks = keys.concat((args + EMPTY).split(COMMA));
         }
     },
     /**
@@ -717,7 +716,7 @@ Mix(Mix(VProto, Event), {
             //}
         }
         var oust;
-        if (Magix._n(res)) {
+        if ((res | 0) === res) { //数字
             oust = DestroyTimer;
         } else {
             oust = Destroy;

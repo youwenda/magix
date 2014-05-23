@@ -29,9 +29,6 @@ KISSY.add('magix/magix', function(S) {
         },
         _a: S.isArray,
         _f: S.isFunction,
-        _o: S.isObject,
-        //isRegExp: S.isRegExp,
-        _s: S.isString,
-        _n: S.isNumber
+        _o: S.isObject
     });
 });

@@ -26,9 +26,9 @@ define("magix/body", ["magix/magix"], function(require) {
             cb = scope[key];
         }
         if (!direct && flag == 2) {
-            $(node)[(remove ? 'un' : '') + 'delegate']('[mx-' + type + ']', type, cb);
+            $(node)[(remove ? 'un' : EMPTY) + 'delegate']('[mx-' + type + ']', type, cb);
         } else {
-            $(node)[remove ? 'off' : 'on'](type, cb);
+            $(node)[remove ? 'off' : On](type, cb);
         }
     };
     return Body;

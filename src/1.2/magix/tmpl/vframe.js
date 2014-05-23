@@ -83,7 +83,7 @@ var Vframe = function(id) {
     me.cM = {};
     me.cC = 0;
     me.rC = 0;
-    me.sign = 1 << 30;
+    me.sign = 1;
     me.rM = {};
     me.owner = RefVOM;
     RefVOM.add(id, me);
@@ -172,7 +172,7 @@ Mix(Mix(Vframe.prototype, Event), {
         if (viewPath) {
             var po = Magix.toObject(viewPath);
             var vn = po.path;
-            var sign = --me.sign;
+            var sign = ++me.sign;
             Magix.use(vn, function(View) {
                 if (sign == me.sign) { //有可能在view载入后，vframe已经卸载了
 
@@ -242,7 +242,7 @@ Mix(Mix(Vframe.prototype, Event), {
             }
             GlobalAlter = 0;
         }
-        me.sign--;
+        me.sign++;
     },
     /**
      * 加载vframe
@@ -467,10 +467,7 @@ Mix(Mix(Vframe.prototype, Event), {
                  * @ignore
                  */
                 to: function(c) {
-                    //c = c || EmptyArr;
-                    if (Magix._s(c)) {
-                        c = c.split(',');
-                    }
+                    c = (c + EMPTY).split(COMMA);
                     this.cs = c || EmptyArr;
                 }
             };

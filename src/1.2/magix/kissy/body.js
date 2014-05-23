@@ -13,10 +13,10 @@ KISSY.add('magix/body', function(S, Magix) {
         S.use('event', function(S, SE) {
             var flag = Delegates[type];
             if (!direct && flag == 2) {
-                flag = (remove ? 'un' : '') + 'delegate';
+                flag = (remove ? 'un' : EMPTY) + 'delegate';
                 SE[flag](node, type, '[mx-' + type + ']', cb);
             } else {
-                flag = remove ? 'detach' : 'on';
+                flag = remove ? 'detach' : On;
                 SE[flag](node, type, cb, scope);
             }
         });

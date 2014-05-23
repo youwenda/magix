@@ -5,7 +5,7 @@
  **/
 define("magix/body", ["magix/magix"], function(Magix) {
     var RootEvents = {};
-
+var Has = Magix.has;
 var MxIgnore = 'mx-ei';
 var RootNode = document.body;
 var ParentNode = 'parentNode';
@@ -13,7 +13,6 @@ var TypesRegCache = {};
 var IdCounter = 1 << 16;
 var MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 var On = 'on';
-var Comma = ',';
 
 var IdIt = function(dom) {
     return dom.id || (dom.id = 'mx-e-' + (IdCounter--));
@@ -33,6 +32,7 @@ var Halt = function() {
 var Prevented = function() {
     this.prevented = 1;
 };
+
 var VOM;
 var Group = '\u0005';
 var Body = {
@@ -43,10 +43,10 @@ var Body = {
      * @returns {String} 返回处理后的字符串
      */
     wrap: function(id, html, onlyPrefix, prefix) {
-        html += '';
+        html += EMPTY;
         prefix = id + '\u001a';
         if (onlyPrefix) {
-            html = Group + prefix + html;
+            html = [EMPTY].concat(html).join(Group + prefix);
         } else {
             html = html.replace(MxEvt, '$&' + prefix);
         }
@@ -54,32 +54,16 @@ var Body = {
     },
     process: function(e) {
         if (e && !e[On]) {
-            var target = e.target || e.srcElement || RootNode; //原生事件对象Cordova没有target对象
+            var target = e.target;
             e[On] = 1;
-            /*
-                考虑如ff浏览器支持向e设置属性，但不显示，也有可能后续版本不支持设置属性，需如下修正
-                if(!e[On]){
-                    var temp=Mix({},e);
-                    temp.oe=e;
-                    temp.stopPropagation=function(){this.oe.stopPropagation();};
-                    temp.preventDefault=function(){this.oe.preventDefault();};
-                    e=temp;
-                }
-             */
-            //var cTarget = e.currentTarget; //只处理类库(比如KISSY)处理后的currentTarget
-            //if (cTarget && cTarget != RootNode) target = cTarget; //类库处理后代理事件的currentTarget并不是根节点
-            while (target && target.nodeType != 1) {
-                target = target[ParentNode];
-            }
             var current = target;
             var eventType = e.type;
-            var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(Comma + eventType + '(?:,|$)'));
-            //
-            //if (!eventReg.test(GetSetAttribute(target, MxIgnore))) {
+            var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(COMMA + eventType + '(?:,|$)'));
             var type = 'mx-' + eventType;
             var info;
             var ignore;
             var arr = [];
+            var node;
 
             while (current && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点
                 info = GetSetAttribute(current, type);
@@ -93,48 +77,49 @@ var Body = {
             }
             if (info) { //有事件
                 //找处理事件的vframe
-                var infos = info.split(Group);
+                var infos = info.split(Group),
+                    firstProcessed,
+                    oinfo, ts, vframe, view, vId, begin, vfs, tempId;
                 while (infos.length) {
-                    info = infos.shift();
-                    if (info) {
-                        var ts = info.split('\u001a');
-                        info = ts.pop();
-                        var vId = ts[0];
-                        /*if (!vId) { //如果没有则找最近的vframe
-                    var begin = current;
-                    var vfs = VOM.all();
-                    while (begin) {
-                        if (Has(vfs, begin.id)) {
-                            GetSetAttribute(current, type, (vId = begin.id) + '\u001a' + info);
-                            break;
+                    oinfo = infos.shift();
+                    if (oinfo) {
+                        ts = oinfo.split('\u001a');
+                        oinfo = ts.pop();
+                        vId = ts[0];
+                        if (!vId && !firstProcessed) { //如果没有则找最近的vframe
+                            begin = current;
+                            vfs = VOM.all();
+                            while (begin) {
+                                if (Has(vfs, tempId = begin.id)) {
+                                    GetSetAttribute(current, type, (vId = tempId) + '\u001a' + info);
+                                    break;
+                                }
+                                begin = begin[ParentNode];
+                            }
                         }
-                        begin = begin[ParentNode];
-                    }
-                }*/
+                        firstProcessed = 1;
                         if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
-
-                            var vframe = VOM.get(vId);
-                            var view = vframe && vframe.view;
+                            vframe = VOM.get(vId);
+                            view = vframe && vframe.view;
                             if (view) {
                                 e.currentId = IdIt(current);
                                 e.targetId = IdIt(target);
                                 e.prevent = e.preventDefault || Prevented;
                                 e.stop = e.stopPropagation || Magix.noop;
                                 e.halt = Halt;
-                                view.pEvt(info, eventType, e);
+                                view.pEvt(oinfo, eventType, e);
                             }
                         } else {
-                            throw Error('bad:' + info);
+                            throw Error('bad:' + oinfo);
                         }
                     }
                 }
             } else {
-                var node;
                 while (arr.length) {
                     node = arr.pop();
                     ignore = GetSetAttribute(node, MxIgnore) || On;
                     if (!eventReg.test(ignore)) {
-                        ignore = ignore + Comma + eventType;
+                        ignore = ignore + COMMA + eventType;
                         GetSetAttribute(node, MxIgnore, ignore);
                     }
                 }
@@ -181,9 +166,9 @@ var Body = {
             cb = scope[key];
         }
         if (!direct && flag == 2) {
-            $(node)[(remove ? 'un' : '') + 'delegate']('[mx-' + type + ']', type, cb);
+            $(node)[(remove ? 'un' : EMPTY) + 'delegate']('[mx-' + type + ']', type, cb);
         } else {
-            $(node)[remove ? 'off' : 'on'](type, cb);
+            $(node)[remove ? 'off' : On](type, cb);
         }
     };
     return Body;

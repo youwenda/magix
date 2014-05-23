@@ -76,10 +76,10 @@ module.exports = function(grunt) {
         if (loaderType == 'kissy') {
             lib = 'KISSY';
         }
-        footer = ';document.createElement("vframe");})(null,this,document,"\\u001f",' + lib + ')';
+        footer = ';document.createElement("vframe");})(null,this,document,"\\u001f","",",",' + lib + ')';
         grunt.config.set('concat', {
             options: {
-                banner: '(function(NULL,WINDOW,DOCUMENT,SPLITER,LIB,IdIt,COUNTER){COUNTER=0;IdIt=function(n){return n.id||(n.id=\'mx_n_\'+(++COUNTER))};',
+                banner: '(function(NULL,WINDOW,DOCUMENT,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=0;IdIt=function(n){return n.id||(n.id=\'mx_n_\'+(++COUNTER))};',
                 separator: '\n',
                 footer: footer
             },

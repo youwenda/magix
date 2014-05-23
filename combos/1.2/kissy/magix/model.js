@@ -37,7 +37,6 @@ var GenSetParams = function(type, iv) {
         this.setParams(o1, o2, type, iv);
     };
 };
-var Empty = '';
 var FixParamsReg = /^\?|=(?=&|$)/g;
 var GET = 'GET',
     POST = 'POST';
@@ -125,8 +124,8 @@ Magix.mix(Model.prototype, {
      * @return {String}
      */
     getParams: function(type) {
-        var params = Magix.toUrl(Empty, this['\u001a' + (type || GET)]);
-        params = params.replace(FixParamsReg, Empty);
+        var params = Magix.toUrl(EMPTY, this['\u001a' + (type || GET)]);
+        params = params.replace(FixParamsReg, EMPTY);
         return params;
         /*var k = '\u001a' + type;
         var params = me[k];
@@ -181,9 +180,9 @@ Magix.mix(Model.prototype, {
         if (Magix._f(obj1)) {
             obj1 = Magix.tryCall(obj1);
         }
-        if (obj1 && Magix._s(obj1)) {
+        if (obj1 && !IsObject(obj1)) {
             t = {};
-            t[obj1] = ~obj1.indexOf('=') ? Empty : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
+            t[obj1] = ~ (obj1 + EMPTY).indexOf('=') ? EMPTY : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
             obj1 = t;
         }
         for (p in obj1) {
@@ -270,7 +269,7 @@ Magix.mix(Model.prototype, {
         var hasDValue = alen == 2;
         var attrs = me.$attrs;
         if (alen) {
-            var tks = (key + Empty).split('.');
+            var tks = (key + EMPTY).split('.');
             while (attrs && tks[0]) {
                 attrs = attrs[tks.shift()];
             }

@@ -17,11 +17,8 @@ define('magix/magix', function() {
     var PathRelativeReg = /\/\.\/|\/[^\/.]+?\/\.{2}\/|([^:\/])\/\/+|\.{2}\//; // ./|/x/../|(b)///
 var PathTrimFileReg = /\/[^\/]*$/;
 var PathTrimParamsReg = /[#?].*$/;
-var EMPTY = '';
 var ParamsReg = /([^=&?\/#]+)=?([^&=#?]*)/g;
 var ProtocalReg = /^https?:\/\//i;
-//var Templates = {};
-var CacheLatest = 0;
 var Slash = '/';
 var DefaultTagName = 'vframe';
 var Console = window.console;
@@ -42,11 +39,9 @@ var Cfg = {
     tagName: DefaultTagName,
     rootId: 'magix_vf_root',
     coded: 1,
-    error: function(e) {
-        if (SupportError) {
-            Console.error(e);
-        }
-    }
+    error: SupportError ? function(e) {
+        Console.error(e);
+    } : Noop
 };
 var HasProp = Cfg.hasOwnProperty;
 /**
@@ -105,8 +100,8 @@ var Cache = function(max, buffer) {
  * @param  {Object} ignore 在复制时，忽略的值
  * @return {Object}
  */
-var Mix = function(aim, src, ignore) {
-    for (var p in src) {
+var Mix = function(aim, src, ignore, p) {
+    for (p in src) {
         if (!ignore || !Has(ignore, p)) {
             aim[p] = src[p];
         }
@@ -124,7 +119,7 @@ Mix(Cache.prototype, {
             r = c[key];
             if (r.f >= 1) {
                 r.f++;
-                r.t = CacheLatest++;
+                r.t = ++COUNTER;
                 //
                 r = r.v;
                 //
@@ -159,7 +154,7 @@ Mix(Cache.prototype, {
         }
         r.v = value;
         r.f = 1;
-        r.t = CacheLatest++;
+        r.t = ++COUNTER;
         r.m = onRemove;
         return value;
     },
@@ -434,8 +429,9 @@ var Magix = {
      * @return {Array}
      */
     keys: Object.keys || function(obj) {
-        var keys = [];
-        for (var p in obj) {
+        var keys = [],
+            p;
+        for (p in obj) {
             if (Has(obj, p)) {
                 keys.push(p);
             }
@@ -478,26 +474,15 @@ var Magix = {
         var result = PathCache.get(key);
         if (!result) {
             if (ProtocalReg.test(part)) {
-                result = part;
+                url = EMPTY;
             } else {
                 url = url.replace(PathTrimParamsReg, EMPTY).replace(PathTrimFileReg, EMPTY) + Slash;
-
                 if (part.charAt(0) == Slash) {
-                    var ds = ProtocalReg.test(url) ? 8 : 0;
-                    var fs = url.indexOf(Slash, ds);
-
-                    /* if(fs==-1){
-                        result=url+part;
-                    }else{*/
-                    result = url.substring(0, fs) + part;
-                    //}
-
-                } else {
-                    result = url + part;
+                    url = url.substring(0, url.indexOf(Slash, ProtocalReg.test(url) ? 8 : 0));
                 }
             }
+            result = url + part;
             while (PathRelativeReg.test(result)) {
-                //
                 result = result.replace(PathRelativeReg, '$1/');
             }
             PathCache.set(key, result);
@@ -523,22 +508,22 @@ var Magix = {
         //7. a=b&c=d          => path ''
         //8. /s?src=b#        => path /s params:{src:'b'}
         var temp = PathToObjCache.get(path),
-            r = {};
+            r = {}, params, pathname, querys, first;
         if (temp) {
             r.path = temp.path;
             r.params = Mix({}, temp.params);
         } else {
-            var params = {};
-            var pathname = EMPTY;
+            params = {};
+            pathname = EMPTY;
             if (PathTrimParamsReg.test(path)) { //有#?号，表示有pathname
                 pathname = path.replace(PathTrimParamsReg, EMPTY);
             } else if (!~path.indexOf('=')) { //没有=号，路径可能是 xxx 相对路径
                 pathname = path;
             }
-            var querys = path.replace(pathname, EMPTY);
+            querys = path.replace(pathname, EMPTY);
             if (pathname) {
                 if (ProtocalReg.test(pathname)) { //解析以https?:开头的网址
-                    var first = pathname.indexOf(Slash, 8); //找最近的 /
+                    first = pathname.indexOf(Slash, 8); //找最近的 /
                     if (~first) {
                         pathname = pathname.substring(first); //截取
                     } else { //未找到，比如 http://etao.com
@@ -585,8 +570,8 @@ var Magix = {
      */
     toUrl: function(path, params, keo) { //上个方法的逆向
         var arr = [];
-        var v;
-        for (var p in params) {
+        var v, p;
+        for (p in params) {
             v = params[p];
             if (!keo || v || Has(keo, p)) {
                 if (Cfg.coded) {
@@ -620,6 +605,7 @@ var Magix = {
      * 把列表转化成hash对象
      * @param  {Array} list 源数组
      * @param  {String} key  以数组中对象的哪个key的value做为hahs的key
+     * @param {Object} [value] 当list为简单数组时，map使用的value值，默认1
      * @return {Object}
      * @example
      * var map=Magix.toMap([1,2,3,5,6]);
@@ -627,21 +613,14 @@ var Magix = {
      *
      * var map=Magix.toMap([{id:20},{id:30},{id:40}],'id');
      * //=>{20:{id:20},30:{id:30},40:{id:40}}
-     *
-     * var map=Magix.toMap('submit,focusin,focusout,mouseenter,mouseleave,mousewheel,change');
-     *
-     * //=>{submit:1,focusin:1,focusout:1,mouseenter:1,mouseleave:1,mousewheel:1,change:1}
-     *
      */
-    toMap: function(list, key) {
+    toMap: function(list, key, value) {
         var i, e, map = {}, l;
-        if (Magix._s(list)) {
-            list = list.split(',');
-        }
+        value = value || 1;
         if (list && (l = list.length)) {
             for (i = 0; i < l; i++) {
                 e = list[i];
-                map[key ? e[key] : e] = key ? e : 1;
+                map[key ? e[key] : e] = key ? e : value;
             }
         }
         return map;
@@ -676,12 +655,6 @@ var Magix = {
         _f: $.isFunction,
         _o: function(o) {
             return ToString.call(o) == '[object Object]';
-        },
-        _s: function(str) {
-            return ToString.call(str) == '[object String]';
-        },
-        _n: function(v) {
-            return ToString.call(v) == '[object Number]';
         },
         /* isRegExp: function(r) {
             return ToString.call(r) == '[object RegExp]';

@@ -24,7 +24,7 @@ var SupportState, HashAsNativeHistory, ReadLocSrc;
 var IsParam = function(params, r, ps) {
     if (params) {
         ps = this[PARAMS];
-        params = (params + EMPTY).split(',');
+        params = (params + EMPTY).split(COMMA);
         for (var i = 0; i < params.length; i++) {
             r = Has(ps, params[i]);
             if (r) break;
@@ -43,7 +43,7 @@ var IsView = function() {
 var GetSetParam = function(key, value, me, params) {
     me = this;
     params = me[PARAMS];
-    return arguments.length > 1 ? params[key] = value : params[key];
+    return arguments.length > 1 ? params[key] = value : params[key] || EMPTY;
 };
 
 
@@ -92,7 +92,7 @@ var Router = Mix({
      * @private
      */
     viewInfo: function(path, loc) {
-        var r, result;
+        var r, result, defaultView, defaultPath;
         if (!Pnr) {
             Pnr = {
                 rs: MxConfig.routes || {},
@@ -100,12 +100,12 @@ var Router = Mix({
             };
             //var home=pathCfg.defaultView;//处理默认加载的view
             //var dPathname=pathCfg.defaultPath||EMPTY;
-            var defaultView = MxConfig.defaultView;
+            defaultView = MxConfig.defaultView;
             /*if (!defaultView) {
                 throw new Error('unset defaultView');
             }*/
             Pnr.dv = defaultView;
-            var defaultPath = MxConfig.defaultPath || EMPTY;
+            defaultPath = MxConfig.defaultPath || EMPTY;
             //if(!Magix.isFunction(temp.rs)){
             r = Pnr.rs;
             Pnr.f = Magix._f(r);
@@ -166,18 +166,19 @@ var Router = Mix({
 
             }
         }*/
-        var result = HrefCache.get(href);
+        var result = HrefCache.get(href),
+            view, tempPathname, query, hash, queryObj, hashObj, comObj;
         if (!result) {
-            var query = href.replace(TrimHashReg, EMPTY);
+            query = href.replace(TrimHashReg, EMPTY);
             //console.log(params);
             //var query=tPathname+params.replace(/^([^#]+).*$/g,'$1');
-            var hash = href.replace(TrimQueryReg, EMPTY); //原始hash
+            hash = href.replace(TrimQueryReg, EMPTY); //原始hash
             //console.log(params,'--',href,'---',hash,'--',query);
-            var queryObj = Path(query);
+            queryObj = Path(query);
             //console.log(hash,'___________________',hash.replace(/^!?/,EMPTY));
-            var hashObj = Path(hash); //去掉可能的！开始符号
+            hashObj = Path(hash); //去掉可能的！开始符号
             //console.log(hashObj.path,'hhhhhhhhhhhhhhhhhhhhhhhhh');
-            var comObj = {}; //把query和hash解析的参数进行合并，用于hash和pushState之间的过度
+            comObj = {}; //把query和hash解析的参数进行合并，用于hash和pushState之间的过度
             Mix(comObj, queryObj[PARAMS]);
             Mix(comObj, hashObj[PARAMS]);
             result = {
@@ -194,8 +195,6 @@ var Router = Mix({
             HrefCache.set(href, result);
         }
         if (inner && !result[VIEW]) {
-            //console.log(result,result.srcHash);
-            var tempPathname;
             /*
                 1.在选择path时，不能简单的把hash中的覆盖query中的。有可能是从不支持history state浏览器上拷贝链接到支持的浏览器上，分情况而定：
                 如果hash中存在path则使用hash中的，否则用query中的
@@ -234,7 +233,7 @@ var Router = Mix({
             //}
             //上述if else简写成以下形式，方便压缩
             tempPathname = result.hash[PATH] || (UseEdgeHistory && result.query[PATH]);
-            var view = Router.viewInfo(tempPathname, result);
+            view = Router.viewInfo(tempPathname, result);
             Mix(result, view);
         }
         return result;

@@ -13,7 +13,6 @@ var UrlParams = 'urlParams';
 var Now = Date.now || function() {
         return +new Date();
     };
-var Guid = Now();
 var WJSON = window.JSON;
 var Mix = Magix.mix;
 var DefaultCacheTime = 20 * 60 * 1000;
@@ -80,8 +79,8 @@ var MManager = function(modelClass, serKeys) {
     me.$mCache = Magix.cache();
     me.$mCacheKeys = {};
     me.$mMetas = {};
-    me.$sKeys = (serKeys && ('' + serKeys).split(',') || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
-    me.id = 'mm' + Guid--;
+    me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
+    me.id = 'mm' + (++COUNTER);
     SafeExec(MManager.$, arguments, me);
 };
 
@@ -244,7 +243,7 @@ var MRequest = function(host) {
     var me = this;
     me.$host = host;
     me.$reqs = {};
-    me.id = 'mr' + Guid--;
+    me.id = 'mr' + (++COUNTER);
     me.$queue = [];
 };
 

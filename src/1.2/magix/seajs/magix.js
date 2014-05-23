@@ -31,12 +31,6 @@ define('magix/magix', function() {
         _o: function(o) {
             return ToString.call(o) == '[object Object]';
         },
-        _s: function(str) {
-            return ToString.call(str) == '[object String]';
-        },
-        _n: function(v) {
-            return ToString.call(v) == '[object Number]';
-        },
         /* isRegExp: function(r) {
             return ToString.call(r) == '[object RegExp]';
         },*/
