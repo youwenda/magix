@@ -210,12 +210,10 @@ var DoneFn = function(idx, ops, err) {
             if (!ops.e) {
                 errorArgs = null;
             }
+            doneArgs.unshift(errorArgs);
             if (flag == FetchFlags_ALL) {
                 doneArr.unshift(errorArgs);
-                doneArgs[0] = errorArgs;
                 doneArgs[1] = SafeExec(done, doneArr, request);
-            } else {
-                doneArgs.unshift(errorArgs);
             }
             request.$ntId = setTimeout(function() { //前面的任务可能从缓存中来，执行很快
                 request.doNext(doneArgs);
@@ -265,6 +263,7 @@ var MRequest = function(host) {
     var me = this;
     me.$host = host;
     me.$reqs = {};
+    me['\u001a'] = 1;
     me.id = 'mr' + (++COUNTER);
     me.$queue = [];
 };
@@ -285,10 +284,9 @@ Mix(MRequest.prototype, {
     send: function(models, done, flag, save) {
         var me = this;
         if (me.$busy) {
-            me.next(function() {
+            return me.next(function() {
                 this.send(models, done, flag, save);
             });
-            return me;
         }
         me.$busy = 1;
 
@@ -579,27 +577,51 @@ Mix(MRequest.prototype, {
         var me = this;
         me.$queue.push(callback);
         if (!me.$busy) {
-            var args = me.$args;
-            me.doNext(args);
+            me.doNext(me.$args);
         }
         return me;
     },
     /**
      * 做下一个任务
-     * @param {Object} preArgs 上次请求任务回调的返回值
-     * @private
+     * @param {Array} preArgs 上次请求任务回调的返回值，成功时：[null,Returned]，失败时：[{msg:'message'},null]
+     * @example
+     * var r=Manager.createMRequest(view);
+     * r.fetchAll('Name',function(e,m){
+     *
+     *     return m;
+     * });
+     * r.next(function(e,result){//result为m
+     *     return r.fetchAll('NextName',function(e,m){
+     *         return m;
+     *     });
+     * });
+     *
+     * r.next(function(e,m){//m===next m;
+     *     return 'ok';
+     * });
+     *
+     * r.next(function(e,m){
+     *     //m==='ok';
+     * });
+     *
+     * //当出错时，e为出错的信息
      */
     doNext: function(preArgs) {
         var me = this;
         me.$busy = 0;
-        var queue = me.$queue;
+        var queue = me.$queue,
+            one, result;
         if (queue) {
-            var one = queue.shift();
+            one = queue.shift();
             if (one) {
-                SafeExec(one, preArgs, me);
+                result = SafeExec(one, preArgs, me);
+                if (!result || !result['\u001a']) { // 非MRequest
+                    me.doNext(result == queue._ ? preArgs : [null, result]);
+                }
             }
         }
         me.$args = preArgs;
+        return me;
     },
     /**
      * 销毁当前请求，与stop的区别是：stop后还可以继续发起新请求，而destroy后则不可以，而且不再调用相应的回调
@@ -828,15 +850,11 @@ MManager.mixin({
     },
     /**
      * 创建MRequest对象
-     * @param {MxView} view 传递MxView对象，托管MRequest
+     * @param {View} view 传递View对象，托管MRequest
      * @return {MRequest} 返回MRequest对象
      */
     createMRequest: function(view) {
-        var mr = new MRequest(this);
-        if (view && view.manage) {
-            view.manage(mr);
-        }
-        return mr;
+        return view.manage(new MRequest(this));
     },
     /**
      * 根据key清除缓存的models

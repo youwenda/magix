@@ -24,13 +24,12 @@ KISSY.add('magix/model', function(S, Magix) {
  * @property {Boolean} fromCache 在与ModelManager配合使用时，标识当前model对象是不是从缓存中来
  */
 
-var GUID = +new Date();
 var Has = Magix.has;
 var IsObject = Magix._o;
 var ToString = Magix.toString;
 var Model = function(ops) {
     this.set(ops);
-    this.id = 'm' + GUID--;
+    this.id = 'm' + (++COUNTER);
 };
 var GenSetParams = function(type, iv) {
     return function(o1, o2) {

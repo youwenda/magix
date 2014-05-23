@@ -725,7 +725,7 @@ Mix(Mix(VProto, Event), {
             hk: hk,
             res: res,
             ol: lastly,
-            mr: res && res.$host,
+            mr: res && res['\u001a'],
             oust: oust
         };
         cache[key] = wrapObj;

@@ -84,20 +84,18 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
         }
     }]);
     MM.registerMethods({
-        fetchClassInfos: function(callback, view) {
+        fetchClassInfos: function(view) {
             var infos = Magix.local('APIPathInfo');
             var key = [infos.loader, infos.ver, 'infos'].join('_');
-            if (InfosCache.has(key)) {
-                callback(null, InfosCache.get(key));
-                return;
-            }
             var r = MM.createMRequest(view);
+            if (InfosCache.has(key)) {
+                r.doNext([null, InfosCache.get(key)]);
+                return r;
+            }
             r.fetchAll({
                 name: 'Class_List'
             }, function(e, m) {
-                if (e) {
-                    callback(e);
-                } else {
+                if (!e) {
                     var models = [];
                     var list = m.get('list');
                     for (var i = 0; i < list.length; i++) {
@@ -116,26 +114,26 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
                 }
             });
             r.next(function(e, results) {
-                r.fetchAll(results, function(e) {
-                    if (e) {
-                        callback(e);
-                    } else {
-                        var args = arguments;
-                        var map = {};
-                        var list = [];
-                        for (var i = args.length - 1; i > 0; i--) {
-                            map[args[i].get('cName')] = args[i];
-                            list.push(args[i]);
+                console.log(e, results);
+                if (!e) {
+                    return r.fetchAll(results, function(e) {
+                        if (!e) {
+                            var args = arguments;
+                            var map = {};
+                            var list = [];
+                            for (var i = args.length - 1; i > 0; i--) {
+                                map[args[i].get('cName')] = args[i];
+                                list.push(args[i]);
+                            }
+                            var result = {
+                                map: map,
+                                list: list
+                            };
+                            InfosCache.set(key, result);
+                            return result;
                         }
-                        var result = {
-                            map: map,
-                            list: list
-                        };
-                        InfosCache.set(key, result);
-                        callback(e, result);
-                        return result;
-                    }
-                });
+                    });
+                }
             });
             return r;
         },
@@ -149,12 +147,13 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
                     this.stopped = 1;
                 }
             };
-            if (SearchCache.has(key)) {
-                callback(null, SearchCache.get(key));
+            var infos = Magix.local('APIPathInfo');
+            var cacheKey = [infos.loader, infos.ver, key].join('_');
+            if (SearchCache.has(cacheKey)) {
+                callback(null, SearchCache.get(cacheKey));
                 return temp;
             }
             var findIn;
-            var oKey = key;
             if (key.indexOf('@') > -1) {
                 var ks = key.split('@');
                 key = ks[0];
@@ -181,7 +180,8 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
             if (findIn) {
                 findIn = new RegExp('(.*?)' + findIn.split('').join('(.*?)') + '(.*?)', 'i');
             }
-            MM.fetchClassInfos(function(e, results) {
+            var r = MM.fetchClassInfos(view);
+            r.next(function(e, results) {
                 if (e) {
                     callback(e);
                 } else {
@@ -230,7 +230,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
                                     walker(list, index + 1, max);
                                 }, 50);
                             } else {
-                                SearchCache.set(oKey, searchResults);
+                                SearchCache.set(cacheKey, searchResults);
                                 if (sign == view.sign) {
                                     callback(null, searchResults);
                                 }
@@ -258,7 +258,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
                         }
                     }
                 }
-            }, view);
+            });
             return temp;
         }
     });

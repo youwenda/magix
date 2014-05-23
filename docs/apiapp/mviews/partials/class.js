@@ -88,7 +88,8 @@ KISSY.add('apiapp/mviews/partials/class', function(S, View, MM, Magix, Crox) {
         render: function() {
             var me = this;
             var infos = Magix.local('APIPathInfo');
-            MM.fetchClassInfos(function(e, i) {
+            var r = MM.fetchClassInfos(me);
+            r.next(function(e, i) {
                 if (e) {
                     me.setViewHTML(me.id, e.msg);
                 } else {
@@ -125,7 +126,7 @@ KISSY.add('apiapp/mviews/partials/class', function(S, View, MM, Magix, Crox) {
                         me.setViewHTML(me.id, 'not found:' + infos.action);
                     }
                 }
-            }, me);
+            });
         },
         'toggleMoreInfos<click>': function(e) {
             var me = this;
