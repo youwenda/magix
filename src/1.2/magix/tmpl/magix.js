@@ -103,7 +103,7 @@ Mix(Cache.prototype, {
             r = c[key];
             if (r.f >= 1) {
                 r.f++;
-                r.t = ++COUNTER;
+                r.t = COUNTER++;
                 //console.log(r.f);
                 r = r.v;
                 //console.log('hit cache:'+key);
@@ -138,7 +138,7 @@ Mix(Cache.prototype, {
         }
         r.v = value;
         r.f = 1;
-        r.t = ++COUNTER;
+        r.t = COUNTER++;
         r.m = onRemove;
         return value;
     },

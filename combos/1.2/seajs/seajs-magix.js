@@ -1,4 +1,4 @@
-(function(NULL,WINDOW,DOCUMENT,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=0;IdIt=function(n){return n.id||(n.id='mx_n_'+(++COUNTER))};/**
+(function(NULL,WINDOW,DOCUMENT,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=1;IdIt=function(n){return n.id||(n.id='mx_n_'+COUNTER++)};/**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.1
@@ -119,7 +119,7 @@ Mix(Cache.prototype, {
             r = c[key];
             if (r.f >= 1) {
                 r.f++;
-                r.t = ++COUNTER;
+                r.t = COUNTER++;
                 //
                 r = r.v;
                 //
@@ -154,7 +154,7 @@ Mix(Cache.prototype, {
         }
         r.v = value;
         r.f = 1;
-        r.t = ++COUNTER;
+        r.t = COUNTER++;
         r.m = onRemove;
         return value;
     },
@@ -2395,28 +2395,16 @@ Mix(Mix(VProto, Event), {
      * 设置view的html内容
      * @param {String} id 更新节点的id
      * @param {Strig} html html字符串
+     * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML
      * @example
      * render:function(){
      *     this.setViewHTML(this.id,this.template);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
      * }
      */
-    /*
-        1.首次调用：
-            setNodeHTML -> delegate unbubble events -> rendered(事件) -> primed(事件)
-
-        2.再次调用
-            update(事件) -> prerender(事件) -> undelegate unbubble events -> anim... -> setNodeHTML -> delegate unbubble events -> rendered(事件)
-
-        当prerender、rendered事件触发时，在vframe中
-
-        prerender : unloadSubVframes
-
-        rendered : loadSubVframes
-     */
-    setViewHTML: function(id, html) {
+    setViewHTML: function(id, html, keepPreHTML) {
         var me = this,
             n;
-        me.beginUpdate(id);
+        me.beginUpdate(id, keepPreHTML);
         if (me.sign > 0) {
             n = me.$(id);
             if (n) n.innerHTML = html;
@@ -2619,27 +2607,14 @@ Mix(Mix(VProto, Event), {
     /**
      * 判断节点是否在当前view控制的dom节点内
      * @param  {String} node 节点id
-     * @param {Boolean} [deep] 是否深度遍历子view，默认false
      * @return {Boolean}
      */
-    inside: function(node, deep) {
-        var me = this;
-        var contained;
-        for (var t in me.$ns) {
+    inside: function(node) {
+        var me = this,
+            contained, t;
+        for (t in me.$ns) {
             contained = me.$c(node, t);
             if (contained) break;
-        }
-        if (!contained && deep) {
-            var vf = me.owner,
-                vom = me.vom,
-                p, cm = vf.cM;
-            for (p in cm) {
-                vf = vom.get(p);
-                if (vf) {
-                    contained = vf.invokeView('inside', [node, deep]);
-                    if (contained) break;
-                }
-            }
         }
         return contained;
     },
@@ -2716,7 +2691,7 @@ Mix(Mix(VProto, Event), {
             hk: hk,
             res: res,
             ol: lastly,
-            mr: res && res[SPLITER],
+            mr: res && res[SPLITER] == SPLITER,
             oust: oust
         };
         cache[key] = wrapObj;
@@ -3334,7 +3309,7 @@ var MManager = function(modelClass, serKeys) {
     me.$mCacheKeys = {};
     me.$mMetas = {};
     me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
-    me.id = 'mm' + (++COUNTER);
+    me.id = 'mm' + COUNTER++;
     SafeExec(MManager.$, arguments, me);
 };
 
@@ -3494,8 +3469,9 @@ var MRequest = function(host) {
     var me = this;
     me.$host = host;
     me.$reqs = {};
-    me[SPLITER] = 1;
-    me.id = 'mr' + (++COUNTER);
+    me[SPLITER] = SPLITER;
+    me.sign = 1;
+    me.id = 'mr' + COUNTER++;
     me.$queue = [];
 };
 
@@ -3520,7 +3496,7 @@ Mix(MRequest.prototype, {
             });
         }
         me.$busy = 1;
-
+        me.sign++;
         var host = me.$host;
         var modelsCache = host.$mCache;
         var modelsCacheKeys = host.$mCacheKeys;
@@ -3840,19 +3816,18 @@ Mix(MRequest.prototype, {
     doNext: function(preArgs) {
         var me = this;
         me.$busy = 0;
+        me.$args = preArgs;
         var queue = me.$queue,
-            one, result;
+            one, result, sign = ++me.sign;
         if (queue) {
             one = queue.shift();
             if (one) {
                 result = SafeExec(one, preArgs, me);
-                if (!result || !result[SPLITER]) { // 非MRequest
-                    me.doNext(result == queue._ ? preArgs : [null, result]);
+                if (sign == me.sign) { // 未调用任何的发送或获取数据的方法
+                    me.doNext(result === queue.$ ? preArgs : [null, result]);
                 }
             }
         }
-        me.$args = preArgs;
-        return me;
     },
     /**
      * 销毁当前请求，与stop的区别是：stop后还可以继续发起新请求，而destroy后则不可以，而且不再调用相应的回调
@@ -4209,7 +4184,7 @@ var IsObject = Magix._o;
 var ToString = Magix.toString;
 var Model = function(ops) {
     this.set(ops);
-    this.id = 'm' + (++COUNTER);
+    this.id = 'm' + COUNTER++;
 };
 var GenSetParams = function(type, iv) {
     return function(o1, o2) {

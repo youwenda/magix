@@ -410,28 +410,16 @@ Mix(Mix(VProto, Event), {
      * 设置view的html内容
      * @param {String} id 更新节点的id
      * @param {Strig} html html字符串
+     * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML
      * @example
      * render:function(){
      *     this.setViewHTML(this.id,this.template);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
      * }
      */
-    /*
-        1.首次调用：
-            setNodeHTML -> delegate unbubble events -> rendered(事件) -> primed(事件)
-
-        2.再次调用
-            update(事件) -> prerender(事件) -> undelegate unbubble events -> anim... -> setNodeHTML -> delegate unbubble events -> rendered(事件)
-
-        当prerender、rendered事件触发时，在vframe中
-
-        prerender : unloadSubVframes
-
-        rendered : loadSubVframes
-     */
-    setViewHTML: function(id, html) {
+    setViewHTML: function(id, html, keepPreHTML) {
         var me = this,
             n;
-        me.beginUpdate(id);
+        me.beginUpdate(id, keepPreHTML);
         if (me.sign > 0) {
             n = me.$(id);
             if (n) n.innerHTML = html;
@@ -634,27 +622,14 @@ Mix(Mix(VProto, Event), {
     /**
      * 判断节点是否在当前view控制的dom节点内
      * @param  {String} node 节点id
-     * @param {Boolean} [deep] 是否深度遍历子view，默认false
      * @return {Boolean}
      */
-    inside: function(node, deep) {
-        var me = this;
-        var contained;
-        for (var t in me.$ns) {
+    inside: function(node) {
+        var me = this,
+            contained, t;
+        for (t in me.$ns) {
             contained = me.$c(node, t);
             if (contained) break;
-        }
-        if (!contained && deep) {
-            var vf = me.owner,
-                vom = me.vom,
-                p, cm = vf.cM;
-            for (p in cm) {
-                vf = vom.get(p);
-                if (vf) {
-                    contained = vf.invokeView('inside', [node, deep]);
-                    if (contained) break;
-                }
-            }
         }
         return contained;
     },
@@ -731,7 +706,7 @@ Mix(Mix(VProto, Event), {
             hk: hk,
             res: res,
             ol: lastly,
-            mr: res && res['\u001a'],
+            mr: res && res['\u001a'] == '\u001a',
             oust: oust
         };
         cache[key] = wrapObj;

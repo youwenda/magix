@@ -121,7 +121,7 @@ Mix(Cache.prototype, {
             r = c[key];
             if (r.f >= 1) {
                 r.f++;
-                r.t = ++COUNTER;
+                r.t = COUNTER++;
                 //
                 r = r.v;
                 //
@@ -156,7 +156,7 @@ Mix(Cache.prototype, {
         }
         r.v = value;
         r.f = 1;
-        r.t = ++COUNTER;
+        r.t = COUNTER++;
         r.m = onRemove;
         return value;
     },

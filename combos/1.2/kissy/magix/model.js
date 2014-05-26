@@ -29,7 +29,7 @@ var IsObject = Magix._o;
 var ToString = Magix.toString;
 var Model = function(ops) {
     this.set(ops);
-    this.id = 'm' + (++COUNTER);
+    this.id = 'm' + COUNTER++;
 };
 var GenSetParams = function(type, iv) {
     return function(o1, o2) {

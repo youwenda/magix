@@ -99,7 +99,7 @@ var MManager = function(modelClass, serKeys) {
     me.$mCacheKeys = {};
     me.$mMetas = {};
     me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
-    me.id = 'mm' + (++COUNTER);
+    me.id = 'mm' + COUNTER++;
     SafeExec(MManager.$, arguments, me);
 };
 
@@ -259,8 +259,9 @@ var MRequest = function(host) {
     var me = this;
     me.$host = host;
     me.$reqs = {};
-    me['\u001a'] = 1;
-    me.id = 'mr' + (++COUNTER);
+    me['\u001a'] = '\u001a';
+    me.sign = 1;
+    me.id = 'mr' + COUNTER++;
     me.$queue = [];
 };
 
@@ -285,7 +286,7 @@ Mix(MRequest.prototype, {
             });
         }
         me.$busy = 1;
-
+        me.sign++;
         var host = me.$host;
         var modelsCache = host.$mCache;
         var modelsCacheKeys = host.$mCacheKeys;
@@ -603,19 +604,18 @@ Mix(MRequest.prototype, {
     doNext: function(preArgs) {
         var me = this;
         me.$busy = 0;
+        me.$args = preArgs;
         var queue = me.$queue,
-            one, result;
+            one, result, sign = ++me.sign;
         if (queue) {
             one = queue.shift();
             if (one) {
                 result = SafeExec(one, preArgs, me);
-                if (!result || !result['\u001a']) { // 非MRequest
-                    me.doNext(result == queue._ ? preArgs : [null, result]);
+                if (sign == me.sign) { // 未调用任何的发送或获取数据的方法
+                    me.doNext(result === queue.$ ? preArgs : [null, result]);
                 }
             }
         }
-        me.$args = preArgs;
-        return me;
     },
     /**
      * 销毁当前请求，与stop的区别是：stop后还可以继续发起新请求，而destroy后则不可以，而且不再调用相应的回调
