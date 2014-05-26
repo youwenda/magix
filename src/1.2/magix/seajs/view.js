@@ -64,7 +64,6 @@ define('magix/view', function(require) {
             fn(me.template);
         }
     };
-
     View.extend = function(props, statics, ctor) {
         var me = this;
         var BaseView = function() {

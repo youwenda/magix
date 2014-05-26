@@ -60,7 +60,6 @@ define('magix/view', ["magix/magix", "magix/event", "magix/body", "magix/router"
             fn(me.template);
         }
     };
-
     View.extend = function(props, statics, ctor) {
         var me = this;
         var BaseView = function() {

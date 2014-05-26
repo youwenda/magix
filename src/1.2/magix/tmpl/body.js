@@ -23,9 +23,6 @@ var Halt = function() {
     this.prevent();
     this.stop();
 };
-var Prevented = function() {
-    this.prevented = 1;
-};
 
 var VOM;
 var Group = '\u0005';
@@ -98,7 +95,7 @@ var Body = {
                             if (view) {
                                 e.currentId = IdIt(current);
                                 e.targetId = IdIt(target);
-                                e.prevent = e.preventDefault || Prevented;
+                                e.prevent = e.preventDefault || Magix.noop;
                                 e.stop = e.stopPropagation || Magix.noop;
                                 e.halt = Halt;
                                 view.pEvt(oinfo, eventType, e);

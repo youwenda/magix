@@ -764,18 +764,6 @@ Mix(Mix(VProto, Event), {
             });*/
         }
         return res;
-    },
-    /**
-     * 派发绑定在vframe的mx-event事件
-     * @param  {String} type 事件类型
-     * @param  {Object} data 数据对象
-     */
-    dispatch: function(type, data, me) {
-        me = this;
-        if (!data) data = {};
-        data.type = type;
-        data.target = me.$(me.id);
-        Body.process(data);
     }
     /**
      * 当您采用setViewHTML方法异步更新html时，通知view做好异步更新的准备，<b>注意:该方法最好和manage，setViewHTML一起使用。当您采用其它方式异步更新整个view的html时，仍需调用该方法</b>，建议对所有的异步更新回调使用manage方法托管，对更新整个view html前，调用beginAsyncUpdate进行更新通知
@@ -1086,7 +1074,6 @@ Mix(Mix(VProto, Event), {
             fn(me.template);
         }
     };
-
     View.extend = function(props, statics, ctor) {
         var me = this;
         var BaseView = function() {

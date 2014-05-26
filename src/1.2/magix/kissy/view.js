@@ -56,7 +56,6 @@ KISSY.add('magix/view', function(S, Magix, Event, Body, Router, IO) {
             fn(me.template);
         }
     };
-
     View.extend = function(props, statics, ctor) {
         var me = this;
         var BaseView = function() {
