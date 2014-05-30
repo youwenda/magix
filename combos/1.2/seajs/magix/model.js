@@ -3,19 +3,8 @@
  * @version 1.1
  * @author 行列
  */
-define('magix/model', ['magix/magix'], function(require) {
-    var Magix = require('magix/magix');
-    var Extend = function(props, statics, ctor) {
-        var me = this;
-        var BaseModel = function() {
-            BaseModel.superclass.constructor.apply(this, arguments);
-            if (ctor) {
-                ctor.apply(this, arguments);
-            }
-        };
-        return Magix.extend(BaseModel, me, props, statics);
-
-    };
+define('magix/model', function(require) {
+    var Magix = require('./magix');
     /**
  * Model类
  * @name Model
@@ -42,18 +31,6 @@ var GenSetParams = function(type, iv) {
 var FixParamsReg = /^\?|=(?=&|$)/g;
 var GET = 'GET',
     POST = 'POST';
-Magix.mix(Model, {
-    /**
-     * @lends Model
-     */
-    /**
-     * 继承
-     * @function
-     * @param {Object} props 方法对象
-     * @param {Function} ctor 继承类的构造方法
-     */
-    extend: Extend
-});
 
 
 Magix.mix(Model.prototype, {
@@ -311,23 +288,24 @@ Magix.mix(Model.prototype, {
      */
     request: function(callback, options) {
         var me = this;
-        me.$abt = 0;
-        var temp = function(err, data) {
-            if (!me.$abt) {
-                //if (err) {
-                // callback(err, data, options);
-                //} else {
-                if (!IsObject(data)) {
-                    data = {
-                        data: data
-                    };
+        if (!me.$abt) {
+            var temp = function(err, data) {
+                if (!me.$abt) {
+                    //if (err) {
+                    // callback(err, data, options);
+                    //} else {
+                    if (!IsObject(data)) {
+                        data = {
+                            data: data
+                        };
+                    }
+                    me.set(data);
+                    //}
+                    callback(err, options);
                 }
-                me.set(data);
-                //}
-                callback(err, options);
-            }
-        };
-        me.$trans = me.sync(me.$temp = temp);
+            };
+            me.$trans = me.sync(me.$temp = temp);
+        }
     },
     /**
      * 中止请求
@@ -338,6 +316,7 @@ Magix.mix(Model.prototype, {
         var fn = me.$temp;
         if (fn) {
             fn('abort');
+            me.$temp = 0;
         }
         me.$abt = 1;
         if (trans && trans.abort) {
@@ -353,5 +332,16 @@ Magix.mix(Model.prototype, {
         return this.$abt;
     }
 });
+    Model.extend = function(props, statics, ctor) {
+        var me = this;
+        var BaseModel = function() {
+            me.call(this);
+            if (ctor) {
+                ctor.call(this);
+            }
+        };
+        return Magix.extend(BaseModel, me, props, statics);
+
+    };
     return Model;
 });

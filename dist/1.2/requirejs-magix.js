@@ -551,7 +551,7 @@ var Magix = {
      * 转换成字符串路径
      * @param  {String} path 路径
      * @param {Object} params 参数对象
-     * @param {Object} [keo] 是否保留空白值的对象
+     * @param {Object} [keo] 保留空白值的对象
      * @return {String} 字符串路径
      * @example
      * var str=Magix.toUrl('/xxx/',{a:'b',c:'d'});
@@ -664,14 +664,13 @@ var Magix = {
         },*/
         extend: function(ctor, base, props, statics) {
             var bProto = base.prototype;
-            var cProto = ctor.prototype;
-            ctor.superclass = bProto;
             bProto.constructor = base;
             T.prototype = bProto;
-            cProto = new T();
+            var cProto = new T();
             Magix.mix(cProto, props);
             Magix.mix(ctor, statics);
             cProto.constructor = ctor;
+            ctor.prototype = cProto;
             return ctor;
         }
     });
@@ -1109,7 +1108,7 @@ var Router = Mix({
     Router.useState = function() {
         var me = Router,
             initialURL = location.href;
-        $(WIN).on('popstate', function(e) {
+        $(window).on('popstate', function(e) {
             var equal = location.href == initialURL;
             if (!me.poped && equal) return;
             me.poped = 1;
@@ -1117,7 +1116,7 @@ var Router = Mix({
         });
     };
     Router.useHash = function() { //extension impl change event
-        $(WIN).on('hashchange', Router.route);
+        $(window).on('hashchange', Router.route);
     };
     return Router;
 });
@@ -1222,9 +1221,9 @@ var Body = {
                             if (view) {
                                 e.currentId = IdIt(current);
                                 e.targetId = IdIt(target);
-                                e.prevent = e.preventDefault || Magix.noop;
-                                e.stop = e.stopPropagation || Magix.noop;
-                                e.halt = Halt;
+                                e.prevent = e.preventDefault;
+                                e.stop = e.stopPropagation;
+                                if (!e.halt) e.halt = Halt;
                                 view.pEvt(oinfo, eventType, e);
                             }
                         } else {
@@ -1370,13 +1369,13 @@ var Event = {
         var list = this[key] || (this[key] = []);
         var wrap = {
             f: fn
-        };
+        }, p = insert | 0;
 
-        if (isNaN(insert)) {
+        if (p !== insert) {
             wrap.r = insert;
             list.push(wrap);
         } else {
-            list.splice(insert | 0, 0, wrap);
+            list.splice(p, 0, wrap);
         }
     },
     /**
@@ -1990,8 +1989,10 @@ var DestroyStr = 'destroy';
 var WrapFn = function(fn) {
     return function() {
         var me = this;
-        var u = me.notifyUpdate();
-        if (u > 0) {
+        if (me.sign > 0) {
+            me.sign++;
+            me.fire('rendercall');
+            DestroyAllManaged(me, 1, 1);
             SafeExec(fn, arguments, me);
         }
     };
@@ -2007,12 +2008,12 @@ var DestroyTimer = function(id) {
     clearTimeout(id);
     clearInterval(id);
 };
-var DestroyAllManaged = function(onlyMR, keepIt) {
-    var me = this;
-    var cache = me.$res;
+var DestroyAllManaged = function(me, onlyMR, keepIt) {
+    var cache = me.$res,
+        p, c;
 
-    for (var p in cache) {
-        var c = cache[p];
+    for (p in cache) {
+        c = cache[p];
         if (!onlyMR || c.mr) {
             me.destroyManaged(p, keepIt);
         }
@@ -2081,7 +2082,7 @@ var View = function(ops) {
     me.$res = {};
     me.sign = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     me.addNode(me.id);
-    SafeExec(View.$, [ops], me);
+    SafeExec(View.$, ops, me);
 };
 var VProto = View.prototype;
 var Globals = {
@@ -2320,7 +2321,7 @@ Mix(Mix(VProto, Event), {
                 id: id,
                 keep: keepPreHTML
             });
-            DestroyAllManaged.call(me, 0, 1);
+            DestroyAllManaged(me, 0, 1);
         }
     },
     /**
@@ -2347,15 +2348,15 @@ Mix(Mix(VProto, Event), {
      * 通知当前view进行更新，与beginUpdate不同的是：begin是开始更新html，notify是开始调用更新的方法，通常render已经自动做了处理，对于用户自定义的获取数据并更新界面时，在开始更新前，需要调用一下该方法
      * @return {Integer} 当前view的签名
      */
-    notifyUpdate: function() {
+    /* notifyUpdate: function() {
         var me = this;
         if (me.sign > 0) {
             me.sign++;
             me.fire('rendercall');
-            DestroyAllManaged.call(me, 1, 1);
+            DestroyAllManaged(me, 1, 1);
         }
         return me.sign;
-    },
+    },*/
     /**
      * 包装异步回调
      * @param  {Function} fn 异步回调的function
@@ -2503,7 +2504,7 @@ Mix(Mix(VProto, Event), {
         if (me.sign > 0) {
             me.sign = 0;
             me.fire(DestroyStr, 0, 1, 1);
-            DestroyAllManaged.call(me);
+            DestroyAllManaged(me);
             me.dEvts(1);
         }
         me.sign--;
@@ -3054,10 +3055,10 @@ Mix(Mix(VProto, Event), {
     };
     View.extend = function(props, statics, ctor) {
         var me = this;
-        var BaseView = function() {
-            BaseView.superclass.constructor.apply(this, arguments);
+        var BaseView = function(a) {
+            me.call(this, a);
             if (ctor) {
-                SafeExec(ctor, arguments, this);
+                ctor.call(this, a);
             }
         };
         BaseView.extend = me.extend;
@@ -4123,19 +4124,6 @@ MManager.mixin({
  * @author 行列
  */
 LIB('magix/model', ['magix/magix'], function(Magix) {
-
-    var Extend = function(props, statics, ctor) {
-        var me = this;
-        var BaseModel = function() {
-            BaseModel.superclass.constructor.apply(this, arguments);
-            if (ctor) {
-                ctor.apply(this, arguments);
-            }
-        };
-
-        return Magix.extend(BaseModel, me, props, statics);
-
-    };
     /**
  * Model类
  * @name Model
@@ -4162,18 +4150,6 @@ var GenSetParams = function(type, iv) {
 var FixParamsReg = /^\?|=(?=&|$)/g;
 var GET = 'GET',
     POST = 'POST';
-Magix.mix(Model, {
-    /**
-     * @lends Model
-     */
-    /**
-     * 继承
-     * @function
-     * @param {Object} props 方法对象
-     * @param {Function} ctor 继承类的构造方法
-     */
-    extend: Extend
-});
 
 
 Magix.mix(Model.prototype, {
@@ -4431,23 +4407,24 @@ Magix.mix(Model.prototype, {
      */
     request: function(callback, options) {
         var me = this;
-        me.$abt = 0;
-        var temp = function(err, data) {
-            if (!me.$abt) {
-                //if (err) {
-                // callback(err, data, options);
-                //} else {
-                if (!IsObject(data)) {
-                    data = {
-                        data: data
-                    };
+        if (!me.$abt) {
+            var temp = function(err, data) {
+                if (!me.$abt) {
+                    //if (err) {
+                    // callback(err, data, options);
+                    //} else {
+                    if (!IsObject(data)) {
+                        data = {
+                            data: data
+                        };
+                    }
+                    me.set(data);
+                    //}
+                    callback(err, options);
                 }
-                me.set(data);
-                //}
-                callback(err, options);
-            }
-        };
-        me.$trans = me.sync(me.$temp = temp);
+            };
+            me.$trans = me.sync(me.$temp = temp);
+        }
     },
     /**
      * 中止请求
@@ -4458,6 +4435,7 @@ Magix.mix(Model.prototype, {
         var fn = me.$temp;
         if (fn) {
             fn('abort');
+            me.$temp = 0;
         }
         me.$abt = 1;
         if (trans && trans.abort) {
@@ -4473,5 +4451,15 @@ Magix.mix(Model.prototype, {
         return this.$abt;
     }
 });
+    Model.extend = function(props, statics, ctor) {
+        var me = this;
+        var BaseModel = function() {
+            me.call(this);
+            if (ctor) {
+                ctor.call(this);
+            }
+        };
+        return Magix.extend(BaseModel, me, props, statics);
+    };
     return Model;
 });;DOCUMENT.createElement("vframe");})(null,this,document,"\u001f","",",",define)

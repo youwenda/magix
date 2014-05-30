@@ -39,14 +39,13 @@ define('magix/magix', function() {
         },*/
         extend: function(ctor, base, props, statics) {
             var bProto = base.prototype;
-            var cProto = ctor.prototype;
-            ctor.superclass = bProto;
             bProto.constructor = base;
             T.prototype = bProto;
-            cProto = new T();
+            var cProto = new T();
             Magix.mix(cProto, props);
             Magix.mix(ctor, statics);
             cProto.constructor = ctor;
+            ctor.prototype = cProto;
             return ctor;
         }
     });

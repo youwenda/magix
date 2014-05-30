@@ -4,10 +4,10 @@
  * @version 1.1
  */
 define('magix/view', function(require) {
-    var Magix = require("magix/magix");
-    var Event = require("magix/event");
-    var Body = require("magix/body");
-    var Router = require("magix/router");
+    var Magix = require("./magix");
+    var Event = require("./event");
+    var Body = require("./body");
+    var Router = require("./router");
 
     eval(Magix.include('../tmpl/view'));
     var Paths = {};
@@ -66,10 +66,10 @@ define('magix/view', function(require) {
     };
     View.extend = function(props, statics, ctor) {
         var me = this;
-        var BaseView = function() {
-            BaseView.superclass.constructor.apply(this, arguments);
+        var BaseView = function(a) {
+            me.call(this, a);
             if (ctor) {
-                SafeExec(ctor, arguments, this);
+                ctor.call(this, a);
             }
         }
         BaseView.extend = me.extend;

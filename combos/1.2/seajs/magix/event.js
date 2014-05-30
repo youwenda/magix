@@ -3,8 +3,8 @@
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.1
  **/
-define("magix/event", ["magix/magix"], function(require) {
-    var Magix = require("magix/magix");
+define("magix/event", function(require) {
+    var Magix = require("./magix");
     var SafeExec = Magix.tryCall;
 /**
  * 多播事件对象
@@ -78,13 +78,13 @@ var Event = {
         var list = this[key] || (this[key] = []);
         var wrap = {
             f: fn
-        };
+        }, p = insert | 0;
 
-        if (isNaN(insert)) {
+        if (p !== insert) {
             wrap.r = insert;
             list.push(wrap);
         } else {
-            list.splice(insert | 0, 0, wrap);
+            list.splice(p, 0, wrap);
         }
     },
     /**

@@ -3,19 +3,19 @@
  * @version 1.1
  * @author 行列
  */
-define('magix/model', ['magix/magix'], function(require) {
-    var Magix = require('magix/magix');
-    var Extend = function(props, statics, ctor) {
+define('magix/model', function(require) {
+    var Magix = require('./magix');
+    eval(Magix.include('../tmpl/model', 1));
+    Model.extend = function(props, statics, ctor) {
         var me = this;
         var BaseModel = function() {
-            BaseModel.superclass.constructor.apply(this, arguments);
+            me.call(this);
             if (ctor) {
-                ctor.apply(this, arguments);
+                ctor.call(this);
             }
         };
         return Magix.extend(BaseModel, me, props, statics);
 
     };
-    eval(Magix.include('../tmpl/model', 1));
     return Model;
 });

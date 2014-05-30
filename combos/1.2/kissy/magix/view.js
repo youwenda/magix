@@ -16,8 +16,10 @@ var DestroyStr = 'destroy';
 var WrapFn = function(fn) {
     return function() {
         var me = this;
-        var u = me.notifyUpdate();
-        if (u > 0) {
+        if (me.sign > 0) {
+            me.sign++;
+            me.fire('rendercall');
+            DestroyAllManaged(me, 1, 1);
             SafeExec(fn, arguments, me);
         }
     };
@@ -33,12 +35,12 @@ var DestroyTimer = function(id) {
     clearTimeout(id);
     clearInterval(id);
 };
-var DestroyAllManaged = function(onlyMR, keepIt) {
-    var me = this;
-    var cache = me.$res;
+var DestroyAllManaged = function(me, onlyMR, keepIt) {
+    var cache = me.$res,
+        p, c;
 
-    for (var p in cache) {
-        var c = cache[p];
+    for (p in cache) {
+        c = cache[p];
         if (!onlyMR || c.mr) {
             me.destroyManaged(p, keepIt);
         }
@@ -107,7 +109,7 @@ var View = function(ops) {
     me.$res = {};
     me.sign = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     me.addNode(me.id);
-    SafeExec(View.$, [ops], me);
+    SafeExec(View.$, ops, me);
 };
 var VProto = View.prototype;
 var Globals = {
@@ -346,7 +348,7 @@ Mix(Mix(VProto, Event), {
                 id: id,
                 keep: keepPreHTML
             });
-            DestroyAllManaged.call(me, 0, 1);
+            DestroyAllManaged(me, 0, 1);
         }
     },
     /**
@@ -373,15 +375,15 @@ Mix(Mix(VProto, Event), {
      * 通知当前view进行更新，与beginUpdate不同的是：begin是开始更新html，notify是开始调用更新的方法，通常render已经自动做了处理，对于用户自定义的获取数据并更新界面时，在开始更新前，需要调用一下该方法
      * @return {Integer} 当前view的签名
      */
-    notifyUpdate: function() {
+    /* notifyUpdate: function() {
         var me = this;
         if (me.sign > 0) {
             me.sign++;
             me.fire('rendercall');
-            DestroyAllManaged.call(me, 1, 1);
+            DestroyAllManaged(me, 1, 1);
         }
         return me.sign;
-    },
+    },*/
     /**
      * 包装异步回调
      * @param  {Function} fn 异步回调的function
@@ -529,7 +531,7 @@ Mix(Mix(VProto, Event), {
         if (me.sign > 0) {
             me.sign = 0;
             me.fire(DestroyStr, 0, 1, 1);
-            DestroyAllManaged.call(me);
+            DestroyAllManaged(me);
             me.dEvts(1);
         }
         me.sign--;
@@ -1076,11 +1078,10 @@ Mix(Mix(VProto, Event), {
     };
     View.extend = function(props, statics, ctor) {
         var me = this;
-        var BaseView = function() {
-            var a = arguments;
-            BaseView.superclass.constructor.apply(this, a);
+        var BaseView = function(a) {
+            me.call(this, a);
             if (ctor) {
-                SafeExec(ctor, a, this);
+                ctor.call(this, a);
             }
         };
         BaseView.extend = me.extend;

@@ -101,9 +101,9 @@ var Body = {
                             if (view) {
                                 e.currentId = IdIt(current);
                                 e.targetId = IdIt(target);
-                                e.prevent = e.preventDefault || Magix.noop;
-                                e.stop = e.stopPropagation || Magix.noop;
-                                e.halt = Halt;
+                                e.prevent = e.preventDefault;
+                                e.stop = e.stopPropagation;
+                                if (!e.halt) e.halt = Halt;
                                 view.pEvt(oinfo, eventType, e);
                             }
                         } else {

@@ -62,10 +62,10 @@ define('magix/view', ["magix/magix", "magix/event", "magix/body", "magix/router"
     };
     View.extend = function(props, statics, ctor) {
         var me = this;
-        var BaseView = function() {
-            BaseView.superclass.constructor.apply(this, arguments);
+        var BaseView = function(a) {
+            me.call(this, a);
             if (ctor) {
-                SafeExec(ctor, arguments, this);
+                ctor.call(this, a);
             }
         };
         BaseView.extend = me.extend;

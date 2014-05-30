@@ -3,10 +3,10 @@
  * @author 行列
  * @version 1.1
  */
-define("magix/vom", ["magix/vframe", "magix/magix", "magix/event"], function(require) {
-    var Vframe = require("magix/vframe");
-    var Magix = require("magix/magix");
-    var Event = require("magix/event");
+define("magix/vom", function(require) {
+    var Vframe = require("./vframe");
+    var Magix = require("./magix");
+    var Event = require("./event");
     var Has = Magix.has;
 var Mix = Magix.mix;
 

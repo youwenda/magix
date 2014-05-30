@@ -3,8 +3,8 @@
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.1
  **/
-define("magix/body", ["magix/magix"], function(require) {
-    var Magix = require("magix/magix");
+define("magix/body", function(require) {
+    var Magix = require("./magix");
     var RootEvents = {};
 var Has = Magix.has;
 var MxIgnore = 'mx-ei';
@@ -102,9 +102,9 @@ var Body = {
                             if (view) {
                                 e.currentId = IdIt(current);
                                 e.targetId = IdIt(target);
-                                e.prevent = e.preventDefault || Magix.noop;
-                                e.stop = e.stopPropagation || Magix.noop;
-                                e.halt = Halt;
+                                e.prevent = e.preventDefault;
+                                e.stop = e.stopPropagation;
+                                if (!e.halt) e.halt = Halt;
                                 view.pEvt(oinfo, eventType, e);
                             }
                         } else {

@@ -431,7 +431,7 @@ var Router = Mix({
     Router.useState = function() {
         var me = Router,
             initialURL = location.href;
-        $(WIN).on('popstate', function(e) {
+        $(window).on('popstate', function(e) {
             var equal = location.href == initialURL;
             if (!me.poped && equal) return;
             me.poped = 1;
@@ -439,7 +439,7 @@ var Router = Mix({
         });
     };
     Router.useHash = function() { //extension impl change event
-        $(WIN).on('hashchange', Router.route);
+        $(window).on('hashchange', Router.route);
     };
     return Router;
 });

@@ -3,8 +3,8 @@
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.1
  **/
-define("magix/body", ["magix/magix"], function(require) {
-    var Magix = require("magix/magix");
+define("magix/body", function(require) {
+    var Magix = require("./magix");
     eval(Magix.include('../tmpl/body'));
     var Delegates = {
         focus: 2,

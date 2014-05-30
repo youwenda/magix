@@ -3,7 +3,7 @@
  * @author 行列
  * @version 1.1
  **/
-define("magix/mmanager", ["magix/magix", "magix/event"], function(require) {
+define("magix/mmanager", function(require) {
     /*
         #begin mm_fetchall_1#
         define('testMM',["magix/mmanager","magix/model"],function(require){
@@ -19,8 +19,8 @@ define("magix/mmanager", ["magix/magix", "magix/event"], function(require) {
         seajs.use('testMM',function(TM){
         #end#
      */
-    var Magix = require("magix/magix");
-    var Event = require("magix/event");
+    var Magix = require("./magix");
+    var Event = require("./event");
     eval(Magix.include('../tmpl/mmanager', 1));
     return MManager;
 });

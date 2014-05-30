@@ -3,10 +3,10 @@
  * @author 行列
  * @version 1.1
  */
-define('magix/vframe', ["magix/magix", "magix/event", "magix/view"], function(require) {
-    var Magix = require("magix/magix");
-    var Event = require("magix/event");
-    var BaseView = require("magix/view");
+define('magix/vframe', function(require) {
+    var Magix = require("./magix");
+    var Event = require("./event");
+    var BaseView = require("./view");
     var VframeIdCounter = 1 << 16;
 var SafeExec = Magix.tryCall;
 var EmptyArr = [];

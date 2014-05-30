@@ -536,7 +536,7 @@ var Magix = {
      * 转换成字符串路径
      * @param  {String} path 路径
      * @param {Object} params 参数对象
-     * @param {Object} [keo] 是否保留空白值的对象
+     * @param {Object} [keo] 保留空白值的对象
      * @return {String} 字符串路径
      * @example
      * var str=Magix.toUrl('/xxx/',{a:'b',c:'d'});
