@@ -13,7 +13,7 @@ KISSY.add('apiapp/mviews/partials/header', function(S, View, Crox, MM, Magix) {
             var me = this;
             data.viewId = me.id;
             data.q = me.location.get('q');
-            var html = Crox.render(me.template, data);
+            var html = Crox.render(me.tmpl, data);
             me.setViewHTML(me.id, html);
         },
         render: function() {

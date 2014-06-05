@@ -28,7 +28,7 @@ define('magix/view', function(require) {
     var Tmpls = {}, Locker = {};
     VProto.fetchTmpl = function(path, fn) {
         var me = this;
-        var hasTemplate = 'template' in me;
+        var hasTemplate = 'tmpl' in me;
         if (!hasTemplate) {
             if (Has(Tmpls, path)) {
                 fn(Tmpls[path]);
@@ -61,7 +61,7 @@ define('magix/view', function(require) {
                 }
             }
         } else {
-            fn(me.template);
+            fn(me.tmpl);
         }
     };
     View.extend = function(props, statics, ctor) {

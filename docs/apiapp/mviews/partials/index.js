@@ -17,7 +17,7 @@ KISSY.add('apiapp/mviews/partials/index', function(S, View, MM, Crox, Magix) {
                         if (e) {
                             me.setViewHTML(me.id, e.msg);
                         } else {
-                            var html = Crox.render(me.template, {
+                            var html = Crox.render(me.tmpl, {
                                 coreList: m.get('coreList'),
                                 extList: m.get('extList'),
                                 infos: Magix.local('APIPathInfo'),

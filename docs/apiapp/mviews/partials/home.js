@@ -5,7 +5,7 @@ KISSY.add('apiapp/mviews/partials/home', function(S, View) {
     return View.extend({
         render: function() {
             var me = this;
-            me.setViewHTML(me.id, me.template);
+            me.setViewHTML(me.id, me.tmpl);
         }
     });
 }, {

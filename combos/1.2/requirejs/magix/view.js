@@ -68,7 +68,7 @@ var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
  * @property {Vframe} owner 拥有当前view的vframe对象
  * @property {Object} vom vom对象
  * @property {Integer} sign view的签名，用于刷新，销毁等的异步标识判断，当view销毁时，该属性是小于等于零的数
- * @property {String} template 当前view对应的模板字符串(当hasTmpl为true时)，该属性在interact事件触发后才存在
+ * @property {String} tmpl 当前view对应的模板字符串(当hasTmpl为true时)，该属性在interact事件触发后才存在
  * @property {Boolean} rendered 标识当前view有没有渲染过，即primed事件有没有触发过
  * @property {Object} location window.locaiton.href解析出来的对象
  * @property {String} path 当前view的包路径名
@@ -302,10 +302,10 @@ Mix(Mix(VProto, Event), {
         var me = this;
         var hasTmpl = me.hasTmpl;
         var args = arguments;
-        // var tmplReady = Has(me, 'template');
+        // var tmplReady = Has(me, 'tmpl');
         var ready = function(tmpl) {
             if (hasTmpl) {
-                me.template = Body.wrap(me.id, tmpl);
+                me.tmpl = Body.wrap(me.id, tmpl);
             }
             me.dEvts();
             /*
@@ -415,7 +415,7 @@ Mix(Mix(VProto, Event), {
      * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML
      * @example
      * render:function(){
-     *     this.setHTML(this.id,this.template);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
+     *     this.setHTML(this.id,this.tmpl);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
      * }
      */
     setHTML: function(id, html, keepPreHTML) {
@@ -776,7 +776,7 @@ Mix(Mix(VProto, Event), {
      *      var m=new Model({uri:'user:list'});
      *      m.load({
      *          success:_self.manage(function(data){
-     *              var html=Mu.to_html(_self.template,data);
+     *              var html=Mu.to_html(_self.tmpl,data);
      *              _self.setHTML(html);
      *          }),
      *          error:_self.manage(function(msg){
@@ -799,7 +799,7 @@ Mix(Mix(VProto, Event), {
      *      var m=new Model({uri:'user:list'});
      *      m.load({
      *          success:_self.manage(function(data){
-     *              var html=Mu.to_html(_self.template,data);
+     *              var html=Mu.to_html(_self.tmpl,data);
      *              _self.setHTML(html);
      *          }),
      *          error:_self.manage(function(msg){
@@ -818,7 +818,7 @@ Mix(Mix(VProto, Event), {
      * renderUI:function(){//当方法名为 render renderUI updateUI时您不需要考虑异步更新带来的问题
      *      var _self=this;
      *      setTimeout(this.manage(function(){
-     *          _self.setHTML(_self.template);
+     *          _self.setHTML(_self.tmpl);
      *      }),5000);
      * },
      *
@@ -1044,7 +1044,7 @@ Mix(Mix(VProto, Event), {
     var Tmpls = {}, Locker = {};
     VProto.fetchTmpl = function(path, fn) {
         var me = this;
-        var hasTemplate = 'template' in me;
+        var hasTemplate = 'tmpl' in me;
         if (!hasTemplate) {
             if (Has(Tmpls, path)) {
                 fn(Tmpls[path]);
@@ -1077,7 +1077,7 @@ Mix(Mix(VProto, Event), {
                 }
             }
         } else {
-            fn(me.template);
+            fn(me.tmpl);
         }
     };
     View.extend = function(props, statics, ctor) {

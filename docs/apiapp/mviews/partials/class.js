@@ -99,7 +99,7 @@ KISSY.add('apiapp/mviews/partials/class', function(S, View, MM, Magix, Crox) {
                         ExtendClass.data = data;
                         ExtendClass.infos = i;
                         ExtendClass.view = me;
-                        var html = Crox.render(me.template, ExtendClass);
+                        var html = Crox.render(me.tmpl, ExtendClass);
                         me.setViewHTML(me.id, html);
                         var focus = me.location.get('focus');
                         if (focus) {

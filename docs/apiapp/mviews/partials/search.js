@@ -18,7 +18,7 @@ KISSY.add('apiapp/mviews/partials/search', function(S, View, MM, Crox, Magix) {
                     if (e) {
                         me.setViewHTML(me.id, e.msg);
                     } else {
-                        me.setViewHTML(me.id, Crox.render(me.template, {
+                        me.setViewHTML(me.id, Crox.render(me.tmpl, {
                             search: m,
                             infos: Magix.local('APIPathInfo')
                         }));

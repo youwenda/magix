@@ -23,7 +23,7 @@ KISSY.add('magix/view', function(S, Magix, Event, Body, Router, IO) {
     var Tmpls = {}, Locker = {};
     VProto.fetchTmpl = function(path, fn) {
         var me = this;
-        var hasTemplate = 'template' in me;
+        var hasTemplate = 'tmpl' in me;
         if (!hasTemplate) {
             if (Has(Tmpls, path)) {
                 fn(Tmpls[path]);
@@ -53,7 +53,7 @@ KISSY.add('magix/view', function(S, Magix, Event, Body, Router, IO) {
                 }
             }
         } else {
-            fn(me.template);
+            fn(me.tmpl);
         }
     };
     View.extend = function(props, statics, ctor) {

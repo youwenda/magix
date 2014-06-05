@@ -19,7 +19,7 @@ KISSY.add('apiapp/sub-tmpl', function(S, View) {
         var me = this;
         me.$subTmpls = {};
         me.on('inited', function() {
-            me.template = me.template.replace(SubTmplReg, function(match) {
+            me.tmpl = me.tmpl.replace(SubTmplReg, function(match) {
                 match.replace(SubTmplReg, function(m, name, content) {
                     me.$subTmpls[name] = content;
                 });
@@ -27,7 +27,7 @@ KISSY.add('apiapp/sub-tmpl', function(S, View) {
             }).replace(IncludeReg, function(match, name) {
                 return me.$subTmpls[name] || '';
             });
-            console.log(me.template);
+            console.log(me.tmpl);
         });
     });
 }, {

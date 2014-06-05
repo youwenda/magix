@@ -6,7 +6,7 @@ KISSY.add('apiapp/mviews/partials/footer', function(S, View) {
         render: function() {
             var me = this;
             console.log('footer render');
-            me.setViewHTML(me.id, me.template);
+            me.setViewHTML(me.id, me.tmpl);
         }
     });
 }, {

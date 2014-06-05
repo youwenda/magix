@@ -15,7 +15,7 @@ KISSY.add('apiapp/mviews/default', function(S, View, Magix, VOM) {
         render: function() {
             var me = this;
             if (!me.rendered) {
-                me.setViewHTML(me.id, me.template);
+                me.setViewHTML(me.id, me.tmpl);
             }
             me.mountMainVframe();
         },
