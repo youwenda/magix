@@ -28,7 +28,7 @@ define("magix/body", function(require) {
         if (!direct && flag == 2) {
             $(node)[(remove ? 'un' : EMPTY) + 'delegate']('[mx-' + type + ']', type, cb);
         } else {
-            $(node)[remove ? 'off' : On](type, cb);
+            $(node)[remove ? 'off' : ON](type, cb);
         }
     };
     return Body;

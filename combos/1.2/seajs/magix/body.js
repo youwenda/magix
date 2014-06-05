@@ -13,7 +13,7 @@ var ParentNode = 'parentNode';
 var TypesRegCache = {};
 var IdCounter = 1 << 16;
 var MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
-var On = 'on';
+var ON = 'on';
 
 var IdIt = function(dom) {
     return dom.id || (dom.id = 'mx-e-' + (IdCounter--));
@@ -51,9 +51,9 @@ var Body = {
         return html;
     },
     process: function(e) {
-        if (e && !e[On]) {
+        if (e && !e[ON]) {
             var target = e.target;
-            e[On] = 1;
+            e[ON] = 1;
             var current = target;
             var eventType = e.type;
             var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(COMMA + eventType + '(?:,|$)'));
@@ -115,7 +115,7 @@ var Body = {
             } else {
                 while (arr.length) {
                     node = arr.pop();
-                    ignore = GetSetAttribute(node, MxIgnore) || On;
+                    ignore = GetSetAttribute(node, MxIgnore) || ON;
                     if (!eventReg.test(ignore)) {
                         ignore = ignore + COMMA + eventType;
                         GetSetAttribute(node, MxIgnore, ignore);
@@ -166,7 +166,7 @@ var Body = {
         if (!direct && flag == 2) {
             $(node)[(remove ? 'un' : EMPTY) + 'delegate']('[mx-' + type + ']', type, cb);
         } else {
-            $(node)[remove ? 'off' : On](type, cb);
+            $(node)[remove ? 'off' : ON](type, cb);
         }
     };
     return Body;

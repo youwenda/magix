@@ -3,7 +3,7 @@ var PathTrimFileReg = /\/[^\/]*$/;
 var PathTrimParamsReg = /[#?].*$/;
 var ParamsReg = /([^=&?\/#]+)=?([^&=#?]*)/g;
 var ProtocalReg = /^https?:\/\//i;
-var Slash = '/';
+var SLASH = '/';
 var DefaultTagName = 'vframe';
 var Console = window.console;
 var SupportError = Console && Console.error;
@@ -460,9 +460,9 @@ var Magix = {
             if (ProtocalReg.test(part)) {
                 url = EMPTY;
             } else {
-                url = url.replace(PathTrimParamsReg, EMPTY).replace(PathTrimFileReg, EMPTY) + Slash;
-                if (part.charAt(0) == Slash) {
-                    url = url.substring(0, url.indexOf(Slash, ProtocalReg.test(url) ? 8 : 0));
+                url = url.replace(PathTrimParamsReg, EMPTY).replace(PathTrimFileReg, EMPTY) + SLASH;
+                if (part.charAt(0) == SLASH) {
+                    url = url.substring(0, url.indexOf(SLASH, ProtocalReg.test(url) ? 8 : 0));
                 }
             }
             result = url + part;
@@ -508,11 +508,11 @@ var Magix = {
             querys = path.replace(pathname, EMPTY);
             if (pathname) {
                 if (ProtocalReg.test(pathname)) { //解析以https?:开头的网址
-                    first = pathname.indexOf(Slash, 8); //找最近的 /
+                    first = pathname.indexOf(SLASH, 8); //找最近的 /
                     if (~first) {
                         pathname = pathname.substring(first); //截取
                     } else { //未找到，比如 http://etao.com
-                        pathname = Slash; //则pathname为  /
+                        pathname = SLASH; //则pathname为  /
                     }
                 }
             }

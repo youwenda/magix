@@ -6,6 +6,7 @@ KISSY.add('apiapp/sub-tmpl', function(S, View) {
     var IncludeReg = /\{{2}magix-include-(\w+)\}{2}/g;
     console.log(View.mixin);
     return View.mixin({
+        setViewHTML: View.prototype.setHTML,
         getSubTmpl: function(name) {
             var me = this;
             var subs = me.$subTmpls;

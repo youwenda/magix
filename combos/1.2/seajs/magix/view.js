@@ -316,7 +316,7 @@ Mix(Mix(VProto, Event), {
                     关于interact事件的设计 ：
                     首先这个事件是对内的，当然外部也可以用，API文档上就不再体现了
 
-                    interact : view准备好，让外部尽早介入，进行其它事件的监听 ，当这个事件触发时，view有可能已经有html了(无模板的情况)，所以此时外部可以去加载相应的子view了，同时要考虑在调用render方法后，有可能在该方法内通过setViewHTML更新html，所以在使用setViewHTML更新界面前，一定要先监听prerender rendered事件，因此设计了该  interact事件
+                    interact : view准备好，让外部尽早介入，进行其它事件的监听 ，当这个事件触发时，view有可能已经有html了(无模板的情况)，所以此时外部可以去加载相应的子view了，同时要考虑在调用render方法后，有可能在该方法内通过setHTML更新html，所以在使用setHTML更新界面前，一定要先监听prerender rendered事件，因此设计了该  interact事件
 
                  */
             me.fire('interact', {
@@ -327,7 +327,7 @@ Mix(Mix(VProto, Event), {
             me.owner.viewInited = 1;
             me.render();
             //
-            var noTemplateAndNoRendered = !hasTmpl && !me.rendered; //没模板，调用render后，render里面也没调用setViewHTML
+            var noTemplateAndNoRendered = !hasTmpl && !me.rendered; //没模板，调用render后，render里面也没调用setHTML
 
             if (noTemplateAndNoRendered) { //监视有没有在调用render方法内更新view，对于没有模板的view，需要派发一次事件
                 me.rendered = 1;
@@ -419,10 +419,10 @@ Mix(Mix(VProto, Event), {
      * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML
      * @example
      * render:function(){
-     *     this.setViewHTML(this.id,this.template);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
+     *     this.setHTML(this.id,this.template);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
      * }
      */
-    setViewHTML: function(id, html, keepPreHTML) {
+    setHTML: function(id, html, keepPreHTML) {
         var me = this,
             n;
         me.beginUpdate(id, keepPreHTML);
@@ -757,7 +757,7 @@ Mix(Mix(VProto, Event), {
         var cache = me.$res;
         var o = cache[key];
         var res;
-        if (o && (!keepIt || !o.ol) /*&& (!o.mr || o.sign != view.sign)*/ ) { //暂不考虑render中多次setViewHTML的情况
+        if (o && (!keepIt || !o.ol) /*&& (!o.mr || o.sign != view.sign)*/ ) { //暂不考虑render中多次setHTML的情况
             //var processed=false;
             res = o.res;
             o.oust(res);
@@ -772,7 +772,7 @@ Mix(Mix(VProto, Event), {
         return res;
     }
     /**
-     * 当您采用setViewHTML方法异步更新html时，通知view做好异步更新的准备，<b>注意:该方法最好和manage，setViewHTML一起使用。当您采用其它方式异步更新整个view的html时，仍需调用该方法</b>，建议对所有的异步更新回调使用manage方法托管，对更新整个view html前，调用beginAsyncUpdate进行更新通知
+     * 当您采用setHTML方法异步更新html时，通知view做好异步更新的准备，<b>注意:该方法最好和manage，setHTML一起使用。当您采用其它方式异步更新整个view的html时，仍需调用该方法</b>，建议对所有的异步更新回调使用manage方法托管，对更新整个view html前，调用beginAsyncUpdate进行更新通知
      * @example
      * // 什么是异步更新html？
      * render:function(){
@@ -781,10 +781,10 @@ Mix(Mix(VProto, Event), {
      *      m.load({
      *          success:_self.manage(function(data){
      *              var html=Mu.to_html(_self.template,data);
-     *              _self.setViewHTML(html);
+     *              _self.setHTML(html);
      *          }),
      *          error:_self.manage(function(msg){
-     *              _self.setViewHTML(msg);
+     *              _self.setHTML(msg);
      *          })
      *      })
      * }
@@ -804,10 +804,10 @@ Mix(Mix(VProto, Event), {
      *      m.load({
      *          success:_self.manage(function(data){
      *              var html=Mu.to_html(_self.template,data);
-     *              _self.setViewHTML(html);
+     *              _self.setHTML(html);
      *          }),
      *          error:_self.manage(function(msg){
-     *              _self.setViewHTML(msg);
+     *              _self.setHTML(msg);
      *          })
      *      });
      *      _self.endAsyncUpdate();//结束异步更新
@@ -822,7 +822,7 @@ Mix(Mix(VProto, Event), {
      * renderUI:function(){//当方法名为 render renderUI updateUI时您不需要考虑异步更新带来的问题
      *      var _self=this;
      *      setTimeout(this.manage(function(){
-     *          _self.setViewHTML(_self.template);
+     *          _self.setHTML(_self.template);
      *      }),5000);
      * },
      *
@@ -840,7 +840,7 @@ Mix(Mix(VProto, Event), {
      *              S.io({
      *                  success:_self.manage(function(html){
      *                      //TODO
-     *                      _self.setViewHTML(html);
+     *                      _self.setHTML(html);
      *                  })
      *              });
      *          },
@@ -865,7 +865,7 @@ Mix(Mix(VProto, Event), {
      *              //if(_self.sign){//不托管方法时，您需要自已判断view有没有销毁(使用异步更新标识时，不需要判断exist)
      *                  var end=_self.endAsyncUpdate();//结束异步更新
      *                  if(begin==end){//开始和结束时的标识一样，表示view没有更新过
-     *                      _self.setViewHTML(html);
+     *                      _self.setHTML(html);
      *                  }
      *              //}
      *          }
@@ -959,7 +959,7 @@ Mix(Mix(VProto, Event), {
         return this.sign;
     },*/
     /**
-     * 当view调用setViewHTML刷新前触发
+     * 当view调用setHTML刷新前触发
      * @name View#prerender
      * @event
      * @param {Object} e
@@ -968,17 +968,17 @@ Mix(Mix(VProto, Event), {
      */
 
     /**
-     * 当view首次完成界面的html设置后触发，view有没有模板均会触发该事件，对于有模板的view，会等到模板取回，第一次调用setViewHTML更新界面后才触发，总之该事件触发后，您就可以访问view的HTML DOM节点对象（该事件仅代表自身的html创建完成，如果需要对整个子view也要监控，请使用created事件）
+     * 当view首次完成界面的html设置后触发，view有没有模板均会触发该事件，对于有模板的view，会等到模板取回，第一次调用setHTML更新界面后才触发，总之该事件触发后，您就可以访问view的HTML DOM节点对象（该事件仅代表自身的html创建完成，如果需要对整个子view也要监控，请使用created事件）
      * @name View#primed
      * @event
      * @param {Object} e view首次调用render完成界面的创建后触发
      */
 
     /**
-     * 每次调用setViewHTML更新view内容完成后触发
+     * 每次调用setHTML更新view内容完成后触发
      * @name View#rendered
      * @event
-     * @param {Object} e view每次调用setViewHTML完成后触发，当hasTmpl属性为false时，并不会触发该事 件，但会触发primed首次完成创建界面的事件
+     * @param {Object} e view每次调用setHTML完成后触发，当hasTmpl属性为false时，并不会触发该事 件，但会触发primed首次完成创建界面的事件
      * @param {String} e.id 指示哪块区域完成的渲染
      */
 

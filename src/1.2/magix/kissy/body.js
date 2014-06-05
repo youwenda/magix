@@ -16,7 +16,7 @@ KISSY.add('magix/body', function(S, Magix) {
                 flag = (remove ? 'un' : EMPTY) + 'delegate';
                 SE[flag](node, type, '[mx-' + type + ']', cb);
             } else {
-                flag = remove ? 'detach' : On;
+                flag = remove ? 'detach' : ON;
                 SE[flag](node, type, cb, scope);
             }
         });

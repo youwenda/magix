@@ -155,9 +155,7 @@ var DoneFn = function(idx, ops, err) {
                 model: model
             });
         }
-        if (mm.used > 0) {
-            model.fromCache = 1;
-        }
+        model.fromCache = mm.used > 0;
         mm.used++;
     }
     if (!request.$oust) { //销毁，啥也不做
