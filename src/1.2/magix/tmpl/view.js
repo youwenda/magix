@@ -6,9 +6,9 @@ var Mix = Magix.mix;
 var ResCounter = 0;
 var DestroyStr = 'destroy';
 
-var WrapFn = function(fn) {
+var WrapFn = function(fn, me) {
     return function() {
-        var me = this;
+        me = this;
         if (me.sign > 0) {
             me.sign++;
             me.fire('rendercall');
@@ -18,15 +18,11 @@ var WrapFn = function(fn) {
     };
 };
 
-var Destroy = function(res) {
-    var fn = res && res[DestroyStr];
+var Destroy = function(res, fn) {
+    fn = res && res[DestroyStr];
     if (fn) {
         SafeExec(fn, EMPTY_ARRAY, res);
     }
-};
-var DestroyTimer = function(id) {
-    clearTimeout(id);
-    clearInterval(id);
 };
 var DestroyAllManaged = function(me, onlyMR, keepIt) {
     var cache = me.$res,
@@ -691,18 +687,11 @@ Mix(Mix(VProto, Event), {
             me.destroyManaged(key); //
             //}
         }
-        var oust;
-        if ((res | 0) === res) { //数字
-            oust = DestroyTimer;
-        } else {
-            oust = Destroy;
-        }
         var wrapObj = {
             hk: hk,
             res: res,
             ol: lastly,
-            mr: res && res['\u001a'] == '\u001a',
-            oust: oust
+            mr: res && res['\u001a'] == '\u001a'
         };
         cache[key] = wrapObj;
         return res;
@@ -749,7 +738,7 @@ Mix(Mix(VProto, Event), {
         if (o && (!keepIt || !o.ol) /*&& (!o.mr || o.sign != view.sign)*/ ) { //暂不考虑render中多次setHTML的情况
             //var processed=false;
             res = o.res;
-            o.oust(res);
+            Destroy(res);
             if (!o.hk || !keepIt) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
                 delete cache[key];
             }
