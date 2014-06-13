@@ -474,13 +474,13 @@ var Magix = {
     path: function(url, part) {
         var key = url + '\u001a' + part;
         var result = PathCache.get(key);
-        if (!result) {
+        if (!PathCache.has(key)) { //有可能结果为空，url='' path='';
             if (ProtocalReg.test(part)) {
                 url = EMPTY;
             } else {
                 url = url.replace(PathTrimParamsReg, EMPTY).replace(PathTrimFileReg, EMPTY) + SLASH;
                 if (part.charAt(0) == SLASH) {
-                    url = url.substring(0, url.indexOf(SLASH, ProtocalReg.test(url) ? 8 : 0));
+                    url = url.substring(0, url.indexOf(SLASH, ProtocalReg.test(url) && 8));
                 }
             }
             result = url + part;
@@ -509,12 +509,9 @@ var Magix = {
         //6. /xxx/#           => path /xxx/
         //7. a=b&c=d          => path ''
         //8. /s?src=b#        => path /s params:{src:'b'}
-        var temp = PathToObjCache.get(path),
-            r = {}, params, pathname, querys, first;
-        if (temp) {
-            r.path = temp.path;
-            r.params = Mix({}, temp.params);
-        } else {
+        var r = PathToObjCache.get(path),
+            params, pathname, querys, first;
+        if (!r) {
             params = {};
             pathname = EMPTY;
             if (PathTrimParamsReg.test(path)) { //有#?号，表示有pathname
@@ -543,11 +540,12 @@ var Magix = {
                 }
                 params[name] = value;
             });
-            r.path = pathname;
-            r.params = params;
-            PathToObjCache.set(path, r);
+            PathToObjCache.set(path, r = [pathname, params]);
         }
-        return r;
+        return {
+            path: r[0],
+            params: Mix({}, r[1])
+        };
     },
     /**
      * 转换成字符串路径

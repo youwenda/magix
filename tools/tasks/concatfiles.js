@@ -38,7 +38,7 @@ module.exports = function(grunt) {
         var combosDir = this.data.combosDir;
 
         var maPrefix = dir + SEP + MAGIX + SEP;
-        var magixArr = ['magix', 'router', 'body', 'event', 'vframe', 'view', 'vom', 'mmanager', 'model'];
+        var magixArr = ['magix', 'event', 'router', 'vom', 'vframe', 'view', 'model', 'mmanager'];
         //删除dist中原来的文件
         var destMagixPrefix = distDir + SEP + platType + SEP + loaderType + '-magix';
         var distArr = ['.js', '-min.js'];

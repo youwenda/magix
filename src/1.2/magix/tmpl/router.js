@@ -56,6 +56,101 @@ var Path = function(path) {
     return o;
 };
 
+/**
+ * 根据地址栏中的path获取对应的前端view
+ * @param  {String} path 形如/list/index这样的path
+ * @param {Object} loc 内部临时使用的对象
+ * @return {Object} 返回形如{view:'app/views/default',path:'/home'}这样的对象
+ * @private
+ */
+var GetViewInfo = function(path, loc) {
+    var r, result, defaultView, defaultPath;
+    if (!Pnr) {
+        Pnr = {
+            rs: MxConfig.routes || {},
+            nf: MxConfig.unfoundView
+        };
+        //var home=pathCfg.defaultView;//处理默认加载的view
+        //var dPathname=pathCfg.defaultPath||EMPTY;
+        defaultView = MxConfig.defaultView;
+        /*if (!defaultView) {
+                throw new Error('unset defaultView');
+            }*/
+        Pnr.dv = defaultView;
+        defaultPath = MxConfig.defaultPath || EMPTY;
+        //if(!Magix.isFunction(temp.rs)){
+        r = Pnr.rs;
+        Pnr.f = Magix._f(r);
+        if (!Pnr.f && !r[defaultPath] && defaultView) {
+            r[defaultPath] = defaultView;
+        }
+        Pnr[PATH] = defaultPath;
+    }
+
+    if (!path) path = Pnr[PATH];
+
+    r = Pnr.rs;
+    if (Pnr.f) {
+        result = r.call(MxConfig, path, loc);
+    } else {
+        result = r[path]; //简单的在映射表中找
+    }
+    return {
+        view: result || Pnr.nf || Pnr.dv,
+        path: path
+    };
+};
+
+/**
+ * 获取2个location对象之间的差异部分
+ * @param  {Object} oldLocation 原始的location对象
+ * @param  {Object} newLocation 当前的location对象
+ * @return {Object} 返回包含差异信息的对象
+ * @private
+ */
+var GetChged = function(oldLocation, newLocation) {
+    var oKey = oldLocation.href;
+    var nKey = newLocation.href;
+    var tKey = oKey + '\u001a' + nKey;
+    var result = ChgdCache.get(tKey);
+    if (!result) {
+        var hasChanged, from, to, rps;
+        result = {
+            isParam: IsParam,
+            isPath: IsPath,
+            isView: IsView
+        };
+        result[VIEW] = to;
+        result[PATH] = to;
+        result[PARAMS] = rps = {};
+
+        var oldParams = oldLocation[PARAMS],
+            newParams = newLocation[PARAMS];
+        var tArr = [PATH, VIEW].concat(OKeys(oldParams), OKeys(newParams)),
+            idx, key;
+        for (idx = tArr.length - 1; idx >= 0; idx--) {
+            key = tArr[idx];
+            console.log(key, idx);
+            if (idx == 1) {
+                oldParams = oldLocation;
+                newParams = newLocation;
+                rps = result;
+            }
+            from = oldParams[key];
+            to = newParams[key];
+            if (from != to) {
+                rps[key] = {
+                    from: from,
+                    to: to
+                };
+                hasChanged = 1;
+            }
+        }
+        result.occur = hasChanged;
+        ChgdCache.set(tKey, result);
+    }
+    return result;
+};
 //var PathTrimFileParamsReg=/(\/)?[^\/]*[=#]$/;//).replace(,'$1').replace(,EMPTY);
 //var PathTrimSearch=/\?.*$/;
 /**
@@ -84,50 +179,6 @@ var Router = Mix({
      * @private
      */
     useHash: Magix.unimpl,
-    /**
-     * 根据地址栏中的path获取对应的前端view
-     * @param  {String} path 形如/list/index这样的path
-     * @param {Object} loc 内部临时使用的对象
-     * @return {Object} 返回形如{view:'app/views/default',path:'/home'}这样的对象
-     * @private
-     */
-    viewInfo: function(path, loc) {
-        var r, result, defaultView, defaultPath;
-        if (!Pnr) {
-            Pnr = {
-                rs: MxConfig.routes || {},
-                nf: MxConfig.unfoundView
-            };
-            //var home=pathCfg.defaultView;//处理默认加载的view
-            //var dPathname=pathCfg.defaultPath||EMPTY;
-            defaultView = MxConfig.defaultView;
-            /*if (!defaultView) {
-                throw new Error('unset defaultView');
-            }*/
-            Pnr.dv = defaultView;
-            defaultPath = MxConfig.defaultPath || EMPTY;
-            //if(!Magix.isFunction(temp.rs)){
-            r = Pnr.rs;
-            Pnr.f = Magix._f(r);
-            if (!Pnr.f && !r[defaultPath] && defaultView) {
-                r[defaultPath] = defaultView;
-            }
-            Pnr[PATH] = defaultPath;
-        }
-
-        if (!path) path = Pnr[PATH];
-
-        r = Pnr.rs;
-        if (Pnr.f) {
-            result = r.call(MxConfig, path, loc);
-        } else {
-            result = r[path]; //简单的在映射表中找
-        }
-        return {
-            view: result || Pnr.nf || Pnr.dv,
-            path: path
-        };
-    },
     /**
      * 开始路由工作
      * @private
@@ -233,58 +284,8 @@ var Router = Mix({
             //}
             //上述if else简写成以下形式，方便压缩
             tempPathname = result.hash[PATH] || (UseEdgeHistory && result.query[PATH]);
-            view = Router.viewInfo(tempPathname, result);
+            view = GetViewInfo(tempPathname, result);
             Mix(result, view);
-        }
-        return result;
-    },
-    /**
-     * 获取2个location对象之间的差异部分
-     * @param  {Object} oldLocation 原始的location对象
-     * @param  {Object} newLocation 当前的location对象
-     * @return {Object} 返回包含差异信息的对象
-     * @private
-     */
-    getChged: function(oldLocation, newLocation) {
-        var oKey = oldLocation.href;
-        var nKey = newLocation.href;
-        var tKey = oKey + '\u001a' + nKey;
-        var result = ChgdCache.get(tKey);
-        if (!result) {
-            var hasChanged, from, to, rps;
-            result = {
-                isParam: IsParam,
-                isPath: IsPath,
-                isView: IsView
-            };
-            result[VIEW] = to;
-            result[PATH] = to;
-            result[PARAMS] = rps = {};
-
-            var oldParams = oldLocation[PARAMS],
-                newParams = newLocation[PARAMS];
-            var tArr = [PATH, VIEW].concat(OKeys(oldParams), OKeys(newParams)),
-                idx, key;
-            for (idx = tArr.length - 1; idx >= 0; idx--) {
-                key = tArr[idx];
-                console.log(key, idx);
-                if (idx == 1) {
-                    oldParams = oldLocation;
-                    newParams = newLocation;
-                    rps = result;
-                }
-                from = oldParams[key];
-                to = newParams[key];
-                if (from != to) {
-                    rps[key] = {
-                        from: from,
-                        to: to
-                    };
-                    hasChanged = 1;
-                }
-            }
-            result.occur = hasChanged;
-            ChgdCache.set(tKey, result);
         }
         return result;
     },
@@ -294,7 +295,7 @@ var Router = Mix({
     route: function() {
         var location = Router.parseQH(0, 1);
         var firstFire = !LLoc.get; //是否强制触发的changed，对于首次加载会强制触发一次
-        var changed = Router.getChged(LLoc, location);
+        var changed = GetChged(LLoc, location);
         LLoc = location;
         console.log(changed, location);
         if (changed.occur) {

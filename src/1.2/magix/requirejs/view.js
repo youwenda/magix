@@ -3,8 +3,33 @@
  * @author 行列
  * @version 1.1
  */
-define('magix/view', ["magix/magix", "magix/event", "magix/body", "magix/router"], function(Magix, Event, Body, Router) {
+define('magix/view', ["magix/magix", "magix/event", "magix/router"], function(Magix, Event, Router) {
 
+    var Delegates = {
+        focus: 2,
+        blur: 2,
+        mouseenter: 2,
+        mouseleave: 2
+    };
+    var G = $.now();
+    var DOMEventLibBind = function(node, type, cb, remove, scope, direct) {
+        var flag = Delegates[type];
+        if (scope) {
+            if (!cb.$n) cb.$n = G--;
+            var key = '_$' + cb.$n;
+            if (!scope[key]) {
+                scope[key] = function() {
+                    cb.apply(scope, arguments);
+                };
+            }
+            cb = scope[key];
+        }
+        if (!direct && flag == 2) {
+            $(node)[(remove ? 'un' : EMPTY) + 'delegate']('[mx-' + type + ']', type, cb);
+        } else {
+            $(node)[remove ? 'off' : ON](type, cb);
+        }
+    };
     eval(Magix.include('../tmpl/view'));
     var Paths = {};
     var Suffix = '?t=' + Math.random();

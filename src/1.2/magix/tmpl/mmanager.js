@@ -75,9 +75,9 @@ var TError = function(e) {
  */
 var MManager = function(modelClass, serKeys) {
     var me = this;
-    me.$mClass = modelClass;
+    me.$mClz = modelClass;
     me.$mCache = Magix.cache();
-    me.$mCacheKeys = {};
+    me.$mReqs = {};
     me.$mMetas = {};
     me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
     me.id = 'mm' + COUNTER++;
@@ -151,6 +151,9 @@ var DoneFn = function(idx, ops, err) {
             if (succ) { //有succ
                 SafeExec(succ, model);
             }
+            if (mm.cls) {
+                host.clearCache(mm.cls);
+            }
             host.fire('done', {
                 model: model
             });
@@ -158,7 +161,7 @@ var DoneFn = function(idx, ops, err) {
         model.fromCache = mm.used > 0;
         mm.used++;
     }
-    if (!request.$oust) { //销毁，啥也不做
+    if (!request.$ost) { //销毁，啥也不做
         if (flag == FetchFlags_ONE) { //如果是其中一个成功，则每次成功回调一次
             var m = doneIsArray ? done[idx] : done;
             if (m) {
@@ -269,7 +272,7 @@ Mix(MRequest.prototype, {
         me.sign++;
         var host = me.$host;
         var modelsCache = host.$mCache;
-        var modelsCacheKeys = host.$mCacheKeys;
+        var modelsCacheKeys = host.$mReqs;
         var reqs = me.$reqs;
 
         if (!IsArray(models)) {
@@ -381,7 +384,7 @@ Mix(MRequest.prototype, {
      * @param {Function} done   完成时的回调
      * @return {MRequest}
      */
-    saveAll: function(models, done) {
+    save: function(models, done) {
         return this.send(models, done, FetchFlags_ALL, 1);
     },
     /**
@@ -426,22 +429,6 @@ Mix(MRequest.prototype, {
         //注意，回调多于一个时，当提供的回调多于或少于model个数时，多或少的会被忽略掉
      */
     fetchOrder: GenRequestMethod(FetchFlags_ORDER),
-    /**
-     * 保存models，按顺序执行回调done
-     * @function
-     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home'urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} done   完成时的回调
-     * @return {MRequest}
-     */
-    saveOrder: GenRequestMethod(FetchFlags_ORDER, 1),
-    /**
-     * 保存models，其中任意一个成功均立即回调，回调会被调用多次
-     * @function
-     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home',urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} callback   完成时的回调
-     * @return {MRequest}
-     */
-    saveOne: GenRequestMethod(FetchFlags_ONE, 1),
     /**
      * 获取models，其中任意一个成功均立即回调，回调会被调用多次
      * @function
@@ -492,16 +479,17 @@ Mix(MRequest.prototype, {
         clearTimeout(me.$ntId);
         var host = me.$host;
         var reqs = me.$reqs;
-        var modelsCacheKeys = host.$mCacheKeys;
+        var modelsCacheKeys = host.$mReqs;
         console.log(me.id, 'stop');
         for (var p in reqs) {
             var m = reqs[p];
-            var cacheKey = m.$mm.key;
+            var cacheKey = m.$mm.key,
+                nfns = [],
+                rfns = [],
+                cache, fns;
             if (cacheKey && Has(modelsCacheKeys, cacheKey)) {
-                var cache = modelsCacheKeys[cacheKey];
-                var fns = cache.q;
-                var nfns = [];
-                var rfns = [];
+                cache = modelsCacheKeys[cacheKey];
+                fns = cache.q;
                 for (var i = 0, fn; i < fns.length; i++) {
                     fn = fns[i];
                     if (fn.id != me.id) {
@@ -510,16 +498,13 @@ Mix(MRequest.prototype, {
                         rfns.push(fn); //需要中止
                     }
                 }
-                //console.log(rfns, nfns);
-                if (nfns.length) {
-                    SafeExec(rfns, 'abort', cache.e); //model并未中止，需要手动触发
-                    cache.q = nfns;
-                } else {
-                    m.abort();
-                }
+            }
+            //console.log(rfns, nfns);
+            if (nfns.length) {
+                SafeExec(rfns, 'abort', cache.e); //model并未中止，需要手动触发
+                cache.q = nfns;
             } else {
-                console.log('no cache key');
-                m.abort();
+                m.destroy();
             }
         }
 
@@ -598,7 +583,7 @@ Mix(MRequest.prototype, {
      */
     destroy: function() {
         var me = this;
-        me.$oust = 1;
+        me.$ost = 1;
         me.stop();
     }
 });
@@ -613,7 +598,8 @@ MManager.mixin({
      * @param {String} models.name app中model的唯一标识
      * @param {Object} models.urlParams 发起请求时，默认的get参数对象
      * @param {Object} models.postParams 发起请求时，默认的post参数对象
-     * @param {Boolean|Integer} models.cache指定当前请求缓存多长时间,为true默认20分钟，可传入整数表示缓存多少毫秒
+     * @param {Boolean|Integer} models.cache 指定当前请求缓存多长时间,为true默认20分钟，可传入整数表示缓存多少毫秒
+     * @param {Array} models.cleans 请求成功后，清除其它缓存的name数组
      * @param {Function} models.done model在结束请求，并且成功后回调
      */
     registerModels: function(models) {
@@ -744,23 +730,21 @@ MManager.mixin({
      * @param {Object} modelAttrs           model描述信息对象
      * @return {Model}
      */
-    createModel: function(modelAttrs) {
+    create: function(modelAttrs) {
         var me = this;
         //modelAttrs = ProcessModelAttrs(modelAttrs);
 
-        var meta = me.getModelMeta(modelAttrs);
+        var meta = me.getMeta(modelAttrs);
         var cache = ProcessCache(modelAttrs) || meta.cache;
-        var entity = new me.$mClass();
-        var mm;
+        var entity = new me.$mClz();
         entity.set(meta);
-        entity.$mm = mm = {
+        entity.$mm = {
             used: 0,
-            done: meta.done
+            name: meta.name,
+            done: meta.done,
+            cls: meta.cleans,
+            key: cache && DefaultCacheKey(me.$sKeys, meta, modelAttrs)
         };
-        if (cache) {
-            mm.key = DefaultCacheKey(me.$sKeys, meta, modelAttrs);
-        }
-
 
         if (modelAttrs.name) {
             entity.set(modelAttrs);
@@ -785,7 +769,7 @@ MManager.mixin({
      * @return {Object}
      * @throws {Error} If unfound:name
      */
-    getModelMeta: function(modelAttrs) {
+    getMeta: function(modelAttrs) {
         var me = this;
         var metas = me.$mMetas;
         var name = modelAttrs.name || modelAttrs;
@@ -806,12 +790,12 @@ MManager.mixin({
         var entity;
         var needUpdate;
         if (!createNew) {
-            entity = me.getCachedModel(modelAttrs);
+            entity = me.getCached(modelAttrs);
         }
 
         if (!entity) {
             needUpdate = 1;
-            entity = me.createModel(modelAttrs);
+            entity = me.create(modelAttrs);
         }
         return {
             entity: entity,
@@ -827,29 +811,20 @@ MManager.mixin({
         return view.manage(new MRequest(this));
     },
     /**
-     * 根据key清除缓存的models
-     * @param  {String} key 字符串
-     */
-    clearCacheByKey: function(key) {
-        var me = this;
-        var modelsCache = me.$mCache;
-        modelsCache.del(key);
-    },
-    /**
      * 根据name清除缓存的models
-     * @param  {String} name 字符串
+     * @param  {String|Array} names 字符串或数组
      */
-    clearCacheByName: function(name) {
+    clearCache: function(names) {
         var me = this;
         var modelsCache = me.$mCache;
         var list = modelsCache.list();
+        names = Magix.toMap((names + EMPTY).split(COMMA));
         for (var i = 0; i < list.length; i++) {
             var one = list[i];
             var m = one.v;
             var mm = m && m.$mm;
             if (mm) {
-                var tName = mm.meta.name;
-                if (tName == name) {
+                if (Has(names, mm.name)) {
                     modelsCache.del(mm.key);
                 }
             }
@@ -860,12 +835,12 @@ MManager.mixin({
      * @param  {Object} modelAttrs
      * @return {Model}
      */
-    getCachedModel: function(modelAttrs) {
+    getCached: function(modelAttrs) {
         var me = this;
         var modelsCache = me.$mCache;
         var entity = null;
         var cacheKey;
-        var meta = me.getModelMeta(modelAttrs);
+        var meta = me.getMeta(modelAttrs);
         var cache = ProcessCache(modelAttrs) || meta.cache;
 
         if (cache) {
@@ -873,14 +848,14 @@ MManager.mixin({
         }
 
         if (cacheKey) {
-            var requestCacheKeys = me.$mCacheKeys;
+            var requestCacheKeys = me.$mReqs;
             var info = requestCacheKeys[cacheKey];
             if (info) { //处于请求队列中的
                 entity = info.e;
             } else { //缓存
                 entity = modelsCache.get(cacheKey);
                 if (entity && cache > 0 && Now() - entity.$mm.time > cache) {
-                    me.clearCacheByKey(cacheKey);
+                    modelsCache.del(cacheKey);
                     entity = 0;
                 }
             }

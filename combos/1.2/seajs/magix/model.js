@@ -11,7 +11,6 @@ define('magix/model', function(require) {
  * @namespace
  * @class
  * @constructor
- * @param {Object} ops 初始化Model时传递的其它参数对象
  * @property {String} id model唯一标识
  * @property {Boolean} fromCache 在与ModelManager配合使用时，标识当前model对象是不是从缓存中来
  */
@@ -19,14 +18,30 @@ define('magix/model', function(require) {
 var Has = Magix.has;
 var IsObject = Magix._o;
 var ToString = Magix.toString;
-var Model = function(ops) {
-    this.set(ops);
+var Model = function() {
     this.id = 'm' + COUNTER++;
 };
-var GenSetParams = function(type, iv) {
-    return function(o1, o2) {
-        this.setParams(o1, o2, type, iv);
-    };
+var GetParams = function(me, type) {
+    return Magix.toUrl(EMPTY, me['\u001a' + type]).replace(FixParamsReg, EMPTY);
+};
+var SetParams = function(me, obj1, obj2, ignoreIfExist, type) {
+    var k = '\u001a' + type,
+        t, p, obj;
+    if (!me[k]) me[k] = {};
+    obj = me[k];
+    if (Magix._f(obj1)) {
+        obj1 = Magix.tryCall(obj1);
+    }
+    if (obj1 && !IsObject(obj1)) {
+        t = {};
+        t[obj1] = ~ (obj1 + EMPTY).indexOf('=') ? EMPTY : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
+        obj1 = t;
+    }
+    for (p in obj1) {
+        if (!ignoreIfExist || !Has(obj, p)) {
+            obj[p] = obj1[p];
+        }
+    }
 };
 var FixParamsReg = /^\?|=(?=&|$)/g;
 var GET = 'GET',
@@ -88,25 +103,22 @@ Magix.mix(Model.prototype, {
      * @return {String}
      */
     getPostParams: function() {
-        return this.getParams(POST);
+        return GetParams(this, POST);
     },
     /**
      * 获取通过setUrlParams放入的参数
      * @return {String}
      */
     getUrlParams: function() {
-        return this.getParams(GET);
+        return GetParams(this, GET);
     },
     /**
      * 获取参数
      * @param {String} [type] 参数分组的key[GET,POST]，默认为GET
      * @return {String}
      */
-    getParams: function(type) {
-        var params = Magix.toUrl(EMPTY, this['\u001a' + (type || GET)]);
-        params = params.replace(FixParamsReg, EMPTY);
-        return params;
-        /*var k = '\u001a' + type;
+
+    /*var k = '\u001a' + type;
         var params = me[k];
         var arr = [];
         var v;
@@ -123,67 +135,28 @@ Magix.mix(Model.prototype, {
             for (var i = 0; i < v.length; i++) {
                 arr.push(p + '=' + Encode(v[i]));
             }*/
-        /*}
+    /*}
         return arr.join('\u001a');*/
-    },
-    /**
-     * 设置url参数，只有未设置过的参数才进行设置
-     * @function
-     * @param {Object|String} obj1 参数对象或者参数key
-     * @param {String} [obj2] 参数内容
-     */
-    setUrlParamsIf: GenSetParams(GET, 1),
-    /**
-     * 设置post参数，只有未设置过的参数才进行设置
-     * @function
-     * @param {Object|String} obj1 参数对象或者参数key
-     * @param {String} [obj2] 参数内容
-     */
-    setPostParamsIf: GenSetParams(POST, 1),
-    /**
-     * 设置参数
-     * @param {Object|String|Function} obj1 参数对象或者参数key
-     * @param {String} [obj2] 参数内容
-     * @param {String}   type      参数分组的key
-     * @param {Boolean}   ignoreIfExist   如果存在同名的参数则不覆盖，忽略掉这次传递的参数
-     */
-    setParams: function(obj1, obj2, type, ignoreIfExist) {
-        var me = this;
-        /*if (!me.$types) me.$types = {};
-        me.$types[type] = true;*/
-
-        var k = '\u001a' + type,
-            t, p, obj;
-        if (!me[k]) me[k] = {};
-        obj = me[k];
-        if (Magix._f(obj1)) {
-            obj1 = Magix.tryCall(obj1);
-        }
-        if (obj1 && !IsObject(obj1)) {
-            t = {};
-            t[obj1] = ~ (obj1 + EMPTY).indexOf('=') ? EMPTY : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
-            obj1 = t;
-        }
-        for (p in obj1) {
-            if (!ignoreIfExist || !Has(obj, p)) {
-                obj[p] = obj1[p];
-            }
-        }
-    },
     /**
      * 设置post参数
      * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
+     * @param {Boolean} [ignoreIfExist] 如果存在，则忽略本次的设置
      */
-    setPostParams: GenSetParams(POST),
+    setPostParams: function(obj1, obj2, ignoreIfExist) {
+        SetParams(this, obj1, obj2, ignoreIfExist, POST);
+    },
     /**
      * 设置url参数
      * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
+     * @param {Boolean} [ignoreIfExist] 如果存在，则忽略本次的设置
      */
-    setUrlParams: GenSetParams(GET),
+    setUrlParams: function(obj1, obj2, ignoreIfExist) {
+        SetParams(this, obj1, obj2, ignoreIfExist, GET);
+    },
     /**
      * @private
      */
@@ -272,14 +245,17 @@ Magix.mix(Model.prototype, {
         /* if (saveKeyList && !me.$keys) {
             me.$keys = [];
         }*/
-        if (IsObject(key)) {
+        if (key) {
+            if (!IsObject(key)) {
+                var t = {};
+                t[key] = val;
+                key = t;
+            }
             for (var p in key) {
                 //if (!Has(val, p)) {
                 me.$attrs[p] = key[p];
                 //}
             }
-        } else if (key) {
-            me.$attrs[key] = val;
         }
     },
     /**
@@ -288,9 +264,9 @@ Magix.mix(Model.prototype, {
      */
     request: function(callback, options) {
         var me = this;
-        if (!me.$abt) {
+        if (!me.$ost) {
             var temp = function(err, data) {
-                if (!me.$abt) {
+                if (!me.$ost) {
                     //if (err) {
                     // callback(err, data, options);
                     //} else {
@@ -304,32 +280,25 @@ Magix.mix(Model.prototype, {
                     callback(err, options);
                 }
             };
-            me.$trans = me.sync(me.$temp = temp);
+            me.$tspt = me.sync(me.$temp = temp);
         }
     },
     /**
      * 中止请求
      */
-    abort: function() {
+    destroy: function() {
         var me = this;
-        var trans = me.$trans;
+        var tspt = me.$tspt;
         var fn = me.$temp;
         if (fn) {
             fn('abort');
             me.$temp = 0;
         }
-        me.$abt = 1;
-        if (trans && trans.abort) {
-            trans.abort();
+        me.$ost = 1;
+        if (tspt && tspt.abort) {
+            tspt.abort();
         }
-        me.$trans = 0;
-    },
-    /**
-     * 获取当前model是否已经取消了请求
-     * @return {Boolean}
-     */
-    isAborted: function() {
-        return this.$abt;
+        me.$tspt = 0;
     }
 });
     Model.extend = function(props, statics, ctor) {

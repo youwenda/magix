@@ -162,7 +162,7 @@ Mix(Mix(Vframe.prototype, Event), {
     mountView: function(viewPath, viewInitParams, keepPreHTML) {
         var me = this;
         var node = $(me.id);
-        if (!me._a) {
+        if (!me._a && node) {
             me._a = 1;
             me._t = node.innerHTML; //.replace(ScriptsReg, '');
         }
@@ -176,7 +176,7 @@ Mix(Mix(Vframe.prototype, Event), {
             Magix.use(vn, function(View) {
                 if (sign == me.sign) { //有可能在view载入后，vframe已经卸载了
 
-                    BaseView.prepare(View);
+                    BaseView.prepare(View, RefVOM);
 
                     var view = new View({
                         owner: me,
@@ -193,7 +193,9 @@ Mix(Mix(Vframe.prototype, Event), {
                     };
                     view.on('interact', function(e) { //view准备好后触发
                         if (!e.tmpl) {
-                            node.innerHTML = me._t;
+                            if (node) {
+                                node.innerHTML = me._t;
+                            }
                             mountZoneVframes($);
                         }
                         view.on('primed', function() {

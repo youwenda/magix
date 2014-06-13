@@ -3,8 +3,33 @@
  * @author 行列
  * @version 1.1
  */
-define('magix/view', ["magix/magix", "magix/event", "magix/body", "magix/router"], function(Magix, Event, Body, Router) {
+define('magix/view', ["magix/magix", "magix/event", "magix/router"], function(Magix, Event, Router) {
 
+    var Delegates = {
+        focus: 2,
+        blur: 2,
+        mouseenter: 2,
+        mouseleave: 2
+    };
+    var G = $.now();
+    var DOMEventLibBind = function(node, type, cb, remove, scope, direct) {
+        var flag = Delegates[type];
+        if (scope) {
+            if (!cb.$n) cb.$n = G--;
+            var key = '_$' + cb.$n;
+            if (!scope[key]) {
+                scope[key] = function() {
+                    cb.apply(scope, arguments);
+                };
+            }
+            cb = scope[key];
+        }
+        if (!direct && flag == 2) {
+            $(node)[(remove ? 'un' : EMPTY) + 'delegate']('[mx-' + type + ']', type, cb);
+        } else {
+            $(node)[remove ? 'off' : ON](type, cb);
+        }
+    };
     var SafeExec = Magix.tryCall;
 var Has = Magix.has;
 var EMPTY_ARRAY = [];
@@ -12,6 +37,24 @@ var Noop = Magix.noop;
 var Mix = Magix.mix;
 var ResCounter = 0;
 var DestroyStr = 'destroy';
+
+var EvtInfoCache = Magix.cache(40);
+
+
+var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\({([\s\S]*)}\))?/;
+var EvtParamsReg = /(\w+):(['"]?)([\s\S]+?)\2(?=(?:,\w+:|$))/g;
+var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
+
+var RootEvents = {};
+var MxIgnore = 'mx-ei';
+var RootNode = document.body;
+var ParentNode = 'parentNode';
+var TypesRegCache = {};
+var MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
+var ON = 'on';
+
+var VOM;
+var Group = '\u0005';
 
 var WrapFn = function(fn, me) {
     return function() {
@@ -25,12 +68,6 @@ var WrapFn = function(fn, me) {
     };
 };
 
-var Destroy = function(res, fn) {
-    fn = res && res[DestroyStr];
-    if (fn) {
-        SafeExec(fn, EMPTY_ARRAY, res);
-    }
-};
 var DestroyAllManaged = function(me, onlyMR, keepIt) {
     var cache = me.$res,
         p, c;
@@ -38,17 +75,154 @@ var DestroyAllManaged = function(me, onlyMR, keepIt) {
     for (p in cache) {
         c = cache[p];
         if (!onlyMR || c.mr) {
-            me.destroyManaged(p, keepIt);
+            DestroyIt(me, p, keepIt);
         }
     }
 };
 
-var EvtInfoCache = Magix.cache(40);
+var DestroyIt = function(me, key, keepIt) {
+    var cache = me.$res;
+    var o = cache[key];
+    var res, fn;
+    if (o && (!keepIt || !o.ol) /*&& (!o.mr || o.sign != view.sign)*/ ) { //暂不考虑render中多次setHTML的情况
+        //var processed=false;
+        res = o.res;
+        fn = res && res[DestroyStr];
+        if (fn) {
+            SafeExec(fn, EMPTY_ARRAY, res);
+        }
+        if (!o.hk || !keepIt) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
+            delete cache[key];
+        }
+    }
+};
 
+/**
+ * 处理代理事件
+ * @param {Boolean} dispose 是否销毁
+ * @private
+ */
+var DelegateEvents = function(me, destroy) {
+    var events = me.$evts;
+    var p, e;
+    for (p in events) {
+        DOMEventBind(p, destroy);
+    }
+    events = me.$sevts;
+    p = events.length;
+    while (p-- > 0) {
+        e = events[p];
+        DOMEventLibBind(e.h, e.t, e.f, destroy, me, 1);
+    }
+};
 
-var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(?{([\s\S]*)}\)?)?/;
-var EvtParamsReg = /(\w+):(['"]?)([^,]+)\2/g;
-var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
+var GetSetAttribute = function(dom, attrKey, attrVal) {
+    if (attrVal) {
+        dom.setAttribute(attrKey, attrVal);
+    } else {
+        attrVal = dom.getAttribute(attrKey);
+    }
+    return attrVal;
+};
+
+var DOMEventWrap = function(id, html, onlyPrefix, prefix) {
+    html += EMPTY;
+    prefix = id + '\u001a';
+    if (onlyPrefix) {
+        html = [EMPTY].concat(html).join(Group + prefix);
+    } else {
+        html = html.replace(MxEvt, '$&' + prefix);
+    }
+    return html;
+};
+var DOMEventProcessor = function(e) {
+    if (e && !e[ON]) {
+        var target = e.target;
+        e[ON] = 1;
+        var current = target;
+        var eventType = e.type;
+        var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(COMMA + eventType + '(?:,|$)'));
+        var type = 'mx-' + eventType;
+        var info;
+        var ignore;
+        var arr = [];
+        var node;
+
+        while (current && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点
+            info = GetSetAttribute(current, type);
+            ignore = GetSetAttribute(current, MxIgnore); //current.getAttribute(MxIgnore);
+            if (info || eventReg.test(ignore)) {
+                break;
+            } else {
+                arr.push(current);
+                current = current[ParentNode];
+            }
+        }
+        if (info) { //有事件
+            //找处理事件的vframe
+            var infos = info.split(Group),
+                firstProcessed,
+                oinfo, ts, vframe, view, vId, begin, vfs, tempId;
+            while (infos.length) {
+                oinfo = infos.shift();
+                if (oinfo) {
+                    ts = oinfo.split('\u001a');
+                    oinfo = ts.pop();
+                    vId = ts[0];
+                    if (!vId && !firstProcessed) { //如果没有则找最近的vframe
+                        begin = current;
+                        vfs = VOM.all();
+                        while (begin) {
+                            if (Has(vfs, tempId = begin.id)) {
+                                GetSetAttribute(current, type, (vId = tempId) + '\u001a' + info);
+                                break;
+                            }
+                            begin = begin[ParentNode];
+                        }
+                    }
+                    firstProcessed = 1;
+                    if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
+                        vframe = VOM.get(vId);
+                        view = vframe && vframe.view;
+                        if (view) {
+                            e.currentId = IdIt(current);
+                            e.targetId = IdIt(target);
+                            e.prevent = e.preventDefault;
+                            e.stop = e.stopPropagation;
+                            view.pEvt(oinfo, eventType, e);
+                        }
+                    } else {
+                        throw Error('bad:' + oinfo);
+                    }
+                }
+            }
+        } else {
+            while (arr.length) {
+                node = arr.pop();
+                ignore = GetSetAttribute(node, MxIgnore) || ON;
+                if (!eventReg.test(ignore)) {
+                    ignore = ignore + COMMA + eventType;
+                    GetSetAttribute(node, MxIgnore, ignore);
+                }
+            }
+            node = null;
+        }
+        current = target = null;
+    }
+    //}
+};
+var DOMEventBind = function(type, remove) {
+    var counter = RootEvents[type] | 0;
+    var step = counter > 0 ? 1 : 0;
+    counter += remove ? -step : step;
+    if (!counter) {
+        DOMEventLibBind(RootNode, type, DOMEventProcessor, remove);
+        if (!remove) {
+            counter = 1;
+        }
+    }
+    RootEvents[type] = counter;
+};
 /**
  * View类
  * @name View
@@ -113,9 +287,10 @@ var Globals = {
     $doc: document
 };
 View.$ = [];
-View.prepare = function(oView) {
+View.prepare = function(oView, vom) {
     if (!oView['\u001a']) { //只处理一次
         oView['\u001a'] = 1;
+        VOM = vom;
         //oView.extend = me.extend;
         var prop = oView.prototype;
         var old, temp, name, evts, idx, revts = {}, rsevts = [],
@@ -232,7 +407,12 @@ Mix(Mix(VProto, Event), {
      * });
      * //注意，只有动态添加的节点才需要处理
      */
-    wrapEvent: Body.wrap,
+    wrapEvent: DOMEventWrap,
+    /**
+     * 调用magix/router的navigate方法
+     * @function
+     */
+    navigate: Router.navigate,
     /**
      * 当window.location.href有变化时调用该方法（如果您通过observeLocation指定了相关参数，则这些相关参数有变化时才调用locationChange，否则不会调用），供最终的view开发人员进行覆盖
      * @function
@@ -301,9 +481,9 @@ Mix(Mix(VProto, Event), {
         // var tmplReady = Has(me, 'tmpl');
         var ready = function(tmpl) {
             if (hasTmpl) {
-                me.tmpl = Body.wrap(me.id, tmpl);
+                me.tmpl = DOMEventWrap(me.id, tmpl);
             }
-            me.dEvts();
+            DelegateEvents(me);
             /*
                     关于interact事件的设计 ：
                     首先这个事件是对内的，当然外部也可以用，API文档上就不再体现了
@@ -408,16 +588,15 @@ Mix(Mix(VProto, Event), {
      * 设置view的html内容
      * @param {String} id 更新节点的id
      * @param {Strig} html html字符串
-     * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML
      * @example
      * render:function(){
      *     this.setHTML(this.id,this.tmpl);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
      * }
      */
-    setHTML: function(id, html, keepPreHTML) {
+    setHTML: function(id, html) {
         var me = this,
             n;
-        me.beginUpdate(id, keepPreHTML);
+        me.beginUpdate(id);
         if (me.sign > 0) {
             n = me.$(id);
             if (n) n.innerHTML = html;
@@ -528,7 +707,7 @@ Mix(Mix(VProto, Event), {
             me.sign = 0;
             me.fire(DestroyStr, 0, 1, 1);
             DestroyAllManaged(me);
-            me.dEvts(1);
+            DelegateEvents(me, 1);
         }
         me.sign--;
     },
@@ -538,9 +717,8 @@ Mix(Mix(VProto, Event), {
      */
     parentView: function() {
         var me = this,
-            vom = me.vom,
             owner = me.owner;
-        var pVframe = vom.get(owner.pId),
+        var pVframe = VOM.get(owner.pId),
             r = null;
         if (pVframe && pVframe.viewInited) {
             r = pVframe.view;
@@ -575,32 +753,10 @@ Mix(Mix(VProto, Event), {
             var name = m.n + '\u001a' + eventType;
             var fn = me[name];
             if (fn) {
-                var tfn = e[m.f];
-                if (tfn) {
-                    tfn.call(e);
-                }
+                if (e[m.f]) e[m.f]();
                 e.params = m.p;
                 SafeExec(fn, e, me);
             }
-        }
-    },
-    /**
-     * 处理代理事件
-     * @param {Boolean} dispose 是否销毁
-     * @private
-     */
-    dEvts: function(destroy) {
-        var me = this;
-        var events = me.$evts;
-        var vom = me.vom;
-        for (var p in events) {
-            Body.act(p, destroy, vom);
-        }
-        events = me.$sevts;
-        p = events.length;
-        while (p-- > 0) {
-            vom = events[p];
-            Body.lib(vom.h, vom.t, vom.f, destroy, me, 1);
         }
     },
     /**
@@ -632,11 +788,6 @@ Mix(Mix(VProto, Event), {
         return contained;
     },
     /**
-     * 调用magix/router的navigate方法
-     * @function
-     */
-    navigate: Router.navigate,
-    /**
      * 让view帮你管理资源，强烈建议对组件等进行托管
      * @param {String|Object} key 托管的资源或要共享的资源标识key
      * @param {Object} res 要托管的资源
@@ -660,10 +811,6 @@ Mix(Mix(VProto, Event), {
      *              _self.manage(brix);//管理组件
      *
      *              var pagination=_self.manage(new BrixPagination());//也可以这样
-     *
-     *              var timer=_self.manage(setTimeout(function(){
-     *                  S.log('timer');
-     *              },2000));//也可以管理定时器
      *
      *
      *              var userList=_self.getManaged('user_list');//通过key取托管的资源
@@ -691,7 +838,7 @@ Mix(Mix(VProto, Event), {
         } else {
             //var old = cache[key];
             //if (old && old.res != res) { //销毁同key不同资源的旧资源
-            me.destroyManaged(key); //
+            DestroyIt(me, key);
             //}
         }
         var wrapObj = {
@@ -719,40 +866,6 @@ Mix(Mix(VProto, Event), {
             if (remove) {
                 delete cache[key];
             }
-        }
-        return res;
-    },
-    /**
-     * 移除托管的资源
-     * @param {String|Object} key 托管时标识key或托管的对象
-     * @return {Object} 返回移除的资源
-     */
-    removeManaged: function(key) {
-        return this.getManaged(key, 1);
-    },
-    /**
-     * 销毁托管的资源
-     * @function
-     * @param {String} key manage时提供的资源的key
-     * @param {Boolean} [keepIt] 销毁后是否依然在缓存中保留该资源的引用
-     * @return {Object} 返回销毁的托管资源
-     */
-    destroyManaged: function(key, keepIt) {
-        var me = this;
-        var cache = me.$res;
-        var o = cache[key];
-        var res;
-        if (o && (!keepIt || !o.ol) /*&& (!o.mr || o.sign != view.sign)*/ ) { //暂不考虑render中多次setHTML的情况
-            //var processed=false;
-            res = o.res;
-            Destroy(res);
-            if (!o.hk || !keepIt) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
-                delete cache[key];
-            }
-            /*me.fire('destroyManaged', {
-                resource: res,
-                processed: processed
-            });*/
         }
         return res;
     }
