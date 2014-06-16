@@ -65,7 +65,7 @@ Magix.mix(Model.prototype, {
      * @param {Function} callback 请求完成后的回调，回调时第1个参数是错误对象，第2个是数据
      * @return {XHR} 最好返回异步请求的对象
      */
-    sync: Magix.noop,
+    sync: NOOP,
     /**
      * 处理Model.sync成功后返回的数据
      * @function

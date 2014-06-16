@@ -212,7 +212,7 @@ var Router = Mix({
      * @param {String} [href] href
      * @return {Object} 解析的对象
      */
-    parseQH: function(href, inner) {
+    parse: function(href, inner) {
         href = href || WinLoc.href;
         /*var cfg=Magix.config();
         if(!cfg.originalHREF){
@@ -298,7 +298,7 @@ var Router = Mix({
      * 根据window.location.href路由并派发相应的事件
      */
     route: function() {
-        var location = Router.parseQH(0, 1);
+        var location = Router.parse(0, 1);
         var firstFire = !LLoc.get; //是否强制触发的changed，对于首次加载会强制触发一次
         var changed = GetChged(LLoc, location);
         LLoc = location;

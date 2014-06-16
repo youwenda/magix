@@ -42,8 +42,8 @@ define('magix/magix', function() {
             bProto.constructor = base;
             T.prototype = bProto;
             var cProto = new T();
-            Magix.mix(cProto, props);
-            Magix.mix(ctor, statics);
+            Mix(cProto, props);
+            Mix(ctor, statics);
             cProto.constructor = ctor;
             ctor.prototype = cProto;
             return ctor;

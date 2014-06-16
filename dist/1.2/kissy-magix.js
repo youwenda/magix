@@ -1,4 +1,4 @@
-(function(NULL,WINDOW,DOCUMENT,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=1;IdIt=function(n){return n.id||(n.id='mx_n_'+COUNTER++)};/**
+(function(NULL,WINDOW,DOCUMENT,NOOP,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=1;IdIt=function(n){return n.id||(n.id='mx_n_'+COUNTER++)};/**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.1
@@ -32,10 +32,6 @@ var SupportError = Console && Console.error;
 var Unimpl = function() {
     throw new Error('unimplement method');
 };
-/**
- * 空方法
- */
-var Noop = function() {};
 
 var Cfg = {
     tagName: DefaultTagName,
@@ -43,7 +39,7 @@ var Cfg = {
     coded: 1,
     error: SupportError ? function(e) {
         Console.error(e);
-    } : Noop
+    } : NOOP
 };
 var HasProp = Cfg.hasOwnProperty;
 /**
@@ -207,6 +203,16 @@ var SafeExec = function(fns, args, context, i, r, e) {
     return r;
 };
 
+var ParamsFn = function(match, name, value) {
+    if (Cfg.coded) {
+        try {
+            value = decodeURIComponent(value);
+        } catch (e) {
+
+        }
+    }
+    ParamsFn.p[name] = value;
+};
 
 /**
  * Magix对象，提供常用方法
@@ -353,11 +359,6 @@ var Magix = {
      * S.log(result);//得到f2的返回值
      */
     tryCall: SafeExec,
-    /**
-     * 空方法
-     * @function
-     */
-    noop: Noop,
     /**
      * 配置信息对象
      */
@@ -512,7 +513,7 @@ var Magix = {
         var r = PathToObjCache.get(path),
             params, pathname, querys, first;
         if (!r) {
-            params = {};
+            ParamsFn.p = params = {};
             pathname = EMPTY;
             if (PathTrimParamsReg.test(path)) { //有#?号，表示有pathname
                 pathname = path.replace(PathTrimParamsReg, EMPTY);
@@ -530,16 +531,7 @@ var Magix = {
                     }
                 }
             }
-            querys.replace(ParamsReg, function(match, name, value) {
-                if (Cfg.coded) {
-                    try {
-                        value = decodeURIComponent(value);
-                    } catch (e) {
-
-                    }
-                }
-                params[name] = value;
-            });
+            querys.replace(ParamsReg, ParamsFn);
             PathToObjCache.set(path, r = [pathname, params]);
         }
         return {
@@ -1017,7 +1009,7 @@ var Router = Mix({
      * @param {String} [href] href
      * @return {Object} 解析的对象
      */
-    parseQH: function(href, inner) {
+    parse: function(href, inner) {
         href = href || WinLoc.href;
         /*var cfg=Magix.config();
         if(!cfg.originalHREF){
@@ -1103,7 +1095,7 @@ var Router = Mix({
      * 根据WINDOW.location.href路由并派发相应的事件
      */
     route: function() {
-        var location = Router.parseQH(0, 1);
+        var location = Router.parse(0, 1);
         var firstFire = !LLoc.get; //是否强制触发的changed，对于首次加载会强制触发一次
         var changed = GetChged(LLoc, location);
         LLoc = location;
@@ -1560,8 +1552,8 @@ Mix(Mix(Vframe.prototype, Event), {
                     var mountZoneVframes = function(e) {
                         me.mountZoneVframes(e.id);
                     };
-                    view.on('interact', function(e) { //view准备好后触发
-                        if (!e.tmpl) {
+                    view.on('interact', function() { //view准备好后触发
+                        if (!view.hasTmpl) {
                             if (node) {
                                 node.innerHTML = me._t;
                             }
@@ -1926,7 +1918,6 @@ LIB.add('magix/view', function(S, Magix, Event, Router, IO) {
     var SafeExec = Magix.tryCall;
 var Has = Magix.has;
 var EMPTY_ARRAY = [];
-var Noop = Magix.noop;
 var Mix = Magix.mix;
 var ResCounter = 0;
 var DestroyStr = 'destroy';
@@ -1961,6 +1952,9 @@ var WrapFn = function(fn, me) {
     };
 };
 
+var EvtParamsFn = function(x, a, q, b) {
+    EvtParamsFn.p[a] = b;
+};
 var DestroyAllManaged = function(me, onlyMR, keepIt) {
     var cache = me.$res,
         p, c;
@@ -2210,7 +2204,7 @@ View.prepare = function(oView, vom) {
                         prop[name + SPLITER + temp] = old;
                     }
                 }
-            } else if (p == 'render' && old != Noop) {
+            } else if (p == 'render' && old != NOOP) {
                 prop[p] = WrapFn(old);
             }
         }
@@ -2267,7 +2261,7 @@ Mix(Mix(VProto, Event), {
      * 渲染view，供最终view开发者覆盖
      * @function
      */
-    render: Noop,
+    render: NOOP,
     /**
      * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^ftest<prevent>({key:'field})"，以方便识别交由哪个view处理
      * @function
@@ -2336,14 +2330,14 @@ Mix(Mix(VProto, Event), {
      *     //...
      * }
      */
-    //locationChange: Noop,
+    //locationChange: NOOP,
     /**
      * 初始化方法，供最终的view开发人员进行覆盖
      * @param {Object} extra 初始化时，外部传递的参数
      * @param {Object} locChanged 地址栏变化的相关信息，比如从某个path过来的
      * @function
      */
-    init: Noop,
+    init: NOOP,
     /**
      * 标识当前view是否有模板文件
      * @default true
@@ -2384,9 +2378,7 @@ Mix(Mix(VProto, Event), {
                     interact : view准备好，让外部尽早介入，进行其它事件的监听 ，当这个事件触发时，view有可能已经有html了(无模板的情况)，所以此时外部可以去加载相应的子view了，同时要考虑在调用render方法后，有可能在该方法内通过setHTML更新html，所以在使用setHTML更新界面前，一定要先监听prerender rendered事件，因此设计了该  interact事件
 
                  */
-            me.fire('interact', {
-                tmpl: hasTmpl
-            }, 1); //可交互
+            me.fire('interact', 0, 1); //可交互
             SafeExec(me.init, args, me);
             me.fire('inited', 0, 1);
             me.owner.viewInited = 1;
@@ -2634,12 +2626,10 @@ Mix(Mix(VProto, Event), {
                     n: m[1],
                     f: m[2],
                     i: m[3],
-                    p: {}
+                    p: EvtParamsFn.p = {}
                 };
                 if (m.i) {
-                    m.i.replace(EvtParamsReg, function(x, a, q, b) {
-                        m.p[a] = b;
-                    });
+                    m.i.replace(EvtParamsReg, EvtParamsFn);
                 }
                 EvtInfoCache.set(info, m);
             }
@@ -3153,7 +3143,7 @@ Magix.mix(Model.prototype, {
      * @param {Function} callback 请求完成后的回调，回调时第1个参数是错误对象，第2个是数据
      * @return {XHR} 最好返回异步请求的对象
      */
-    sync: Magix.noop,
+    sync: NOOP,
     /**
      * 处理Model.sync成功后返回的数据
      * @function
@@ -3625,10 +3615,98 @@ var DoneFn = function(idx, ops, err) {
         }
     }
 };
+/**
+ * 获取models，该用缓存的用缓存，该发起请求的请求
+ * @private
+ * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',urlParams:{a:'12'},postParams:{b:2}}
+ * @param {Function} done   完成时的回调
+ * @param {Integer} flag   获取哪种类型的models
+ * @param {Boolean} save 是否是保存的动作
+ * @return {MRequest}
+ */
+var Send = function(me, models, done, flag, save) {
+    if (me.$busy) {
+        return me.next(function() {
+            this.send(models, done, flag, save);
+        });
+    }
+    me.$busy = 1;
+    me.sign++;
+    var host = me.$host;
+    var modelsCache = host.$mCache;
+    var modelsCacheKeys = host.$mReqs;
+    var reqs = me.$reqs;
+
+    if (!IsArray(models)) {
+        models = [models];
+    }
+    var total = models.length;
+    var doneArgs = [];
+
+    var doneIsArray = IsArray(done);
+    if (doneIsArray) {
+        doneArgs = new Array(done.length);
+    }
+
+    var options = {
+        a: me,
+        b: 0, //current done
+        c: me.$reqs,
+        d: new Array(total),
+        //e hasError,
+        //f lastMsg
+        g: {},
+        h: total,
+        i: modelsCache,
+        j: host,
+        k: flag,
+        l: doneIsArray,
+        m: done,
+        n: doneArgs,
+        o: []
+    };
+
+    for (var i = 0, model; i < models.length; i++) {
+        model = models[i];
+        if (model) {
+            var modelInfo = host.getModel(model, save);
+
+            var modelEntity = modelInfo.entity;
+            var cacheKey = modelEntity.$mm.key;
+
+            var wrapDoneFn = WrapDone(DoneFn, modelEntity, i, options);
+            wrapDoneFn.id = me.id;
+
+            if (cacheKey && Has(modelsCacheKeys, cacheKey)) {
+                modelsCacheKeys[cacheKey].q.push(wrapDoneFn);
+            } else {
+                if (modelInfo.update) {
+                    reqs[modelEntity.id] = modelEntity;
+                    if (cacheKey) {
+                        modelsCacheKeys[cacheKey] = {
+                            q: [wrapDoneFn],
+                            e: modelEntity
+                        };
+                        wrapDoneFn = CacheDone;
+                    }
+                    modelEntity.request(wrapDoneFn, {
+                        a: modelsCacheKeys,
+                        b: cacheKey
+                    });
+                } else {
+                    wrapDoneFn();
+                }
+            }
+        } else {
+            TError('empty model');
+        }
+    }
+    return me;
+};
 var GenRequestMethod = function(flag, save) {
     return function(models, done) {
         var cbs = Slice.call(arguments, 1);
-        return this.send(models, cbs.length > 1 ? cbs : done, flag, save);
+        return Send(this, models, cbs.length > 1 ? cbs : done, flag, save);
     };
 };
 Mix(MManager, {
@@ -3678,95 +3756,6 @@ Mix(MRequest.prototype, {
      * @lends MRequest#
      */
     /**
-     * 获取models，该用缓存的用缓存，该发起请求的请求
-     * @private
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} done   完成时的回调
-     * @param {Integer} flag   获取哪种类型的models
-     * @param {Boolean} save 是否是保存的动作
-     * @return {MRequest}
-     */
-    send: function(models, done, flag, save) {
-        var me = this;
-        if (me.$busy) {
-            return me.next(function() {
-                this.send(models, done, flag, save);
-            });
-        }
-        me.$busy = 1;
-        me.sign++;
-        var host = me.$host;
-        var modelsCache = host.$mCache;
-        var modelsCacheKeys = host.$mReqs;
-        var reqs = me.$reqs;
-
-        if (!IsArray(models)) {
-            models = [models];
-        }
-        var total = models.length;
-        var doneArgs = [];
-
-        var doneIsArray = IsArray(done);
-        if (doneIsArray) {
-            doneArgs = new Array(done.length);
-        }
-
-        var options = {
-            a: me,
-            b: 0, //current done
-            c: me.$reqs,
-            d: new Array(total),
-            //e hasError,
-            //f lastMsg
-            g: {},
-            h: total,
-            i: modelsCache,
-            j: host,
-            k: flag,
-            l: doneIsArray,
-            m: done,
-            n: doneArgs,
-            o: []
-        };
-
-        for (var i = 0, model; i < models.length; i++) {
-            model = models[i];
-            if (model) {
-                var modelInfo = host.getModel(model, save);
-
-                var modelEntity = modelInfo.entity;
-                var cacheKey = modelEntity.$mm.key;
-
-                var wrapDoneFn = WrapDone(DoneFn, modelEntity, i, options);
-                wrapDoneFn.id = me.id;
-
-                if (cacheKey && Has(modelsCacheKeys, cacheKey)) {
-                    modelsCacheKeys[cacheKey].q.push(wrapDoneFn);
-                } else {
-                    if (modelInfo.update) {
-                        reqs[modelEntity.id] = modelEntity;
-                        if (cacheKey) {
-                            modelsCacheKeys[cacheKey] = {
-                                q: [wrapDoneFn],
-                                e: modelEntity
-                            };
-                            wrapDoneFn = CacheDone;
-                        }
-                        modelEntity.request(wrapDoneFn, {
-                            a: modelsCacheKeys,
-                            b: cacheKey
-                        });
-                    } else {
-                        wrapDoneFn();
-                    }
-                }
-            } else {
-                TError('empty model');
-            }
-        }
-        return me;
-    },
-    /**
      * 获取models，所有请求完成回调done
      * @function
      * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
@@ -3808,7 +3797,7 @@ Mix(MRequest.prototype, {
         });
      */
     fetchAll: function(models, done) {
-        return this.send(models, done, FetchFlags_ALL);
+        return Send(this, models, done, FetchFlags_ALL);
     },
     /**
      * 保存models，所有请求完成回调done
@@ -3818,7 +3807,7 @@ Mix(MRequest.prototype, {
      * @return {MRequest}
      */
     save: function(models, done) {
-        return this.send(models, done, FetchFlags_ALL, 1);
+        return Send(this, models, done, FetchFlags_ALL, 1);
     },
     /**
      * 获取models，按顺序执行回调done
@@ -4322,4 +4311,4 @@ MManager.mixin({
     return MManager;
 }, {
     requires: ["magix/magix", "magix/event"]
-});;DOCUMENT.createElement("vframe");})(null,this,document,"\u001f","",",",KISSY)
+});;DOCUMENT.createElement("vframe");})(null,this,document,function(){},"\u001f","",",",KISSY)

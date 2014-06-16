@@ -200,8 +200,8 @@ Mix(Mix(Vframe.prototype, Event), {
                     var mountZoneVframes = function(e) {
                         me.mountZoneVframes(e.id);
                     };
-                    view.on('interact', function(e) { //view准备好后触发
-                        if (!e.tmpl) {
+                    view.on('interact', function() { //view准备好后触发
+                        if (!view.hasTmpl) {
                             if (node) {
                                 node.innerHTML = me._t;
                             }

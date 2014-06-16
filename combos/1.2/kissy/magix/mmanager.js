@@ -220,10 +220,98 @@ var DoneFn = function(idx, ops, err) {
         }
     }
 };
+/**
+ * 获取models，该用缓存的用缓存，该发起请求的请求
+ * @private
+ * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',urlParams:{a:'12'},postParams:{b:2}}
+ * @param {Function} done   完成时的回调
+ * @param {Integer} flag   获取哪种类型的models
+ * @param {Boolean} save 是否是保存的动作
+ * @return {MRequest}
+ */
+var Send = function(me, models, done, flag, save) {
+    if (me.$busy) {
+        return me.next(function() {
+            this.send(models, done, flag, save);
+        });
+    }
+    me.$busy = 1;
+    me.sign++;
+    var host = me.$host;
+    var modelsCache = host.$mCache;
+    var modelsCacheKeys = host.$mReqs;
+    var reqs = me.$reqs;
+
+    if (!IsArray(models)) {
+        models = [models];
+    }
+    var total = models.length;
+    var doneArgs = [];
+
+    var doneIsArray = IsArray(done);
+    if (doneIsArray) {
+        doneArgs = new Array(done.length);
+    }
+
+    var options = {
+        a: me,
+        b: 0, //current done
+        c: me.$reqs,
+        d: new Array(total),
+        //e hasError,
+        //f lastMsg
+        g: {},
+        h: total,
+        i: modelsCache,
+        j: host,
+        k: flag,
+        l: doneIsArray,
+        m: done,
+        n: doneArgs,
+        o: []
+    };
+
+    for (var i = 0, model; i < models.length; i++) {
+        model = models[i];
+        if (model) {
+            var modelInfo = host.getModel(model, save);
+
+            var modelEntity = modelInfo.entity;
+            var cacheKey = modelEntity.$mm.key;
+
+            var wrapDoneFn = WrapDone(DoneFn, modelEntity, i, options);
+            wrapDoneFn.id = me.id;
+
+            if (cacheKey && Has(modelsCacheKeys, cacheKey)) {
+                modelsCacheKeys[cacheKey].q.push(wrapDoneFn);
+            } else {
+                if (modelInfo.update) {
+                    reqs[modelEntity.id] = modelEntity;
+                    if (cacheKey) {
+                        modelsCacheKeys[cacheKey] = {
+                            q: [wrapDoneFn],
+                            e: modelEntity
+                        };
+                        wrapDoneFn = CacheDone;
+                    }
+                    modelEntity.request(wrapDoneFn, {
+                        a: modelsCacheKeys,
+                        b: cacheKey
+                    });
+                } else {
+                    wrapDoneFn();
+                }
+            }
+        } else {
+            TError('empty model');
+        }
+    }
+    return me;
+};
 var GenRequestMethod = function(flag, save) {
     return function(models, done) {
         var cbs = Slice.call(arguments, 1);
-        return this.send(models, cbs.length > 1 ? cbs : done, flag, save);
+        return Send(this, models, cbs.length > 1 ? cbs : done, flag, save);
     };
 };
 Mix(MManager, {
@@ -273,95 +361,6 @@ Mix(MRequest.prototype, {
      * @lends MRequest#
      */
     /**
-     * 获取models，该用缓存的用缓存，该发起请求的请求
-     * @private
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',urlParams:{a:'12'},postParams:{b:2}}
-     * @param {Function} done   完成时的回调
-     * @param {Integer} flag   获取哪种类型的models
-     * @param {Boolean} save 是否是保存的动作
-     * @return {MRequest}
-     */
-    send: function(models, done, flag, save) {
-        var me = this;
-        if (me.$busy) {
-            return me.next(function() {
-                this.send(models, done, flag, save);
-            });
-        }
-        me.$busy = 1;
-        me.sign++;
-        var host = me.$host;
-        var modelsCache = host.$mCache;
-        var modelsCacheKeys = host.$mReqs;
-        var reqs = me.$reqs;
-
-        if (!IsArray(models)) {
-            models = [models];
-        }
-        var total = models.length;
-        var doneArgs = [];
-
-        var doneIsArray = IsArray(done);
-        if (doneIsArray) {
-            doneArgs = new Array(done.length);
-        }
-
-        var options = {
-            a: me,
-            b: 0, //current done
-            c: me.$reqs,
-            d: new Array(total),
-            //e hasError,
-            //f lastMsg
-            g: {},
-            h: total,
-            i: modelsCache,
-            j: host,
-            k: flag,
-            l: doneIsArray,
-            m: done,
-            n: doneArgs,
-            o: []
-        };
-
-        for (var i = 0, model; i < models.length; i++) {
-            model = models[i];
-            if (model) {
-                var modelInfo = host.getModel(model, save);
-
-                var modelEntity = modelInfo.entity;
-                var cacheKey = modelEntity.$mm.key;
-
-                var wrapDoneFn = WrapDone(DoneFn, modelEntity, i, options);
-                wrapDoneFn.id = me.id;
-
-                if (cacheKey && Has(modelsCacheKeys, cacheKey)) {
-                    modelsCacheKeys[cacheKey].q.push(wrapDoneFn);
-                } else {
-                    if (modelInfo.update) {
-                        reqs[modelEntity.id] = modelEntity;
-                        if (cacheKey) {
-                            modelsCacheKeys[cacheKey] = {
-                                q: [wrapDoneFn],
-                                e: modelEntity
-                            };
-                            wrapDoneFn = CacheDone;
-                        }
-                        modelEntity.request(wrapDoneFn, {
-                            a: modelsCacheKeys,
-                            b: cacheKey
-                        });
-                    } else {
-                        wrapDoneFn();
-                    }
-                }
-            } else {
-                TError('empty model');
-            }
-        }
-        return me;
-    },
-    /**
      * 获取models，所有请求完成回调done
      * @function
      * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
@@ -403,7 +402,7 @@ Mix(MRequest.prototype, {
         });
      */
     fetchAll: function(models, done) {
-        return this.send(models, done, FetchFlags_ALL);
+        return Send(this, models, done, FetchFlags_ALL);
     },
     /**
      * 保存models，所有请求完成回调done
@@ -413,7 +412,7 @@ Mix(MRequest.prototype, {
      * @return {MRequest}
      */
     save: function(models, done) {
-        return this.send(models, done, FetchFlags_ALL, 1);
+        return Send(this, models, done, FetchFlags_ALL, 1);
     },
     /**
      * 获取models，按顺序执行回调done

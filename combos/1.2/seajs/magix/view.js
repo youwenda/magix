@@ -35,7 +35,6 @@ define('magix/view', function(require) {
     var SafeExec = Magix.tryCall;
 var Has = Magix.has;
 var EMPTY_ARRAY = [];
-var Noop = Magix.noop;
 var Mix = Magix.mix;
 var ResCounter = 0;
 var DestroyStr = 'destroy';
@@ -70,6 +69,9 @@ var WrapFn = function(fn, me) {
     };
 };
 
+var EvtParamsFn = function(x, a, q, b) {
+    EvtParamsFn.p[a] = b;
+};
 var DestroyAllManaged = function(me, onlyMR, keepIt) {
     var cache = me.$res,
         p, c;
@@ -319,7 +321,7 @@ View.prepare = function(oView, vom) {
                         prop[name + '\u001a' + temp] = old;
                     }
                 }
-            } else if (p == 'render' && old != Noop) {
+            } else if (p == 'render' && old != NOOP) {
                 prop[p] = WrapFn(old);
             }
         }
@@ -376,7 +378,7 @@ Mix(Mix(VProto, Event), {
      * 渲染view，供最终view开发者覆盖
      * @function
      */
-    render: Noop,
+    render: NOOP,
     /**
      * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^ftest<prevent>({key:'field})"，以方便识别交由哪个view处理
      * @function
@@ -445,14 +447,14 @@ Mix(Mix(VProto, Event), {
      *     //...
      * }
      */
-    //locationChange: Noop,
+    //locationChange: NOOP,
     /**
      * 初始化方法，供最终的view开发人员进行覆盖
      * @param {Object} extra 初始化时，外部传递的参数
      * @param {Object} locChanged 地址栏变化的相关信息，比如从某个path过来的
      * @function
      */
-    init: Noop,
+    init: NOOP,
     /**
      * 标识当前view是否有模板文件
      * @default true
@@ -493,9 +495,7 @@ Mix(Mix(VProto, Event), {
                     interact : view准备好，让外部尽早介入，进行其它事件的监听 ，当这个事件触发时，view有可能已经有html了(无模板的情况)，所以此时外部可以去加载相应的子view了，同时要考虑在调用render方法后，有可能在该方法内通过setHTML更新html，所以在使用setHTML更新界面前，一定要先监听prerender rendered事件，因此设计了该  interact事件
 
                  */
-            me.fire('interact', {
-                tmpl: hasTmpl
-            }, 1); //可交互
+            me.fire('interact', 0, 1); //可交互
             SafeExec(me.init, args, me);
             me.fire('inited', 0, 1);
             me.owner.viewInited = 1;
@@ -743,12 +743,10 @@ Mix(Mix(VProto, Event), {
                     n: m[1],
                     f: m[2],
                     i: m[3],
-                    p: {}
+                    p: EvtParamsFn.p = {}
                 };
                 if (m.i) {
-                    m.i.replace(EvtParamsReg, function(x, a, q, b) {
-                        m.p[a] = b;
-                    });
+                    m.i.replace(EvtParamsReg, EvtParamsFn);
                 }
                 EvtInfoCache.set(info, m);
             }

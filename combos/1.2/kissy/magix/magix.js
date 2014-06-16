@@ -32,10 +32,6 @@ var SupportError = Console && Console.error;
 var Unimpl = function() {
     throw new Error('unimplement method');
 };
-/**
- * 空方法
- */
-var Noop = function() {};
 
 var Cfg = {
     tagName: DefaultTagName,
@@ -43,7 +39,7 @@ var Cfg = {
     coded: 1,
     error: SupportError ? function(e) {
         Console.error(e);
-    } : Noop
+    } : NOOP
 };
 var HasProp = Cfg.hasOwnProperty;
 /**
@@ -207,6 +203,16 @@ var SafeExec = function(fns, args, context, i, r, e) {
     return r;
 };
 
+var ParamsFn = function(match, name, value) {
+    if (Cfg.coded) {
+        try {
+            value = decodeURIComponent(value);
+        } catch (e) {
+
+        }
+    }
+    ParamsFn.p[name] = value;
+};
 
 /**
  * Magix对象，提供常用方法
@@ -353,11 +359,6 @@ var Magix = {
      * S.log(result);//得到f2的返回值
      */
     tryCall: SafeExec,
-    /**
-     * 空方法
-     * @function
-     */
-    noop: Noop,
     /**
      * 配置信息对象
      */
@@ -512,7 +513,7 @@ var Magix = {
         var r = PathToObjCache.get(path),
             params, pathname, querys, first;
         if (!r) {
-            params = {};
+            ParamsFn.p = params = {};
             pathname = EMPTY;
             if (PathTrimParamsReg.test(path)) { //有#?号，表示有pathname
                 pathname = path.replace(PathTrimParamsReg, EMPTY);
@@ -530,16 +531,7 @@ var Magix = {
                     }
                 }
             }
-            querys.replace(ParamsReg, function(match, name, value) {
-                if (Cfg.coded) {
-                    try {
-                        value = decodeURIComponent(value);
-                    } catch (e) {
-
-                    }
-                }
-                params[name] = value;
-            });
+            querys.replace(ParamsReg, ParamsFn);
             PathToObjCache.set(path, r = [pathname, params]);
         }
         return {
