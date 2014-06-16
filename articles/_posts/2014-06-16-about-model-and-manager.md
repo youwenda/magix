@@ -65,6 +65,7 @@ return Model.extend({
 ```
 
 `KISSY.io未看到相关便利的做法`
+
 `关于格式转换在KISSY mvc中也有相应的实现：http://docs.kissyui.com/1.4/docs/html/api/mvc/Model.html#mvc.Model.config.parse`
 
 ## 错误异常的提前处理
