@@ -3,7 +3,7 @@ layout: post
 title: Magix中的事件代理
 ---
 
-先说事件代理，以`KISSY`为例
+先说普通事件代理，以`KISSY`为例
 
 ```
 Event.delegate(document.body,'click','p',function(e){
