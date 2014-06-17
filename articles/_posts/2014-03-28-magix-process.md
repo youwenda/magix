@@ -3,6 +3,10 @@ layout: post
 title: Magix核心流程图
 ---
 
+Magix 1.2 版本(2014-04-30)
+
+![Magix 1.2]({{ site.baseurl }}/assets/img/article-mp-2.png)
+
 Magix 1.0-1.1 版本(2014-03-28)
 
 ![Magix 1.0-1.1]({{ site.baseurl }}/assets/img/article-mp-1.png)
