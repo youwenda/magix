@@ -52,7 +52,8 @@ var Event = {
      * 绑定事件
      * @param {String} name 事件名称
      * @param {Function} fn 事件回调
-     * @param {Interger} insert 事件监听插入的位置
+     * @param {Interger|Object} insert 事件监听插入的位置或依赖的对象
+     * @param {String} [relyName] 依赖对象的事件名称
      * @example
      * var T=Magix.mix({},Event);
         T.on('done',function(e){
@@ -72,45 +73,37 @@ var Event = {
 
         T.fire('done',{data:'test'});
         T.fire('done',{data:'test2'});
+
+        var a=Magix.mix({},Event);
+        var b=Magix.mix({},Event);
+        a.on('test',function(e){
+
+        },b,'destroy');
+
+        a.fire('test');//正常
+        b.fire('destroy');
+        a.fire('test');//不再打印console.log
      */
-    on: function(name, fn, insert) {
+    on: function(name, fn, insertOrRely, relyName) {
+        var me = this;
         var key = '\u001a' + name;
-        var list = this[key] || (this[key] = []);
+        var list = me[key] || (me[key] = []);
         var wrap = {
             f: fn
-        }, p = insert | 0;
+        }, p = insertOrRely | 0;
 
-        if (p !== insert) {
-            wrap.r = insert;
+        if (p !== insertOrRely) {
+            if (insertOrRely && insertOrRely.on && relyName) {
+                insertOrRely.on(relyName, function() {
+                    wrap.r = 1;
+                }, SafeExec);
+                insertOrRely = 0;
+            }
+            wrap.r = insertOrRely;
             list.push(wrap);
         } else {
             list.splice(p, 0, wrap);
         }
-    },
-    /**
-     * 依托另外一个对象的事件自动解绑
-     * @param {String} name 事件名称
-     * @param {Function} fn 事件回调
-     * @param {Object} relyObj 依托的对象
-     * @param {String} relyName 依托的名称
-     * @param {Interger} insert 事件监听插入的位置
-     * @example
-     * var a=Magix.mix({},Event);
-     * var b=Magix.mix({},Event);
-     * a.rely('test',function(e){
-     *
-     * },b,'destroy');
-     *
-     * a.fire('test');//正常
-     * b.fire('destroy');
-     * a.fire('test');//不再打印console.log
-     */
-    rely: function(name, fn, relyObj, relyName, insert) {
-        var me = this;
-        me.on(name, fn, insert);
-        relyObj.on(relyName, function() { //once
-            me.off(name, fn);
-        }, SafeExec);
     },
     /**
      * 解除事件绑定

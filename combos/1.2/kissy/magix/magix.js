@@ -16,7 +16,7 @@ KISSY.add('magix/magix', function(S) {
         r.send(null);
         return r.responseText;
     };
-    var PathRelativeReg = /\/\.\/|\/[^\/.]+?\/\.{2}\/|([^:\/])\/\/+|\.{2}\//; // ./|/x/../|(b)///
+    var PathRelativeReg = /\/\.(?:\/|$)|\/[^\/.]+?\/\.{2}(?:\/|$)|([^:\/])\/\/+|\.{2}\//; // ./|/x/../|(b)///
 var PathTrimFileReg = /\/[^\/]*$/;
 var PathTrimParamsReg = /[#?].*$/;
 var ParamsReg = /([^=&?\/#]+)=?([^&=#?]*)/g;
@@ -141,7 +141,19 @@ Mix(Cache.prototype, {
                 var t = me.b;
                 while (t--) {
                     r = c.pop();
-                    me.del(r.o);
+                    /*
+                        排序删除时，只有未删除过的才进行删除操作
+
+                        case:
+                            set('a',data);先设置一个a
+                            del('a');//删除它，c上面没有了，但列表里还有
+
+                            set('a',data1);//设置一个新的
+                            //...
+                            sort()//排序，此时删除的第一个data在最后
+
+                     */
+                    if (r.f > 0) me.del(r.o);
                 }
             }
             r = {
@@ -501,7 +513,7 @@ var Magix = {
      * //obj={path:'/xxx/',params:{a:'b',c:'d'}}
      */
     toObject: function(path) {
-        //把形如 /xxx/a=b&c=d 转换成对象 {path:'/xxx/',params:{a:'b',c:'d'}}
+        //把形如 /xxx/?a=b&c=d 转换成对象 {path:'/xxx/',params:{a:'b',c:'d'}}
         //1. /xxx/a.b.c.html?a=b&c=d  path /xxx/a.b.c.html
         //2. /xxx/?a=b&c=d  path /xxx/
         //3. /xxx/#?a=b => path /xxx/
@@ -511,27 +523,14 @@ var Magix = {
         //7. a=b&c=d          => path ''
         //8. /s?src=b#        => path /s params:{src:'b'}
         var r = PathToObjCache.get(path),
-            params, pathname, querys, first;
+            params, pathname;
         if (!r) {
             ParamsFn.p = params = {};
-            pathname = EMPTY;
-            if (PathTrimParamsReg.test(path)) { //有#?号，表示有pathname
-                pathname = path.replace(PathTrimParamsReg, EMPTY);
-            } else if (!~path.indexOf('=')) { //没有=号，路径可能是 xxx 相对路径
-                pathname = path;
+            pathname = path.replace(PathTrimParamsReg, EMPTY);
+            if (~pathname.indexOf('=')) { //有=号，路径为空
+                pathname = EMPTY;
             }
-            querys = path.replace(pathname, EMPTY);
-            if (pathname) {
-                if (ProtocalReg.test(pathname)) { //解析以https?:开头的网址
-                    first = pathname.indexOf(SLASH, 8); //找最近的 /
-                    if (~first) {
-                        pathname = pathname.substring(first); //截取
-                    } else { //未找到，比如 http://etao.com
-                        pathname = SLASH; //则pathname为  /
-                    }
-                }
-            }
-            querys.replace(ParamsReg, ParamsFn);
+            path.replace(pathname, EMPTY).replace(ParamsReg, ParamsFn);
             PathToObjCache.set(path, r = [pathname, params]);
         }
         return {

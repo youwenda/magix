@@ -12,16 +12,18 @@ var Has = Magix.has;
 var Mix = Magix.mix;
 
 var OKeys = Magix.keys;
+var ToUrl = Magix.toUrl;
+var ToObject = Magix.toObject;
 var MxConfig = Magix.config();
 var HrefCache = Magix.cache();
-var ChgdCache = Magix.cache(40);
+var ChgdCache = Magix.cache();
 var WinLoc = window.location;
 var WinHistory = window.history;
 var TLoc, LLoc = {
     params: {},
     href: EMPTY
 }, Pnr;
-var TrimHashReg = /#.*$/,
+var TrimHashReg = /(?:^https?:\/\/[^\/]+|#.*$)/gi,
     TrimQueryReg = /^[^#]*#?!?/;
 var PARAMS = 'params';
 var UseEdgeHistory;
@@ -50,16 +52,6 @@ var GetSetParam = function(key, value, me, params) {
     me = this;
     params = me[PARAMS];
     return arguments.length > 1 ? params[key] = value : params[key] || EMPTY;
-};
-
-
-var Path = function(path) {
-    var o = Magix.toObject(path);
-    var pn = o[PATH];
-    if (pn && HashAsNativeHistory) { //如果不是以/开头的并且要使用history state,当前浏览器又不支持history state则放hash中的path要进行处理
-        o[PATH] = Magix.path(WinLoc.pathname, pn);
-    }
-    return o;
 };
 
 /**
@@ -151,8 +143,7 @@ var GetChged = function(oldLocation, newLocation) {
                 hasChanged = 1;
             }
         }
-        result.occur = hasChanged;
-        ChgdCache.set(tKey, result);
+        ChgdCache.set(tKey, result = [hasChanged, result]);
     }
     return result;
 };
@@ -166,7 +157,6 @@ var GetChged = function(oldLocation, newLocation) {
  * @borrows Event.fire as fire
  * @borrows Event.off as off
  * @borrows Event.once as once
- * @borrows Event.rely as rely
  */
 var Router = Mix({
     /**
@@ -223,20 +213,19 @@ var Router = Mix({
             }
         }*/
         var result = HrefCache.get(href),
-            view, tempPathname, query, hash, queryObj, hashObj, comObj;
+            view, tempPathname, query, hash, queryObj, hashObj;
         if (!result) {
             query = href.replace(TrimHashReg, EMPTY);
             //
             //var query=tPathname+params.replace(/^([^#]+).*$/g,'$1');
             hash = href.replace(TrimQueryReg, EMPTY); //原始hash
             //
-            queryObj = Path(query);
+            queryObj = ToObject(query);
             //
-            hashObj = Path(hash); //去掉可能的！开始符号
-            //
-            comObj = {}; //把query和hash解析的参数进行合并，用于hash和pushState之间的过度
-            Mix(comObj, queryObj[PARAMS]);
-            Mix(comObj, hashObj[PARAMS]);
+            hashObj = ToObject(hash); //去掉可能的！开始符号
+            if (HashAsNativeHistory) {
+                hashObj[PATH] = Magix.path(WinLoc.pathname, hashObj[PATH]);
+            }
             result = {
                 get: GetSetParam,
                 set: GetSetParam,
@@ -246,7 +235,7 @@ var Router = Mix({
                 srcHash: hash,
                 query: queryObj,
                 hash: hashObj,
-                params: comObj
+                params: Mix(Mix({}, queryObj[PARAMS]), hashObj[PARAMS])
             };
             HrefCache.set(href, result);
         }
@@ -302,11 +291,11 @@ var Router = Mix({
         var firstFire = !LLoc.get; //是否强制触发的changed，对于首次加载会强制触发一次
         var changed = GetChged(LLoc, location);
         LLoc = location;
-        if (changed.occur) {
+        if (changed[0]) {
             TLoc = location;
             Router.fire('changed', {
                 location: location,
-                changed: changed,
+                changed: changed[1],
                 force: firstFire
             });
         }
@@ -334,60 +323,49 @@ var Router = Mix({
      * });
      */
     navigate: function(pn, params, replace) {
+        //pn toObject
+        //mix params to pn
+        //if pn.path
+        //  mix querys to params
+        //else
+        //  mix TLoc.params
 
-        if (!params && Magix._o(pn)) {
-            params = pn;
-            pn = EMPTY;
-        }
-        if (params) {
-            pn = Magix.toUrl(pn, params);
-        }
-        //TLoc引用
-        //pathObj引用
-        //
-        //temp={params:{},path:{}}
-        //
-        //Mix(temp,TLoc,temp);
-        //
-        //
-
-        if (pn && TLoc) {
-
-            /*var pathObj = Path(pn);
-            var temp = {};
-            temp[PARAMS] = Mix({}, pathObj[PARAMS]);
-            temp[PATH] = pathObj[PATH];*/
-            var temp = Path(pn);
+        if (TLoc) {
+            if (!params && Magix._o(pn)) {
+                params = pn;
+                pn = EMPTY;
+            }
+            var temp = ToObject(pn);
             var querys = TLoc.query[PARAMS];
+            var tParams = temp[PARAMS];
+            var tPath = temp[PATH];
+            var lPath = TLoc[PATH];
+            Mix(tParams, params);
 
-            if (temp[PATH]) { //设置路径带参数的形式，如:/abc?q=b&c=e
+            if (tPath) { //设置路径带参数的形式，如:/abc?q=b&c=e
+                tPath = Magix.path(lPath, tPath);
                 if (HashAsNativeHistory) { //指定使用history state但浏览器不支持，需要把query中的存在的参数以空格替换掉
                     for (var p in querys) {
-                        if (Has(querys, p) && !Has(temp[PARAMS], p)) {
-                            temp[PARAMS][p] = EMPTY;
+                        if (Has(querys, p) && !Has(tParams, p)) {
+                            tParams[p] = EMPTY;
                         }
                     }
                 }
             } else { //只有参数，如:a=b&c=d
-                var ps = Mix({}, TLoc[PARAMS]); //复制原来的参数
-                // Mix(temp[PARAMS], TLoc[PARAMS], temp[PARAMS]);
-                temp[PARAMS] = Mix(ps, temp[PARAMS]); //覆盖原来的参数
-                temp[PATH] = TLoc[PATH]; //使用原来的路径
+                tPath = lPath;
+                tParams = Mix(Mix({}, TLoc[PARAMS]), tParams); //复制原来的参数
             }
-            var tempPath = Magix.toUrl(temp[PATH], temp[PARAMS], UseEdgeHistory ? PATH : querys); //hash需要保留query中的空白值参数
-            var navigate;
+            tPath = ToUrl(tPath, tParams, UseEdgeHistory ? PATH : querys); //hash需要保留query中的空白值参数
 
-            navigate = tempPath != TLoc[ReadLocSrc];
-
-            if (navigate) {
+            if (tPath != TLoc[ReadLocSrc]) {
 
                 if (SupportState) { //如果使用pushState
                     Router.poped = 1;
-                    WinHistory[replace ? 'replaceState' : 'pushState'](EMPTY, EMPTY, tempPath);
+                    WinHistory[replace ? 'replaceState' : 'pushState'](EMPTY, EMPTY, tPath);
                     Router.route();
                 } else {
                     Mix(temp, TLoc, temp);
-                    temp.srcHash = tempPath;
+                    temp.srcHash = tPath;
                     /*temp.hash = {
                         params: temp[PARAMS],
                         path: temp[PATH]
@@ -406,11 +384,11 @@ var Router = Mix({
                     Router.fire('!ul', {
                         loc: TLoc = temp
                     }); //hack 更新view的location属性
-                    tempPath = '#!' + tempPath;
+                    tPath = '#!' + tPath;
                     if (replace) {
-                        WinLoc.replace(tempPath);
+                        WinLoc.replace(tPath);
                     } else {
-                        WinLoc.hash = tempPath;
+                        WinLoc.hash = tPath;
                     }
                 }
             }

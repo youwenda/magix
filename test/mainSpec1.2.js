@@ -109,6 +109,13 @@
 
          expect(Magix.path('http://www.etao.com/', '../../../')).to.eql('http://www.etao.com/');
          expect(Magix.path('http://www.etao.com/list/page/2/rows/3', '../../')).to.eql('http://www.etao.com/list/page/');
+
+         expect(Magix.path('http://www.etao.com/list/page/2/rows/3.html?a=b&c=d', '../../')).to.eql('http://www.etao.com/list/page/');
+
+         expect(Magix.path('http://www.etao.com/list/page/2/rows/3.html?a=b&c=d', '.')).to.eql('http://www.etao.com/list/page/2/rows/');
+         expect(Magix.path('http://www.etao.com/list/page/2/rows/3.html?a=b&c=d', '..')).to.eql('http://www.etao.com/list/page/2/');
+
+         expect(Magix.path('http://www.etao.com/list/page/2/rows/3.html?a=b&c=d', '...')).to.eql('http://www.etao.com/list/page/2/rows/...');
      });
 
      it('Magix.toObject', function() {
@@ -123,6 +130,15 @@
 
          expect(Magix.toObject('/xxx/a.b.c.html?a=%E6%88%91%E4%BB%AC&c=d&e=2')).to.eql({
              path: '/xxx/a.b.c.html',
+             params: {
+                 a: '我们',
+                 c: 'd',
+                 e: '2'
+             }
+         });
+
+         expect(Magix.toObject('a=%E6%88%91%E4%BB%AC&c=d&e=2')).to.eql({
+             path: '',
              params: {
                  a: '我们',
                  c: 'd',
@@ -237,13 +253,13 @@
              done();
          });
      });
-     it('Router.parseQH', function() {
-         expect(Router.parseQH('/a?a=2#!/b?c=3').params).to.eql({
+     it('Router.parse', function() {
+         expect(Router.parse('/a?a=2#!/b?c=3').params).to.eql({
              a: '2',
              c: '3'
          });
 
-         expect(Router.parseQH('/a?a=2#!/b?a=3').params).to.eql({
+         expect(Router.parse('/a?a=2#!/b?a=3').params).to.eql({
              a: '3'
          });
      });
@@ -312,10 +328,17 @@
          expect(tm.getUrlParams()).to.be('a=b&c=d&e=f');
          tm.setUrlParams('a', '我');
          expect(tm.getUrlParams()).to.be('a=%E6%88%91&c=d&e=f');
-         tm.setUrlParamsIf('c', 20);
+         tm.setUrlParams('c', 20, true);
          expect(tm.getUrlParams()).to.be('a=%E6%88%91&c=d&e=f');
-         tm.setUrlParamsIf('g', 30);
+         tm.setUrlParams('g', 30, true);
          expect(tm.getUrlParams()).to.be('a=%E6%88%91&c=d&e=f&g=30');
+         tm.setUrlParams('x=y');
+         expect(tm.getUrlParams()).to.be('a=%E6%88%91&c=d&e=f&g=30&x=y');
+         tm.setUrlParams('z=');
+         expect(tm.getUrlParams()).to.be('a=%E6%88%91&c=d&e=f&g=30&x=y&z=');
+         tm.setUrlParams('xx=&yy=我');
+         expect(tm.getUrlParams()).to.be('a=%E6%88%91&c=d&e=f&g=30&x=y&z=&xx=&yy=我');
+
          tm.setPostParams('a', 'b');
          tm.setPostParams({
              c: 'd',
@@ -324,9 +347,9 @@
          expect(tm.getPostParams()).to.be('a=b&c=d&e=f');
          tm.setPostParams('a', '我');
          expect(tm.getPostParams()).to.be('a=%E6%88%91&c=d&e=f');
-         tm.setPostParamsIf('c', 20);
+         tm.setPostParams('c', 20, true);
          expect(tm.getPostParams()).to.be('a=%E6%88%91&c=d&e=f');
-         tm.setPostParamsIf('g', 30);
+         tm.setPostParams('g', 30, true);
          expect(tm.getPostParams()).to.be('a=%E6%88%91&c=d&e=f&g=30');
 
          done();
@@ -357,7 +380,7 @@
      });
 
 
-     it('Model.abort', function(done) {
+     it('Model.destroy', function(done) {
          TestModel = Model.extend({
              sync: function(callback) {
                  var me = this;
@@ -384,7 +407,7 @@
          }, {
              type: 'test'
          });
-         tm.abort();
+         tm.destroy();
      });
 
      it('Manager.create', function(done) {
@@ -475,7 +498,7 @@
                  return mr;
              }
          }).fetchOne('B', function(e, m) {
-             expect(m.fromCache).to.be(1);
+             expect(m.fromCache).to.be(true);
              done();
          });
      });

@@ -11,35 +11,34 @@
 var Has = Magix.has;
 var IsObject = Magix._o;
 var ToString = Magix.toString;
-var Model = function() {
-    this.id = 'm' + COUNTER++;
-};
-var GetParams = function(me, type) {
-    return Magix.toUrl(EMPTY, me['\u001a' + type]).replace(FixParamsReg, EMPTY);
-};
-var SetParams = function(me, obj1, obj2, ignoreIfExist, type) {
-    var k = '\u001a' + type,
-        t, p, obj;
-    if (!me[k]) me[k] = {};
-    obj = me[k];
-    if (Magix._f(obj1)) {
-        obj1 = Magix.tryCall(obj1);
-    }
-    if (obj1 && !IsObject(obj1)) {
-        t = {};
-        t[obj1] = ~ (obj1 + EMPTY).indexOf('=') ? EMPTY : obj2; //like a=b&c=d => {'a=b&c=d':'&'}
-        obj1 = t;
-    }
-    for (p in obj1) {
-        if (!ignoreIfExist || !Has(obj, p)) {
-            obj[p] = obj1[p];
-        }
-    }
-};
-var FixParamsReg = /^\?|=(?=&|$)/g;
 var GET = 'GET',
     POST = 'POST';
 
+var Model = function() {
+    this.id = 'm' + COUNTER++;
+};
+var SetParams = function(type) {
+    return function(obj1, obj2, ignoreIfExist) {
+        var me = this,
+            k = '\u001a' + type,
+            t, p, obj;
+        if (!me[k]) me[k] = {};
+        obj = me[k];
+        if (Magix._f(obj1)) {
+            obj1 = Magix.tryCall(obj1);
+        }
+        if (obj1 && !IsObject(obj1)) {
+            t = {};
+            t[obj1] = obj2; //like a=b&c=d => {'a=b&c=d':''}
+            obj1 = t;
+        }
+        for (p in obj1) {
+            if (!ignoreIfExist || !Has(obj, p)) {
+                obj[p] = obj1[p];
+            }
+        }
+    };
+};
 
 Magix.mix(Model.prototype, {
     /**
@@ -93,17 +92,17 @@ Magix.mix(Model.prototype, {
         },*/
     /**
      * 获取通过setPostParams放入的参数
-     * @return {String}
+     * @return {Object}
      */
     getPostParams: function() {
-        return GetParams(this, POST);
+        return this['\u001a' + POST];
     },
     /**
      * 获取通过setUrlParams放入的参数
-     * @return {String}
+     * @return {Object}
      */
     getUrlParams: function() {
-        return GetParams(this, GET);
+        return this['\u001a' + GET];
     },
     /**
      * 获取参数
@@ -137,9 +136,7 @@ Magix.mix(Model.prototype, {
      * @param {String} [obj2] 参数内容
      * @param {Boolean} [ignoreIfExist] 如果存在，则忽略本次的设置
      */
-    setPostParams: function(obj1, obj2, ignoreIfExist) {
-        SetParams(this, obj1, obj2, ignoreIfExist, POST);
-    },
+    setPostParams: SetParams(POST),
     /**
      * 设置url参数
      * @function
@@ -147,9 +144,7 @@ Magix.mix(Model.prototype, {
      * @param {String} [obj2] 参数内容
      * @param {Boolean} [ignoreIfExist] 如果存在，则忽略本次的设置
      */
-    setUrlParams: function(obj1, obj2, ignoreIfExist) {
-        SetParams(this, obj1, obj2, ignoreIfExist, GET);
-    },
+    setUrlParams: SetParams(GET),
     /**
      * @private
      */

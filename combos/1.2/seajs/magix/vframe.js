@@ -76,11 +76,11 @@ var RefLoc, RefChged, RefVOM;
  * @borrows Event.fire as #fire
  * @borrows Event.off as #off
  * @borrows Event.once as #once
- * @borrows Event.rely as #rely
  * @param {String} id vframe id
  * @property {String} id vframe id
  * @property {View} view view对象
  * @property {VOM} owner VOM对象
+ * @property {String} path 当前view的路径名，包括参数
  * @property {Boolean} viewInited view是否完成初始化，即view的inited事件有没有派发
  * @property {Boolean} viewPrimed view是否完成首次渲染，即view的primed事件有没有派发
  * @property {String} pId 父vframe的id，如果是根节点则为undefined
@@ -179,6 +179,7 @@ Mix(Mix(Vframe.prototype, Event), {
         me.unmountView(keepPreHTML);
         me._d = 0;
         if (viewPath) {
+            me.path = viewPath;
             var po = Magix.toObject(viewPath);
             var vn = po.path;
             var sign = ++me.sign;
@@ -377,6 +378,20 @@ Mix(Mix(Vframe.prototype, Event), {
             me.cCreated();
         }
         return hasVframe;
+    },
+    /**
+     * 获取父vframe
+     * @param  {Integer} level 层级，默认1,取当前vframe的父级
+     * @return {Vframe}
+     */
+    parent: function(level) {
+        var me = this,
+            vf = me;
+        level = (level >>> 0) || 1;
+        while (vf && level--) {
+            vf = RefVOM.get(vf.pId);
+        }
+        return vf;
     },
     /**
      * 调用view的方法

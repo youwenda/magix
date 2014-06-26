@@ -43,7 +43,7 @@ var EvtInfoCache = Magix.cache(40);
 
 
 var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\({([\s\S]*)}\))?/;
-var EvtParamsReg = /(\w+):(['"]?)([\s\S]+?)\2(?=(?:,\w+:|$))/g;
+var EvtParamsReg = /(\w+):(['"]?)([\s\S]*?)\2(?=(?:,\w+:|$))/g;
 var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
 
 var RootEvents = {};
@@ -236,7 +236,6 @@ var DOMEventBind = function(type, remove) {
  * @borrows Event.fire as #fire
  * @borrows Event.off as #off
  * @borrows Event.once as #once
- * @borrows Event.rely as #rely
  * @param {Object} ops 创建view时，需要附加到view对象上的其它属性
  * @property {String} id 当前view与页面vframe节点对应的id
  * @property {Vframe} owner 拥有当前view的vframe对象
@@ -714,20 +713,6 @@ Mix(Mix(VProto, Event), {
         me.sign--;
     },
     /**
-     * 获取渲染当前view的父view
-     * @return {View}
-     */
-    parentView: function() {
-        var me = this,
-            owner = me.owner;
-        var pVframe = VOM.get(owner.pId),
-            r = null;
-        if (pVframe && pVframe.viewInited) {
-            r = pVframe.view;
-        }
-        return r;
-    },
-    /**
      * 处理dom事件
      * @param {Object} e 事件信息对象
      * @private
@@ -868,6 +853,23 @@ Mix(Mix(VProto, Event), {
             }
         }
         return res;
+    },
+    /**
+     * 移除托管的资源
+     * @param {String|Object} key 托管时标识key或托管的对象
+     * @return {Object} 返回移除的资源
+     */
+    removeManaged: function(key) {
+        return this.getManaged(key, 1);
+    },
+    /**
+     * 销毁托管的资源
+     * @param {String} key 托管资源时传入的标识key
+     * @param {Boolean} [keepIt] 销毁后是否依然在缓存中保留该资源的引用
+     * @return {Object}
+     */
+    destroyManaged: function(key, keepIt) {
+        DestroyIt(this, key, keepIt);
     }
     /**
      * 当您采用setHTML方法异步更新html时，通知view做好异步更新的准备，<b>注意:该方法最好和manage，setHTML一起使用。当您采用其它方式异步更新整个view的html时，仍需调用该方法</b>，建议对所有的异步更新回调使用manage方法托管，对更新整个view html前，调用beginAsyncUpdate进行更新通知

@@ -35,6 +35,7 @@ var Now = Date.now || function() {
 var WJSON = window.JSON;
 var Mix = Magix.mix;
 var DefaultCacheTime = 20 * 60 * 1000;
+
 var Ser = function(o, f, a, p) {
     if (IsFunction(o)) { //一定要先判断
         if (f) a = Ser(SafeExec(o));
@@ -88,7 +89,6 @@ var TError = function(e) {
  * @borrows Event.fire as #fire
  * @borrows Event.off as #off
  * @borrows Event.once as #once
- * @borrows Event.rely as #rely
  * @param {Model} modelClass Model类
  * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和postParams外，额外使用的key
  */
@@ -138,7 +138,7 @@ var DoneFn = function(idx, ops, err) {
     var orderlyArr = ops.o;
 
     var currentError;
-
+    var newModel;
     //
 
     ops.b++; //exec count
@@ -158,8 +158,9 @@ var DoneFn = function(idx, ops, err) {
             model: model,
             msg: err
         });
+        newModel = 1;
     } else {
-        if (!cacheKey || (cacheKey && !modelsCache.has(cacheKey))) {
+        if (!modelsCache.has(cacheKey)) {
             if (cacheKey) {
                 modelsCache.set(cacheKey, model);
             }
@@ -175,6 +176,7 @@ var DoneFn = function(idx, ops, err) {
             host.fire('done', {
                 model: model
             });
+            newModel = 1;
         }
         model.fromCache = mm.used > 0;
         mm.used++;
@@ -212,9 +214,14 @@ var DoneFn = function(idx, ops, err) {
                 doneArr.unshift(errorArgs);
                 doneArgs[1] = SafeExec(done, doneArr, request);
             }
-            request.$ntId = setTimeout(function() { //前面的任务可能从缓存中来，执行很快
-                request.doNext(doneArgs);
-            }, 30);
+            request.$busy = 0;
+            request.doNext(doneArgs);
+        }
+        if (newModel) {
+            host.fire('finish', {
+                msg: err,
+                model: model
+            });
         }
     }
 };
@@ -554,9 +561,7 @@ Mix(MRequest.prototype, {
     next: function(callback) {
         var me = this;
         me.$queue.push(callback);
-        if (!me.$busy) {
-            me.doNext(me.$args);
-        }
+        me.doNext(me.$args);
         return me;
     },
     /**
@@ -586,18 +591,22 @@ Mix(MRequest.prototype, {
      */
     doNext: function(preArgs) {
         var me = this;
-        me.$busy = 0;
-        me.$args = preArgs;
-        var queue = me.$queue,
-            one, result, sign = ++me.sign;
-        if (queue) {
-            one = queue.shift();
-            if (one) {
-                result = SafeExec(one, preArgs, me);
-                if (sign == me.sign) { // 未调用任何的发送或获取数据的方法
-                    me.doNext(result === queue.$ ? preArgs : [null, result]);
+        if (!me.$busy) {
+            me.$busy = 1;
+            var sign = ++me.sign;
+            me.$ntId = setTimeout(function() { //前面的任务可能从缓存中来，执行很快
+                me.$busy = 0;
+                me.$args = preArgs;
+                var queue = me.$queue,
+                    one = queue.shift(),
+                    result;
+                if (one) {
+                    result = SafeExec(one, preArgs, me);
+                    if (sign == me.sign) { // 未调用任何的发送或获取数据的方法
+                        me.doNext(result === queue.$ ? preArgs : [null, result]);
+                    }
                 }
-            }
+            }, 0);
         }
     },
     /**
@@ -780,7 +789,7 @@ MManager.mixin({
         entity.setUrlParams(modelAttrs[UrlParams]);
         entity.setPostParams(modelAttrs[PostParams]);
 
-        me.fire('inited', {
+        me.fire('start', {
             model: entity
         });
         return entity;
@@ -860,7 +869,7 @@ MManager.mixin({
     getCached: function(modelAttrs) {
         var me = this;
         var modelsCache = me.$mCache;
-        var entity = null;
+        var entity;
         var cacheKey;
         var meta = me.getMeta(modelAttrs);
         var cache = ProcessCache(modelAttrs) || meta.cache;
@@ -888,14 +897,14 @@ MManager.mixin({
 
 /**
  * 创建完成Model对象后触发
- * @name MManager#inited
+ * @name MManager#start
  * @event
  * @param {Object} e
  * @param {Model} e.model model对象
  */
 
 /**
- * Model对象完成请求后触发
+ * Model对象请求成功后触发
  * @name MManager#done
  * @event
  * @param {Object} e
@@ -903,11 +912,21 @@ MManager.mixin({
  */
 
 /**
- * Model对象请求处理失败后触发
+ * Model对象完成请求并调用完相关的回调才触发
+ * @name MManager#finish
+ * @event
+ * @param {Object} e
+ * @param {String} e.msg 如果请求失败，则为错误描述信息
+ * @param {Model} e.model model对象
+ */
+
+/**
+ * Model对象请求失败后触发
  * @name MManager#fail
  * @event
  * @param {Object} e
  * @param {Model} e.msg 错误描述信息
+ * @param {Model} e.model model对象
  */
     return MManager;
 });
