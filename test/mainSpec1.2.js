@@ -115,6 +115,8 @@
          expect(Magix.path('http://www.etao.com/list/page/2/rows/3.html?a=b&c=d', '.')).to.eql('http://www.etao.com/list/page/2/rows/');
          expect(Magix.path('http://www.etao.com/list/page/2/rows/3.html?a=b&c=d', '..')).to.eql('http://www.etao.com/list/page/2/');
 
+         expect(Magix.path('http://www.etao.com/list/page/2/rows/3.4.5.html?a=b&c=d', '..')).to.eql('http://www.etao.com/list/page/2/');
+
          expect(Magix.path('http://www.etao.com/list/page/2/rows/3.html?a=b&c=d', '...')).to.eql('http://www.etao.com/list/page/2/rows/...');
      });
 

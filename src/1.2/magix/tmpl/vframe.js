@@ -183,7 +183,7 @@ Mix(Mix(Vframe.prototype, Event), {
                         owner: me,
                         id: me.id,
                         $: $,
-                        $c: NodeIn,
+                        $i: NodeIn,
                         path: vn,
                         vom: RefVOM,
                         location: RefLoc
@@ -205,7 +205,7 @@ Mix(Mix(Vframe.prototype, Event), {
                         });
                         view.on('rendered', mountZoneVframes);
                         view.on('prerender', function(e) {
-                            if (!me.unmountZoneVframes(e.id, e.keep, 1)) {
+                            if (!me.unmountZoneVframes(e.id, 0, 1)) {
                                 me.cAlter();
                             }
                         });

@@ -842,10 +842,11 @@ MManager.mixin({
     /**
      * 创建MRequest对象
      * @param {View} view 传递View对象，托管MRequest
+     * @param {String} [key] 托管到view时的资源key，同名key会自动销毁前一个
      * @return {MRequest} 返回MRequest对象
      */
-    createMRequest: function(view) {
-        return view.manage(new MRequest(this));
+    createMRequest: function(view, key) {
+        return view.manage(key, new MRequest(this));
     },
     /**
      * 根据name清除缓存的models

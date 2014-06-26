@@ -63,7 +63,7 @@ var WrapFn = function(fn, me) {
         if (me.sign > 0) {
             me.sign++;
             me.fire('rendercall');
-            DestroyAllManaged(me, 1, 1);
+            DestroyAllManaged(me);
             SafeExec(fn, arguments, me);
         }
     };
@@ -72,30 +72,28 @@ var WrapFn = function(fn, me) {
 var EvtParamsFn = function(x, a, q, b) {
     EvtParamsFn.p[a] = b;
 };
-var DestroyAllManaged = function(me, onlyMR, keepIt) {
+var DestroyAllManaged = function(me, lastly) {
     var cache = me.$res,
         p, c;
-
     for (p in cache) {
         c = cache[p];
-        if (!onlyMR || c.mr) {
-            DestroyIt(me, p, keepIt);
+        if (lastly || !c.mr) {
+            DestroyIt(cache, p, lastly);
         }
     }
 };
 
-var DestroyIt = function(me, key, keepIt) {
-    var cache = me.$res;
-    var o = cache[key];
-    var res, fn;
-    if (o && (!keepIt || !o.ol) /*&& (!o.mr || o.sign != view.sign)*/ ) { //暂不考虑render中多次setHTML的情况
+var DestroyIt = function(cache, key, lastly) {
+    var o = cache[key],
+        res, fn;
+    if (o) {
         //var processed=false;
-        res = o.res;
+        res = o.e;
         fn = res && res[DestroyStr];
         if (fn) {
             SafeExec(fn, EMPTY_ARRAY, res);
         }
-        if (!o.hk || !keepIt) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
+        if (!o.hk || lastly) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
             delete cache[key];
         }
     }
@@ -516,16 +514,13 @@ Mix(Mix(VProto, Event), {
     /**
      * 通知当前view即将开始进行html的更新
      * @param {String} [id] 哪块区域需要更新，默认整个view
-     * @param {Boolean} [keepPreHTML] 在当前view渲染完成前是否保留前view渲染的HTML
      */
-    beginUpdate: function(id, keepPreHTML) {
+    beginUpdate: function(id) {
         var me = this;
         if (me.sign > 0 && me.rendered) {
             me.fire('prerender', {
-                id: id,
-                keep: keepPreHTML
+                id: id || me.id
             });
-            DestroyAllManaged(me, 0, 1);
         }
     },
     /**
@@ -535,16 +530,12 @@ Mix(Mix(VProto, Event), {
     endUpdate: function(id) {
         var me = this;
         if (me.sign > 0) {
-            /*if(me.rendered&&me.enableAnim){
-                var owner=me.owner;
-                SafeExec(owner.newViewCreated,EMPTY_ARRAY,owner);
-            }*/
             if (!me.rendered) { //触发一次primed事件
                 me.fire('primed', 0, 1);
                 me.rendered = 1;
             }
             me.fire('rendered', {
-                id: id
+                id: id || me.id
             }); //可以在rendered事件中访问view.rendered属性
         }
     },
@@ -707,7 +698,7 @@ Mix(Mix(VProto, Event), {
         if (me.sign > 0) {
             me.sign = 0;
             me.fire(DestroyStr, 0, 1, 1);
-            DestroyAllManaged(me);
+            DestroyAllManaged(me, 1);
             DelegateEvents(me, 1);
         }
         me.sign--;
@@ -767,23 +758,18 @@ Mix(Mix(VProto, Event), {
         var me = this,
             contained, t;
         for (t in me.$ns) {
-            contained = me.$c(node, t);
+            contained = me.$i(node, t);
             if (contained) break;
         }
         return contained;
     },
     /**
      * 让view帮你管理资源，强烈建议对组件等进行托管
-     * @param {String|Object} key 托管的资源或要共享的资源标识key
+     * @param {String} [key] 资源标识key
      * @param {Object} res 要托管的资源
-     * @param {Boolean} [lastly] 是否在最终view销毁时才去销毁这个托管的资源，如果该参数为true时，可以调用destroyManaged来销毁这个资源
      * @return {Object} 返回传入的资源
      * @example
      * init:function(){
-     *      this.manage('user_list',[//管理对象资源
-     *          {id:1,name:'a'},
-     *          {id:2,name:'b'}
-     *      ],true);//仅在view销毁时才销毁这个托管的资源
      * },
      * render:function(){
      *      var _self=this;
@@ -796,11 +782,6 @@ Mix(Mix(VProto, Event), {
      *              _self.manage(brix);//管理组件
      *
      *              var pagination=_self.manage(new BrixPagination());//也可以这样
-     *
-     *
-     *              var userList=_self.getManaged('user_list');//通过key取托管的资源
-     *
-     *              S.log(userList);
      *          },
      *          error:function(msg){
      *              //TODO
@@ -810,26 +791,24 @@ Mix(Mix(VProto, Event), {
      *      _self.manage(m);
      * }
      */
-    manage: function(key, res, lastly) {
+    manage: function(key, res) {
         var me = this;
-        var args = arguments;
+        var len = arguments.length;
         var hk = 1;
 
         var cache = me.$res;
-        if (args.length == 1) {
+        if (len == 1) {
             res = key;
-            key = 'res_' + (ResCounter++);
+            key = EMPTY;
+        }
+        DestroyIt(cache, key);
+        if (!key) {
             hk = 0;
-        } else {
-            //var old = cache[key];
-            //if (old && old.res != res) { //销毁同key不同资源的旧资源
-            DestroyIt(me, key);
-            //}
+            key = 'res_' + (ResCounter++);
         }
         var wrapObj = {
             hk: hk,
-            res: res,
-            ol: lastly,
+            e: res,
             mr: res && res['\u001a'] == '\u001a'
         };
         cache[key] = wrapObj;
@@ -847,7 +826,7 @@ Mix(Mix(VProto, Event), {
         var res = null;
         if (Has(cache, key)) {
             var wrapObj = cache[key];
-            res = wrapObj.res;
+            res = wrapObj.e;
             if (remove) {
                 delete cache[key];
             }
@@ -865,11 +844,10 @@ Mix(Mix(VProto, Event), {
     /**
      * 销毁托管的资源
      * @param {String} key 托管资源时传入的标识key
-     * @param {Boolean} [keepIt] 销毁后是否依然在缓存中保留该资源的引用
      * @return {Object}
      */
-    destroyManaged: function(key, keepIt) {
-        DestroyIt(this, key, keepIt);
+    destroyManaged: function(key) {
+        DestroyIt(this.$res, key, 1);
     }
     /**
      * 当您采用setHTML方法异步更新html时，通知view做好异步更新的准备，<b>注意:该方法最好和manage，setHTML一起使用。当您采用其它方式异步更新整个view的html时，仍需调用该方法</b>，建议对所有的异步更新回调使用manage方法托管，对更新整个view html前，调用beginAsyncUpdate进行更新通知
