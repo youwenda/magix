@@ -1,5 +1,31 @@
 ﻿# Magix
 
+##  Introduction
+
+<http://thx.github.io/magix>
+
+Magix is designed to construct large scaled， IE6 compatable and FE & BE oriented app. Magix is based on MVC and hash-drived OPOA(One Page One Application) app.
+
+Magix abstract the parent/base structure for `View`, managing display life cycle of `Views' with parent/base relationships by VOM(View Object Model) object.
+
+Magix speically focused on avoiding memory leak and memory accumulation of OPOA, includes:
+
+1. `use than dispose`, ensure it never hold DOM node.
+
+2. Use fresh new event delegate plan, decoupling DOM node and event handler efficiently.
+
+Magix is based on the principle --- "contract more than configuration", it can rapidly construct extendable large scaled OPOA. At the same time, ensures project configurable and extendable.
+
+
+## Magix CDN address of every version
+
+<http://thx.github.io/magix>
+
+## Magix history releases
+
+<http://thx.github.io/magix/releases/>
+
+
 ##  简介
 
 <http://thx.github.io/magix>
@@ -23,3 +49,4 @@ Magix基于"约定大于配置"设计原则,可以快速构建可扩展的大型
 ## Magix历史版本
 
 <http://thx.github.io/magix/releases/>
+
