@@ -1,4 +1,4 @@
-var PathRelativeReg = /\/\.(?:\/|$)|\/[^\/.]+?\/\.{2}(?:\/|$)|([^:\/])\/\/+|\.{2}\//; // ./|/x/../|(b)///
+var PathRelativeReg = /\/\.(?:\/|$)|\/[^\/]+?\/\.{2}(?:\/|$)|\/\/+|\.{2}\//; // ./|/x/../|(b)///
 var PathTrimFileReg = /\/[^\/]*$/;
 var PathTrimParamsReg = /[#?].*$/;
 var ParamsReg = /([^=&?\/#]+)=?([^&=#?]*)/g;
@@ -468,22 +468,27 @@ var Magix = {
      */
     path: function(url, part) {
         var key = url + '\u001a' + part;
-        var result = PathCache.get(key);
+        var result = PathCache.get(key),
+            domain = EMPTY,
+            idx;
         if (!PathCache.has(key)) { //有可能结果为空，url='' path='';
-            if (ProtocalReg.test(part)) {
+            if (ProtocalReg.test(url)) {
+                idx = url.indexOf(SLASH, 8);
+                if (idx < 0) idx = url.length;
+                domain = url.slice(0, idx);
+                url = url.slice(idx);
+            }
+            url = url.replace(PathTrimParamsReg, EMPTY).replace(PathTrimFileReg, SLASH);
+
+            if (ProtocalReg.test(part) || part.charAt(0) == SLASH) {
                 url = EMPTY;
-            } else {
-                url = url.replace(PathTrimParamsReg, EMPTY).replace(PathTrimFileReg, EMPTY) + SLASH;
-                if (part.charAt(0) == SLASH) {
-                    url = url.substring(0, url.indexOf(SLASH, ProtocalReg.test(url) && 8));
-                }
             }
             result = url + part;
             console.log('url', url, 'part', part, 'result', result);
             while (PathRelativeReg.test(result)) {
-                result = result.replace(PathRelativeReg, '$1/');
+                result = result.replace(PathRelativeReg, SLASH);
             }
-            PathCache.set(key, result);
+            PathCache.set(key, result = domain + result);
         }
         return result;
     },

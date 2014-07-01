@@ -118,6 +118,16 @@
          expect(Magix.path('http://www.etao.com/list/page/2/rows/3.4.5.html?a=b&c=d', '..')).to.eql('http://www.etao.com/list/page/2/');
 
          expect(Magix.path('http://www.etao.com/list/page/2/rows/3.html?a=b&c=d', '...')).to.eql('http://www.etao.com/list/page/2/rows/...');
+
+         expect(Magix.path('', '')).to.eql('');
+
+         expect(Magix.path('a/b/c', '/a/b')).to.eql('/a/b');
+
+         expect(Magix.path('http://a.b.com/a.b.c/a.b/', '../../../e')).to.eql('http://a.b.com/e');
+
+         expect(Magix.path('/a/b', './////f')).to.eql('/a/f');
+
+         expect(Magix.path('http://a.com', '///b')).to.eql('http://a.com/b');
      });
 
      it('Magix.toObject', function() {
@@ -327,32 +337,24 @@
              c: 'd',
              e: 'f'
          });
-         expect(tm.getUrlParams()).to.be('a=b&c=d&e=f');
-         tm.setUrlParams('a', '我');
-         expect(tm.getUrlParams()).to.be('a=%E6%88%91&c=d&e=f');
-         tm.setUrlParams('c', 20, true);
-         expect(tm.getUrlParams()).to.be('a=%E6%88%91&c=d&e=f');
-         tm.setUrlParams('g', 30, true);
-         expect(tm.getUrlParams()).to.be('a=%E6%88%91&c=d&e=f&g=30');
-         tm.setUrlParams('x=y');
-         expect(tm.getUrlParams()).to.be('a=%E6%88%91&c=d&e=f&g=30&x=y');
-         tm.setUrlParams('z=');
-         expect(tm.getUrlParams()).to.be('a=%E6%88%91&c=d&e=f&g=30&x=y&z=');
-         tm.setUrlParams('xx=&yy=我');
-         expect(tm.getUrlParams()).to.be('a=%E6%88%91&c=d&e=f&g=30&x=y&z=&xx=&yy=我');
-
-         tm.setPostParams('a', 'b');
-         tm.setPostParams({
+         expect(tm.getUrlParams()).to.eql({
+             a: 'b',
              c: 'd',
              e: 'f'
          });
-         expect(tm.getPostParams()).to.be('a=b&c=d&e=f');
-         tm.setPostParams('a', '我');
-         expect(tm.getPostParams()).to.be('a=%E6%88%91&c=d&e=f');
-         tm.setPostParams('c', 20, true);
-         expect(tm.getPostParams()).to.be('a=%E6%88%91&c=d&e=f');
-         tm.setPostParams('g', 30, true);
-         expect(tm.getPostParams()).to.be('a=%E6%88%91&c=d&e=f&g=30');
+         tm.setUrlParams('a', '我');
+         expect(tm.getUrlParams()).to.eql({
+             a: '我',
+             c: 'd',
+             e: 'f'
+         });
+         tm.setUrlParams('c', 20, true);
+         expect(tm.getUrlParams()).to.eql({
+             a: '我',
+             c: 'd',
+             e: 'f'
+         });
+
 
          done();
      });
@@ -433,8 +435,9 @@
      });
 
      it('Manager.fetchAll', function(done) {
+         //console.log(TestManager);
          TestManager.createMRequest({
-             manage: function(mr) { //模拟view
+             manage: function(key, mr) { //模拟view
                  //console.log(arguments);
                  return mr;
              }
@@ -454,7 +457,7 @@
          };
          var time = KISSY.now();
          TestManager.createMRequest({
-             manage: function(mr) { //模拟view
+             manage: function(key, mr) { //模拟view
                  //console.log(arguments);
                  return mr;
              }
@@ -478,7 +481,7 @@
          };
          var time = KISSY.now();
          TestManager.createMRequest({
-             manage: function(mr) { //模拟view
+             manage: function(key, mr) { //模拟view
                  //console.log(arguments);
                  return mr;
              }
@@ -495,7 +498,7 @@
 
      it('Manager.cache', function(done) {
          TestManager.createMRequest({
-             manage: function(mr) { //模拟view
+             manage: function(key, mr) { //模拟view
                  //console.log(arguments);
                  return mr;
              }
@@ -507,7 +510,7 @@
 
      it('Manager.next', function(done) {
          var r = TestManager.createMRequest({
-             manage: function(mr) { //模拟view
+             manage: function(key, mr) { //模拟view
                  //console.log(arguments);
                  return mr;
              }

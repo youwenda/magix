@@ -77,7 +77,7 @@ var DestroyAllManaged = function(me, lastly) {
         p, c;
     for (p in cache) {
         c = cache[p];
-        if (lastly || !c.mr) {
+        if (lastly || c.mr) {
             DestroyIt(cache, p, lastly);
         }
     }
@@ -801,7 +801,7 @@ Mix(Mix(VProto, Event), {
             res = key;
             key = EMPTY;
         }
-        DestroyIt(cache, key);
+        if (key) DestroyIt(cache, key);
         if (!key) {
             hk = 0;
             key = 'res_' + (ResCounter++);
