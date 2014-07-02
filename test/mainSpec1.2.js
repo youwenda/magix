@@ -157,6 +157,36 @@
                  e: '2'
              }
          });
+
+         expect(Magix.toObject('=YT3O0sPH1No==')).to.eql({
+             path: '',
+             params: {
+                 YT3O0sPH1No: '='
+             }
+         });
+
+         expect(Magix.toObject('a?a==YT3O0sPH1No==&b=c')).to.eql({
+             path: 'a',
+             params: {
+                 a: '=YT3O0sPH1No==',
+                 b: 'c'
+             }
+         });
+
+         expect(Magix.toObject('a=b=c=d=e')).to.eql({
+             path: '',
+             params: {
+                 a: 'b=c=d=e'
+             }
+         });
+
+         expect(Magix.toObject('YT3O0sPH1No==&b=c')).to.eql({
+             path: '',
+             params: {
+                 YT3O0sPH1No: '=',
+                 b: 'c'
+             }
+         });
      });
 
      it('Magix.toUrl', function() {
@@ -189,6 +219,18 @@
              e: '',
              f: ''
          }, {})).to.eql('/xxx/a.b.c.html?a=%E6%88%91%E4%BB%AC&c=d');
+
+         expect(Magix.toUrl('abc=', {
+             a: 'b'
+         })).to.eql('abc=&a=b');
+
+         expect(Magix.toUrl('a=b&b=', {
+             e: 1
+         })).to.eql('a=b&b=&e=1');
+
+         expect(Magix.toUrl('a=&b=', {
+             c: 1
+         })).to.eql('a=&b=&c=1');
      });
 
      it('Magix.toMap', function() {

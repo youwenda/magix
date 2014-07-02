@@ -78,7 +78,7 @@ var GetViewInfo = function(path, loc) {
                 throw new Error('unset defaultView');
             }*/
         Pnr.dv = defaultView;
-        defaultPath = MxConfig.defaultPath || EMPTY;
+        defaultPath = MxConfig.defaultPath;
         //if(!Magix.isFunction(temp.rs)){
         r = Pnr.rs;
         Pnr.f = Magix._f(r);
@@ -358,7 +358,7 @@ var Router = Mix({
                 tPath = lPath;
                 tParams = Mix(Mix({}, TLoc[PARAMS]), tParams); //复制原来的参数
             }
-            tPath = ToUrl(tPath, tParams, UseEdgeHistory ? PATH : querys); //hash需要保留query中的空白值参数
+            tPath = ToUrl(temp[PATH] = tPath, tParams, UseEdgeHistory ? PATH : querys); //hash需要保留query中的空白值参数
 
             if (tPath != TLoc[ReadLocSrc]) {
 

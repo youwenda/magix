@@ -1,7 +1,8 @@
 var PathRelativeReg = /\/\.(?:\/|$)|\/[^\/]+?\/\.{2}(?:\/|$)|\/\/+|\.{2}\//; // ./|/x/../|(b)///
 var PathTrimFileReg = /\/[^\/]*$/;
 var PathTrimParamsReg = /[#?].*$/;
-var ParamsReg = /([^=&?\/#]+)=?([^&=#?]*)/g;
+var ParamsReg = /([^=&?\/#]+)=?([^&#?]*)/g;
+var QueryParamsReg = /\?|(?!^)=/;
 var ProtocalReg = /^https?:\/\//i;
 var SLASH = '/';
 var DefaultTagName = 'vframe';
@@ -515,7 +516,7 @@ var Magix = {
         if (!r) {
             ParamsFn.p = params = {};
             pathname = path.replace(PathTrimParamsReg, EMPTY);
-            if (~pathname.indexOf('=')) { //有=号，路径为空
+            if (QueryParamsReg.test(pathname)) { //考虑 YT3O0sPH1No= base64后的pathname
                 pathname = EMPTY;
             }
             path.replace(pathname, EMPTY).replace(ParamsReg, ParamsFn);
@@ -549,18 +550,19 @@ var Magix = {
      */
     toUrl: function(path, params, keo) { //上个方法的逆向
         var arr = [];
-        var v, p;
+        var v, p, f;
         for (p in params) {
             v = params[p];
             if (!keo || v || Has(keo, p)) {
                 if (Cfg.coded) {
                     v = encodeURIComponent(v);
                 }
+                f = 1;
                 arr.push(p + '=' + v);
             }
         }
-        if (arr.length) {
-            path += '?' + arr.join('&');
+        if (f) {
+            path = (path && path + (QueryParamsReg.test(path) ? '&' : '?')) + arr.join('&');
         }
         return path;
     },
