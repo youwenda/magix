@@ -27,7 +27,7 @@ KISSY.add('apiapp/mviews/partials/header', function(S, View, Crox, MM, Magix) {
                 data.isIndex = true;
                 me.updateUI(data);
             } else {
-                MM.createMRequest(me).fetchAll({
+                MM.createRequest(me).fetchAll({
                     name: 'Class_List'
                 }, function(e, m) {
                     if (e) {

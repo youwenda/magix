@@ -19,7 +19,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
                 ver: ai.ver
             };
         },
-        done: function(m) {
+        after: function(m) {
             var list = m.get('list');
             var coreList = [];
             var extList = [];
@@ -40,7 +40,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
     }, {
         name: 'Class_Entity',
         cache: true,
-        done: function(m) {
+        after: function(m) {
             var isa = m.get('isa');
             if (isa == 'CONSTRUCTOR') {
                 m.set('isClass', true);
@@ -87,7 +87,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
         fetchClassInfos: function(view) {
             var infos = Magix.local('APIPathInfo');
             var key = [infos.loader, infos.ver, 'infos'].join('_');
-            var r = MM.createMRequest(view);
+            var r = MM.createRequest(view);
             if (InfosCache.has(key)) {
                 r.doNext([null, InfosCache.get(key)]);
                 return r;
@@ -265,5 +265,5 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
     MM._sKeyMaxLegth = -1;
     return MM;
 }, {
-    requires: ['magix/mmanager', 'apiapp/models/model', 'magix/magix']
+    requires: ['magix/manager', 'apiapp/models/model', 'magix/magix']
 });

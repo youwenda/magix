@@ -3,10 +3,10 @@
  * @author 行列
  * @version 1.1
  **/
-define("magix/mmanager", ["magix/magix", "magix/event"], function(Magix, Event) {
+define("magix/manager", ["magix/magix", "magix/event"], function(Magix, Event) {
     /*
         #begin mm_fetchall_1#
-        define('testMM',["magix/mmanager","magix/model"],function(MM,Model){
+        define('testMM',["magix/manager","magix/model"],function(MM,Model){
         #end#
 
         #begin mm_fetchall_2#
@@ -17,6 +17,6 @@ define("magix/mmanager", ["magix/magix", "magix/event"], function(Magix, Event) 
         requirejs('testMM',function(TM){
         #end#
      */
-    eval(Magix.include('../tmpl/mmanager', 1));
-    return MManager;
+    eval(Magix.include('../tmpl/manager', 1));
+    return Manager;
 });

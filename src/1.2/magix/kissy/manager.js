@@ -3,7 +3,7 @@
  * @author 行列
  * @version 1.1
  **/
-KISSY.add("magix/mmanager", function(S, Magix, Event) {
+KISSY.add("magix/manager", function(S, Magix, Event) {
     /*
         #begin mm_fetchall_1#
         KISSY.add('testMM',function(S,MM,Model){
@@ -11,7 +11,7 @@ KISSY.add("magix/mmanager", function(S, Magix, Event) {
 
         #begin mm_fetchall_2#
         },{
-            requires:["magix/mmanager","magix/model"]
+            requires:["magix/manager","magix/model"]
         });
         #end#
 
@@ -19,8 +19,8 @@ KISSY.add("magix/mmanager", function(S, Magix, Event) {
         KISSY.use('testMM',function(S,TM){
         #end#
      */
-    eval(Magix.include('../tmpl/mmanager', 1));
-    return MManager;
+    eval(Magix.include('../tmpl/manager', 1));
+    return Manager;
 }, {
     requires: ["magix/magix", "magix/event"]
 });

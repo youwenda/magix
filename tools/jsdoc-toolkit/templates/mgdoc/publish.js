@@ -53,8 +53,8 @@ function publish(symbolSet) {
 		'vom': 1,
 		//for 1.2
 		'model': 1,
-		'mmanager': 1,
-		'mrequest': 1
+		'manager': 1,
+		'request': 1
 	};
 
 	function isCore($) {

@@ -63,7 +63,7 @@ var TError = function(e) {
 };
 /**
  * Model管理对象，可方便的对Model进行缓存和更新
- * @name MManager
+ * @name Manager
  * @class
  * @namespace
  * @borrows Event.on as #on
@@ -73,7 +73,7 @@ var TError = function(e) {
  * @param {Model} modelClass Model类
  * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和postParams外，额外使用的key
  */
-var MManager = function(modelClass, serKeys) {
+var Manager = function(modelClass, serKeys) {
     var me = this;
     me.$mClz = modelClass;
     me.$mCache = Magix.cache();
@@ -81,7 +81,24 @@ var MManager = function(modelClass, serKeys) {
     me.$mMetas = {};
     me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
     me.id = 'mm' + COUNTER++;
-    SafeExec(MManager.$, arguments, me);
+    SafeExec(Manager.$, arguments, me);
+};
+
+/**
+ * 辅助Manager
+ * @name Request
+ * @class
+ * @namespace
+ * @param {Manager} host
+ */
+var Request = function(host) {
+    var me = this;
+    me.$host = host;
+    me.$reqs = {};
+    me['\u001a'] = '\u001a';
+    me.sign = 1;
+    me.id = 'mr' + COUNTER++;
+    me.$queue = [];
 };
 
 var Slice = [].slice;
@@ -147,10 +164,10 @@ var DoneFn = function(idx, ops, err) {
                 modelsCache.set(cacheKey, model);
             }
             mm.time = Now();
-            var succ = mm.done;
+            var after = mm.after;
 
-            if (succ) { //有succ
-                SafeExec(succ, model);
+            if (after) { //有after
+                SafeExec(after, model);
             }
             if (mm.cls) {
                 host.clearCache(mm.cls);
@@ -214,7 +231,7 @@ var DoneFn = function(idx, ops, err) {
  * @param {Function} done   完成时的回调
  * @param {Integer} flag   获取哪种类型的models
  * @param {Boolean} save 是否是保存的动作
- * @return {MRequest}
+ * @return {Request}
  */
 var Send = function(me, models, done, flag, save) {
     if (me.$busy) {
@@ -301,9 +318,9 @@ var GenRequestMethod = function(flag, save) {
         return Send(this, models, cbs.length > 1 ? cbs : done, flag, save);
     };
 };
-Mix(MManager, {
+Mix(Manager, {
     /**
-     * @lends MManager
+     * @lends Manager
      */
     /**
      * 创建Model类管理对象
@@ -311,48 +328,31 @@ Mix(MManager, {
      * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和postParams外，额外使用的key
      */
     create: function(modelClass, serKeys) {
-        return new MManager(modelClass, serKeys);
+        return new Manager(modelClass, serKeys);
     },
     /**
      * 扩展MMamager
      * @param  {Object} props 扩展到原型上的方法
-     * @param  {Function} ctor  在初始化MManager时进行调用的方法
+     * @param  {Function} ctor  在初始化Manager时进行调用的方法
      */
     mixin: function(props, ctor) {
-        if (ctor) MManager.$.push(ctor);
-        Mix(MManager.prototype, props);
+        if (ctor) Manager.$.push(ctor);
+        Mix(Manager.prototype, props);
     },
     $: []
 });
 
 
-/**
- * 辅助MManager
- * @name MRequest
- * @class
- * @namespace
- * @param {MManager} host
- */
-var MRequest = function(host) {
-    var me = this;
-    me.$host = host;
-    me.$reqs = {};
-    me['\u001a'] = '\u001a';
-    me.sign = 1;
-    me.id = 'mr' + COUNTER++;
-    me.$queue = [];
-};
-
-Mix(MRequest.prototype, {
+Mix(Request.prototype, {
     /**
-     * @lends MRequest#
+     * @lends Request#
      */
     /**
      * 获取models，所有请求完成回调done
      * @function
      * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
      * @param {Function} done   完成时的回调
-     * @return {MRequest}
+     * @return {Request}
      * @example
         //定义
         #mm_fetchall_1#
@@ -388,7 +388,7 @@ Mix(MRequest.prototype, {
      * @function
      * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home'urlParams:{a:'12'},postParams:{b:2}}
      * @param {Function} done   完成时的回调
-     * @return {MRequest}
+     * @return {Request}
      */
     save: function(models, done) {
         return Send(this, models, done, FetchFlags_ALL, 1);
@@ -398,7 +398,7 @@ Mix(MRequest.prototype, {
      * @function
      * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
      * @param {Function} done   完成时的回调
-     * @return {MRequest}
+     * @return {Request}
      * @example
         //代码片断：
         //1：获取多个model，回调只有一个时
@@ -440,7 +440,7 @@ Mix(MRequest.prototype, {
      * @function
      * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
      * @param {Function} callback   完成时的回调
-     * @return {MRequest}
+     * @return {Request}
      * @example
         //代码片断：
         //1：获取多个model，回调只有一个时
@@ -521,7 +521,7 @@ Mix(MRequest.prototype, {
     /**
      * 前一个fetchX或saveX任务做完后的下一个任务
      * @param  {Function} callback 当前面的任务完成后调用该回调
-     * @return {MRequest}
+     * @return {Request}
      * @example
         var r=MM.fetchAll([
             {name:'M1'},
@@ -545,7 +545,7 @@ Mix(MRequest.prototype, {
      * 做下一个任务
      * @param {Array} preArgs 上次请求任务回调的返回值，成功时：[null,Returned]，失败时：[{msg:'message'},null]
      * @example
-     * var r=Manager.createMRequest(view);
+     * var r=Manager.createRequest(view);
      * r.fetchAll('Name',function(e,m){
      *     console.log(e,m);
      *     return m;
@@ -595,10 +595,10 @@ Mix(MRequest.prototype, {
         me.stop();
     }
 });
-MManager.mixin(Event);
-MManager.mixin({
+Manager.mixin(Event);
+Manager.mixin({
     /**
-     * @lends MManager#
+     * @lends Manager#
      */
     /**
      * 注册APP中用到的model
@@ -608,14 +608,15 @@ MManager.mixin({
      * @param {Object} models.postParams 发起请求时，默认的post参数对象
      * @param {Boolean|Integer} models.cache 指定当前请求缓存多长时间,为true默认20分钟，可传入整数表示缓存多少毫秒
      * @param {Array} models.cleans 请求成功后，清除其它缓存的name数组
-     * @param {Function} models.done model在结束请求，并且成功后回调
+     * @param {Function} models.before model在开始请求前的回调
+     * @param {Function} models.after model在结束请求，并且成功后回调
      */
     registerModels: function(models) {
         /*
                 name:'',
                 urlParams:{},
                 postParams:{},
-                done:function(m){
+                after:function(m){
 
                 }
              */
@@ -655,7 +656,7 @@ MManager.mixin({
      * @param {Function} error 失败回调，参数同上
      * @return {Object} 返回一个带abort方法的对象，用于取消这些方法的调用
      * @example
-     * var MM=MManager.create(Model);
+     * var MM=Manager.create(Model);
      * MM.registerMethods({
      *     methodA:function(args,done,error){
      *
@@ -749,7 +750,7 @@ MManager.mixin({
         entity.$mm = {
             used: 0,
             name: meta.name,
-            done: meta.done,
+            after: meta.after,
             cls: meta.cleans,
             key: cache && DefaultCacheKey(me.$sKeys, meta, modelAttrs)
         };
@@ -765,7 +766,10 @@ MManager.mixin({
         //临时传递的
         entity.setUrlParams(modelAttrs[UrlParams]);
         entity.setPostParams(modelAttrs[PostParams]);
-
+        var before = meta.before;
+        if (before) {
+            SafeExec(before, entity);
+        }
         me.fire('start', {
             model: entity
         });
@@ -811,13 +815,13 @@ MManager.mixin({
         };
     },
     /**
-     * 创建MRequest对象
-     * @param {View} view 传递View对象，托管MRequest
+     * 创建Request对象
+     * @param {View} view 传递View对象，托管Request
      * @param {String} [key] 托管到view时的资源key，同名key会自动销毁前一个
-     * @return {MRequest} 返回MRequest对象
+     * @return {Request} 返回Request对象
      */
-    createMRequest: function(view, key) {
-        return view.manage(key, new MRequest(this));
+    createRequest: function(view, key) {
+        return view.manage(key, new Request(this));
     },
     /**
      * 根据name清除缓存的models
@@ -875,7 +879,7 @@ MManager.mixin({
 
 /**
  * 创建完成Model对象后触发
- * @name MManager#start
+ * @name Manager#start
  * @event
  * @param {Object} e
  * @param {Model} e.model model对象
@@ -883,7 +887,7 @@ MManager.mixin({
 
 /**
  * Model对象请求成功后触发
- * @name MManager#done
+ * @name Manager#done
  * @event
  * @param {Object} e
  * @param {Model} e.model model对象
@@ -891,7 +895,7 @@ MManager.mixin({
 
 /**
  * Model对象完成请求并调用完相关的回调才触发
- * @name MManager#finish
+ * @name Manager#finish
  * @event
  * @param {Object} e
  * @param {String} e.msg 如果请求失败，则为错误描述信息
@@ -900,7 +904,7 @@ MManager.mixin({
 
 /**
  * Model对象请求失败后触发
- * @name MManager#fail
+ * @name Manager#fail
  * @event
  * @param {Object} e
  * @param {Model} e.msg 错误描述信息
