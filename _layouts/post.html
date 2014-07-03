@@ -42,14 +42,12 @@ script: assets/post.js
         </a>
       </li>
       {% for category in site.categories %}
-      {% if category[0] != 'tutorial' %}
       <li>
         <a href="{{ site.baseurl }}/{{ category[0] }}" class="entry">
           <i class="iconfont mi-{{ category[0] }}"></i>
           {{ category[0] | capitalize }}
         </a>
       </li>
-      {% endif %}
       {% endfor %}
       <li>
         <a href="{{ site.baseurl }}/demos" class="entry">
