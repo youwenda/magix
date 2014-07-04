@@ -7,8 +7,7 @@ define('magix/vframe', function(require) {
     var Magix = require("./magix");
     var Event = require("./event");
     var BaseView = require("./view");
-    var VframeIdCounter = 1 << 16;
-var SafeExec = Magix.tryCall;
+    var SafeExec = Magix.tryCall;
 var EmptyArr = [];
 
 
@@ -32,9 +31,9 @@ var Alter = 'alter';
 var Created = 'created';
 var RootVframe;
 var GlobalAlter;
-
+var StrObject = 'object';
 var $ = function(id) {
-    return typeof id == 'object' ? id : document.getElementById(id);
+    return typeof id == StrObject ? id : document.getElementById(id);
 };
 var $$ = function(id, node, arr) {
     node = $(id);
@@ -42,10 +41,6 @@ var $$ = function(id, node, arr) {
         arr = UseQSA ? document[QSA]('#' + IdIt(node) + Selector) : node.getElementsByTagName(TagName);
     }
     return arr || EmptyArr;
-};
-
-var IdIt = function(dom) {
-    return dom.id || (dom.id = 'magix_vf_' + (VframeIdCounter--));
 };
 
 

@@ -1358,8 +1358,7 @@ LIB('magix/vframe', function(require) {
     var Magix = require("./magix");
     var Event = require("./event");
     var BaseView = require("./view");
-    var VframeIdCounter = 1 << 16;
-var SafeExec = Magix.tryCall;
+    var SafeExec = Magix.tryCall;
 var EmptyArr = [];
 
 
@@ -1383,9 +1382,9 @@ var Alter = 'alter';
 var Created = 'created';
 var RootVframe;
 var GlobalAlter;
-
+var StrObject = 'object';
 var $ = function(id) {
-    return typeof id == 'object' ? id : DOCUMENT.getElementById(id);
+    return typeof id == StrObject ? id : DOCUMENT.getElementById(id);
 };
 var $$ = function(id, node, arr) {
     node = $(id);
@@ -1394,8 +1393,6 @@ var $$ = function(id, node, arr) {
     }
     return arr || EmptyArr;
 };
-
-
 
 
 var NodeIn = function(a, b, r) {
@@ -1983,7 +1980,7 @@ var DestroyAllManaged = function(me, lastly) {
     for (p in cache) {
         c = cache[p];
         if (lastly || c.mr) {
-            DestroyIt(cache, p, lastly);
+            DestroyIt(cache, p, 1);
         }
     }
 };
@@ -3497,7 +3494,6 @@ var Manager = function(modelClass, serKeys) {
     me.$mMetas = {};
     me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
     me.id = 'mm' + COUNTER++;
-    SafeExec(Manager.$, arguments, me);
 };
 
 /**
@@ -3744,17 +3740,7 @@ Mix(Manager, {
      */
     create: function(modelClass, serKeys) {
         return new Manager(modelClass, serKeys);
-    },
-    /**
-     * 扩展MMamager
-     * @param  {Object} props 扩展到原型上的方法
-     * @param  {Function} ctor  在初始化Manager时进行调用的方法
-     */
-    mixin: function(props, ctor) {
-        if (ctor) Manager.$.push(ctor);
-        Mix(Manager.prototype, props);
-    },
-    $: []
+    }
 });
 
 
@@ -4017,8 +4003,8 @@ Mix(Request.prototype, {
         me.stop();
     }
 });
-Manager.mixin(Event);
-Manager.mixin({
+var MP = Manager.prototype;
+Mix(Mix(MP, Event), {
     /**
      * @lends Manager#
      */

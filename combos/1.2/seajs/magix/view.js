@@ -78,7 +78,7 @@ var DestroyAllManaged = function(me, lastly) {
     for (p in cache) {
         c = cache[p];
         if (lastly || c.mr) {
-            DestroyIt(cache, p, lastly);
+            DestroyIt(cache, p, 1);
         }
     }
 };

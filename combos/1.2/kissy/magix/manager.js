@@ -102,7 +102,6 @@ var Manager = function(modelClass, serKeys) {
     me.$mMetas = {};
     me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
     me.id = 'mm' + COUNTER++;
-    SafeExec(Manager.$, arguments, me);
 };
 
 /**
@@ -349,17 +348,7 @@ Mix(Manager, {
      */
     create: function(modelClass, serKeys) {
         return new Manager(modelClass, serKeys);
-    },
-    /**
-     * 扩展MMamager
-     * @param  {Object} props 扩展到原型上的方法
-     * @param  {Function} ctor  在初始化Manager时进行调用的方法
-     */
-    mixin: function(props, ctor) {
-        if (ctor) Manager.$.push(ctor);
-        Mix(Manager.prototype, props);
-    },
-    $: []
+    }
 });
 
 
@@ -622,8 +611,8 @@ Mix(Request.prototype, {
         me.stop();
     }
 });
-Manager.mixin(Event);
-Manager.mixin({
+var MP = Manager.prototype;
+Mix(Mix(MP, Event), {
     /**
      * @lends Manager#
      */
