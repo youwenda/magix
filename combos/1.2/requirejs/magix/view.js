@@ -40,8 +40,7 @@ var DestroyStr = 'destroy';
 var EvtInfoCache = Magix.cache(40);
 
 
-var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\({([\s\S]*)}\))?/;
-var EvtParamsReg = /(\w+):(['"]?)([\s\S]*?)\2(?=(?:,\w+:|$))/g;
+var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(({[\s\S]*})\))?/;
 var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
 
 var RootEvents = {};
@@ -67,9 +66,6 @@ var WrapFn = function(fn, me) {
     };
 };
 
-var EvtParamsFn = function(x, a, q, b) {
-    EvtParamsFn.p[a] = b;
-};
 var DestroyAllManaged = function(me, lastly) {
     var cache = me.$res,
         p, c;
@@ -246,8 +242,8 @@ var DOMEventBind = function(type, remove) {
  * 示例：
  *   html写法：
  *
- *   &lt;input type="button" mx-click="test({id:100,name:xinglie})" value="test" /&gt;
- *   &lt;a href="http://etao.com" mx-click="test&lt;prevent&gt;({com:etao.com})"&gt;http://etao.com&lt;/a&gt;
+ *   &lt;input type="button" mx-click="test({id:100,name:'xinglie'})" value="test" /&gt;
+ *   &lt;a href="http://etao.com" mx-click="test&lt;prevent&gt;({com:'etao.com'})"&gt;http://etao.com&lt;/a&gt;
  *
  *   view写法：
  *
@@ -716,12 +712,9 @@ Mix(Mix(VProto, Event), {
                 m = {
                     n: m[1],
                     f: m[2],
-                    i: m[3],
-                    p: EvtParamsFn.p = {}
+                    i: m[3]
                 };
-                if (m.i) {
-                    m.i.replace(EvtParamsReg, EvtParamsFn);
-                }
+                m.p = m.i && SafeExec(Function('return ' + m.i)) || {};
                 EvtInfoCache.set(info, m);
             }
             var name = m.n + '\u001a' + eventType;

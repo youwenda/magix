@@ -17,8 +17,8 @@ define('magix/model', ['magix/magix'], function(Magix) {
 var Has = Magix.has;
 var IsObject = Magix._o;
 var ToString = Magix.toString;
-var GET = 'GET',
-    POST = 'POST';
+var URL = 'URL',
+    FORM = 'FORM';
 
 var Model = function() {
     this.id = 'm' + COUNTER++;
@@ -75,11 +75,11 @@ Magix.mix(Model.prototype, {
     },*/
     /**
      * 获取参数对象
-     * @param  {String} [type] 参数分组的key[GET,POST]，默认为GET
+     * @param  {String} [type] 参数分组的key[URL,FORM]，默认为URL
      * @return {Object}
      */
     /*getParamsObject:function(type){
-            if(!type)type=GET;
+            if(!type)type=URL;
             return this['\u001a'+type]||null;
         },*/
     /**
@@ -87,32 +87,32 @@ Magix.mix(Model.prototype, {
      * @return {Object}
      */
     /* getUrlParamsObject:function(){
-            return this.getParamsObject(GET);
+            return this.getParamsObject(URL);
         },*/
     /**
      * 获取Post参数对象
      * @return {Object}
      */
     /*getPostParamsObject:function(){
-            return this.getParamsObject(POST);
+            return this.getParamsObject(FORM);
         },*/
     /**
-     * 获取通过setPostParams放入的参数
+     * 获取通过setFormParams放入的参数
      * @return {Object}
      */
-    getPostParams: function() {
-        return this['\u001a' + POST];
+    getFormParams: function() {
+        return this['\u001a' + FORM];
     },
     /**
      * 获取通过setUrlParams放入的参数
      * @return {Object}
      */
     getUrlParams: function() {
-        return this['\u001a' + GET];
+        return this['\u001a' + URL];
     },
     /**
      * 获取参数
-     * @param {String} [type] 参数分组的key[GET,POST]，默认为GET
+     * @param {String} [type] 参数分组的key[URL,FORM]，默认为URL
      * @return {String}
      */
 
@@ -136,13 +136,13 @@ Magix.mix(Model.prototype, {
     /*}
         return arr.join('\u001a');*/
     /**
-     * 设置post参数
+     * 设置FORM参数
      * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      * @param {Boolean} [ignoreIfExist] 如果存在，则忽略本次的设置
      */
-    setPostParams: SetParams(POST),
+    setFormParams: SetParams(FORM),
     /**
      * 设置url参数
      * @function
@@ -150,25 +150,25 @@ Magix.mix(Model.prototype, {
      * @param {String} [obj2] 参数内容
      * @param {Boolean} [ignoreIfExist] 如果存在，则忽略本次的设置
      */
-    setUrlParams: SetParams(GET),
+    setUrlParams: SetParams(URL),
     /**
      * @private
      */
     /*removeParamsObject:function(type){
-            if(!type)type=GET;
+            if(!type)type=URL;
             delete this['\u001a'+type];
         },*/
     /**
      * @private
      */
     /*removePostParamsObject:function(){
-            this.removeParamsObject(POST);
+            this.removeParamsObject(FORM);
         },*/
     /**
      * @private
      */
     /*removeUrlParamsObject:function(){
-            this.removeParamsObject(GET);
+            this.removeParamsObject(URL);
         },*/
     /**
      * 重置缓存的参数对象，对于同一个model反复使用前，最好能reset一下，防止把上次请求的参数也带上

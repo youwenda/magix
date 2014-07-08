@@ -50,3 +50,7 @@ Magix基于"约定大于配置"设计原则,可以快速构建可扩展的大型
 
 <http://thx.github.io/magix/releases/>
 
+
+
+### 开源协议
+Magix 遵循 MIT 协议。

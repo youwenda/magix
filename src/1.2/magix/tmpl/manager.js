@@ -7,7 +7,7 @@ var IsObject = Magix._o;
 var FetchFlags_ONE = 1;
 var FetchFlags_ORDER = 2;
 var FetchFlags_ALL = 4;
-var PostParams = 'postParams';
+var FormParams = 'formParams';
 var UrlParams = 'urlParams';
 
 var Now = Date.now || function() {
@@ -71,7 +71,7 @@ var TError = function(e) {
  * @borrows Event.off as #off
  * @borrows Event.once as #once
  * @param {Model} modelClass Model类
- * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和postParams外，额外使用的key
+ * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和formParams外，额外使用的key
  */
 var Manager = function(modelClass, serKeys) {
     var me = this;
@@ -79,7 +79,7 @@ var Manager = function(modelClass, serKeys) {
     me.$mCache = Magix.cache();
     me.$mReqs = {};
     me.$mMetas = {};
-    me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
+    me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(FormParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('formParams', 'urlParams');
     me.id = 'mm' + COUNTER++;
 };
 
@@ -226,7 +226,7 @@ var DoneFn = function(idx, ops, err) {
 /**
  * 获取models，该用缓存的用缓存，该发起请求的请求
  * @private
- * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',urlParams:{a:'12'},postParams:{b:2}}
+ * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',urlParams:{a:'12'},formParams:{b:2}}
  * @param {Function} done   完成时的回调
  * @param {Integer} flag   获取哪种类型的models
  * @param {Boolean} save 是否是保存的动作
@@ -324,7 +324,7 @@ Mix(Manager, {
     /**
      * 创建Model类管理对象
      * @param {Model} modelClass Model类
-     * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和postParams外，额外使用的key
+     * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和formParams外，额外使用的key
      */
     create: function(modelClass, serKeys) {
         return new Manager(modelClass, serKeys);
@@ -339,7 +339,7 @@ Mix(Request.prototype, {
     /**
      * 获取models，所有请求完成回调done
      * @function
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
+     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},formParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {Request}
      * @example
@@ -375,7 +375,7 @@ Mix(Request.prototype, {
     /**
      * 保存models，所有请求完成回调done
      * @function
-     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home'urlParams:{a:'12'},postParams:{b:2}}
+     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home'urlParams:{a:'12'},formParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {Request}
      */
@@ -385,7 +385,7 @@ Mix(Request.prototype, {
     /**
      * 获取models，按顺序执行回调done
      * @function
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
+     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},formParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {Request}
      * @example
@@ -427,7 +427,7 @@ Mix(Request.prototype, {
     /**
      * 获取models，其中任意一个成功均立即回调，回调会被调用多次
      * @function
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
+     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},formParams:{b:2}}
      * @param {Function} callback   完成时的回调
      * @return {Request}
      * @example
@@ -593,8 +593,8 @@ Mix(Mix(MP, Event), {
      * 注册APP中用到的model
      * @param {Object|Array} models 模块描述信息
      * @param {String} models.name app中model的唯一标识
-     * @param {Object} models.urlParams 发起请求时，默认的get参数对象
-     * @param {Object} models.postParams 发起请求时，默认的post参数对象
+     * @param {Object} models.urlParams 发起请求时，默认的url参数对象
+     * @param {Object} models.formParams 发起请求时，默认的form参数对象
      * @param {Boolean|Integer} models.cache 指定当前请求缓存多长时间,为true默认20分钟，可传入整数表示缓存多少毫秒
      * @param {Array} models.cleans 请求成功后，清除其它缓存的name数组
      * @param {Function} models.before model在开始请求前的回调
@@ -604,7 +604,7 @@ Mix(Mix(MP, Event), {
         /*
                 name:'',
                 urlParams:{},
-                postParams:{},
+                formParams:{},
                 after:function(m){
 
                 }
@@ -750,11 +750,11 @@ Mix(Mix(MP, Event), {
 
         //默认设置的
         entity.setUrlParams(meta[UrlParams]);
-        entity.setPostParams(meta[PostParams]);
+        entity.setFormParams(meta[FormParams]);
 
         //临时传递的
         entity.setUrlParams(modelAttrs[UrlParams]);
-        entity.setPostParams(modelAttrs[PostParams]);
+        entity.setFormParams(modelAttrs[FormParams]);
         var before = meta.before;
         if (before) {
             SafeExec(before, entity);

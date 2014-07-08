@@ -5,7 +5,7 @@
             {{if entity.isClass}}
             {{data.moreInfos('class',entity)}}
             {{if entity._params||entity.example}}
-            <a href="#!/home" mx-click="toggleMoreInfos<prevent>({name:{{entity.alias}},type:class,anchor:.content})"><i class="tree plus"></i>
+            <a href="#!/home" mx-click="toggleMoreInfos<prevent>({name:'{{entity.alias}}',type:'class',anchor:'.content'})"><i class="tree plus"></i>
             {{/if}}
             {{/if}}
             {{entity.alias}}
@@ -23,7 +23,7 @@
     {{data.moreInfos('properties',val)}}
     <div class="list">
         {{if val._params||val.example}}
-            <a href="#!/home" mx-click="toggleMoreInfos<prevent>({name:{{val._name}},type:properties})">
+            <a href="#!/home" mx-click="toggleMoreInfos<prevent>({name:'{{val._name}}',type:'properties'})">
         {{/if}}
             <i class="tree plus" {{if !val._params&&!val.example}} style="background:none"{{/if}}></i>
             <span class="item" id="J_p_{{val._name}}">{{val._name}}</span>
@@ -46,7 +46,7 @@
     {{data.moreInfos('methods',val)}}
     <div class="list">
         {{if val._params||val.example||val.returns}}
-        <a href="#!/home" mx-click="toggleMoreInfos<prevent>({name:{{val._name}},type:methods})">{{/if}}<i class="tree plus" {{if !val._params&&!val.example&&!val.returns}} style="background:none"{{/if}}></i><span class="item" id="J_m_{{val._name}}">{{val._name}}({{data.method_params(val._params)}})</span> {{if val._params||val.example||val.returns}}</a>{{/if}}{{if val.isPrivate}}<span class="mark">P</span>{{/if}}{{if val.memberOf!=entity._name||(entity.inheritsMap&&entity.inheritsMap[val.alias])}}<span class="mark">I</span>{{/if}}
+        <a href="#!/home" mx-click="toggleMoreInfos<prevent>({name:'{{val._name}}',type:'methods'})">{{/if}}<i class="tree plus" {{if !val._params&&!val.example&&!val.returns}} style="background:none"{{/if}}></i><span class="item" id="J_m_{{val._name}}">{{val._name}}({{data.method_params(val._params)}})</span> {{if val._params||val.example||val.returns}}</a>{{/if}}{{if val.isPrivate}}<span class="mark">P</span>{{/if}}{{if val.memberOf!=entity._name||(entity.inheritsMap&&entity.inheritsMap[val.alias])}}<span class="mark">I</span>{{/if}}
         <div class="desc">{{val.desc}}</div>
     </div>
     {{/each}}
@@ -57,7 +57,7 @@
     {{each entity.staticMethods as val}}
     {{data.moreInfos('staticMethods',val)}}
     <div class="list">
-        <a href="#!/home" mx-click="toggleMoreInfos<prevent>({name:{{val._name}},type:staticMethods})"><i class="tree plus"></i><span class="item" id="J_sm_{{val._name}}">{{val._name}}({{data.method_params(val._params)}})</span></a>{{if val.isPrivate}}<span class="mark">P</span>{{/if}}
+        <a href="#!/home" mx-click="toggleMoreInfos<prevent>({name:'{{val._name}}',type:'staticMethods'})"><i class="tree plus"></i><span class="item" id="J_sm_{{val._name}}">{{val._name}}({{data.method_params(val._params)}})</span></a>{{if val.isPrivate}}<span class="mark">P</span>{{/if}}
         <div class="desc">{{val.desc}}</div>
     </div>
     {{/each}}
@@ -68,7 +68,7 @@
     {{each entity.events as val}}
     {{data.moreInfos('events',val)}}
     <div class="list">
-        <a href="#!/home" mx-click="toggleMoreInfos<prevent>({name:{{val._name}},type:events})"><i class="tree plus"></i><span class="item" id="J_e_{{val._name}}">{{val._name}}</span></a>{{if val.memberOf!=entity._name}}<span class="mark">I</span>{{/if}}
+        <a href="#!/home" mx-click="toggleMoreInfos<prevent>({name:'{{val._name}}',type:'events'})"><i class="tree plus"></i><span class="item" id="J_e_{{val._name}}">{{val._name}}</span></a>{{if val.memberOf!=entity._name}}<span class="mark">I</span>{{/if}}
         <div class="desc">{{val.desc}}</div>
     </div>
     {{/each}}

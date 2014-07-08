@@ -65,7 +65,9 @@ module.exports = function(grunt) {
 
         //begin 压缩吧～
         grunt.config.set('uglify', {
-            options: {},
+            options: {
+                preserveComments: 'some'
+            },
             my_target: {
                 files: jsMinMap
             }

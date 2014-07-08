@@ -1,4 +1,4 @@
-(function(NULL,WINDOW,DOCUMENT,NOOP,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=1;IdIt=function(n){return n.id||(n.id='mx_n_'+COUNTER++)};/**
+/*!Magix 1.2 Licensed MIT*/(function(NULL,WINDOW,DOCUMENT,NOOP,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=1;IdIt=function(n){return n.id||(n.id='mx_n_'+COUNTER++)};/**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.1
@@ -1913,8 +1913,7 @@ var DestroyStr = 'destroy';
 var EvtInfoCache = Magix.cache(40);
 
 
-var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\({([\s\S]*)}\))?/;
-var EvtParamsReg = /(\w+):(['"]?)([\s\S]*?)\2(?=(?:,\w+:|$))/g;
+var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(({[\s\S]*})\))?/;
 var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
 
 var RootEvents = {};
@@ -1940,9 +1939,6 @@ var WrapFn = function(fn, me) {
     };
 };
 
-var EvtParamsFn = function(x, a, q, b) {
-    EvtParamsFn.p[a] = b;
-};
 var DestroyAllManaged = function(me, lastly) {
     var cache = me.$res,
         p, c;
@@ -2119,8 +2115,8 @@ var DOMEventBind = function(type, remove) {
  * 示例：
  *   html写法：
  *
- *   &lt;input type="button" mx-click="test({id:100,name:xinglie})" value="test" /&gt;
- *   &lt;a href="http://etao.com" mx-click="test&lt;prevent&gt;({com:etao.com})"&gt;http://etao.com&lt;/a&gt;
+ *   &lt;input type="button" mx-click="test({id:100,name:'xinglie'})" value="test" /&gt;
+ *   &lt;a href="http://etao.com" mx-click="test&lt;prevent&gt;({com:'etao.com'})"&gt;http://etao.com&lt;/a&gt;
  *
  *   view写法：
  *
@@ -2589,12 +2585,9 @@ Mix(Mix(VProto, Event), {
                 m = {
                     n: m[1],
                     f: m[2],
-                    i: m[3],
-                    p: EvtParamsFn.p = {}
+                    i: m[3]
                 };
-                if (m.i) {
-                    m.i.replace(EvtParamsReg, EvtParamsFn);
-                }
+                m.p = m.i && SafeExec(Function('return ' + m.i)) || {};
                 EvtInfoCache.set(info, m);
             }
             var name = m.n + SPLITER + eventType;
@@ -3064,8 +3057,8 @@ LIB.add('magix/model', function(S, Magix) {
 var Has = Magix.has;
 var IsObject = Magix._o;
 var ToString = Magix.toString;
-var GET = 'GET',
-    POST = 'POST';
+var URL = 'URL',
+    FORM = 'FORM';
 
 var Model = function() {
     this.id = 'm' + COUNTER++;
@@ -3122,11 +3115,11 @@ Magix.mix(Model.prototype, {
     },*/
     /**
      * 获取参数对象
-     * @param  {String} [type] 参数分组的key[GET,POST]，默认为GET
+     * @param  {String} [type] 参数分组的key[URL,FORM]，默认为URL
      * @return {Object}
      */
     /*getParamsObject:function(type){
-            if(!type)type=GET;
+            if(!type)type=URL;
             return this[SPLITER+type]||null;
         },*/
     /**
@@ -3134,32 +3127,32 @@ Magix.mix(Model.prototype, {
      * @return {Object}
      */
     /* getUrlParamsObject:function(){
-            return this.getParamsObject(GET);
+            return this.getParamsObject(URL);
         },*/
     /**
      * 获取Post参数对象
      * @return {Object}
      */
     /*getPostParamsObject:function(){
-            return this.getParamsObject(POST);
+            return this.getParamsObject(FORM);
         },*/
     /**
-     * 获取通过setPostParams放入的参数
+     * 获取通过setFormParams放入的参数
      * @return {Object}
      */
-    getPostParams: function() {
-        return this[SPLITER + POST];
+    getFormParams: function() {
+        return this[SPLITER + FORM];
     },
     /**
      * 获取通过setUrlParams放入的参数
      * @return {Object}
      */
     getUrlParams: function() {
-        return this[SPLITER + GET];
+        return this[SPLITER + URL];
     },
     /**
      * 获取参数
-     * @param {String} [type] 参数分组的key[GET,POST]，默认为GET
+     * @param {String} [type] 参数分组的key[URL,FORM]，默认为URL
      * @return {String}
      */
 
@@ -3183,13 +3176,13 @@ Magix.mix(Model.prototype, {
     /*}
         return arr.join(SPLITER);*/
     /**
-     * 设置post参数
+     * 设置FORM参数
      * @function
      * @param {Object|String} obj1 参数对象或者参数key
      * @param {String} [obj2] 参数内容
      * @param {Boolean} [ignoreIfExist] 如果存在，则忽略本次的设置
      */
-    setPostParams: SetParams(POST),
+    setFormParams: SetParams(FORM),
     /**
      * 设置url参数
      * @function
@@ -3197,25 +3190,25 @@ Magix.mix(Model.prototype, {
      * @param {String} [obj2] 参数内容
      * @param {Boolean} [ignoreIfExist] 如果存在，则忽略本次的设置
      */
-    setUrlParams: SetParams(GET),
+    setUrlParams: SetParams(URL),
     /**
      * @private
      */
     /*removeParamsObject:function(type){
-            if(!type)type=GET;
+            if(!type)type=URL;
             delete this[SPLITER+type];
         },*/
     /**
      * @private
      */
     /*removePostParamsObject:function(){
-            this.removeParamsObject(POST);
+            this.removeParamsObject(FORM);
         },*/
     /**
      * @private
      */
     /*removeUrlParamsObject:function(){
-            this.removeParamsObject(GET);
+            this.removeParamsObject(URL);
         },*/
     /**
      * 重置缓存的参数对象，对于同一个model反复使用前，最好能reset一下，防止把上次请求的参数也带上
@@ -3386,7 +3379,7 @@ var IsObject = Magix._o;
 var FetchFlags_ONE = 1;
 var FetchFlags_ORDER = 2;
 var FetchFlags_ALL = 4;
-var PostParams = 'postParams';
+var FormParams = 'formParams';
 var UrlParams = 'urlParams';
 
 var Now = Date.now || function() {
@@ -3450,7 +3443,7 @@ var TError = function(e) {
  * @borrows Event.off as #off
  * @borrows Event.once as #once
  * @param {Model} modelClass Model类
- * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和postParams外，额外使用的key
+ * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和formParams外，额外使用的key
  */
 var Manager = function(modelClass, serKeys) {
     var me = this;
@@ -3458,7 +3451,7 @@ var Manager = function(modelClass, serKeys) {
     me.$mCache = Magix.cache();
     me.$mReqs = {};
     me.$mMetas = {};
-    me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(PostParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('postParams', 'urlParams');
+    me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(FormParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('formParams', 'urlParams');
     me.id = 'mm' + COUNTER++;
 };
 
@@ -3604,7 +3597,7 @@ var DoneFn = function(idx, ops, err) {
 /**
  * 获取models，该用缓存的用缓存，该发起请求的请求
  * @private
- * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',urlParams:{a:'12'},postParams:{b:2}}
+ * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',urlParams:{a:'12'},formParams:{b:2}}
  * @param {Function} done   完成时的回调
  * @param {Integer} flag   获取哪种类型的models
  * @param {Boolean} save 是否是保存的动作
@@ -3702,7 +3695,7 @@ Mix(Manager, {
     /**
      * 创建Model类管理对象
      * @param {Model} modelClass Model类
-     * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和postParams外，额外使用的key
+     * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和formParams外，额外使用的key
      */
     create: function(modelClass, serKeys) {
         return new Manager(modelClass, serKeys);
@@ -3717,7 +3710,7 @@ Mix(Request.prototype, {
     /**
      * 获取models，所有请求完成回调done
      * @function
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
+     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},formParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {Request}
      * @example
@@ -3761,7 +3754,7 @@ Mix(Request.prototype, {
     /**
      * 保存models，所有请求完成回调done
      * @function
-     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home'urlParams:{a:'12'},postParams:{b:2}}
+     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home'urlParams:{a:'12'},formParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {Request}
      */
@@ -3771,7 +3764,7 @@ Mix(Request.prototype, {
     /**
      * 获取models，按顺序执行回调done
      * @function
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
+     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},formParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {Request}
      * @example
@@ -3813,7 +3806,7 @@ Mix(Request.prototype, {
     /**
      * 获取models，其中任意一个成功均立即回调，回调会被调用多次
      * @function
-     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},postParams:{b:2}}
+     * @param {Object|Array} models 获取models时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},formParams:{b:2}}
      * @param {Function} callback   完成时的回调
      * @return {Request}
      * @example
@@ -3978,8 +3971,8 @@ Mix(Mix(MP, Event), {
      * 注册APP中用到的model
      * @param {Object|Array} models 模块描述信息
      * @param {String} models.name app中model的唯一标识
-     * @param {Object} models.urlParams 发起请求时，默认的get参数对象
-     * @param {Object} models.postParams 发起请求时，默认的post参数对象
+     * @param {Object} models.urlParams 发起请求时，默认的url参数对象
+     * @param {Object} models.formParams 发起请求时，默认的form参数对象
      * @param {Boolean|Integer} models.cache 指定当前请求缓存多长时间,为true默认20分钟，可传入整数表示缓存多少毫秒
      * @param {Array} models.cleans 请求成功后，清除其它缓存的name数组
      * @param {Function} models.before model在开始请求前的回调
@@ -3989,7 +3982,7 @@ Mix(Mix(MP, Event), {
         /*
                 name:'',
                 urlParams:{},
-                postParams:{},
+                formParams:{},
                 after:function(m){
 
                 }
@@ -4135,11 +4128,11 @@ Mix(Mix(MP, Event), {
 
         //默认设置的
         entity.setUrlParams(meta[UrlParams]);
-        entity.setPostParams(meta[PostParams]);
+        entity.setFormParams(meta[FormParams]);
 
         //临时传递的
         entity.setUrlParams(modelAttrs[UrlParams]);
-        entity.setPostParams(modelAttrs[PostParams]);
+        entity.setFormParams(modelAttrs[FormParams]);
         var before = meta.before;
         if (before) {
             SafeExec(before, entity);
