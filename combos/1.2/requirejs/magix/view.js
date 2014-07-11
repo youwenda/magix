@@ -807,17 +807,16 @@ Mix(Mix(VProto, Event), {
     },
     /**
      * 获取托管的资源
-     * @param {String} key 托管资源时传入的标识key
+     * @param {String} [key] 托管资源时传入的标识key
      * @param {Boolean} [remove] 获取后是否从缓存中移除
      * @return {Object}
      */
     getManaged: function(key, remove) {
         var me = this;
         var cache = me.$res;
-        var res = null;
-        if (Has(cache, key)) {
-            var wrapObj = cache[key];
-            res = wrapObj.e;
+        var res = key ? null : cache;
+        if (key && Has(cache, key)) {
+            res = cache[key].e;
             if (remove) {
                 delete cache[key];
             }

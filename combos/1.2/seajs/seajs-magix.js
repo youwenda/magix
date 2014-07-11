@@ -2711,17 +2711,16 @@ Mix(Mix(VProto, Event), {
     },
     /**
      * 获取托管的资源
-     * @param {String} key 托管资源时传入的标识key
+     * @param {String} [key] 托管资源时传入的标识key
      * @param {Boolean} [remove] 获取后是否从缓存中移除
      * @return {Object}
      */
     getManaged: function(key, remove) {
         var me = this;
         var cache = me.$res;
-        var res =NULL;
-        if (Has(cache, key)) {
-            var wrapObj = cache[key];
-            res = wrapObj.e;
+        var res = key ?NULL : cache;
+        if (key && Has(cache, key)) {
+            res = cache[key].e;
             if (remove) {
                 delete cache[key];
             }
@@ -3478,11 +3477,13 @@ var TError = function(e) {
  * @borrows Event.once as #once
  * @param {Model} modelClass Model类
  * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和formParams外，额外使用的key
+ * @param {Integer} [cacheMax] 缓存最大值
+ * @param {Integer} [cacheBuffer] 缓存缓存区大小
  */
-var Manager = function(modelClass, serKeys) {
+var Manager = function(modelClass, serKeys, cacheMax, cacheBuffer) {
     var me = this;
     me.$mClz = modelClass;
-    me.$mCache = Magix.cache();
+    me.$mCache = Magix.cache(cacheMax, cacheBuffer);
     me.$mReqs = {};
     me.$mMetas = {};
     me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(FormParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('formParams', 'urlParams');
@@ -3729,10 +3730,12 @@ Mix(Manager, {
     /**
      * 创建Model类管理对象
      * @param {Model} modelClass Model类
-     * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和formParams外，额外使用的key
+     * @param {Array} [serKeys] 序列化生成cacheKey时，除了使用urlParams和formParams外，额外使用的key
+     * @param {Integer} [cacheMax] 缓存最大值
+     * @param {Integer} [cacheBuffer] 缓存缓存区大小
      */
-    create: function(modelClass, serKeys) {
-        return new Manager(modelClass, serKeys);
+    create: function(modelClass, serKeys, cacheMax, cacheBuffer) {
+        return new Manager(modelClass, serKeys, cacheMax, cacheBuffer);
     }
 });
 
