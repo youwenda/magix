@@ -39,7 +39,7 @@ var Ser = function(o, f, a, p) {
     b=['1','2','']
  */
 var DefaultCacheKey = function(keys, meta, attrs) {
-    var arr = [meta.name, Ser(attrs)];
+    var arr = [Ser(attrs)];
     var locker = {};
     for (var i = keys.length - 1, key; i > -1; i--) {
         key = keys[i];
@@ -178,8 +178,6 @@ var DoneFn = function(idx, ops, err) {
             });
             newModel = 1;
         }
-        model.fromCache = mm.used > 0;
-        mm.used++;
     }
     if (!request.$ost) { //销毁，啥也不做
         if (flag == FetchFlags_ONE) { //如果是其中一个成功，则每次成功回调一次
@@ -237,7 +235,7 @@ var DoneFn = function(idx, ops, err) {
 var Send = function(me, models, done, flag, save) {
     if (me.$busy) {
         return me.next(function() {
-            this.send(models, done, flag, save);
+            Send(this, models, done, flag, save);
         });
     }
     me.$busy = 1;
@@ -379,7 +377,7 @@ Mix(Request.prototype, {
     /**
      * 保存models，所有请求完成回调done
      * @function
-     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home'urlParams:{a:'12'},formParams:{b:2}}
+     * @param {Object|Array} models 保存models时的描述信息，如:{name:'Home',urlParams:{a:'12'},formParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {Request}
      */
@@ -741,7 +739,6 @@ Mix(Mix(MP, Event), {
         var entity = new me.$mClz();
         entity.set(meta);
         entity.$mm = {
-            used: 0,
             name: meta.name,
             after: meta.after,
             cls: meta.cleans,

@@ -5,7 +5,6 @@
  * @class
  * @constructor
  * @property {String} id model唯一标识
- * @property {Boolean} fromCache 在与ModelManager配合使用时，标识当前model对象是不是从缓存中来
  */
 
 var Has = Magix.has;
@@ -265,6 +264,7 @@ Magix.mix(Model.prototype, {
                     }
                     me.set(data);
                     //}
+                    me.$temp = 0;
                     callback(err, options);
                 }
             };
