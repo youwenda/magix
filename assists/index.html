@@ -6,4 +6,9 @@ title: 工具列表
 <ul>
   <li><a href="https://github.com/thx/magix-app-build" target="_blank">打包上线工具</a></li>
   <li><a href="{{ site.baseurl }}/assists/vom-helper">View关系可视化工具</a></li>
+  {% for category in site.categories %}{% if category[0] == 'assists' %}
+{% for post in category[1] reversed %}
+  <li><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a></li>
+{% endfor %}
+{% endif %}{% endfor %}
 </ul>
