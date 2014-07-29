@@ -551,15 +551,33 @@
                     type = 'Model Manager';
                 } else if (e.bricks) {
                     type = 'Pagelet';
-                } else if (e.hasOwnProperty('pagelet')) {
-                    type = 'Brick';
-                } else if (e.__attrs && e.__attrVals) {
-                    type = 'extend KISSY Attribute';
+                } else if (e.__attrs && e.__attrVals && e.constructor) {
+                    var mods = KISSY.Env.mods,
+                        found;
+                    for (var p in mods) {
+                        var info = mods[p];
+                        var v = info.value || info.exports;
+                        if (v && e.constructor == v) {
+                            type = info.name;
+                            found = true;
+                            console.log(info);
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        if (e.hasOwnProperty('pagelet')) {
+                            type = 'Brick';
+                        } else {
+                            type = 'extend KISSY Attribute';
+                        }
+                    }
                 } else if (!KISSY.isFunction(e)) {
-                    return KISSY.type(e);
+                    type = KISSY.type(e);
                 } else {
-                    return '函数或构造器';
+                    type = '函数或构造器';
                 }
+            } else {
+                type = KISSY.type(type);
             }
             return type;
         }
@@ -658,7 +676,7 @@
                         Tracer.log('vframe:' + vf.id + '的view(' + vf.view.path + ')，init调用完毕');
                     });
                     vf.on('viewUnmounted', function() {
-                        Tracer.log('vframe:' + vf.id + '的view(' + vf.view.path + ')销毁完毕');
+                        Tracer.log('vframe:' + vf.id + '的view(' + (vf.path || (vf.view && vf.view.path || '')) + ')销毁完毕');
                     });
                     vf.on('viewMounted', function() {
                         Tracer.log('vframe:' + vf.id + '的view(' + vf.view.path + ')，首次渲染完毕');
