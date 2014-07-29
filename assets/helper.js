@@ -232,10 +232,13 @@
                     case 'id':
                         return item.id;
                     case 'view':
-                        return vf.path || vf.view && vf.view.path || '';
+                        return vf ? (vf.path || vf.view && vf.view.path || '') : '';
                     case 'ex':
                         if (item.il) {
                             return '被孤立的节点，好可怜……';
+                        }
+                        if (!vf) {
+                            return 'vframe已被销毁，但未从vom中移除';
                         }
                         if (!vf.path && !vf.view) {
                             return '未加载view';
@@ -249,7 +252,7 @@
                         return '';
                     case 'res':
                         var t = [];
-                        var res = vf.view && vf.view.$res;
+                        var res = vf && vf.view && vf.view.$res;
                         if (res) {
                             t.push('<table style="width:100%"><tr><td>hasKey</td><td>key</td><td>res</td></tr>');
                             for (var p in res) {
