@@ -56,7 +56,7 @@
                     float:right
                 }
                 .magix-helper .cp{
-                    cursor:cp;
+                    cursor:pointer;
                 }
                 .magix-helper .p8{
                     padding:8px;
@@ -410,22 +410,25 @@
                     g = Graphics;
                 g.captureItmes();
                 var params = g.getBestParams(tree, width, height);
-                console.log(params, tree);
                 var ctx = D.getElementById('magix_helper_canvas').getContext('2d');
                 ctx.clearRect(0, 0, width, height);
                 var maxTextLen = (function() {
                     var len = 2;
+                    ctx.font = 'normal 14px Arial';
                     while (true) {
-                        var width = ctx.measureText(new Array(len).join('x')).width;
+                        var width = ctx.measureText(new Array(len).join('M')).width;
+                        console.log(width, params.radius, len);
                         if (width < params.radius * 2) {
                             len += 2;
                         } else {
-                            len -= 8;
+                            len -= 2;
                             break;
                         }
                     }
+                    console.log(len);
                     return len;
                 })();
+                console.log(maxTextLen);
                 var linecolorIndex = 0;
                 var drawCircle = function(item, pos, ppos, lineColor) {
                     if (ppos) {
@@ -469,7 +472,6 @@
                     var count = Graphics.getChildrenCountByDeep(tree, item.deep);
                     if (count) {
                         var space = (width - (count * params.radius * 2 + (count - 1) * params.margin)) / 2;
-                        console.log(space);
                         var lcolor = '#' + Lines[linecolorIndex++ % Lines.length]; // Lines[Math.floor(Math.random() * (Lines.length - 1))];
                         for (var i = 0; i < item.children.length; i++) {
                             drawCircle(item.children[i], {
@@ -615,7 +617,6 @@
                 });
             }
             tree.isolated = il;
-            console.log(tree);
             return tree;
         },
         prepare: function(callback) {
