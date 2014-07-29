@@ -23,6 +23,6 @@ title: View关系可视化工具
 
 添加以下链接到书签
 
-<a href="javascript:void((function(d,s){s=d.createElement('script');s.src='http://thx.github.io/magix/assets/helper.js';d.body.appendChild(s)}(document)))">Magix Helper</a>
+<a href="javascript:void((function(d,s){s=d.createElement('script');s.src='http://thx.github.io/magix/assets/helper.js';s.charset='utf-8';d.body.appendChild(s)}(document)))">Magix Helper</a>
 
 然后在使用Magix的页面上点击该书签即可
