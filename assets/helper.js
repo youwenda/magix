@@ -11,7 +11,7 @@
     };
     var Consts = {
         width: 500,
-        height: 410,
+        height: 420,
         canvasHeight: 350,
         moreInfoWidth: 240,
         titleHeight: 34,
