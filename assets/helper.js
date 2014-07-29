@@ -421,7 +421,6 @@
                     ctx.font = 'normal 14px Arial';
                     while (true) {
                         var width = ctx.measureText(new Array(len).join('M')).width;
-                        console.log(width, params.radius, len);
                         if (width < params.radius * 2) {
                             len += 2;
                         } else {
@@ -429,10 +428,8 @@
                             break;
                         }
                     }
-                    console.log(len);
                     return len;
                 })();
-                console.log(maxTextLen);
                 var linecolorIndex = 0;
                 var drawCircle = function(item, pos, ppos, lineColor) {
                     if (ppos) {
@@ -581,7 +578,7 @@
             var all = vom.all();
             var allMap = {};
             for (var a in all) {
-                if (vom.get(a)) {
+                if (all.hasOwnProperty(a)) {
                     tree.vomTotal++;
                 }
                 allMap[a] = 1;
