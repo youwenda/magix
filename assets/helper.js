@@ -381,6 +381,7 @@
                 }
             };
             walk(tree, 1);
+            maxChildren = Math.max(maxChildren, tree.isolated.length + 1);
             return {
                 max: maxChildren,
                 maxOne: maxOneChildren,
