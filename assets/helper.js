@@ -555,6 +555,10 @@
                     type = 'Brick';
                 } else if (e.__attrs && e.__attrVals) {
                     type = 'extend KISSY Attribute';
+                } else if (!KISSY.isFunction(e)) {
+                    return KISSY.type(e);
+                } else {
+                    return '函数或构造器';
                 }
             }
             return type;
