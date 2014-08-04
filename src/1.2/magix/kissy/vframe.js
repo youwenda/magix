@@ -1,7 +1,7 @@
 /**
  * @fileOverview Vframe类
  * @author 行列
- * @version 1.1
+ * @version 1.2
  */
 KISSY.add('magix/vframe', function(S, Magix, Event, BaseView) {
     eval(Magix.include('../tmpl/vframe'));

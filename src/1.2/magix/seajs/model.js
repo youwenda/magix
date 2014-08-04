@@ -1,6 +1,6 @@
 /**
  * @fileOverview Model
- * @version 1.1
+ * @version 1.2
  * @author 行列
  */
 define('magix/model', function(require) {

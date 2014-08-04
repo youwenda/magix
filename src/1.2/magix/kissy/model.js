@@ -1,6 +1,6 @@
 /**
  * @fileOverview Model
- * @version 1.1
+ * @version 1.2
  * @author 行列
  */
 KISSY.add('magix/model', function(S, Magix) {

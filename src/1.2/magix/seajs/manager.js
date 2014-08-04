@@ -1,7 +1,7 @@
 /**
  * @fileOverview model管理工厂，可方便的对Model进行缓存和更新
  * @author 行列
- * @version 1.1
+ * @version 1.2
  **/
 define("magix/manager", function(require) {
     /*
