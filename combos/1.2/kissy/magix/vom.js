@@ -1,7 +1,7 @@
 /**
  * @fileOverview VOM
  * @author 行列
- * @version 1.1
+ * @version 1.2
  */
 KISSY.add("magix/vom", function(S, Vframe, Magix, Event) {
     var Has = Magix.has;

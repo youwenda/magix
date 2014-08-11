@@ -1,7 +1,7 @@
 /**
  * @fileOverview Vframe类
  * @author 行列
- * @version 1.1
+ * @version 1.2
  */
 define('magix/vframe', ["magix/magix", "magix/event", "magix/view"], function(Magix, Event, BaseView) {
     var SafeExec = Magix.tryCall;
@@ -77,7 +77,7 @@ var RefLoc, RefChged, RefVOM;
  * @property {Boolean} viewPrimed view是否完成首次渲染，即view的primed事件有没有派发
  * @property {String} pId 父vframe的id，如果是根节点则为undefined
  */
-var Vframe = function(id) {
+var Vframe = function(id, pId) {
     var me = this;
     me.id = id;
     //me.vId=id+'_v';
@@ -87,6 +87,7 @@ var Vframe = function(id) {
     me.sign = 1;
     me.rM = {};
     me.owner = RefVOM;
+    me.pId = pId;
     RefVOM.add(id, me);
 };
 /**
@@ -132,28 +133,6 @@ Mix(Mix(Vframe.prototype, Event), {
     /**
      * @lends Vframe#
      */
-    /**
-     * 是否启用场景转场动画，相关的动画并未在该类中实现，如需动画，需要mxext/vfanim扩展来实现，设计为方法而不是属性可方便针对某些vframe使用动画
-     * @return {Boolean}
-     * @default false
-     * @function
-     */
-    //useAnimUpdate:Magix.noop,
-    /**
-     * 转场动画时或当view启用刷新动画时，旧的view销毁时调用
-     * @function
-     */
-    //oldViewDestroy:Magix.noop,
-    /**
-     * 转场动画时或当view启用刷新动画时，为新view准备好填充的容器
-     * @function
-     */
-    //prepareNextView:Magix.noop,
-    /**
-     * 转场动画时或当view启用刷新动画时，新的view创建完成时调用
-     * @function
-     */
-    //newViewCreated:Magix.noop,
     /**
      * 加载对应的view
      * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的view路径
@@ -272,14 +251,11 @@ Mix(Mix(Vframe.prototype, Event), {
         //var vom = me.owner;
         var vf = RefVOM.get(id);
         if (!vf) {
-            vf = new Vframe(id);
-
-            vf.pId = me.id;
-
             if (!Has(me.cM, id)) {
                 me.cC++;
             }
             me.cM[id] = 1;
+            vf = new Vframe(id, me.id);
         }
         vf._p = cancelTriggerEvent;
         vf.mountView(viewPath, viewInitParams, keepPreHTML);

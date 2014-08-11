@@ -2,7 +2,7 @@
     author:xinglie.lkf@taobao.com
  */
 KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
-    var MM = MManager.create(Model, ['cKeys']);
+    var MM = MManager.create(Model);
     var InfosCache = Magix.cache();
     var SearchCache = Magix.cache(40);
     var ColorKeywords = function(name) {
@@ -12,7 +12,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
         name: 'Class_List',
         url: 'index.json',
         cache: true,
-        cKeys: function() {
+        key: function() {
             var ai = Magix.local('APIPathInfo');
             return {
                 loader: ai.loader,
@@ -103,7 +103,7 @@ KISSY.add('apiapp/models/manager', function(S, MManager, Model, Magix) {
                         models.push({
                             name: 'Class_Entity',
                             cName: e.name,
-                            cKeys: {
+                            key: {
                                 name: e.name,
                                 platform: infos.loader,
                                 ver: infos.ver

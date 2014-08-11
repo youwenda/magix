@@ -1,7 +1,7 @@
 /*!Magix 1.2 Licensed MIT*/(function(NULL,WINDOW,DOCUMENT,NOOP,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=1;IdIt=function(n){return n.id||(n.id='mx_n_'+COUNTER++)};/**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
- * @version 1.1
+ * @version 1.2
  **/
 LIB.add('magix/magix', function(S) {
     var Slice = [].slice;
@@ -655,7 +655,7 @@ var Magix = {
 /**
  * @fileOverview 多播事件对象
  * @author 行列<xinglie.lkf@taobao.com>
- * @version 1.1
+ * @version 1.2
  **/
 LIB.add("magix/event", function(S, Magix) {
     var SafeExec = Magix.tryCall;
@@ -797,7 +797,7 @@ Magix.mix(Magix.local, Event);
 /**
  * @fileOverview 路由
  * @author 行列
- * @version 1.1
+ * @version 1.2
  */
 LIB.add('magix/router', function(S, Magix, Event, SE) {
     var EMPTY = '';
@@ -1221,7 +1221,7 @@ var Router = Mix({
 /**
  * @fileOverview VOM
  * @author 行列
- * @version 1.1
+ * @version 1.2
  */
 LIB.add("magix/vom", function(S, Vframe, Magix, Event) {
     var Has = Magix.has;
@@ -1334,7 +1334,7 @@ var VOM = Magix.mix({
 /**
  * @fileOverview Vframe类
  * @author 行列
- * @version 1.1
+ * @version 1.2
  */
 LIB.add('magix/vframe', function(S, Magix, Event, BaseView) {
     var SafeExec = Magix.tryCall;
@@ -1410,7 +1410,7 @@ var RefLoc, RefChged, RefVOM;
  * @property {Boolean} viewPrimed view是否完成首次渲染，即view的primed事件有没有派发
  * @property {String} pId 父vframe的id，如果是根节点则为undefined
  */
-var Vframe = function(id) {
+var Vframe = function(id, pId) {
     var me = this;
     me.id = id;
     //me.vId=id+'_v';
@@ -1420,6 +1420,7 @@ var Vframe = function(id) {
     me.sign = 1;
     me.rM = {};
     me.owner = RefVOM;
+    me.pId = pId;
     RefVOM.add(id, me);
 };
 /**
@@ -1465,28 +1466,6 @@ Mix(Mix(Vframe.prototype, Event), {
     /**
      * @lends Vframe#
      */
-    /**
-     * 是否启用场景转场动画，相关的动画并未在该类中实现，如需动画，需要mxext/vfanim扩展来实现，设计为方法而不是属性可方便针对某些vframe使用动画
-     * @return {Boolean}
-     * @default false
-     * @function
-     */
-    //useAnimUpdate:Magix.noop,
-    /**
-     * 转场动画时或当view启用刷新动画时，旧的view销毁时调用
-     * @function
-     */
-    //oldViewDestroy:Magix.noop,
-    /**
-     * 转场动画时或当view启用刷新动画时，为新view准备好填充的容器
-     * @function
-     */
-    //prepareNextView:Magix.noop,
-    /**
-     * 转场动画时或当view启用刷新动画时，新的view创建完成时调用
-     * @function
-     */
-    //newViewCreated:Magix.noop,
     /**
      * 加载对应的view
      * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的view路径
@@ -1605,14 +1584,11 @@ Mix(Mix(Vframe.prototype, Event), {
         //var vom = me.owner;
         var vf = RefVOM.get(id);
         if (!vf) {
-            vf = new Vframe(id);
-
-            vf.pId = me.id;
-
             if (!Has(me.cM, id)) {
                 me.cC++;
             }
             me.cM[id] = 1;
+            vf = new Vframe(id, me.id);
         }
         vf._p = cancelTriggerEvent;
         vf.mountView(viewPath, viewInitParams, keepPreHTML);
@@ -1884,7 +1860,7 @@ Mix(Mix(Vframe.prototype, Event), {
 /**
  * @fileOverview view类
  * @author 行列
- * @version 1.1
+ * @version 1.2
  */
 LIB.add('magix/view', function(S, Magix, Event, Router, IO) {
     var Delegates = {
@@ -2053,12 +2029,31 @@ var DOMEventProcessor = function(e) {
                     if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
                         vframe = VOM.get(vId);
                         view = vframe && vframe.view;
-                        if (view) {
+                        if (view && view.sign > 0) {
+
                             e.currentId = IdIt(current);
                             e.targetId = IdIt(target);
                             e.prevent = e.preventDefault;
                             e.stop = e.stopPropagation;
-                            view.pEvt(oinfo, eventType, e);
+
+                            var m = EvtInfoCache.get(oinfo);
+                            if (!m) {
+                                m = oinfo.match(EvtInfoReg);
+                                m = {
+                                    n: m[1],
+                                    f: m[2],
+                                    i: m[3]
+                                };
+                                m.p = m.i && SafeExec(Function('return ' + m.i)) || {};
+                                EvtInfoCache.set(oinfo, m);
+                            }
+                            var name = m.n + SPLITER + eventType;
+                            var fn = view[name];
+                            if (fn) {
+                                if (e[m.f]) e[m.f]();
+                                e.params = m.p;
+                                SafeExec(fn, e, view);
+                            }
                         }
                     } else {
                         throw Error('bad:' + oinfo);
@@ -2571,35 +2566,6 @@ Mix(Mix(VProto, Event), {
         me.sign--;
     },
     /**
-     * 处理dom事件
-     * @param {Object} e 事件信息对象
-     * @private
-     */
-    pEvt: function(info, eventType, e) {
-        var me = this;
-        if ( /*me.enableEvent &&*/ me.sign > 0) {
-            var m = EvtInfoCache.get(info);
-
-            if (!m) {
-                m = info.match(EvtInfoReg);
-                m = {
-                    n: m[1],
-                    f: m[2],
-                    i: m[3]
-                };
-                m.p = m.i && SafeExec(Function('return ' + m.i)) || {};
-                EvtInfoCache.set(info, m);
-            }
-            var name = m.n + SPLITER + eventType;
-            var fn = me[name];
-            if (fn) {
-                if (e[m.f]) e[m.f]();
-                e.params = m.p;
-                SafeExec(fn, e, me);
-            }
-        }
-    },
-    /**
      * 添加节点，用于inside的判断
      * @param {String} id dom节点id
      */
@@ -3039,7 +3005,7 @@ Mix(Mix(VProto, Event), {
 });
 /**
  * @fileOverview Model
- * @version 1.1
+ * @version 1.2
  * @author 行列
  */
 LIB.add('magix/model', function(S, Magix) {
@@ -3351,7 +3317,7 @@ Magix.mix(Model.prototype, {
 /**
  * @fileOverview model管理工厂，可方便的对Model进行缓存和更新
  * @author 行列
- * @version 1.1
+ * @version 1.2
  **/
 LIB.add("magix/manager", function(S, Magix, Event) {
     /*
@@ -3380,7 +3346,7 @@ var FetchFlags_ORDER = 2;
 var FetchFlags_ALL = 4;
 var FormParams = 'formParams';
 var UrlParams = 'urlParams';
-
+var SerKeys = [FormParams, UrlParams];
 var Now = Date.now || function() {
         return +new Date();
     };
@@ -3388,20 +3354,14 @@ var WJSON = WINDOW.JSON;
 var Mix = Magix.mix;
 var DefaultCacheTime = 20 * 60 * 1000;
 
-var Ser = function(o, f, a, p) {
-    if (IsFunction(o)) { //一定要先判断
-        if (f) a = Ser(SafeExec(o));
+//使用JSON.stringify生成唯一的缓存key，当浏览器不支持JSON时，不再缓存
+var Ser = function(o, f, refArr, a) {
+    if (f) { //一定要先判断
+        if (IsFunction(o)) refArr.push(Ser(SafeExec(o)));
     } else if (WJSON) {
         a = WJSON.stringify(o);
-    } else if (IsObject(o) || IsArray(o)) {
-        a = [];
-        for (p in o) {
-            if (Has(o, p)) {
-                a.push(p, SPLITER, Ser(o[p]));
-            }
-        }
     } else {
-        a = o;
+        a = Now(); //不缓存
     }
     return a;
 };
@@ -3409,15 +3369,14 @@ var Ser = function(o, f, a, p) {
     a=['1','2,']
     b=['1','2','']
  */
-var DefaultCacheKey = function(keys, meta, attrs) {
-    var arr = [Ser(attrs)];
-    var locker = {};
-    for (var i = keys.length - 1, key; i > -1; i--) {
-        key = keys[i];
-        if (!locker[key]) {
-            arr.push(locker[key] = Ser(meta[key], 1), Ser(attrs[key], 1));
-        }
+var DefaultCacheKey = function(meta, attrs) {
+    var arr = [Ser(attrs), Ser(meta)];
+    for (var i = SerKeys.length - 1, key; i > -1; i--) {
+        key = SerKeys[i];
+        Ser(meta[key], 1, arr);
+        Ser(attrs[key], 1, arr);
     }
+    Ser(meta.key, 1, arr);
     return arr.join(SPLITER);
 };
 var ProcessCache = function(attrs) {
@@ -3442,17 +3401,15 @@ var TError = function(e) {
  * @borrows Event.off as #off
  * @borrows Event.once as #once
  * @param {Model} modelClass Model类
- * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和formParams外，额外使用的key
  * @param {Integer} [cacheMax] 缓存最大值
  * @param {Integer} [cacheBuffer] 缓存缓存区大小
  */
-var Manager = function(modelClass, serKeys, cacheMax, cacheBuffer) {
+var Manager = function(modelClass, cacheMax, cacheBuffer) {
     var me = this;
     me.$mClz = modelClass;
     me.$mCache = Magix.cache(cacheMax, cacheBuffer);
     me.$mReqs = {};
     me.$mMetas = {};
-    me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(FormParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('formParams', 'urlParams');
     me.id = 'mm' + COUNTER++;
 };
 
@@ -3694,12 +3651,11 @@ Mix(Manager, {
     /**
      * 创建Model类管理对象
      * @param {Model} modelClass Model类
-     * @param {Array} [serKeys] 序列化生成cacheKey时，除了使用urlParams和formParams外，额外使用的key
      * @param {Integer} [cacheMax] 缓存最大值
      * @param {Integer} [cacheBuffer] 缓存缓存区大小
      */
-    create: function(modelClass, serKeys, cacheMax, cacheBuffer) {
-        return new Manager(modelClass, serKeys, cacheMax, cacheBuffer);
+    create: function(modelClass, cacheMax, cacheBuffer) {
+        return new Manager(modelClass, cacheMax, cacheBuffer);
     }
 });
 
@@ -3976,6 +3932,7 @@ Mix(Mix(MP, Event), {
      * @param {Object} models.formParams 发起请求时，默认的form参数对象
      * @param {Boolean|Integer} models.cache 指定当前请求缓存多长时间,为true默认20分钟，可传入整数表示缓存多少毫秒
      * @param {Array} models.cleans 请求成功后，清除其它缓存的name数组
+     * @param {Function|Object} models.key 指定cache后，如果根据name,formParams,urlParams无法生成唯一的缓存key时，可额外指定的key
      * @param {Function} models.before model在开始请求前的回调
      * @param {Function} models.after model在结束请求，并且成功后回调
      */
@@ -4119,7 +4076,7 @@ Mix(Mix(MP, Event), {
             name: meta.name,
             after: meta.after,
             cls: meta.cleans,
-            key: cache && DefaultCacheKey(me.$sKeys, meta, modelAttrs)
+            key: cache && DefaultCacheKey(meta, modelAttrs)
         };
 
         if (modelAttrs.name) {
@@ -4224,7 +4181,7 @@ Mix(Mix(MP, Event), {
         var cache = ProcessCache(modelAttrs) || meta.cache;
 
         if (cache) {
-            cacheKey = DefaultCacheKey(me.$sKeys, meta, modelAttrs);
+            cacheKey = DefaultCacheKey(meta, modelAttrs);
         }
 
         if (cacheKey) {

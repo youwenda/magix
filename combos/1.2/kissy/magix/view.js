@@ -1,7 +1,7 @@
 /**
  * @fileOverview view类
  * @author 行列
- * @version 1.1
+ * @version 1.2
  */
 KISSY.add('magix/view', function(S, Magix, Event, Router, IO) {
     var Delegates = {
@@ -170,12 +170,31 @@ var DOMEventProcessor = function(e) {
                     if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
                         vframe = VOM.get(vId);
                         view = vframe && vframe.view;
-                        if (view) {
+                        if (view && view.sign > 0) {
+
                             e.currentId = IdIt(current);
                             e.targetId = IdIt(target);
                             e.prevent = e.preventDefault;
                             e.stop = e.stopPropagation;
-                            view.pEvt(oinfo, eventType, e);
+
+                            var m = EvtInfoCache.get(oinfo);
+                            if (!m) {
+                                m = oinfo.match(EvtInfoReg);
+                                m = {
+                                    n: m[1],
+                                    f: m[2],
+                                    i: m[3]
+                                };
+                                m.p = m.i && SafeExec(Function('return ' + m.i)) || {};
+                                EvtInfoCache.set(oinfo, m);
+                            }
+                            var name = m.n + '\u001a' + eventType;
+                            var fn = view[name];
+                            if (fn) {
+                                if (e[m.f]) e[m.f]();
+                                e.params = m.p;
+                                SafeExec(fn, e, view);
+                            }
                         }
                     } else {
                         throw Error('bad:' + oinfo);
@@ -686,35 +705,6 @@ Mix(Mix(VProto, Event), {
             DelegateEvents(me, 1);
         }
         me.sign--;
-    },
-    /**
-     * 处理dom事件
-     * @param {Object} e 事件信息对象
-     * @private
-     */
-    pEvt: function(info, eventType, e) {
-        var me = this;
-        if ( /*me.enableEvent &&*/ me.sign > 0) {
-            var m = EvtInfoCache.get(info);
-
-            if (!m) {
-                m = info.match(EvtInfoReg);
-                m = {
-                    n: m[1],
-                    f: m[2],
-                    i: m[3]
-                };
-                m.p = m.i && SafeExec(Function('return ' + m.i)) || {};
-                EvtInfoCache.set(info, m);
-            }
-            var name = m.n + '\u001a' + eventType;
-            var fn = me[name];
-            if (fn) {
-                if (e[m.f]) e[m.f]();
-                e.params = m.p;
-                SafeExec(fn, e, me);
-            }
-        }
     },
     /**
      * 添加节点，用于inside的判断

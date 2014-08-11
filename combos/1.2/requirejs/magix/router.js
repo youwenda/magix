@@ -1,7 +1,7 @@
 /**
  * @fileOverview 路由
  * @author 行列
- * @version 1.1
+ * @version 1.2
  */
 define('magix/router', ["magix/magix", "magix/event"], function(Magix, Event) {
     //todo dom event;

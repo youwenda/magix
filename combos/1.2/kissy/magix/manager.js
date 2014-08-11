@@ -1,7 +1,7 @@
 /**
  * @fileOverview model管理工厂，可方便的对Model进行缓存和更新
  * @author 行列
- * @version 1.1
+ * @version 1.2
  **/
 KISSY.add("magix/manager", function(S, Magix, Event) {
     /*
@@ -30,7 +30,7 @@ var FetchFlags_ORDER = 2;
 var FetchFlags_ALL = 4;
 var FormParams = 'formParams';
 var UrlParams = 'urlParams';
-
+var SerKeys = [FormParams, UrlParams];
 var Now = Date.now || function() {
         return +new Date();
     };
@@ -38,20 +38,14 @@ var WJSON = window.JSON;
 var Mix = Magix.mix;
 var DefaultCacheTime = 20 * 60 * 1000;
 
-var Ser = function(o, f, a, p) {
-    if (IsFunction(o)) { //一定要先判断
-        if (f) a = Ser(SafeExec(o));
+//使用JSON.stringify生成唯一的缓存key，当浏览器不支持JSON时，不再缓存
+var Ser = function(o, f, refArr, a) {
+    if (f) { //一定要先判断
+        if (IsFunction(o)) refArr.push(Ser(SafeExec(o)));
     } else if (WJSON) {
         a = WJSON.stringify(o);
-    } else if (IsObject(o) || IsArray(o)) {
-        a = [];
-        for (p in o) {
-            if (Has(o, p)) {
-                a.push(p, '\u001a', Ser(o[p]));
-            }
-        }
     } else {
-        a = o;
+        a = Now(); //不缓存
     }
     return a;
 };
@@ -59,15 +53,14 @@ var Ser = function(o, f, a, p) {
     a=['1','2,']
     b=['1','2','']
  */
-var DefaultCacheKey = function(keys, meta, attrs) {
-    var arr = [Ser(attrs)];
-    var locker = {};
-    for (var i = keys.length - 1, key; i > -1; i--) {
-        key = keys[i];
-        if (!locker[key]) {
-            arr.push(locker[key] = Ser(meta[key], 1), Ser(attrs[key], 1));
-        }
+var DefaultCacheKey = function(meta, attrs) {
+    var arr = [Ser(attrs), Ser(meta)];
+    for (var i = SerKeys.length - 1, key; i > -1; i--) {
+        key = SerKeys[i];
+        Ser(meta[key], 1, arr);
+        Ser(attrs[key], 1, arr);
     }
+    Ser(meta.key, 1, arr);
     return arr.join('\u001a');
 };
 var ProcessCache = function(attrs) {
@@ -92,17 +85,15 @@ var TError = function(e) {
  * @borrows Event.off as #off
  * @borrows Event.once as #once
  * @param {Model} modelClass Model类
- * @param {Array} serKeys 序列化生成cacheKey时，除了使用urlParams和formParams外，额外使用的key
  * @param {Integer} [cacheMax] 缓存最大值
  * @param {Integer} [cacheBuffer] 缓存缓存区大小
  */
-var Manager = function(modelClass, serKeys, cacheMax, cacheBuffer) {
+var Manager = function(modelClass, cacheMax, cacheBuffer) {
     var me = this;
     me.$mClz = modelClass;
     me.$mCache = Magix.cache(cacheMax, cacheBuffer);
     me.$mReqs = {};
     me.$mMetas = {};
-    me.$sKeys = (serKeys && (EMPTY + serKeys).split(COMMA) || []).concat(FormParams, UrlParams); // (serKeys ? (IsArray(serKeys) ? serKeys : [serKeys]) : []).concat('formParams', 'urlParams');
     me.id = 'mm' + COUNTER++;
 };
 
@@ -344,12 +335,11 @@ Mix(Manager, {
     /**
      * 创建Model类管理对象
      * @param {Model} modelClass Model类
-     * @param {Array} [serKeys] 序列化生成cacheKey时，除了使用urlParams和formParams外，额外使用的key
      * @param {Integer} [cacheMax] 缓存最大值
      * @param {Integer} [cacheBuffer] 缓存缓存区大小
      */
-    create: function(modelClass, serKeys, cacheMax, cacheBuffer) {
-        return new Manager(modelClass, serKeys, cacheMax, cacheBuffer);
+    create: function(modelClass, cacheMax, cacheBuffer) {
+        return new Manager(modelClass, cacheMax, cacheBuffer);
     }
 });
 
@@ -626,6 +616,7 @@ Mix(Mix(MP, Event), {
      * @param {Object} models.formParams 发起请求时，默认的form参数对象
      * @param {Boolean|Integer} models.cache 指定当前请求缓存多长时间,为true默认20分钟，可传入整数表示缓存多少毫秒
      * @param {Array} models.cleans 请求成功后，清除其它缓存的name数组
+     * @param {Function|Object} models.key 指定cache后，如果根据name,formParams,urlParams无法生成唯一的缓存key时，可额外指定的key
      * @param {Function} models.before model在开始请求前的回调
      * @param {Function} models.after model在结束请求，并且成功后回调
      */
@@ -769,7 +760,7 @@ Mix(Mix(MP, Event), {
             name: meta.name,
             after: meta.after,
             cls: meta.cleans,
-            key: cache && DefaultCacheKey(me.$sKeys, meta, modelAttrs)
+            key: cache && DefaultCacheKey(meta, modelAttrs)
         };
 
         if (modelAttrs.name) {
@@ -874,7 +865,7 @@ Mix(Mix(MP, Event), {
         var cache = ProcessCache(modelAttrs) || meta.cache;
 
         if (cache) {
-            cacheKey = DefaultCacheKey(me.$sKeys, meta, modelAttrs);
+            cacheKey = DefaultCacheKey(meta, modelAttrs);
         }
 
         if (cacheKey) {
