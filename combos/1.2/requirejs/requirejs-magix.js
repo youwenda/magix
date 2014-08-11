@@ -1993,16 +1993,7 @@ var GetSetAttribute = function(dom, attrKey, attrVal) {
     return attrVal;
 };
 
-var DOMEventWrap = function(id, html, onlyPrefix, prefix) {
-    html += EMPTY;
-    prefix = id + SPLITER;
-    if (onlyPrefix) {
-        html = [EMPTY].concat(html).join(Group + prefix);
-    } else {
-        html = html.replace(MxEvt, '$&' + prefix);
-    }
-    return html;
-};
+
 var DOMEventProcessor = function(e) {
     if (e && !e[ON]) {
         var target = e.target;
@@ -2262,39 +2253,6 @@ Mix(Mix(VProto, Event), {
      */
     render: NOOP,
     /**
-     * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^ftest<prevent>({key:'field})"，以方便识别交由哪个view处理
-     * @function
-     * @param {String} id 交由view处理的view id
-     * @param {String} html 处理的代码片断
-     * @param {Boolean} [onlyAddPrefix] 是否只添加前缀
-     * @return {String} 处理后的字符串
-     * @example
-     * View.extend({
-     *     'del&lt;click&gt;':function(e){
-     *         S.one('#'+e.currentId).remove();
-     *     },
-     *     'addNode&lt;click&gt;':function(e){
-     *         var tmpl='&lt;div mx-click="del"&gt;delete&lt;/div&gt;';
-     *         //因为tmpl中有mx-click，因此需要下面这行代码进行处理一次
-     *         tmpl=this.wrapEvent(this.id,tmpl);
-     *         S.one('#'+e.currentId).append(tmpl);
-     *     }
-     * });
-     *
-     * //或者：
-     * View.extend({
-     *     'del&lt;click&gt;':function(e){
-     *         S.one('#'+e.currentId).remove();
-     *     },
-     *     'addNode&lt;click&gt;':function(e){
-     *         var tmpl='&lt;div mx-click="'+this.wrapEvent(this.id,'del',true)+'"&gt;delete&lt;/div&gt;';
-     *         S.one('#'+e.currentId).append(tmpl);
-     *     }
-     * });
-     * //注意，只有动态添加的节点才需要处理
-     */
-    wrapEvent: DOMEventWrap,
-    /**
      * 调用magix/router的navigate方法
      * @function
      */
@@ -2357,6 +2315,47 @@ Mix(Mix(VProto, Event), {
      */
     //enableAnim:false,
     /**
+     * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^test<prevent>({key:'field})"，以方便识别交由哪个view处理
+     * @function
+     * @param {String} html 处理的代码片断
+     * @param {Boolean} [onlyAddPrefix] 是否只添加前缀
+     * @return {String} 处理后的字符串
+     * @example
+     * View.extend({
+     *     'del&lt;click&gt;':function(e){
+     *         S.one('#'+e.currentId).remove();
+     *     },
+     *     'addNode&lt;click&gt;':function(e){
+     *         var tmpl='&lt;div mx-click="del"&gt;delete&lt;/div&gt;';
+     *         //因为tmpl中有mx-click，因此需要下面这行代码进行处理一次
+     *         tmpl=this.wrapEvent(tmpl);
+     *         S.one('#'+e.currentId).append(tmpl);
+     *     }
+     * });
+     *
+     * //或者：
+     * View.extend({
+     *     'del&lt;click&gt;':function(e){
+     *         S.one('#'+e.currentId).remove();
+     *     },
+     *     'addNode&lt;click&gt;':function(e){
+     *         var tmpl='&lt;div mx-click="'+this.wrapEvent('del',true)+'"&gt;delete&lt;/div&gt;';
+     *         S.one('#'+e.currentId).append(tmpl);
+     *     }
+     * });
+     * //注意，只有动态添加的节点才需要处理
+     */
+    wrapEvent: function(html, onlyPrefix) {
+        html += EMPTY;
+        var prefix = this.id + SPLITER;
+        if (onlyPrefix) {
+            html = [EMPTY].concat(html).join(Group + prefix);
+        } else {
+            html = html.replace(MxEvt, '$&' + prefix);
+        }
+        return html;
+    },
+    /**
      * 加载view内容
      * @private
      */
@@ -2367,7 +2366,7 @@ Mix(Mix(VProto, Event), {
         // var tmplReady = Has(me, 'tmpl');
         var ready = function(tmpl) {
             if (hasTmpl) {
-                me.tmpl = DOMEventWrap(me.id, tmpl);
+                me.tmpl = me.wrapEvent(me.id, tmpl);
             }
             DelegateEvents(me);
             /*

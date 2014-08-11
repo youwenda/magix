@@ -25,7 +25,7 @@ KISSY.add('apiapp/mviews/partials/index', function(S, View, MM, Crox, Magix) {
                                     console.log(info, name, info.map[name]);
                                     var i = info.map[name];
                                     if (i) {
-                                        return i.get('desc');
+                                        return i.get('desc') || name;
                                     }
                                     return 'unfound';
                                 }
