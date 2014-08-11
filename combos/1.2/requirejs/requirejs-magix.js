@@ -2366,7 +2366,7 @@ Mix(Mix(VProto, Event), {
         // var tmplReady = Has(me, 'tmpl');
         var ready = function(tmpl) {
             if (hasTmpl) {
-                me.tmpl = me.wrapEvent(me.id, tmpl);
+                me.tmpl = me.wrapEvent(tmpl);
             }
             DelegateEvents(me);
             /*
