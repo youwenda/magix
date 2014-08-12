@@ -601,7 +601,6 @@ var Magix = {
      * 把列表转化成hash对象
      * @param  {Array} list 源数组
      * @param  {String} key  以数组中对象的哪个key的value做为hahs的key
-     * @param {Object} [value] 当list为简单数组时，map使用的value值，默认1
      * @return {Object}
      * @example
      * var map=Magix.toMap([1,2,3,5,6]);
@@ -610,13 +609,12 @@ var Magix = {
      * var map=Magix.toMap([{id:20},{id:30},{id:40}],'id');
      * //=>{20:{id:20},30:{id:30},40:{id:40}}
      */
-    toMap: function(list, key, value) {
-        var i, e, map = {}, l;
-        value = value || 1;
+    toMap: function(list, key) {
+        var i, e, map = {}, l, hasKey = arguments.length > 1;
         if (list && (l = list.length)) {
             for (i = 0; i < l; i++) {
                 e = list[i];
-                map[key ? e[key] : e] = key ? e : value;
+                map[hasKey ? e[key] : e] = hasKey ? e : (map[e] | 0) + 1; //对于简单数组，采用累加的方式，以方便知道有多少个相同的元素
             }
         }
         return map;
