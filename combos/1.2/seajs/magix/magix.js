@@ -424,7 +424,7 @@ var Magix = {
             R.on('!ul', V.loc);
             R.on('changed', V.loc);
 
-            me.use(Cfg.extensions, R.start);
+            me.use(Cfg.extensions || Cfg.exts, R.start);
         });
     },
     /**
