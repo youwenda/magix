@@ -12,12 +12,17 @@
     var Consts = {
         width: 500,
         height: 420,
+        canvasWidth: 480,
         canvasHeight: 350,
         moreInfoWidth: 240,
         titleHeight: 34,
         circleMargin: 6,
         maxDeepView: 4,
-        maxView: 5
+        maxView: 5,
+        managerCols: 5,
+        managerMargin: 5,
+        managerHeight: 40,
+        managerGroupSpace: 40
     };
     var Lines = [
         'FFC125',
@@ -31,6 +36,12 @@
         '4A4A4A',
         'EE7AE9'
     ];
+    var ManagerColors = {
+        cache: '#CC9966',
+        cleaned: '#99CCCC',
+        cleans: '#FF9999',
+        normal: '#CCCC99'
+    };
     var Heredoc = function(fn) {
         return (fn + '').replace(/^[\s\S]*?\/\*([\S\s]*)\*\/[\s\S]*?$/, '$1');
     };
@@ -73,7 +84,7 @@
                 .magix-helper .clearfix {
                     *zoom: 1;
                 }
-                #magix_helper_moreinfo{
+                #magix_helper_moreinfo,#magix_helper_manager_moreinfo{
                     position:absolute;
                     background-color:#eee;
                     padding:8px;
@@ -85,20 +96,24 @@
                     <ul class="clearfix">
                         <li class="fl p8 cp">VOM</li>
                         <li class="fl p8 cp">Tracer</li>
-                        <!--<li class="fl p8">Manager</li>
-                        <li class="fr p8 move" id="magix_helper_mover">※</li>-->
+                        <li class="fl p8 cp">Manager</li>
+                        <!--<li class="fr p8 move" id="magix_helper_mover">※</li>-->
                         <li class="fr p8 cp" id="magix_helper_min">︽</li>
                     </ul>
                     <div id="magix_helper_painter">
-                        <canvas width="{width}" height="{canvasHeight}" id="magix_helper_canvas"></canvas>
+                        <canvas width="{width}" height="{canvasHeight}" id="magix_helper_view_canvas"></canvas>
+                        <ul class="clearfix p8" id="magix_helper_view_total"></ul>
                     </div>
                     <div id="magix_helper_trancer" style="height:{canvasHeight}px;overflow:scroll;overflow-x:auto;display:none">
+                    </div>
+                    <div id="magix_helper_manager" style="height:{canvasHeight}px;overflow:scroll;overflow-x:auto;display:none">
+                        <canvas width="{canvasWidth}" height="{canvasHeight}" id="magix_helper_manager_canvas"></canvas>
+                        <ul class="clearfix p8" id="magix_helper_manager_total"></ul>
+                    </div>
+                    <div id="magix_helper_moreinfo">
 
                     </div>
-                    <ul class="clearfix" id="magix_helper_total">
-
-                    </ul>
-                    <div id="magix_helper_moreinfo">
+                    <div id="magix_helper_manager_moreinfo">
 
                     </div>
                 </div>
@@ -125,11 +140,40 @@
                </ul>
              */
         }),
+        moreManagerInfo: Heredoc(function() {
+            /*
+               <ul>
+                <li>
+                    <b>key:</b>{id}
+                </li>
+                <li>
+                    <b>url:</b>{url}
+                </li>
+                <li>
+                    <b>描述:</b>{desc}
+                </li>
+                <li>
+                    <b>缓存:</b>{cache}
+                </li>
+                <li>
+                    <b>清理缓存:</b>{cleans}
+                </li>
+                <li>
+                    <b>预处理:</b>{hasAfter}
+                </li>
+               </ul>
+             */
+        }),
         total: Heredoc(function() {
             /*
                 <li class="fl">共{total}个view</li>
                 <li class="fl ml5 red">{ex}</li>
                 <li class="fl ml5"><b>{suggest}</b></li>
+             */
+        }),
+        managerTotal: Heredoc(function() {
+            /*
+                <li class="fl">{groups}个接口文件，共{total}个接口</li>
              */
         }),
         setup: function() {
@@ -144,19 +188,36 @@
             UI.detachEvent();
             var moveTimer;
             var env = Helper.getEnv();
-            env.bind('magix_helper_canvas', 'mousemove', UI.$mousemove = function(e) {
+            env.bind('magix_helper_view_canvas', 'mousemove', UI.$mousemove = function(e) {
                 clearTimeout(moveTimer);
                 moveTimer = setTimeout(function() {
-                    var offset = env.getDOMOffset('magix_helper_canvas');
+                    var offset = env.getDOMOffset('magix_helper_view_canvas');
                     UI.onMousemove({
                         x: e.pageX - offset.left,
                         y: e.pageY - offset.top
                     });
                 }, 10);
             });
-            env.bind('magix_helper_canvas', 'mouseout', UI.$mouseout = function() {
+            env.bind('magix_helper_view_canvas', 'mouseout', UI.$mouseout = function() {
                 clearTimeout(moveTimer);
                 UI.onMousemove({
+                    x: -1,
+                    y: -1
+                });
+            });
+            env.bind('magix_helper_manager_canvas', 'mousemove', UI.$mangerMousemove = function(e) {
+                clearTimeout(moveTimer);
+                moveTimer = setTimeout(function() {
+                    var offset = env.getDOMOffset('magix_helper_manager_canvas');
+                    UI.onManagerMousemove({
+                        x: e.pageX - offset.left,
+                        y: e.pageY - offset.top
+                    });
+                }, 10);
+            });
+            env.bind('magix_helper_manager_canvas', 'mouseout', UI.$managerMouseout = function() {
+                clearTimeout(moveTimer);
+                UI.onManagerMousemove({
                     x: -1,
                     y: -1
                 });
@@ -185,10 +246,21 @@
                     node.style.display = 'block';
                     node = D.getElementById('magix_helper_trancer');
                     node.style.display = 'none';
+                    node = D.getElementById('magix_helper_manager');
+                    node.style.display = 'none';
                 } else if (e.target.innerHTML == 'Tracer') {
                     node = D.getElementById('magix_helper_painter');
                     node.style.display = 'none';
+                    node = D.getElementById('magix_helper_manager');
+                    node.style.display = 'none';
                     node = D.getElementById('magix_helper_trancer');
+                    node.style.display = 'block';
+                } else if (e.target.innerHTML == 'Manager') {
+                    node = D.getElementById('magix_helper_painter');
+                    node.style.display = 'none';
+                    node = D.getElementById('magix_helper_trancer');
+                    node.style.display = 'none';
+                    node = D.getElementById('magix_helper_manager');
                     node.style.display = 'block';
                 }
             });
@@ -212,8 +284,10 @@
         },
         detachEvent: function() {
             var env = Helper.getEnv();
-            env.unbind('magix_helper_canvas', 'mousemove', UI.$mousemove);
-            env.unbind('magix_helper_canvas', 'mouseup', UI.$mouseup);
+            env.unbind('magix_helper_view_canvas', 'mousemove', UI.$mousemove);
+            env.unbind('magix_helper_view_canvas', 'mouseout', UI.$mouseout);
+            env.unbind('magix_helper_manager_canvas', 'mousemove', UI.$managerMousemove);
+            env.unbind('magix_helper_manager_canvas', 'mouseout', UI.$managerMouseout);
             env.unbind('magix_helper_min', 'click', UI.$click);
             env.unbind('magix_helper_moreinfo', 'mouseoout', UI.$imouseout);
             env.unbind('magix_helper_moreinfo', 'mouseover', UI.$imouseover);
@@ -272,8 +346,41 @@
                 node.style.display = 'none';
             }, 150);
         },
+        showManagerMoreInfo: function(item) {
+            clearTimeout(UI.$hideManagerTimer);
+            var node = D.getElementById('magix_helper_manager_moreinfo');
+            node.style.display = 'block';
+            var left = Math.min(item.rect[0], Consts.width - Consts.moreInfoWidth);
+            node.style.left = left + 'px';
+            node.style.top = item.rect[1] + item.rect[3] + Consts.titleHeight - D.getElementById('magix_helper_manager').scrollTop + 'px';
+            node.innerHTML = UI.moreManagerInfo.replace(/\{(\w+)\}/g, function(m, v) {
+                switch (v) {
+                    case 'id':
+                        return item.id;
+                    default:
+                        return item[v];
+                }
+            });
+        },
+        hideManagerMoreInfo: function() {
+            var node = D.getElementById('magix_helper_manager_moreinfo');
+            UI.$hideManagerTimer = setTimeout(function() {
+                node.style.display = 'none';
+            }, 150);
+        },
+        showManagerTotal: function(tree) {
+            var node = D.getElementById('magix_helper_manager_total');
+            node.innerHTML = UI.managerTotal.replace(/\{(\w+)\}/g, function(m, v) {
+                switch (v) {
+                    case 'groups':
+                        return tree.groups.length;
+                    case 'total':
+                        return tree.total;
+                }
+            });
+        },
         showTotal: function(tree, extra) {
-            var node = D.getElementById('magix_helper_total');
+            var node = D.getElementById('magix_helper_view_total');
             node.innerHTML = UI.total.replace(/\{(\w+)\}/g, function(m, v) {
                 switch (v) {
                     case 'total':
@@ -295,7 +402,13 @@
                 }
             });
         },
+        updateManagerCanvasHeight: function(height) {
+            D.getElementById('magix_helper_manager_canvas').height = height | 0;
+        },
         onMousemove: function(e) {
+            console.log(e);
+        },
+        onManagerMousemove: function(e) {
             console.log(e);
         }
     };
@@ -330,7 +443,7 @@
                     one = g.$last;
                     dis = Math.pow(Math.pow(one.center.x - e.x, 2) + Math.pow(one.center.y - e.y, 2), 1 / 2);
                     if (dis > one.radius) {
-                        g.onHoverItme({
+                        g.onHoverItem({
                             item: one,
                             action: 'leave'
                         });
@@ -347,12 +460,51 @@
                         if (dis <= one.radius) {
                             if (g.$last != one) {
                                 g.$last = one;
-                                g.onHoverItme({
+                                g.onHoverItem({
                                     item: one,
                                     action: 'enter'
                                 });
                             }
                             break;
+                        }
+                    }
+                }
+            };
+        },
+        captureManagerItmes: function() {
+            var g = Graphics;
+            g.managerList = [];
+            delete g.$managerLast;
+
+            UI.onManagerMousemove = function(e) {
+                var loop, one, rect;
+                if (g.$managerLast) {
+                    one = g.$managerLast;
+                    rect = one.rect;
+                    if (e.x < rect[0] || e.y < rect[1] || e.x > (rect[0] + rect[2]) || e.y > (rect[1] + rect[3])) {
+                        g.onHoverManagerItem({
+                            item: one,
+                            action: 'leave'
+                        });
+                        delete g.$managerLast;
+                        loop = true;
+                    }
+                } else {
+                    loop = true;
+                }
+                if (loop) {
+                    for (var i = g.managerList.length - 1; i >= 0; i--) {
+                        one = g.managerList[i];
+                        rect = one.rect;
+                        if (e.x >= rect[0] && e.y >= rect[1] && e.x <= (rect[0] + rect[2]) && e.y <= (rect[1] + rect[3])) {
+                            if (g.$managerLast != one) {
+                                g.$managerLast = one;
+                                console.log(e, one);
+                                g.onHoverManagerItem({
+                                    item: one,
+                                    action: 'enter'
+                                });
+                            }
                         }
                     }
                 }
@@ -414,7 +566,7 @@
                     g = Graphics;
                 g.captureItmes();
                 var params = g.getBestParams(tree, width, height);
-                var ctx = D.getElementById('magix_helper_canvas').getContext('2d');
+                var ctx = D.getElementById('magix_helper_view_canvas').getContext('2d');
                 ctx.clearRect(0, 0, width, height);
                 var maxTextLen = (function() {
                     var len = 2;
@@ -502,13 +654,150 @@
                 UI.showTotal(tree, params);
             }
         },
-        onHoverItme: function(e) {
+        drawManagerTree: function(tree) {
+            console.log(tree);
+            var gs = Graphics;
+            gs.captureManagerItmes();
+            var height = Consts.managerMargin * (tree.rows + 1) + tree.rows * Consts.managerHeight + (Consts.managerGroupSpace + Consts.managerMargin) * tree.groups.length;
+            UI.updateManagerCanvasHeight(height);
+            var ctx = D.getElementById('magix_helper_manager_canvas').getContext('2d');
+            ctx.clearRect(0, 0, Consts.canvasWidth, height);
+            var top = Consts.managerMargin;
+            var managerWidth = ((Consts.canvasWidth - (1 + Consts.managerCols) * Consts.managerMargin) / Consts.managerCols) | 0;
+            var oneWidth = (function() {
+                ctx.font = 'normal 14px Arial';
+                var width = ctx.measureText('M').width;
+                return width;
+            })();
+            var drawRect = function(ctx, rect, one, pname) {
+                ctx.beginPath();
+                ctx.moveTo(rect[0], rect[1]);
+                ctx.fillStyle = one.color;
+                ctx.fillRect(rect[0], rect[1], rect[2], rect[3]);
+                //text
+                ctx.beginPath();
+                ctx.moveTo(rect[0], rect[1] + 10);
+                ctx.font = 'normal 14px Arial';
+                ctx.fillStyle = '#282828';
+                var id = one.id,
+                    tail;
+                while ((id.length - 3) * oneWidth > rect[2]) {
+                    id = id.slice(0, -1);
+                    tail = true;
+                }
+                if (tail) {
+                    id = id.slice(0, -3) + '...';
+                }
+                ctx.fillText(id, rect[0] + 5, rect[1] + 25);
+
+                one['package'] = pname;
+                one.rect = rect;
+                gs.managerList.push(one);
+            };
+            var draw = function(groups) {
+                for (var i = 0; i < groups.length; i++) {
+                    var g = groups[i];
+                    var left = Consts.managerMargin;
+                    var pad = false;
+                    ctx.beginPath();
+                    ctx.moveTo(left, top);
+                    ctx.font = 'normal 14px Arial';
+                    ctx.fillStyle = '#282828';
+                    ctx.fillText(g.name, left + 5, top + 25);
+                    top += Consts.managerGroupSpace;
+                    var u, one;
+                    var max = Math.max(g.maxLeft, g.maxRight);
+                    var maps = {};
+                    for (u = 0; u < max; u++) {
+                        var lo = g.cleans.left[u];
+                        var ro = g.cleans.right[u];
+                        if (lo) {
+                            drawRect(ctx, [left, top, 150, Consts.managerHeight], lo, g.name);
+                            maps[lo.id] = lo;
+                        }
+                        if (ro) {
+                            drawRect(ctx, [Consts.canvasWidth - Consts.managerMargin - 150, top, 150, Consts.managerHeight], ro, g.name);
+                            maps[ro.id] = ro;
+                        }
+                        top += Consts.managerMargin + Consts.managerHeight;
+                    }
+                    for (var p in maps) {
+                        one = maps[p];
+                        if (one.cleans) {
+                            var beginPos = {
+                                x: one.rect[0] + one.rect[2],
+                                y: one.rect[1] + (one.rect[3] / 2 | 0)
+                            };
+                            var a = (one.cleans + '').split(',');
+                            for (var x = a.length - 1; x >= 0; x--) {
+                                var endOne = maps[a[x]];
+                                var endPos = {
+                                    x: endOne.rect[0],
+                                    y: endOne.rect[1] + (endOne.rect[3] / 2 | 0)
+                                };
+                                console.log(beginPos, endPos);
+                                ctx.beginPath();
+
+                                ctx.moveTo(beginPos.x, beginPos.y); // 设置路径起点，坐标为(20,20)
+                                ctx.lineTo(endPos.x, endPos.y); // 绘制一条到(200,20)的直线
+                                ctx.lineWidth = 1.0; // 设置线宽
+                                ctx.strokeStyle = '#996699';
+                                ctx.stroke();
+                            }
+                        }
+                    }
+                    for (u = 0; u < g.caches.length; u++) {
+                        drawRect(ctx, [left, top, managerWidth, Consts.managerHeight], g.caches[u], g.name);
+                        if ((u + 1) % Consts.managerCols === 0) {
+                            left = Consts.managerMargin;
+                            top += Consts.managerMargin + Consts.managerHeight;
+                            pad = false;
+                        } else {
+                            left += managerWidth + Consts.managerMargin;
+                            pad = true;
+                        }
+                    }
+                    left = Consts.managerMargin;
+                    if (pad) {
+                        top += Consts.managerMargin + Consts.managerHeight;
+                    }
+                    for (u = 0; u < g.items.length; u++) {
+                        one = g.items[u];
+
+                        drawRect(ctx, [left, top, managerWidth, Consts.managerHeight], one, g.name);
+
+                        if ((u + 1) % Consts.managerCols === 0) {
+                            left = Consts.managerMargin;
+                            top += Consts.managerMargin + Consts.managerHeight;
+                            pad = false;
+                        } else {
+                            left += managerWidth + Consts.managerMargin;
+                            pad = true;
+                        }
+                    }
+                    left = Consts.managerMargin;
+                    if (pad) {
+                        top += Consts.managerGroupSpace;
+                    }
+                }
+            };
+            draw(tree.groups);
+            UI.showManagerTotal(tree);
+        },
+        onHoverItem: function(e) {
             var env = Helper.getEnv();
             var vom = env.getVOM();
             if (e.action == 'enter') {
                 UI.showMoreInfo(vom.get(e.item.id), e.item);
             } else {
                 UI.hideMoreInfo();
+            }
+        },
+        onHoverManagerItem: function(e) {
+            if (e.action == 'enter') {
+                UI.showManagerMoreInfo(e.item);
+            } else {
+                UI.hideManagerMoreInfo();
             }
         }
     };
@@ -522,6 +811,20 @@
         },
         getVOM: function() {
             return KISSY.require('magix/vom');
+        },
+        getMangerMods: function() {
+            var mods = KISSY.Env.mods;
+            var result = [];
+            for (var p in mods) {
+                var v = mods[p].exports || mods[p].value;
+                if (v && v.$mMetas && v.$mCache) {
+                    result.push({
+                        name: mods[p].name,
+                        exports: v
+                    });
+                }
+            }
+            return result;
         },
         isReady: function() {
             var magix = KISSY.Env.mods['magix/magix'];
@@ -580,6 +883,13 @@
                 type = KISSY.type(type);
             }
             return type;
+        },
+        hookAttachMod: function(callback) {
+            var old = KISSY.Loader.Utils.attachMod;
+            KISSY.Loader.Utils.attachMod = function() {
+                old.apply(KISSY.Loader.Utils, arguments);
+                callback();
+            };
         }
     };
     var Helper = {
@@ -641,6 +951,87 @@
             }
             tree.isolated = il;
             return tree;
+        },
+        getManagerTree: function(env) {
+            var managers = env.getMangerMods();
+            var result = [],
+                rows = 0,
+
+                cleansMap = {}, total = 0;
+            for (var i = 0; i < managers.length; i++) {
+                var m = managers[i];
+                var r = [];
+                var cleans = {
+                    left: [],
+                    right: []
+                };
+                var caches = [];
+                var counter = 0,
+                    maxLeft = 0,
+                    maxRight = 0,
+                    p, info;
+                for (p in m.exports.$mMetas) {
+                    info = m.exports.$mMetas[p];
+                    if (info.cleans) {
+                        var a = (info.cleans + '').split(',');
+                        for (var j = 0; j < a.length; j++) {
+                            cleansMap[a[j]] = p;
+                        }
+                    }
+                }
+                for (p in m.exports.$mMetas) {
+                    info = m.exports.$mMetas[p];
+                    var c = ManagerColors.normal;
+                    var ti = {
+                        id: p,
+                        color: c,
+                        url: info.url || info.uri,
+                        cache: ((info.cache || info.cacheTime | 0) / 1000) + 'sec',
+                        desc: info.desc || '',
+                        cleans: info.cleans || '',
+                        cleaned: cleansMap[p] || '',
+                        hasAfter: !! info.after
+                    };
+                    if (info.cleans) {
+                        c = ManagerColors.cleans;
+                        ti.color = c;
+                        cleans.left.push(ti);
+                        maxLeft++;
+                    } else if (cleansMap[p]) {
+                        c = ManagerColors.cleaned;
+                        ti.color = c;
+                        cleans.right.push(ti);
+                        maxRight++;
+                    } else {
+                        if (info.cache || info.cacheTime) {
+                            c = ManagerColors.cache;
+                            ti.color = c;
+                            caches.push(ti);
+                        } else {
+                            r.push(ti);
+                            counter++;
+                        }
+                    }
+                    total++;
+                }
+                rows += Math.ceil(counter / Consts.managerCols);
+                rows += Math.max(maxLeft, maxRight);
+                rows += Math.ceil(caches.length / Consts.managerCols);
+                result.push({
+                    name: m.name,
+                    rows: rows,
+                    cleans: cleans,
+                    caches: caches,
+                    maxLeft: maxLeft,
+                    maxRight: maxRight,
+                    items: r
+                });
+            }
+            return {
+                groups: result,
+                rows: rows,
+                total: total
+            };
         },
         prepare: function(callback) {
             var env = Helper.getEnv();
@@ -718,6 +1109,17 @@
                     rootVf.on('created', drawTree);
                 }
                 drawTree();
+
+                var managerTimer;
+                var drawManagerTree = function() {
+                    clearTimeout(managerTimer);
+                    managerTimer = setTimeout(function() {
+                        var tree = Helper.getManagerTree(env);
+                        Graphics.drawManagerTree(tree);
+                    }, 500);
+                };
+                env.hookAttachMod(drawManagerTree);
+                drawManagerTree();
             });
         }
     };
