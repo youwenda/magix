@@ -29,11 +29,11 @@ var Created = 'created';
 var RootVframe;
 var GlobalAlter;
 var StrObject = 'object';
-var $ = function(id) {
+var GetById = function(id) {
     return typeof id == StrObject ? id : document.getElementById(id);
 };
-var $$ = function(id, node, arr) {
-    node = $(id);
+var GetByTagName = function(id, node, arr) {
+    node = GetById(id);
     if (node) {
         arr = UseQSA ? document[QSA]('#' + IdIt(node) + Selector) : node.getElementsByTagName(TagName);
     }
@@ -42,8 +42,8 @@ var $$ = function(id, node, arr) {
 
 
 var NodeIn = function(a, b, r) {
-    a = $(a);
-    b = $(b);
+    a = GetById(a);
+    b = GetById(b);
     if (a && b) {
         if (a !== b) {
             try {
@@ -117,7 +117,7 @@ Vframe.root = function(owner, refLoc, refChged) {
         RefVOM = owner;
 
         var rootId = MxConfig.rootId;
-        var e = $(rootId);
+        var e = GetById(rootId);
         if (!e) {
             e = document.createElement(TagName);
             e.id = rootId;
@@ -141,7 +141,7 @@ Mix(Mix(Vframe.prototype, Event), {
      */
     mountView: function(viewPath, viewInitParams, keepPreHTML) {
         var me = this;
-        var node = $(me.id);
+        var node = GetById(me.id);
         if (!me._a && node) {
             me._a = 1;
             me._t = node.innerHTML; //.replace(ScriptsReg, '');
@@ -162,7 +162,7 @@ Mix(Mix(Vframe.prototype, Event), {
                     var view = new View({
                         owner: me,
                         id: me.id,
-                        $: $,
+                        $: GetById,
                         $i: NodeIn,
                         path: vn,
                         vom: RefVOM,
@@ -177,7 +177,7 @@ Mix(Mix(Vframe.prototype, Event), {
                             if (node) {
                                 node.innerHTML = me._t;
                             }
-                            mountZoneVframes($);
+                            mountZoneVframes(GetById);
                         }
                         view.on('primed', function() {
                             me.viewPrimed = 1;
@@ -213,7 +213,7 @@ Mix(Mix(Vframe.prototype, Event), {
             me.view = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZoneVframes方法引起的多次created
             view.oust();
 
-            var node = $(me.id);
+            var node = GetById(me.id);
             if (node && me._a && !keepPreHTML) {
                 node.innerHTML = me._t;
             }
@@ -273,7 +273,7 @@ Mix(Mix(Vframe.prototype, Event), {
         zoneId = zoneId || me.id;
         me.unmountZoneVframes(zoneId, keepPreHTML, 1);
 
-        var vframes = $$(zoneId);
+        var vframes = GetByTagName(zoneId);
         var count = vframes.length;
         var subs = {};
 
@@ -288,7 +288,7 @@ Mix(Mix(Vframe.prototype, Event), {
 
                     if (mxBuild || mxView) {
                         me.mountVframe(key, mxView, viewInitParams, cancelTriggerEvent, keepPreHTML);
-                        var svs = $$(vframe);
+                        var svs = GetByTagName(vframe);
                         for (var j = 0, c = svs.length, temp; j < c; j++) {
                             temp = svs[j];
                             subs[IdIt(temp)] = 1;
@@ -360,6 +360,13 @@ Mix(Mix(Vframe.prototype, Event), {
             vf = RefVOM.get(vf.pId);
         }
         return vf;
+    },
+    /**
+     * 获取当前vframe的所有子vframe的id。返回数组中，id在数组中的位置并不固定
+     * @return {Array}
+     */
+    children: function() {
+        return Magix.keys(this.cM);
     },
     /**
      * 调用view的方法
@@ -445,30 +452,30 @@ Mix(Mix(Vframe.prototype, Event), {
              * @type {Object}
              * @ignore
              */
-            var args = {
+            /*var args = {
                 location: RefLoc,
-                changed: RefChged,
+                changed: RefChged,*/
                 /**
                  * 阻止向所有的子view传递
                  * @ignore
                  */
-                prevent: function() {
-                    this.cs = EmptyArr;
-                },
+               /* prevent: function() {
+                    args.cs = EmptyArr;
+                },*/
                 /**
                  * 向特定的子view传递
                  * @param  {Array} c 子view数组
                  * @ignore
                  */
-                to: function(c) {
+                /*to: function(c) {
                     c = (c + EMPTY).split(COMMA);
-                    this.cs = c || EmptyArr;
+                    args.cs = c;
                 }
-            };
+            };*/
             if (isChanged) { //检测view所关注的相应的参数是否发生了变化
-                view.render(args);
+                view.render(RefChged);
             }
-            var cs = args.cs || Magix.keys(me.cM);
+            var cs = me.children();
             //
             for (var i = 0, j = cs.length, vf; i < j; i++) {
                 vf = RefVOM.get(cs[i]);
