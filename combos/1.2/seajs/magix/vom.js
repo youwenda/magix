@@ -72,7 +72,6 @@ var VOM = Magix.mix({
      * 向vframe通知地址栏发生变化
      * @param {Object} e 事件对象
      * @param {Object} e.location window.location.href解析出来的对象
-     * @param {Object} e.changed 包含有哪些变化的对象
      * @private
      */
     loc: function(e) {
@@ -85,7 +84,7 @@ var VOM = Magix.mix({
         }
         Mix(Loc, loc);
         if (!hack) {
-            Mix(Chged, e.changed);
+            Mix(Chged, e);
             var vf = Vframe.root(VOM, Loc, Chged);
             if (Chged.view) {
                 vf.mountView(loc.view);

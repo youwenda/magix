@@ -293,11 +293,10 @@ var Router = Mix({
         LLoc = location;
         if (changed[0]) {
             TLoc = location;
-            Router.fire('changed', {
-                location: location,
-                changed: changed[1],
-                force: firstFire
-            });
+            changed = changed[1];
+            changed.force = firstFire;
+            changed.location = location;
+            Router.fire('changed', changed);
         }
     },
     /**
@@ -400,8 +399,13 @@ var Router = Mix({
      * @name Router.changed
      * @event
      * @param {Object} e 事件对象
+     * @param {Function} e.isPath 检测是否是path发生的改变
+     * @param {Function} e.isView 检测是否是view发生的改变
+     * @param {Function} e.isParam 检测是否是某个参数发生的改变
+     * @param {Object} e.path  如果path发生改变时，记录从(from)什么值变成(to)什么值的对象
+     * @param {Object} e.view 如果view发生改变时，记录从(from)什么值变成(to)什么值的对象
+     * @param {Object} e.params 如果参数发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Object} e.location 地址解析出来的对象，包括query hash 以及 query和hash合并出来的params等
-     * @param {Object} e.changed 有哪些值发生改变的对象，可通过读取该对象下面的path,view或params，来识别值是从(from)什么值变成(to)什么值
      * @param {Boolean} e.force 标识是否是第一次强制触发的changed，对于首次加载完Magix，会强制触发一次changed
      */
 
