@@ -1487,7 +1487,7 @@ Mix(Mix(Vframe.prototype, Event), {
         }
         //var useTurnaround=me.viewInited&&me.useAnimUpdate();
         me.unmountView(keepPreHTML);
-
+        me._d = 0;
         if (viewPath) {
             me.path = viewPath;
             var po = Magix.toObject(viewPath);
@@ -1545,6 +1545,7 @@ Mix(Mix(Vframe.prototype, Event), {
             if (!GlobalAlter) {
                 GlobalAlter = {};
             }
+            me._d = 1;
             me.unmountZoneVframes(0, keepPreHTML, 1);
             me.cAlter(GlobalAlter);
 
@@ -1680,7 +1681,7 @@ Mix(Mix(Vframe.prototype, Event), {
                 me.unmountVframe(p, keepPreHTML, hasVframe = 1);
             }
         }
-        if (!inner) {
+        if (!inner && !me._d) {
             me.cCreated();
         }
         return hasVframe;
