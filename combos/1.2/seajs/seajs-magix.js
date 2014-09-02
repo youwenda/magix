@@ -3,8 +3,8 @@
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.2
  **/
-LIB('magix/magix', function() {
-
+LIB('magix/magix', function(require) {
+    var $ = require('jquery');
     var Include = function(path, mxext) {
         var mPath = seajs.data.paths[mxext ? 'mxext' : 'magix'];
         var url = mPath + path + ".js?r=" + Math.random() + '.js';
@@ -634,7 +634,6 @@ var Magix = {
      */
     cache: Cache
 };
-    var ToString = Object.prototype.toString;
     var T = function() {};
     return Mix(Magix, {
         
@@ -647,8 +646,11 @@ var Magix = {
         },
         _a: $.isArray,
         _f: $.isFunction,
+        _s: function(o) {
+            return $.type(o) == 'string';
+        },
         _o: function(o) {
-            return ToString.call(o) == '[object Object]';
+            return $.type(o) == 'object';
         },
         /* isRegExp: function(r) {
             return ToString.call(r) == '[object RegExp]';
@@ -815,6 +817,7 @@ Magix.mix(Magix.local, Event);
 LIB('magix/router', function(require) {
     var Magix = require("./magix");
     var Event = require("./event");
+    var $ = require('jquery');
     //todo dom event;
     var EMPTY = '';
 var PATH = 'path';
@@ -839,7 +842,7 @@ var TrimHashReg = /(?:^https?:\/\/[^\/]+|#.*$)/gi,
     TrimQueryReg = /^[^#]*#?!?/;
 var PARAMS = 'params';
 var UseEdgeHistory;
-var SupportState, HashAsNativeHistory, ReadLocSrc;
+var SupportAndUseState, HashAsNativeHistory, ReadLocSrc;
 
 var IsParam = function(params, r, ps) {
     if (params) {
@@ -928,7 +931,9 @@ var GetChged = function(oldLocation, newLocation) {
         result = {
             isParam: IsParam,
             isPath: IsPath,
-            isView: IsView
+            isView: IsView,
+            location: newLocation,
+            force: !oldLocation.get //是否强制触发的changed，对于首次加载会强制触发一次
         };
         result[VIEW] = to;
         result[PATH] = to;
@@ -975,13 +980,7 @@ var Router = Mix({
      * @lends Router
      */
     /**
-     * 使用history state做为改变url的方式来保存当前页面的状态
-     * @function
-     * @private
-     */
-    
-    /**
-     * 使用hash做为改变url的方式来保存当前页面的状态
+     * 绑定事件
      * @function
      * @private
      */
@@ -996,16 +995,12 @@ var Router = Mix({
          */
         UseEdgeHistory = MxConfig.edge;
 
-        SupportState = UseEdgeHistory && WinHistory.pushState;
-        HashAsNativeHistory = UseEdgeHistory && !SupportState;
+        SupportAndUseState = UseEdgeHistory && WinHistory.pushState;
+        HashAsNativeHistory = UseEdgeHistory && !SupportAndUseState;
 
-        ReadLocSrc = SupportState ? 'srcQuery' : 'srcHash';
+        ReadLocSrc = SupportAndUseState ? 'srcQuery' : 'srcHash';
 
-        if (SupportState) {
-            Router.useState();
-        } else {
-            Router.useHash();
-        }
+        Router.bind(SupportAndUseState);
         Router.route(); //页面首次加载，初始化整个页面
     },
 
@@ -1100,15 +1095,11 @@ var Router = Mix({
      */
     route: function() {
         var location = Router.parse(0, 1);
-        var firstFire = !LLoc.get; //是否强制触发的changed，对于首次加载会强制触发一次
         var changed = GetChged(LLoc, location);
         LLoc = location;
         if (changed[0]) {
             TLoc = location;
-            changed = changed[1];
-            changed.force = firstFire;
-            changed.location = location;
-            Router.fire('changed', changed);
+            Router.fire('changed', changed[1]);
         }
     },
     /**
@@ -1169,9 +1160,7 @@ var Router = Mix({
             tPath = ToUrl(temp[PATH] = tPath, tParams, UseEdgeHistory ? PATH : querys); //hash需要保留query中的空白值参数
 
             if (tPath != TLoc[ReadLocSrc]) {
-
-                if (SupportState) { //如果使用pushState
-                    Router.poped = 1;
+                if (SupportAndUseState) { //如果使用pushState
                     WinHistory[replace ? 'replaceState' : 'pushState'](EMPTY, EMPTY, tPath);
                     Router.route();
                 } else {
@@ -1202,6 +1191,8 @@ var Router = Mix({
                         WinLoc.hash = tPath;
                     }
                 }
+
+                Router.did = 1;
             }
         }
     }
@@ -1222,18 +1213,18 @@ var Router = Mix({
      */
 
 }, Event);
-    Router.useState = function() {
-        var me = Router,
-            initialURL = location.href;
-        $(window).on('popstate', function(e) {
-            var equal = location.href == initialURL;
-            if (!me.poped && equal) return;
-            me.poped = 1;
-            me.route();
-        });
-    };
-    Router.useHash = function() { //extension impl change event
-        $(window).on('hashchange', Router.route);
+    Router.bind = function(useState) {
+        var initialURL = location.href;
+        if (useState) {
+            $(window).on('popstate', function(e) {
+                var equal = location.href == initialURL;
+                if (!Router.did && equal) return;
+                Router.did = 1;
+                Router.route();
+            });
+        } else {
+            $(window).on('hashchange', Router.route);
+        }
     };
     return Router;
 });
@@ -1893,6 +1884,7 @@ LIB('magix/view', function(require) {
     var Magix = require("./magix");
     var Event = require("./event");
     var Router = require("./router");
+    var $ = require('jquery');
     var Delegates = {
         focus: 2,
         blur: 2,
@@ -1932,10 +1924,8 @@ var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(({[\s\S]*})\))?/;
 var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
 
 var RootEvents = {};
-var MxIgnore = 'mx-ei';
 var RootNode = DOCUMENT.body;
 var ParentNode = 'parentNode';
-var TypesRegCache = {};
 var MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 var ON = 'on';
 
@@ -1959,7 +1949,7 @@ var DestroyAllManaged = function(me, lastly) {
         p, c;
     for (p in cache) {
         c = cache[p];
-        if (lastly || c.mr) {
+        if (lastly || c.x) {
             DestroyIt(cache, p, 1);
         }
     }
@@ -1975,7 +1965,7 @@ var DestroyIt = function(cache, key, lastly) {
         if (fn) {
             SafeExec(fn, EMPTY_ARRAY, res);
         }
-        if (!o.hk || lastly) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
+        if (!o.k || lastly) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
             delete cache[key];
         }
     }
@@ -2000,15 +1990,6 @@ var DelegateEvents = function(me, destroy) {
     }
 };
 
-var GetSetAttribute = function(dom, attrKey, attrVal) {
-    if (attrVal) {
-        dom.setAttribute(attrKey, attrVal);
-    } else {
-        attrVal = dom.getAttribute(attrKey);
-    }
-    return attrVal;
-};
-
 
 var DOMEventProcessor = function(e) {
     if (e && !e[ON]) {
@@ -2016,7 +1997,6 @@ var DOMEventProcessor = function(e) {
         e[ON] = 1;
         var current = target;
         var eventType = e.type;
-        var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(COMMA + eventType + '(?:,|$)'));
         var type = 'mx-' + eventType;
         var info;
         var ignore;
@@ -2024,9 +2004,8 @@ var DOMEventProcessor = function(e) {
         var node;
 
         while (current && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点
-            info = GetSetAttribute(current, type);
-            ignore = GetSetAttribute(current, MxIgnore); //current.getAttribute(MxIgnore);
-            if (info || eventReg.test(ignore)) {
+            ignore = current.ei;
+            if ((ignore && ignore[eventType]) || (info = current.getAttribute(type))) {
                 break;
             } else {
                 arr.push(current);
@@ -2049,7 +2028,7 @@ var DOMEventProcessor = function(e) {
                         vfs = VOM.all();
                         while (begin) {
                             if (Has(vfs, tempId = begin.id)) {
-                                GetSetAttribute(current, type, (vId = tempId) + SPLITER + info);
+                                current.setAttribute(type, (vId = tempId) + SPLITER + info);
                                 break;
                             }
                             begin = begin[ParentNode];
@@ -2093,11 +2072,8 @@ var DOMEventProcessor = function(e) {
         } else {
             while (arr.length) {
                 node = arr.pop();
-                ignore = GetSetAttribute(node, MxIgnore) || ON;
-                if (!eventReg.test(ignore)) {
-                    ignore = ignore + COMMA + eventType;
-                    GetSetAttribute(node, MxIgnore, ignore);
-                }
+                ignore = node.ei || (node.ei = {});
+                ignore[eventType] = 1;
             }
             node =NULL;
         }
@@ -2205,12 +2181,12 @@ View.prepare = function(oView, vom) {
                             h: node,
                             f: old
                         });
-                    } else {
+                    } else if (!prop[node = name + SPLITER + temp]) {
                         revts[temp] = 1;
-                        prop[name + SPLITER + temp] = old;
+                        prop[node] = old;
                     }
                 }
-            } else if (p == 'render' && old != NOOP) {
+            } else if (p == 'render') {
                 prop[p] = WrapFn(old);
             }
         }
@@ -2635,6 +2611,7 @@ Mix(Mix(VProto, Event), {
      * 让view帮你管理资源，强烈建议对组件等进行托管
      * @param {String} [key] 资源标识key
      * @param {Object} res 要托管的资源
+     * @param {Boolean} [destroyWhenCallRender] 当view的render方法调用时，是否销毁资源
      * @return {Object} 返回传入的资源
      * @example
      * init:function(){
@@ -2659,25 +2636,25 @@ Mix(Mix(VProto, Event), {
      *      _self.manage(m);
      * }
      */
-    manage: function(key, res) {
+    manage: function(key, res, destroyWhenCallRender) {
         var me = this;
-        var len = arguments.length;
-        var hk = 1;
-
+        var k = 1;
         var cache = me.$res;
-        if (len == 1) {
+        if (key && !Magix._s(key)) {
+            destroyWhenCallRender = res;
             res = key;
             key = EMPTY;
         }
-        if (key) DestroyIt(cache, key);
-        if (!key) {
-            hk = 0;
+        if (key) {
+            DestroyIt(cache, key);
+        } else {
+            k = 0;
             key = 'res_' + (ResCounter++);
         }
         var wrapObj = {
-            hk: hk,
+            k: k,
             e: res,
-            mr: res && res[SPLITER] == SPLITER
+            x: destroyWhenCallRender
         };
         cache[key] = wrapObj;
         return res;
@@ -3031,6 +3008,10 @@ Mix(Mix(VProto, Event), {
     };
     View.extend = function(props, statics, ctor) {
         var me = this;
+        if (Magix._f(statics)) {
+            ctor = statics;
+            statics =NULL;
+        }
         var BaseView = function(a) {
             me.call(this, a);
             if (ctor) {
@@ -3302,42 +3283,15 @@ Magix.mix(Model.prototype, {
      */
     request: function(callback, options) {
         var me = this;
-        if (!me.$ost) {
-            var temp = function(err, data) {
-                if (!me.$ost) {
-                    //if (err) {
-                    // callback(err, data, options);
-                    //} else {
-                    if (!IsObject(data)) {
-                        data = {
-                            data: data
-                        };
-                    }
-                    me.set(data);
-                    //}
-                    me.$temp = 0;
-                    callback(err, options);
-                }
-            };
-            me.$tspt = me.sync(me.$temp = temp);
-        }
-    },
-    /**
-     * 中止请求
-     */
-    destroy: function() {
-        var me = this;
-        var tspt = me.$tspt;
-        var fn = me.$temp;
-        if (fn) {
-            fn('abort');
-            me.$temp = 0;
-        }
-        me.$ost = 1;
-        if (tspt && tspt.abort) {
-            tspt.abort();
-        }
-        me.$tspt = 0;
+        me.sync(function(err, data) {
+            if (!IsObject(data)) {
+                data = {
+                    data: data
+                };
+            }
+            me.set(data);
+            callback(err, options);
+        });
     }
 });
     Model.extend = function(props, statics, ctor) {
@@ -3380,7 +3334,6 @@ LIB("magix/manager", function(require) {
 var SafeExec = Magix.tryCall;
 var IsArray = Magix._a;
 var IsFunction = Magix._f;
-var IsObject = Magix._o;
 
 var FetchFlags_ONE = 1;
 var FetchFlags_ORDER = 2;
@@ -3465,7 +3418,6 @@ var Request = function(host) {
     var me = this;
     me.$host = host;
     me.$reqs = {};
-    me[SPLITER] = SPLITER;
     me.sign = 1;
     me.id = 'mr' + COUNTER++;
     me.$queue = [];
@@ -3475,9 +3427,10 @@ var Slice = [].slice;
 
 
 var WrapDone = function(fn, model, idx, ops) {
-    return function(err) {
-        return fn.apply(model, [idx, ops, err]);
+    var t = function(err) {
+        return fn.apply(model, [idx, ops, err, t.ost]);
     };
+    return t;
 };
 var CacheDone = function(err, ops) {
     //
@@ -3490,7 +3443,7 @@ var CacheDone = function(err, ops) {
         SafeExec(fns, err, cached.e);
     }
 };
-var DoneFn = function(idx, ops, err) {
+var DoneFn = function(idx, ops, err, ost) {
     //
     var model = this;
     var request = ops.a;
@@ -3547,7 +3500,7 @@ var DoneFn = function(idx, ops, err) {
             newModel = 1;
         }
     }
-    if (!request.$ost) { //销毁，啥也不做
+    if (!request.$ost && !ost) { //销毁，啥也不做
         if (flag == FetchFlags_ONE) { //如果是其中一个成功，则每次成功回调一次
             var m = doneIsArray ? done[idx] : done;
             if (m) {
@@ -3583,12 +3536,13 @@ var DoneFn = function(idx, ops, err) {
             request.$busy = 0;
             request.doNext(doneArgs);
         }
-        if (newModel) {
-            host.fire('finish', {
-                msg: err,
-                model: model
-            });
-        }
+
+    }
+    if (newModel) {
+        host.fire('finish', {
+            msg: err,
+            model: model
+        });
     }
 };
 /**
@@ -3601,6 +3555,7 @@ var DoneFn = function(idx, ops, err) {
  * @return {Request}
  */
 var Send = function(me, models, done, flag, save) {
+    if (me.$ost) return me;
     if (me.$busy) {
         return me.next(function() {
             Send(this, models, done, flag, save);
@@ -3843,48 +3798,7 @@ Mix(Request.prototype, {
      */
     fetchOne: GenRequestMethod(FetchFlags_ONE),
     /**
-     * 中止所有model的请求
-     * 注意：调用该方法后会中止请求，并调用回调传递abort异常消息
-     */
-    stop: function() {
-        var me = this;
-        clearTimeout(me.$ntId);
-        var host = me.$host;
-        var reqs = me.$reqs;
-        var modelsCacheKeys = host.$mReqs;
-        for (var p in reqs) {
-            var m = reqs[p];
-            var cacheKey = m.$mm.key,
-                nfns = [],
-                rfns = [],
-                cache, fns;
-            if (cacheKey && Has(modelsCacheKeys, cacheKey)) {
-                cache = modelsCacheKeys[cacheKey];
-                fns = cache.q;
-                for (var i = 0, fn; i < fns.length; i++) {
-                    fn = fns[i];
-                    if (fn.id != me.id) {
-                        nfns.push(fn); //仍然保留
-                    } else {
-                        rfns.push(fn); //需要中止
-                    }
-                }
-            }
-            //
-            if (nfns.length) {
-                SafeExec(rfns, 'abort', cache.e); //model并未中止，需要手动触发
-                cache.q = nfns;
-            } else {
-                m.destroy();
-            }
-        }
-
-        me.$reqs = {};
-        me.$queue = [];
-        me.$busy = 0;
-    },
-    /**
-     * 前一个fetchX或saveX任务做完后的下一个任务
+     * 前一个fetchX或save任务做完后的下一个任务
      * @param  {Function} callback 当前面的任务完成后调用该回调
      * @return {Request}
      * @example
@@ -3902,8 +3816,10 @@ Mix(Request.prototype, {
      */
     next: function(callback) {
         var me = this;
-        me.$queue.push(callback);
-        me.doNext(me.$args);
+        if (!me.$ost) {
+            me.$queue.push(callback);
+            me.doNext(me.$args);
+        }
         return me;
     },
     /**
@@ -3933,7 +3849,7 @@ Mix(Request.prototype, {
      */
     doNext: function(preArgs) {
         var me = this;
-        if (!me.$busy) {
+        if (!me.$busy && !me.$ost) {
             me.$busy = 1;
             var sign = ++me.sign;
             me.$ntId = setTimeout(function() { //前面的任务可能从缓存中来，执行很快
@@ -3952,12 +3868,33 @@ Mix(Request.prototype, {
         }
     },
     /**
-     * 销毁当前请求，与stop的区别是：stop后还可以继续发起新请求，而destroy后则不可以，而且不再调用相应的回调
+     * 销毁当前请求，不可以继续发起新请求，而且不再调用相应的回调
      */
     destroy: function() {
         var me = this;
         me.$ost = 1;
-        me.stop();
+        clearTimeout(me.$ntId);
+        var host = me.$host;
+        var reqs = me.$reqs;
+        var modelsCacheKeys = host.$mReqs;
+        for (var p in reqs) {
+            var m = reqs[p];
+            var cacheKey = m.$mm.key,
+                cache, fns;
+            if (cacheKey && Has(modelsCacheKeys, cacheKey)) {
+                cache = modelsCacheKeys[cacheKey];
+                fns = cache.q;
+                for (var i = 0, fn; i < fns.length; i++) {
+                    fn = fns[i];
+                    if (fn.id == me.id) { //记录销毁
+                        fn.ost = 1;
+                    }
+                }
+            }
+        }
+        me.$reqs = {};
+        me.$queue = [];
+        me.$busy = 0;
     }
 });
 var MP = Manager.prototype;
@@ -4183,10 +4120,11 @@ Mix(Mix(MP, Event), {
      * 创建Request对象
      * @param {View} view 传递View对象，托管Request
      * @param {String} [key] 托管到view时的资源key，同名key会自动销毁前一个
+     * @param {Boolean} [destroyWhenViewCallRender] view的render方法被调用时，是否销毁这个request，默认true
      * @return {Request} 返回Request对象
      */
-    createRequest: function(view, key) {
-        return view.manage(key, new Request(this));
+    createRequest: function(view, key, destroyWhenViewCallRender) {
+        return view.manage(key, new Request(this), arguments.length < 3 || destroyWhenViewCallRender);
     },
     /**
      * 根据name清除缓存的models
@@ -4276,4 +4214,4 @@ Mix(Mix(MP, Event), {
  * @param {Model} e.model model对象
  */
     return Manager;
-});;DOCUMENT.createElement("vframe");})(null,this,document,function(){},"\u001f","",",",define)
+});;DOCUMENT.createElement("vframe");})(null,this,document,function(){},"\u001f","",",",define);

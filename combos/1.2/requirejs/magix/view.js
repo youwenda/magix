@@ -3,7 +3,7 @@
  * @author 行列
  * @version 1.2
  */
-define('magix/view', ["magix/magix", "magix/event", "magix/router"], function(Magix, Event, Router) {
+define('magix/view', ["magix/magix", "magix/event", "magix/router", 'jquery'], function(Magix, Event, Router, $) {
 
     var Delegates = {
         focus: 2,
@@ -44,10 +44,8 @@ var EvtInfoReg = /(\w+)(?:<(\w+)>)?(?:\(({[\s\S]*})\))?/;
 var EvtMethodReg = /([$\w]+)<([\w,]+)>/;
 
 var RootEvents = {};
-var MxIgnore = 'mx-ei';
 var RootNode = document.body;
 var ParentNode = 'parentNode';
-var TypesRegCache = {};
 var MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 var ON = 'on';
 
@@ -71,7 +69,7 @@ var DestroyAllManaged = function(me, lastly) {
         p, c;
     for (p in cache) {
         c = cache[p];
-        if (lastly || c.mr) {
+        if (lastly || c.x) {
             DestroyIt(cache, p, 1);
         }
     }
@@ -87,7 +85,7 @@ var DestroyIt = function(cache, key, lastly) {
         if (fn) {
             SafeExec(fn, EMPTY_ARRAY, res);
         }
-        if (!o.hk || lastly) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
+        if (!o.k || lastly) { //如果托管时没有给key值，则表示这是一个不会在其它方法内共享托管的资源，view刷新时可以删除掉
             delete cache[key];
         }
     }
@@ -112,15 +110,6 @@ var DelegateEvents = function(me, destroy) {
     }
 };
 
-var GetSetAttribute = function(dom, attrKey, attrVal) {
-    if (attrVal) {
-        dom.setAttribute(attrKey, attrVal);
-    } else {
-        attrVal = dom.getAttribute(attrKey);
-    }
-    return attrVal;
-};
-
 
 var DOMEventProcessor = function(e) {
     if (e && !e[ON]) {
@@ -128,7 +117,6 @@ var DOMEventProcessor = function(e) {
         e[ON] = 1;
         var current = target;
         var eventType = e.type;
-        var eventReg = TypesRegCache[eventType] || (TypesRegCache[eventType] = new RegExp(COMMA + eventType + '(?:,|$)'));
         var type = 'mx-' + eventType;
         var info;
         var ignore;
@@ -136,9 +124,8 @@ var DOMEventProcessor = function(e) {
         var node;
 
         while (current && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点
-            info = GetSetAttribute(current, type);
-            ignore = GetSetAttribute(current, MxIgnore); //current.getAttribute(MxIgnore);
-            if (info || eventReg.test(ignore)) {
+            ignore = current.ei;
+            if ((ignore && ignore[eventType]) || (info = current.getAttribute(type))) {
                 break;
             } else {
                 arr.push(current);
@@ -161,7 +148,7 @@ var DOMEventProcessor = function(e) {
                         vfs = VOM.all();
                         while (begin) {
                             if (Has(vfs, tempId = begin.id)) {
-                                GetSetAttribute(current, type, (vId = tempId) + '\u001a' + info);
+                                current.setAttribute(type, (vId = tempId) + '\u001a' + info);
                                 break;
                             }
                             begin = begin[ParentNode];
@@ -205,11 +192,8 @@ var DOMEventProcessor = function(e) {
         } else {
             while (arr.length) {
                 node = arr.pop();
-                ignore = GetSetAttribute(node, MxIgnore) || ON;
-                if (!eventReg.test(ignore)) {
-                    ignore = ignore + COMMA + eventType;
-                    GetSetAttribute(node, MxIgnore, ignore);
-                }
+                ignore = node.ei || (node.ei = {});
+                ignore[eventType] = 1;
             }
             node = null;
         }
@@ -317,12 +301,12 @@ View.prepare = function(oView, vom) {
                             h: node,
                             f: old
                         });
-                    } else {
+                    } else if (!prop[node = name + '\u001a' + temp]) {
                         revts[temp] = 1;
-                        prop[name + '\u001a' + temp] = old;
+                        prop[node] = old;
                     }
                 }
-            } else if (p == 'render' && old != NOOP) {
+            } else if (p == 'render') {
                 prop[p] = WrapFn(old);
             }
         }
@@ -747,6 +731,7 @@ Mix(Mix(VProto, Event), {
      * 让view帮你管理资源，强烈建议对组件等进行托管
      * @param {String} [key] 资源标识key
      * @param {Object} res 要托管的资源
+     * @param {Boolean} [destroyWhenCallRender] 当view的render方法调用时，是否销毁资源
      * @return {Object} 返回传入的资源
      * @example
      * init:function(){
@@ -771,25 +756,25 @@ Mix(Mix(VProto, Event), {
      *      _self.manage(m);
      * }
      */
-    manage: function(key, res) {
+    manage: function(key, res, destroyWhenCallRender) {
         var me = this;
-        var len = arguments.length;
-        var hk = 1;
-
+        var k = 1;
         var cache = me.$res;
-        if (len == 1) {
+        if (key && !Magix._s(key)) {
+            destroyWhenCallRender = res;
             res = key;
             key = EMPTY;
         }
-        if (key) DestroyIt(cache, key);
-        if (!key) {
-            hk = 0;
+        if (key) {
+            DestroyIt(cache, key);
+        } else {
+            k = 0;
             key = 'res_' + (ResCounter++);
         }
         var wrapObj = {
-            hk: hk,
+            k: k,
             e: res,
-            mr: res && res['\u001a'] == '\u001a'
+            x: destroyWhenCallRender
         };
         cache[key] = wrapObj;
         return res;
@@ -1143,6 +1128,10 @@ Mix(Mix(VProto, Event), {
     };
     View.extend = function(props, statics, ctor) {
         var me = this;
+        if (Magix._f(statics)) {
+            ctor = statics;
+            statics = null;
+        }
         var BaseView = function(a) {
             me.call(this, a);
             if (ctor) {

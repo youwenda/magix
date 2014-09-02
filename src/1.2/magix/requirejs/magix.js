@@ -3,7 +3,7 @@
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.2
  **/
-define('magix/magix', function() {
+define('magix/magix', ['jquery'], function($) {
 
     var Include = function(path, mxext) {
         var mPath = require.s.contexts._.config.paths[mxext ? 'mxext' : 'magix'];
@@ -15,7 +15,6 @@ define('magix/magix', function() {
         return r.responseText;
     };
     eval(Include('../tmpl/magix'));
-    var ToString = Object.prototype.toString;
     var T = function() {};
     return Mix(Magix, {
         include: Include,
@@ -31,8 +30,11 @@ define('magix/magix', function() {
         },
         _a: $.isArray,
         _f: $.isFunction,
+        _s: function(o) {
+            return $.type(o) == 'string';
+        },
         _o: function(o) {
-            return ToString.call(o) == '[object Object]';
+            return $.type(o) == 'object';
         },
         /*isRegExp: function(r) {
             return ToString.call(r) == '[object RegExp]';

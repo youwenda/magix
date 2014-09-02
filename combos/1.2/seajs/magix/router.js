@@ -6,6 +6,7 @@
 define('magix/router', function(require) {
     var Magix = require("./magix");
     var Event = require("./event");
+    var $ = require('jquery');
     //todo dom event;
     var EMPTY = '';
 var PATH = 'path';
@@ -30,7 +31,7 @@ var TrimHashReg = /(?:^https?:\/\/[^\/]+|#.*$)/gi,
     TrimQueryReg = /^[^#]*#?!?/;
 var PARAMS = 'params';
 var UseEdgeHistory;
-var SupportState, HashAsNativeHistory, ReadLocSrc;
+var SupportAndUseState, HashAsNativeHistory, ReadLocSrc;
 
 var IsParam = function(params, r, ps) {
     if (params) {
@@ -119,7 +120,9 @@ var GetChged = function(oldLocation, newLocation) {
         result = {
             isParam: IsParam,
             isPath: IsPath,
-            isView: IsView
+            isView: IsView,
+            location: newLocation,
+            force: !oldLocation.get //是否强制触发的changed，对于首次加载会强制触发一次
         };
         result[VIEW] = to;
         result[PATH] = to;
@@ -166,17 +169,11 @@ var Router = Mix({
      * @lends Router
      */
     /**
-     * 使用history state做为改变url的方式来保存当前页面的状态
+     * 绑定事件
      * @function
      * @private
      */
-    useState: Magix.unimpl,
-    /**
-     * 使用hash做为改变url的方式来保存当前页面的状态
-     * @function
-     * @private
-     */
-    useHash: Magix.unimpl,
+    bind: Magix.unimpl,
     /**
      * 开始路由工作
      * @private
@@ -187,16 +184,12 @@ var Router = Mix({
          */
         UseEdgeHistory = MxConfig.edge;
 
-        SupportState = UseEdgeHistory && WinHistory.pushState;
-        HashAsNativeHistory = UseEdgeHistory && !SupportState;
+        SupportAndUseState = UseEdgeHistory && WinHistory.pushState;
+        HashAsNativeHistory = UseEdgeHistory && !SupportAndUseState;
 
-        ReadLocSrc = SupportState ? 'srcQuery' : 'srcHash';
+        ReadLocSrc = SupportAndUseState ? 'srcQuery' : 'srcHash';
 
-        if (SupportState) {
-            Router.useState();
-        } else {
-            Router.useHash();
-        }
+        Router.bind(SupportAndUseState);
         Router.route(); //页面首次加载，初始化整个页面
     },
 
@@ -291,15 +284,11 @@ var Router = Mix({
      */
     route: function() {
         var location = Router.parse(0, 1);
-        var firstFire = !LLoc.get; //是否强制触发的changed，对于首次加载会强制触发一次
         var changed = GetChged(LLoc, location);
         LLoc = location;
         if (changed[0]) {
             TLoc = location;
-            changed = changed[1];
-            changed.force = firstFire;
-            changed.location = location;
-            Router.fire('changed', changed);
+            Router.fire('changed', changed[1]);
         }
     },
     /**
@@ -360,9 +349,7 @@ var Router = Mix({
             tPath = ToUrl(temp[PATH] = tPath, tParams, UseEdgeHistory ? PATH : querys); //hash需要保留query中的空白值参数
 
             if (tPath != TLoc[ReadLocSrc]) {
-
-                if (SupportState) { //如果使用pushState
-                    Router.poped = 1;
+                if (SupportAndUseState) { //如果使用pushState
                     WinHistory[replace ? 'replaceState' : 'pushState'](EMPTY, EMPTY, tPath);
                     Router.route();
                 } else {
@@ -393,6 +380,8 @@ var Router = Mix({
                         WinLoc.hash = tPath;
                     }
                 }
+
+                Router.did = 1;
             }
         }
     }
@@ -413,18 +402,18 @@ var Router = Mix({
      */
 
 }, Event);
-    Router.useState = function() {
-        var me = Router,
-            initialURL = location.href;
-        $(window).on('popstate', function(e) {
-            var equal = location.href == initialURL;
-            if (!me.poped && equal) return;
-            me.poped = 1;
-            me.route();
-        });
-    };
-    Router.useHash = function() { //extension impl change event
-        $(window).on('hashchange', Router.route);
+    Router.bind = function(useState) {
+        var initialURL = location.href;
+        if (useState) {
+            $(window).on('popstate', function(e) {
+                var equal = location.href == initialURL;
+                if (!Router.did && equal) return;
+                Router.did = 1;
+                Router.route();
+            });
+        } else {
+            $(window).on('hashchange', Router.route);
+        }
     };
     return Router;
 });

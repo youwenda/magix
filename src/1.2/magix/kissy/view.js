@@ -73,6 +73,10 @@ KISSY.add('magix/view', function(S, Magix, Event, Router, IO) {
     };
     View.extend = function(props, statics, ctor) {
         var me = this;
+        if (Magix._f(statics)) {
+            ctor = statics;
+            statics = null;
+        }
         var BaseView = function(a) {
             me.call(this, a);
             if (ctor) {

@@ -25,7 +25,6 @@ define("magix/manager", function(require) {
 var SafeExec = Magix.tryCall;
 var IsArray = Magix._a;
 var IsFunction = Magix._f;
-var IsObject = Magix._o;
 
 var FetchFlags_ONE = 1;
 var FetchFlags_ORDER = 2;
@@ -110,7 +109,6 @@ var Request = function(host) {
     var me = this;
     me.$host = host;
     me.$reqs = {};
-    me['\u001a'] = '\u001a';
     me.sign = 1;
     me.id = 'mr' + COUNTER++;
     me.$queue = [];
@@ -120,9 +118,10 @@ var Slice = [].slice;
 
 
 var WrapDone = function(fn, model, idx, ops) {
-    return function(err) {
-        return fn.apply(model, [idx, ops, err]);
+    var t = function(err) {
+        return fn.apply(model, [idx, ops, err, t.ost]);
     };
+    return t;
 };
 var CacheDone = function(err, ops) {
     //
@@ -135,7 +134,7 @@ var CacheDone = function(err, ops) {
         SafeExec(fns, err, cached.e);
     }
 };
-var DoneFn = function(idx, ops, err) {
+var DoneFn = function(idx, ops, err, ost) {
     //
     var model = this;
     var request = ops.a;
@@ -192,7 +191,7 @@ var DoneFn = function(idx, ops, err) {
             newModel = 1;
         }
     }
-    if (!request.$ost) { //销毁，啥也不做
+    if (!request.$ost && !ost) { //销毁，啥也不做
         if (flag == FetchFlags_ONE) { //如果是其中一个成功，则每次成功回调一次
             var m = doneIsArray ? done[idx] : done;
             if (m) {
@@ -228,12 +227,13 @@ var DoneFn = function(idx, ops, err) {
             request.$busy = 0;
             request.doNext(doneArgs);
         }
-        if (newModel) {
-            host.fire('finish', {
-                msg: err,
-                model: model
-            });
-        }
+
+    }
+    if (newModel) {
+        host.fire('finish', {
+            msg: err,
+            model: model
+        });
     }
 };
 /**
@@ -246,6 +246,7 @@ var DoneFn = function(idx, ops, err) {
  * @return {Request}
  */
 var Send = function(me, models, done, flag, save) {
+    if (me.$ost) return me;
     if (me.$busy) {
         return me.next(function() {
             Send(this, models, done, flag, save);
@@ -488,48 +489,7 @@ Mix(Request.prototype, {
      */
     fetchOne: GenRequestMethod(FetchFlags_ONE),
     /**
-     * 中止所有model的请求
-     * 注意：调用该方法后会中止请求，并调用回调传递abort异常消息
-     */
-    stop: function() {
-        var me = this;
-        clearTimeout(me.$ntId);
-        var host = me.$host;
-        var reqs = me.$reqs;
-        var modelsCacheKeys = host.$mReqs;
-        for (var p in reqs) {
-            var m = reqs[p];
-            var cacheKey = m.$mm.key,
-                nfns = [],
-                rfns = [],
-                cache, fns;
-            if (cacheKey && Has(modelsCacheKeys, cacheKey)) {
-                cache = modelsCacheKeys[cacheKey];
-                fns = cache.q;
-                for (var i = 0, fn; i < fns.length; i++) {
-                    fn = fns[i];
-                    if (fn.id != me.id) {
-                        nfns.push(fn); //仍然保留
-                    } else {
-                        rfns.push(fn); //需要中止
-                    }
-                }
-            }
-            //
-            if (nfns.length) {
-                SafeExec(rfns, 'abort', cache.e); //model并未中止，需要手动触发
-                cache.q = nfns;
-            } else {
-                m.destroy();
-            }
-        }
-
-        me.$reqs = {};
-        me.$queue = [];
-        me.$busy = 0;
-    },
-    /**
-     * 前一个fetchX或saveX任务做完后的下一个任务
+     * 前一个fetchX或save任务做完后的下一个任务
      * @param  {Function} callback 当前面的任务完成后调用该回调
      * @return {Request}
      * @example
@@ -547,8 +507,10 @@ Mix(Request.prototype, {
      */
     next: function(callback) {
         var me = this;
-        me.$queue.push(callback);
-        me.doNext(me.$args);
+        if (!me.$ost) {
+            me.$queue.push(callback);
+            me.doNext(me.$args);
+        }
         return me;
     },
     /**
@@ -578,7 +540,7 @@ Mix(Request.prototype, {
      */
     doNext: function(preArgs) {
         var me = this;
-        if (!me.$busy) {
+        if (!me.$busy && !me.$ost) {
             me.$busy = 1;
             var sign = ++me.sign;
             me.$ntId = setTimeout(function() { //前面的任务可能从缓存中来，执行很快
@@ -597,12 +559,33 @@ Mix(Request.prototype, {
         }
     },
     /**
-     * 销毁当前请求，与stop的区别是：stop后还可以继续发起新请求，而destroy后则不可以，而且不再调用相应的回调
+     * 销毁当前请求，不可以继续发起新请求，而且不再调用相应的回调
      */
     destroy: function() {
         var me = this;
         me.$ost = 1;
-        me.stop();
+        clearTimeout(me.$ntId);
+        var host = me.$host;
+        var reqs = me.$reqs;
+        var modelsCacheKeys = host.$mReqs;
+        for (var p in reqs) {
+            var m = reqs[p];
+            var cacheKey = m.$mm.key,
+                cache, fns;
+            if (cacheKey && Has(modelsCacheKeys, cacheKey)) {
+                cache = modelsCacheKeys[cacheKey];
+                fns = cache.q;
+                for (var i = 0, fn; i < fns.length; i++) {
+                    fn = fns[i];
+                    if (fn.id == me.id) { //记录销毁
+                        fn.ost = 1;
+                    }
+                }
+            }
+        }
+        me.$reqs = {};
+        me.$queue = [];
+        me.$busy = 0;
     }
 });
 var MP = Manager.prototype;
@@ -828,10 +811,11 @@ Mix(Mix(MP, Event), {
      * 创建Request对象
      * @param {View} view 传递View对象，托管Request
      * @param {String} [key] 托管到view时的资源key，同名key会自动销毁前一个
+     * @param {Boolean} [destroyWhenViewCallRender] view的render方法被调用时，是否销毁这个request，默认true
      * @return {Request} 返回Request对象
      */
-    createRequest: function(view, key) {
-        return view.manage(key, new Request(this));
+    createRequest: function(view, key, destroyWhenViewCallRender) {
+        return view.manage(key, new Request(this), arguments.length < 3 || destroyWhenViewCallRender);
     },
     /**
      * 根据name清除缓存的models

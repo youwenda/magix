@@ -645,6 +645,7 @@ var Magix = {
                 }
             });
         },
+        _s: S.isString,
         _a: S.isArray,
         _f: S.isFunction,
         _o: S.isObject

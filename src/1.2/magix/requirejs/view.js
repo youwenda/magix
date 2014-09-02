@@ -3,7 +3,7 @@
  * @author 行列
  * @version 1.2
  */
-define('magix/view', ["magix/magix", "magix/event", "magix/router"], function(Magix, Event, Router) {
+define('magix/view', ["magix/magix", "magix/event", "magix/router", 'jquery'], function(Magix, Event, Router, $) {
 
     var Delegates = {
         focus: 2,
@@ -87,6 +87,10 @@ define('magix/view', ["magix/magix", "magix/event", "magix/router"], function(Ma
     };
     View.extend = function(props, statics, ctor) {
         var me = this;
+        if (Magix._f(statics)) {
+            ctor = statics;
+            statics = null;
+        }
         var BaseView = function(a) {
             me.call(this, a);
             if (ctor) {

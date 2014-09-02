@@ -7,6 +7,7 @@ define('magix/view', function(require) {
     var Magix = require("./magix");
     var Event = require("./event");
     var Router = require("./router");
+    var $ = require('jquery');
     var Delegates = {
         focus: 2,
         blur: 2,
@@ -89,6 +90,10 @@ define('magix/view', function(require) {
     };
     View.extend = function(props, statics, ctor) {
         var me = this;
+        if (Magix._f(statics)) {
+            ctor = statics;
+            statics = null;
+        }
         var BaseView = function(a) {
             me.call(this, a);
             if (ctor) {

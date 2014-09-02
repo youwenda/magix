@@ -258,42 +258,15 @@ Magix.mix(Model.prototype, {
      */
     request: function(callback, options) {
         var me = this;
-        if (!me.$ost) {
-            var temp = function(err, data) {
-                if (!me.$ost) {
-                    //if (err) {
-                    // callback(err, data, options);
-                    //} else {
-                    if (!IsObject(data)) {
-                        data = {
-                            data: data
-                        };
-                    }
-                    me.set(data);
-                    //}
-                    me.$temp = 0;
-                    callback(err, options);
-                }
-            };
-            me.$tspt = me.sync(me.$temp = temp);
-        }
-    },
-    /**
-     * 中止请求
-     */
-    destroy: function() {
-        var me = this;
-        var tspt = me.$tspt;
-        var fn = me.$temp;
-        if (fn) {
-            fn('abort');
-            me.$temp = 0;
-        }
-        me.$ost = 1;
-        if (tspt && tspt.abort) {
-            tspt.abort();
-        }
-        me.$tspt = 0;
+        me.sync(function(err, data) {
+            if (!IsObject(data)) {
+                data = {
+                    data: data
+                };
+            }
+            me.set(data);
+            callback(err, options);
+        });
     }
 });
     Model.extend = function(props, statics, ctor) {

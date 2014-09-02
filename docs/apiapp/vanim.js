@@ -38,7 +38,7 @@ KISSY.add('apiapp/vanim', function(S, Router, Magix) {
             var rule = {
                 root: 'magix_vf_main'
             };
-            var changed = e.changed;
+            var changed = e.changed || e;
             if (changed.isPath()) {
                 var pn = changed.path;
                 var key1 = pn.from + '&' + pn.to;

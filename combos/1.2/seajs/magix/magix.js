@@ -3,8 +3,8 @@
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.2
  **/
-define('magix/magix', function() {
-
+define('magix/magix', function(require) {
+    var $ = require('jquery');
     var Include = function(path, mxext) {
         var mPath = seajs.data.paths[mxext ? 'mxext' : 'magix'];
         var url = mPath + path + ".js?r=" + Math.random() + '.js';
@@ -634,7 +634,6 @@ var Magix = {
      */
     cache: Cache
 };
-    var ToString = Object.prototype.toString;
     var T = function() {};
     return Mix(Magix, {
         include: Include,
@@ -647,8 +646,11 @@ var Magix = {
         },
         _a: $.isArray,
         _f: $.isFunction,
+        _s: function(o) {
+            return $.type(o) == 'string';
+        },
         _o: function(o) {
-            return ToString.call(o) == '[object Object]';
+            return $.type(o) == 'object';
         },
         /* isRegExp: function(r) {
             return ToString.call(r) == '[object RegExp]';
