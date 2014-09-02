@@ -151,7 +151,7 @@ Mix(Mix(Vframe.prototype, Event), {
         }
         //var useTurnaround=me.viewInited&&me.useAnimUpdate();
         me.unmountView(keepPreHTML);
-        me._d = 0;
+
         if (viewPath) {
             me.path = viewPath;
             var po = Magix.toObject(viewPath);
@@ -209,7 +209,6 @@ Mix(Mix(Vframe.prototype, Event), {
             if (!GlobalAlter) {
                 GlobalAlter = {};
             }
-            me._d = 1;
             me.unmountZoneVframes(0, keepPreHTML, 1);
             me.cAlter(GlobalAlter);
 
@@ -323,7 +322,7 @@ Mix(Mix(Vframe.prototype, Event), {
             if (p && Has(p.cM, id)) {
                 delete p.cM[id];
                 p.cC--;
-                if (!inner && !me._d) {
+                if (!inner) {
                     p.cCreated();
                 }
             }
@@ -345,7 +344,7 @@ Mix(Mix(Vframe.prototype, Event), {
                 me.unmountVframe(p, keepPreHTML, hasVframe = 1);
             }
         }
-        if (!inner && !me._d) { //已调用父view的unmountView卸载时，子view的不再响应alter与created事件
+        if (!inner) {
             me.cCreated();
         }
         return hasVframe;
@@ -458,19 +457,19 @@ Mix(Mix(Vframe.prototype, Event), {
             /*var args = {
                 location: RefLoc,
                 changed: RefChged,*/
-                /**
-                 * 阻止向所有的子view传递
-                 * @ignore
-                 */
-               /* prevent: function() {
+            /**
+             * 阻止向所有的子view传递
+             * @ignore
+             */
+            /* prevent: function() {
                     args.cs = EmptyArr;
                 },*/
-                /**
-                 * 向特定的子view传递
-                 * @param  {Array} c 子view数组
-                 * @ignore
-                 */
-                /*to: function(c) {
+            /**
+             * 向特定的子view传递
+             * @param  {Array} c 子view数组
+             * @ignore
+             */
+            /*to: function(c) {
                     c = (c + EMPTY).split(COMMA);
                     args.cs = c;
                 }
