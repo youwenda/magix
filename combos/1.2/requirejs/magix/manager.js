@@ -155,7 +155,7 @@ var DoneFn = function(idx, ops, err, ost) {
     //
     var mm = model.$mm;
     var cacheKey = mm.key;
-    doneArr[idx] = model;
+    doneArr[idx + 1] = model;
     if (err) {
         ops.e = 1;
         currentError = 1;
@@ -191,7 +191,7 @@ var DoneFn = function(idx, ops, err, ost) {
         if (flag == FetchFlags_ONE) { //如果是其中一个成功，则每次成功回调一次
             var m = doneIsArray ? done[idx] : done;
             if (m) {
-                doneArgs[idx] = SafeExec(m, [currentError ? errorArgs : null, model, errorArgs], request);
+                doneArgs[idx + 1] = SafeExec(m, [currentError ? errorArgs : null, model, errorArgs], request);
             }
         } else if (flag == FetchFlags_ORDER) {
             //var m=doneIsArray?done[idx]:done;
@@ -207,7 +207,7 @@ var DoneFn = function(idx, ops, err, ost) {
                     errorArgs.msg = t.s;
                     errorArgs[i] = t.s;
                 }
-                doneArgs[i] = SafeExec(d, [t.e ? errorArgs : null, t.m, errorArgs].concat(doneArgs), request);
+                doneArgs[i + 1] = SafeExec(d, [t.e ? errorArgs : null, t.m, errorArgs].concat(doneArgs), request);
             }
             orderlyArr.i = i;
         }
@@ -215,9 +215,9 @@ var DoneFn = function(idx, ops, err, ost) {
             if (!ops.e) {
                 errorArgs = null;
             }
-            doneArgs.unshift(errorArgs);
+            doneArgs[0] = errorArgs;
             if (flag == FetchFlags_ALL) {
-                doneArr.unshift(errorArgs);
+                doneArr[0] = errorArgs;
                 doneArgs[1] = SafeExec(done, doneArr, request);
             }
             request.$busy = 0;

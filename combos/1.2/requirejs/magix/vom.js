@@ -86,7 +86,7 @@ var VOM = Magix.mix({
             if (Chged.view) {
                 vf.mountView(loc.view);
             } else {
-                vf.locChged();
+                Vframe.update(vf);
             }
         }
     }

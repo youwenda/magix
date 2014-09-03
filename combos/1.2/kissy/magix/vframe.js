@@ -57,6 +57,47 @@ var NodeIn = function(a, b, r) {
     }
     return r;
 };
+
+var NotifyCreated = function(vframe) {
+    if (vframe.cC == vframe.rC) {
+        var view = vframe.view;
+        if (view && !vframe.fcc) {
+            vframe.fcc = 1;
+            vframe.fca = 0;
+            view.fire(Created);
+            vframe.fire(Created);
+        }
+        var mId = vframe.id;
+        var p = RefVOM.get(vframe.pId);
+        if (p && !Has(p.rM, mId)) {
+            p.rM[mId] = p.cM[mId];
+            p.rC++;
+            NotifyCreated(p);
+        }
+    }
+};
+var NotifyAlter = function(vframe, e) {
+    if (!e) e = {};
+    if (!vframe.fca && vframe.fcc) { //当前vframe触发过created才可以触发alter事件
+        vframe.fcc = 0;
+        var view = vframe.view;
+        var mId = vframe.id;
+        if (view) {
+            vframe.fca = 1;
+            view.fire(Alter, e);
+            vframe.fire(Alter, e);
+        }
+        //var vom = vframe.owner;
+        var p = RefVOM.get(vframe.pId);
+        if (p && Has(p.rM, mId)) {
+            p.rC--;
+            delete p.rM[mId];
+            if (!vframe._p) {
+                NotifyAlter(p, e);
+            }
+        }
+    }
+};
 //var ScriptsReg = /<script[^>]*>[\s\S]*?<\/script>/ig;
 var RefLoc, RefChged, RefVOM;
 /**
@@ -70,11 +111,10 @@ var RefLoc, RefChged, RefVOM;
  * @borrows Event.once as #once
  * @param {String} id vframe id
  * @property {String} id vframe id
- * @property {View} view view对象
+ * @property {View} view view对象。注意：view加载是异步过程，当需要使用view对象时，请先判断viewInited或viewPrimed属性
  * @property {VOM} owner VOM对象
  * @property {String} path 当前view的路径名，包括参数
  * @property {Boolean} viewInited view是否完成初始化，即view的inited事件有没有派发
- * @property {Boolean} viewPrimed view是否完成首次渲染，即view的primed事件有没有派发
  * @property {String} pId 父vframe的id，如果是根节点则为undefined
  */
 var Vframe = function(id, pId) {
@@ -128,6 +168,54 @@ Vframe.root = function(owner, refLoc, refChged) {
     }
     return RootVframe;
 };
+/**
+ * 通知当前vframe，地址栏发生变化
+ * @param {Vframe} vframe vframe对象
+ * @private
+ */
+Vframe.update = function(vframe) {
+    var view = vframe.view;
+    if (vframe.viewInited && view && view.sign > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的window.location.href对象，对于销毁的也不需要广播
+
+        var isChanged = view.olChg(RefChged);
+        /**
+         * 事件对象
+         * @type {Object}
+         * @ignore
+         */
+        /*var args = {
+                location: RefLoc,
+                changed: RefChged,*/
+        /**
+         * 阻止向所有的子view传递
+         * @ignore
+         */
+        /* prevent: function() {
+                    args.cs = EmptyArr;
+                },*/
+        /**
+         * 向特定的子view传递
+         * @param  {Array} c 子view数组
+         * @ignore
+         */
+        /*to: function(c) {
+                    c = (c + EMPTY).split(COMMA);
+                    args.cs = c;
+                }
+            };*/
+        if (isChanged) { //检测view所关注的相应的参数是否发生了变化
+            view.render(RefChged);
+        }
+        var cs = vframe.children();
+        //
+        for (var i = 0, j = cs.length, vf; i < j; i++) {
+            vf = RefVOM.get(cs[i]);
+            if (vf) {
+                Vframe.update(vf);
+            }
+        }
+    }
+};
 
 Mix(Mix(Vframe.prototype, Event), {
     /**
@@ -179,14 +267,14 @@ Mix(Mix(Vframe.prototype, Event), {
                             }
                             mountZoneVframes(GetById);
                         }
-                        view.on('primed', function() {
+                        /*view.on('primed', function() {
                             me.viewPrimed = 1;
                             me.fire('viewMounted');
-                        });
+                        });*/
                         view.on('rendered', mountZoneVframes);
                         view.on('prerender', function(e) {
                             if (!me.unmountZoneVframes(e.id, 0, 1)) {
-                                me.cAlter();
+                                NotifyAlter(me);
                             }
                         });
                     }, 0);
@@ -206,9 +294,9 @@ Mix(Mix(Vframe.prototype, Event), {
             if (!GlobalAlter) {
                 GlobalAlter = {};
             }
-            me._d = 1;
+            me._d = 1; //用于标记当前vframe处于view销毁状态，在当前vframe上再调用unmountZoneVframes时不派发created事件
             me.unmountZoneVframes(0, keepPreHTML, 1);
-            me.cAlter(GlobalAlter);
+            NotifyAlter(me, GlobalAlter);
 
             me.view = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZoneVframes方法引起的多次created
             view.oust();
@@ -219,10 +307,10 @@ Mix(Mix(Vframe.prototype, Event), {
             }
 
             me.viewInited = 0;
-            if (me.viewPrimed) { //viewMounted与viewUnmounted成对出现
+            /*if (me.viewPrimed) { //viewMounted与viewUnmounted成对出现
                 me.viewPrimed = 0;
                 me.fire('viewUnmounted');
-            }
+            }*/
             GlobalAlter = 0;
         }
         me.sign++;
@@ -247,7 +335,7 @@ Mix(Mix(Vframe.prototype, Event), {
     mountVframe: function(id, viewPath, viewInitParams, cancelTriggerEvent, keepPreHTML) {
         var me = this;
         //me._p = cancelTriggerEvent;
-        if (me.fcc && !cancelTriggerEvent) me.cAlter(); //如果在就绪的vframe上渲染新的vframe，则通知有变化
+        if (me.fcc && !cancelTriggerEvent) NotifyAlter(me); //如果在就绪的vframe上渲染新的vframe，则通知有变化
         //var vom = me.owner;
         var vf = RefVOM.get(id);
         if (!vf) {
@@ -298,7 +386,7 @@ Mix(Mix(Vframe.prototype, Event), {
             }
         }
         //if (me.cC == me.rC) { //有可能在渲染某个vframe时，里面有n个vframes，但立即调用了mountZoneVframes，这个下面没有vframes，所以要等待
-        me.cCreated();
+        NotifyCreated(me);
         //}
     },
     /**
@@ -321,7 +409,7 @@ Mix(Mix(Vframe.prototype, Event), {
                 delete p.cM[id];
                 p.cC--;
                 if (!inner) {
-                    p.cCreated();
+                    NotifyCreated(p);
                 }
             }
         }
@@ -343,7 +431,7 @@ Mix(Mix(Vframe.prototype, Event), {
             }
         }
         if (!inner && !me._d) {
-            me.cCreated();
+            NotifyCreated(me);
         }
         return hasVframe;
     },
@@ -385,105 +473,6 @@ Mix(Mix(Vframe.prototype, Event), {
             }
         }
         return result;
-    },
-    /**
-     * 通知所有的子view创建完成
-     * @private
-     */
-    cCreated: function(e) {
-        var me = this;
-        if (me.cC == me.rC) {
-            var view = me.view;
-            if (view && !me.fcc) {
-                me.fcc = 1;
-                me.fca = 0;
-                view.fire(Created, e);
-                me.fire(Created, e);
-            }
-            var mId = me.id;
-            var p = RefVOM.get(me.pId);
-            if (p && !Has(p.rM, mId)) {
-
-                p.rM[mId] = p.cM[mId];
-                p.rC++;
-                p.cCreated(e);
-            }
-        }
-    },
-    /**
-     * 通知子vframe有变化
-     * @private
-     */
-    cAlter: function(e) {
-        var me = this;
-        if (!e) e = {};
-        if (!me.fca && me.fcc) { //当前vframe触发过created才可以触发alter事件
-            me.fcc = 0;
-            var view = me.view;
-            var mId = me.id;
-            if (view) {
-                me.fca = 1;
-                view.fire(Alter, e);
-                me.fire(Alter, e);
-            }
-            //var vom = me.owner;
-            var p = RefVOM.get(me.pId);
-            if (p && Has(p.rM, mId)) {
-                p.rC--;
-                delete p.rM[mId];
-                if (!me._p) {
-                    p.cAlter(e);
-                }
-            }
-        }
-    },
-    /**
-     * 通知当前vframe，地址栏发生变化
-     * @private
-     */
-    locChged: function() {
-        var me = this;
-        var view = me.view;
-        if (me.viewInited && view && view.sign > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的window.location.href对象，对于销毁的也不需要广播
-
-            var isChanged = view.olChg(RefChged);
-            /**
-             * 事件对象
-             * @type {Object}
-             * @ignore
-             */
-            /*var args = {
-                location: RefLoc,
-                changed: RefChged,*/
-            /**
-             * 阻止向所有的子view传递
-             * @ignore
-             */
-            /* prevent: function() {
-                    args.cs = EmptyArr;
-                },*/
-            /**
-             * 向特定的子view传递
-             * @param  {Array} c 子view数组
-             * @ignore
-             */
-            /*to: function(c) {
-                    c = (c + EMPTY).split(COMMA);
-                    args.cs = c;
-                }
-            };*/
-            if (isChanged) { //检测view所关注的相应的参数是否发生了变化
-                view.render(RefChged);
-            }
-            var cs = me.children();
-            //
-            for (var i = 0, j = cs.length, vf; i < j; i++) {
-                vf = RefVOM.get(cs[i]);
-                if (vf) {
-                    vf.locChged();
-                }
-            }
-        }
     }
 
     /**
@@ -496,20 +485,6 @@ Mix(Mix(Vframe.prototype, Event), {
     /**
      * 子孙view创建完成时触发
      * @name Vframe#created
-     * @event
-     * @param {Object} e
-     */
-
-    /**
-     * view完成首次渲染(即primed事件触发)后触发
-     * @name Vframe#viewMounted
-     * @event
-     * @param {Object} e
-     */
-
-    /**
-     * view销毁时触发
-     * @name Vframe#viewUnmounted
      * @event
      * @param {Object} e
      */
