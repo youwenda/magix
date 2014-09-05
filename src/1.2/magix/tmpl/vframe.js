@@ -106,7 +106,6 @@ var RefLoc, RefChged, RefVOM;
  * @param {String} id vframe id
  * @property {String} id vframe id
  * @property {View} view view对象。注意：view加载是异步过程，当需要使用view对象时，请先判断viewInited或viewPrimed属性
- * @property {VOM} owner VOM对象
  * @property {String} path 当前view的路径名，包括参数
  * @property {Boolean} viewInited view是否完成初始化，即view的inited事件有没有派发
  * @property {String} pId 父vframe的id，如果是根节点则为undefined
@@ -120,7 +119,6 @@ var Vframe = function(id, pId) {
     me.rC = 0;
     me.sign = 1;
     me.rM = {};
-    me.owner = RefVOM;
     me.pId = pId;
     RefVOM.add(id, me);
 };

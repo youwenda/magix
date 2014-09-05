@@ -76,7 +76,7 @@ module.exports = function(grunt) {
         if (loaderType == 'kissy') {
             lib = 'KISSY';
         }
-        footer = ';document.createElement("vframe");})(null,this,document,function(){},"\\u001f","",",",' + lib + ');';
+        footer = ';document.createElement("vframe");})(null,_win_,document,function(){},"\\u001f","",",",' + lib + ');';
         grunt.config.set('concat', {
             options: {
                 banner: '/*!Magix 1.2 Licensed MIT*/(function(NULL,WINDOW,DOCUMENT,NOOP,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=1;IdIt=function(n){return n.id||(n.id=\'mx_n_\'+COUNTER++)};',

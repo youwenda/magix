@@ -1436,7 +1436,6 @@ var RefLoc, RefChged, RefVOM;
  * @param {String} id vframe id
  * @property {String} id vframe id
  * @property {View} view view对象。注意：view加载是异步过程，当需要使用view对象时，请先判断viewInited或viewPrimed属性
- * @property {VOM} owner VOM对象
  * @property {String} path 当前view的路径名，包括参数
  * @property {Boolean} viewInited view是否完成初始化，即view的inited事件有没有派发
  * @property {String} pId 父vframe的id，如果是根节点则为undefined
@@ -1450,7 +1449,6 @@ var Vframe = function(id, pId) {
     me.rC = 0;
     me.sign = 1;
     me.rM = {};
-    me.owner = RefVOM;
     me.pId = pId;
     RefVOM.add(id, me);
 };
@@ -2086,10 +2084,8 @@ var View = function(ops) {
     me.$ol = {
         ks: []
     };
-    me.$ns = {};
     me.$res = {};
     me.sign = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
-    me.addNode(me.id);
     SafeExec(View.$, ops, me);
 };
 var VProto = View.prototype;
@@ -2522,29 +2518,17 @@ Mix(Mix(VProto, Event), {
         me.sign--;
     },
     /**
-     * 添加节点，用于inside的判断
-     * @param {String} id dom节点id
-     */
-    addNode: function(id) {
-        this.$ns[id] = 1;
-    },
-    /**
-     * 移除节点
-     * @param  {String} id dom节点id
-     */
-    removeNode: function(id) {
-        delete this.$ns[id];
-    },
-    /**
-     * 判断节点是否在当前view控制的dom节点内
-     * @param  {String} node 节点id
+     * 判断节点是否在某些节点里面
+     * @param  {String} id 节点id
+     * @param {Array} nodes dom节点或对象的数组
      * @return {Boolean}
      */
-    inside: function(node) {
+    inside: function(id, nodes) {
         var me = this,
             contained, t;
-        for (t in me.$ns) {
-            contained = me.$i(node, t);
+        nodes = (nodes + EMPTY).split(COMMA);
+        for (t = nodes.length - 1; t >= 0; t--) {
+            contained = me.$i(id, nodes[t]);
             if (contained) break;
         }
         return contained;
@@ -4155,4 +4139,4 @@ Mix(Mix(MP, Event), {
     return Manager;
 }, {
     requires: ["magix/magix", "magix/event"]
-});;DOCUMENT.createElement("vframe");})(null,this,document,function(){},"\u001f","",",",KISSY);
+});;DOCUMENT.createElement("vframe");})(null,window,document,function(){},"\u001f","",",",KISSY);

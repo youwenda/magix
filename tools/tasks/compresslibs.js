@@ -45,6 +45,7 @@ module.exports = function(grunt) {
                     content = content.replace(/document([\.\[\r\n])/g, 'DOCUMENT$1');
                     content = content.replace(/var\s+IdIt\s*=[^}]+\};/gm, '');
                     content = content.replace(/'\\u001a'/g, 'SPLITER');
+                    content = content.replace(/_win_/g, 'window');
                     return content;
                 }
             });
