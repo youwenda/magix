@@ -43,3 +43,51 @@ h3, .menu-t {
 .mark {
 	background: #FF8400;
 }
+
+
+div#sidebar {
+  background: #fff;
+  position: fixed;
+  top: 28px; left: 0; bottom: 0;
+  width: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 15px 0 30px 30px;
+  border-right: 1px solid #bbb;
+  box-shadow: 0 0 20px #ccc; -webkit-box-shadow: 0 0 20px #ccc; -moz-box-shadow: 0 0 20px #ccc;
+}
+a.toc_title, a.toc_title:visited {
+      display: block;
+      color: #4499ee;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+    a.toc_title:hover {
+        text-decoration: underline;
+      }
+      ul.toc_section {
+      font-size: 11px;
+      line-height: 14px;
+      margin: 5px 0 0 0;
+      padding-left: 0px;
+      list-style-type: none;
+      font-family: Lucida Grande;
+    }
+      .toc_section li {
+        cursor: pointer;
+        margin: 0 0 3px 0;
+      }
+        .toc_section li a {
+          text-decoration: none;
+          color: #4499ee;
+        }
+          .toc_section li a:hover {
+            text-decoration: underline;
+          }
+div.container {
+  max-width: 750px;
+  margin: 60px 0 50px 260px;
+}
+.xmark{padding:1px 2px;}
+sup{cursor: default;}

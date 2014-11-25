@@ -35,7 +35,7 @@
             defaultPath:'/home',
             extensions:exts,
             apiPath:'./',
-            execError:function(e){
+            error:function(e){
                 if (Math.random()<0.5) {
                     new Image().src='http://gm.mmstat.com/ued.1.1.2?'+[
                         'type=9',
@@ -52,8 +52,12 @@
                     ].join('&');
                 }
             },
-            routes:function(){
-                return this.defaultView;
+            routes:function(path,loc){
+                var view=this.defaultView;
+                if(loc.get('v')!='o'&&path!='/home'&&S.endsWith(path,'/index')){
+                    view='apiapp/mviews/xdefault';
+                }
+                return view;
             }
         });
     });

@@ -10,22 +10,22 @@ KISSY.add('apiapp/vanim', function(S, Router, Magix) {
     };
     var Rules = [{
         from: /^\/home$/,
-        to: /^\/(?:kissy|seajs|requirejs)\/1\.[012]\/index$/,
+        to: /^\/(?:kissy|seajs|requirejs)\/[21]\.[012]\/index$/,
         aAnim: 'slideLeft',
         bAnim: 'slideRight'
     }, {
-        from: /^\/(?:kissy|seajs|requirejs)\/1\.[012]\/index$/,
-        to: /^\/(?:kissy|seajs|requirejs)\/1\.[012]\/\w+$/,
+        from: /^\/(?:kissy|seajs|requirejs)\/[12]\.[012]\/index$/,
+        to: /^\/(?:kissy|seajs|requirejs)\/[12]\.[012]\/\w+$/,
         aAnim: 'slideLeft',
         bAnim: 'slideRight'
     }, {
         from: /^\/home$/,
-        to: /^\/(?:kissy|seajs|requirejs)\/1\.[012]\/\w+$/,
+        to: /^\/(?:kissy|seajs|requirejs)\/[12]\.[012]\/\w+$/,
         aAnim: 'slideLeft',
         bAnim: 'slideRight'
     }, {
-        from: /^\/(?:kissy|seajs|requirejs)\/1\.[012]\/\w+$/,
-        to: /^\/(?:kissy|seajs|requirejs)\/1\.[012]\/\w+$/,
+        from: /^\/(?:kissy|seajs|requirejs)\/[12]\.[012]\/\w+$/,
+        to: /^\/(?:kissy|seajs|requirejs)\/[12]\.[012]\/\w+$/,
         aAnim: 'fade',
         bAnim: 'fade'
     }];
@@ -66,7 +66,7 @@ KISSY.add('apiapp/vanim', function(S, Router, Magix) {
         },
         processRoot: function(root) {
             var rootNode = S.one('#' + root);
-            if (rootNode.prop('tagName').toUpperCase() == 'BODY') {
+            if (rootNode && rootNode.prop('tagName').toUpperCase() == 'BODY') {
                 var children = rootNode.children();
                 rootNode.append('<div id="' + root + '"></div>').attr('id', '');
                 rootNode = S.one('#' + root);
@@ -124,6 +124,7 @@ KISSY.add('apiapp/vanim', function(S, Router, Magix) {
             me.stopAnims();
             me.processRoot(root);
             var rootNode = S.one('#' + root);
+            if (!rootNode) return;
             var parent = rootNode.parent();
             if (!me.animCounter) {
                 me.$bakPosition = parent.css('position');

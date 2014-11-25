@@ -12,3 +12,8 @@ _site
 
 # Sublime Project files
 *.sublime-*
+
+combos/edge
+dist/edge
+tools/edge
+src/edge

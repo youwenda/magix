@@ -1,0 +1,34 @@
+<a href="#!/home" mx-click="to<prevent>({to:'{{data.alias}}'})" class="toc_title">
+  {{data.alias}}
+</a>
+<ul class="toc_section">
+    {{if data.properties}}
+    {{each data.properties as one}}
+    <li>&ndash; <a href="#!/home" mx-click="to<prevent>({to:'{{data.alias}}_p_{{one._name}}'})">{{one._name}}</a>{{if one.memberOf!=data._name}}<sup title="继承来的" class="xmark">I</sup>{{/if}}</li>
+    {{/each}}
+    {{/if}}
+
+    {{if data.staticProperties}}
+    {{each data.staticProperties as one}}
+    <li>&ndash; <a href="#!/home" mx-click="to<prevent>({to:'{{data.alias}}_sp_{{one._name}}'})">{{one._name}}</a></li>
+    {{/each}}
+    {{/if}}
+
+    {{if data.methods}}
+    {{each data.methods as one}}
+    <li>&ndash; <a href="#!/home" mx-click="to<prevent>({to:'{{data.alias}}_m_{{one._name}}'})">{{one._name}}</a>{{if one.isPrivate}}<sup class="xmark" title="私有方法">P</sup>{{/if}}{{if one.memberOf!=data._name||(data.inheritsMap&&data.inheritsMap[one.alias])}}<sup class="xmark" title="继承来的">I</sup>{{/if}}</li>
+    {{/each}}
+    {{/if}}
+
+    {{if data.staticMethods}}
+    {{each data.staticMethods as one}}
+    <li>&ndash; <a href="#!/home" mx-click="to<prevent>({to:'{{data.alias}}_sm_{{one._name}}'})">{{one._name}}</a></li>
+    {{/each}}
+    {{/if}}
+
+    {{if data.events}}
+    {{each data.events as one}}
+    <li>&ndash; <a href="#!/home" mx-click="to<prevent>({to:'{{data.alias}}_e_{{one._name}}'})">{{one._name}}</a>{{if one.memberOf!=data._name}}<sup class="xmark" title="继承来的">I</sup>{{/if}}</li>
+    {{/each}}
+    {{/if}}
+</ul>
