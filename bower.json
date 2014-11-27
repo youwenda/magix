@@ -16,13 +16,14 @@
     "dist/2.0"
   ],
   "ignore": [
-    "test",
     "**/.*",
     "combos",
     "docs",
     "src",
+    "test",
     "tools",
-    "**/*-min.js",
-    "dist/1.0"
+    "tests",
+    "History.md",
+    "README.md"
   ]
 }

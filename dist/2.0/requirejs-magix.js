@@ -1,9 +1,9 @@
-/*!Magix 1.2 Licensed MIT*/(function(NULL,WINDOW,DOCUMENT,NOOP,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=1;IdIt=function(n){return n.id||(n.id='mx_n_'+COUNTER++)};/**
+/*!Magix 2.0 Licensed MIT*/(function(NULL,WINDOW,DOCUMENT,NOOP,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=1;IdIt=function(n){return n.id||(n.id='mx_n_'+COUNTER++)};/**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.2
  **/
-LIB('magix', ['jquery', 'brix/event'], function($, BEvent) {
+LIB('magix', ['jquery', 'brix/event'], function($, BXEvent) {
     var G_IsArray = $.isArray;
     var G_IsFunction = $.isFunction;
     var G_IsString = function(o) {
@@ -2560,13 +2560,13 @@ Magix.View = View;
     var Paths = {};
     var Suffix = '?t=' + Math.random();
 
-
+    var bxEvent = BXEvent('mx-');
     var Tmpls = {}, Locker = {};
     VProto.delegateEvents = function(node) {
-        BEvent.delegateBxTypeEvents.call(this, $(node));
+        bxEvent.delegateBxTypeEvents($(node), this);
     };
     VProto.undelegateEvents = function(node) {
-        BEvent.undelegateBxTypeEvents.call(this, $(node));
+        bxEvent.undelegateBxTypeEvents($(node), this);
     };
     VProto.fetchTmpl = function(path, fn) {
         var me = this;

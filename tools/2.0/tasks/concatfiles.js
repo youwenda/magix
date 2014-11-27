@@ -83,7 +83,7 @@ module.exports = function(grunt) {
         footer += '})(null,_win_,document,function(){},"\\u001f","",",",' + lib + ');';
         grunt.config.set('concat', {
             options: {
-                banner: '/*!Magix 1.2 Licensed MIT*/(function(NULL,WINDOW,DOCUMENT,NOOP,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=1;IdIt=function(n){return n.id||(n.id=\'mx_n_\'+COUNTER++)};',
+                banner: '/*!Magix 2.0 Licensed MIT*/(function(NULL,WINDOW,DOCUMENT,NOOP,SPLITER,EMPTY,COMMA,LIB,IdIt,COUNTER){COUNTER=1;IdIt=function(n){return n.id||(n.id=\'mx_n_\'+COUNTER++)};',
                 separator: '\n',
                 footer: footer
             },

@@ -3,7 +3,7 @@
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.2
  **/
-define('magix', ['jquery', 'brix/event'], function($, BEvent) {
+define('magix', ['jquery', 'brix/event'], function($, BXEvent) {
     var G_IsArray = $.isArray;
     var G_IsFunction = $.isFunction;
     var G_IsString = function(o) {
@@ -57,13 +57,13 @@ define('magix', ['jquery', 'brix/event'], function($, BEvent) {
     var Paths = {};
     var Suffix = '?t=' + Math.random();
 
-
+    var bxEvent = BXEvent('mx-');
     var Tmpls = {}, Locker = {};
     VProto.delegateEvents = function(node) {
-        BEvent.delegateBxTypeEvents.call(this, $(node));
+        bxEvent.delegateBxTypeEvents($(node), this);
     };
     VProto.undelegateEvents = function(node) {
-        BEvent.undelegateBxTypeEvents.call(this, $(node));
+        bxEvent.undelegateBxTypeEvents($(node), this);
     };
     VProto.fetchTmpl = function(path, fn) {
         var me = this;
