@@ -14,7 +14,7 @@
         height: 420,
         canvasWidth: 480,
         canvasHeight: 350,
-        moreInfoWidth: 240,
+        moreInfoWidth: 440,
         titleHeight: 34,
         circleMargin: 6,
         maxDeepView: 4,
@@ -89,7 +89,9 @@
                     background-color:#eee;
                     padding:8px;
                     width:{moreInfoWidth}px;
-                    display:none
+                    display:none;
+                    left:-457px;
+                    top:0;
                 }
                 </style>
                 <div class="magix-helper" id="magix_helper">
@@ -295,12 +297,25 @@
         },
         showMoreInfo: function(vf, item) {
             clearTimeout(UI.$hideTimer);
+            var cover = D.getElementById('magix_helper_cover');
+            if (!cover) {
+                cover = D.createElement('div');
+                cover.style.cssText = 'position:absolute;opacity:0.7;background-color:#90EE90;z-index:99999;';
+                cover.id = 'magix_helper_cover';
+                D.body.appendChild(cover);
+            }
+
             var node = D.getElementById('magix_helper_moreinfo');
             node.style.display = 'block';
-            var left = Math.min(item.center.x - Consts.moreInfoWidth / 2, Consts.width - Consts.moreInfoWidth);
-            node.style.left = left + 'px';
-            node.style.top = item.center.y + item.radius + Consts.titleHeight + 5 + 'px';
             var env = Helper.getEnv();
+            var offset = env.getDOMOffset(vf.id);
+            var size = env.getDOMSize(vf.id);
+            cover.style.left = offset.left + 'px';
+            cover.style.top = offset.top + 'px';
+            cover.style.width = size.width + 'px';
+            cover.style.height = size.height + 'px';
+            cover.style.display = 'block';
+
             node.innerHTML = UI.moreInfo.replace(/\{(\w+)\}/g, function(m, v) {
                 switch (v) {
                     case 'id':
@@ -317,20 +332,34 @@
                         if (!vf.path && !vf.view) {
                             return '未加载view';
                         }
-                        if (!vf.fcc) {
-                            return vf.rC != vf.cC ? '正等待子view加载' : '正等待view加载';
+                        if (vf.path && (!vf.view || !vf.$v)) {
+                            return '未加载view';
                         }
-                        if (vf.fca) {
+                        if (vf.cM) {
+                            if (!vf.fcc) {
+                                return vf.rC != vf.cC ? '正等待子view加载' : '正等待view加载';
+                            }
+                        } else {
+                            if (!vf.$cr) {
+                                return vf.$rc != vf.$cc ? '正等待子view加载' : '正等待view加载';
+                            }
+                        }
+                        if (vf.fca || vf.$ca) {
                             return '等待view渲染';
                         }
                         return '';
                     case 'res':
                         var t = [];
                         var res = vf && vf.view && vf.view.$res;
+                        var nKey;
+                        if (!res) {
+                            nKey = true;
+                            res = vf && vf.$v && vf.$v.$res;
+                        }
                         if (res) {
                             t.push('<table style="width:100%"><tr><td>hasKey</td><td>key</td><td>res</td></tr>');
                             for (var p in res) {
-                                t.push('<tr><td>', res[p].hasKey || !! (res[p].hk), '</td><td>', p, '</td><td>', env.getResType(res[p]), '</td></tr>');
+                                t.push('<tr><td>', nKey || res[p].hasKey || !! (res[p].hk), '</td><td>', p, '</td><td>', env.getResType(res[p]), '</td></tr>');
                             }
                             t.push('</table>');
                         }
@@ -342,17 +371,16 @@
         },
         hideMoreInfo: function() {
             var node = D.getElementById('magix_helper_moreinfo');
+            var cover = D.getElementById('magix_helper_cover');
             UI.$hideTimer = setTimeout(function() {
                 node.style.display = 'none';
+                cover.style.display = 'none';
             }, 150);
         },
         showManagerMoreInfo: function(item) {
             clearTimeout(UI.$hideManagerTimer);
             var node = D.getElementById('magix_helper_manager_moreinfo');
             node.style.display = 'block';
-            var left = Math.min(item.rect[0], Consts.width - Consts.moreInfoWidth);
-            node.style.left = left + 'px';
-            node.style.top = item.rect[1] + item.rect[3] + Consts.titleHeight - D.getElementById('magix_helper_manager').scrollTop + 'px';
             node.innerHTML = UI.moreManagerInfo.replace(/\{(\w+)\}/g, function(m, v) {
                 switch (v) {
                     case 'id':
@@ -806,11 +834,21 @@
             KISSY.use('node');
         },
         getRootId: function() {
-            var magix = KISSY.require('magix/magix');
+            var old = KISSY.Env.mods['magix/magix'];
+            var magix;
+            if (old) {
+                magix = KISSY.require('magix/magix');
+            } else {
+                magix = KISSY.require('magix');
+            }
             return magix.config('rootId');
         },
         getVOM: function() {
-            return KISSY.require('magix/vom');
+            var old = KISSY.Env.mods['magix/magix'];
+            if (old) {
+                return KISSY.require('magix/vom');
+            }
+            return KISSY.require('magix').VOM;
         },
         getMangerMods: function() {
             var mods = KISSY.Env.mods;
@@ -828,13 +866,26 @@
         },
         isReady: function() {
             var magix = KISSY.Env.mods['magix/magix'];
-            var vom = KISSY.Env.mods['magix/vom'];
             var node = KISSY.Env.mods['node'];
-            return magix && magix.status === KISSY.Loader.Status.ATTACHED && vom && vom.status === KISSY.Loader.Status.ATTACHED && node && node.status === KISSY.Loader.Status.ATTACHED;
+            if (magix) {
+                var vom = KISSY.Env.mods['magix/vom'];
+                return magix.status === KISSY.Loader.Status.ATTACHED && vom && vom.status === KISSY.Loader.Status.ATTACHED && node && node.status === KISSY.Loader.Status.ATTACHED;
+            } else {
+                magix = KISSY.Env.mods['magix'];
+                return magix && magix.status === KISSY.Loader.Status.ATTACHED && node && node.status === KISSY.Loader.Status.ATTACHED;
+            }
         },
         getDOMOffset: function(id) {
             var node = KISSY.require('node');
             return node.one('#' + id).offset();
+        },
+        getDOMSize: function(id) {
+            var node = KISSY.require('node');
+            var n = node.one('#' + id);
+            return {
+                height: n.outerHeight(),
+                width: n.outerWidth()
+            };
         },
         bind: function(id, type, fn) {
             var node = KISSY.require('node');
@@ -921,14 +972,15 @@
                     tree.total++;
                     info.id = vf.id;
                     delete allMap[vf.id];
-                    if (vf.fcc) {
+                    if (vf.fcc || vf.$cr) {
                         info.status = Status.created;
-                    } else if (vf.fca) {
+                    } else if (vf.fca || vf.$ca) {
                         info.status = Status.alter;
                     } else {
                         info.status = Status.init;
                     }
-                    for (var p in vf.cM) {
+                    var cm = vf.cM || vf.$c;
+                    for (var p in cm) {
                         var newInfo = {
                             children: []
                         };
