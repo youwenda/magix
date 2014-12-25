@@ -72,6 +72,9 @@
                 .magix-helper .p8{
                     padding:8px;
                 }
+                .magix-helper .move{
+                    cursor:move
+                }
                 .magix-helper .red{color:red}
                 .magix-helper .clearfix:before,
                 .magix-helper .clearfix:after {
@@ -99,7 +102,7 @@
                         <li class="fl p8 cp">VOM</li>
                         <li class="fl p8 cp">Tracer</li>
                         <li class="fl p8 cp">Manager</li>
-                        <!--<li class="fr p8 move" id="magix_helper_mover">※</li>-->
+                        <li class="fr p8 move" id="magix_helper_mover">※</li>
                         <li class="fr p8 cp" id="magix_helper_min">︽</li>
                     </ul>
                     <div id="magix_helper_painter">
@@ -185,6 +188,8 @@
             });
             D.body.appendChild(div);
             UI.attachEvent();
+            var env = Helper.getEnv();
+            env.dragIt('#magix_helper', '#magix_helper_mover');
         },
         attachEvent: function() {
             UI.detachEvent();
@@ -266,23 +271,6 @@
                     node.style.display = 'block';
                 }
             });
-            /*env.bind('magix_helper_mover', 'mousedown', UI.$mousedown = function(e) {
-                var start = {
-                    x: e.pageX,
-                    y: e.pageY
-                };
-                var offset = env.getDOMOffset('magix_helper');
-                var node = D.getElementById('magix_helper');
-                var mousemove, mouseup;
-                env.bind(document, 'mousemove', mousemove = function(e) {
-                    node.style.left = offset.left + (e.pageX - start.x) + 'px';
-                    node.style.top = offset.top + (e.pageY - start.y) + 'px';
-                });
-                env.bind(document, 'mouseup', mouseup = function() {
-                    env.unbind(document, 'mouseup', mouseup);
-                    env.unbind(document, 'mousemove', mousemove);
-                });
-            });*/
         },
         detachEvent: function() {
             var env = Helper.getEnv();
@@ -307,6 +295,9 @@
 
             var node = D.getElementById('magix_helper_moreinfo');
             node.style.display = 'block';
+            var left = item.center.x - Consts.moreInfoWidth / 2;
+            node.style.left = left + 'px';
+            node.style.top = item.center.y + item.radius + Consts.titleHeight + 5 + 'px';
             var env = Helper.getEnv();
             var offset = env.getDOMOffset(vf.id);
             var size = env.getDOMSize(vf.id);
@@ -329,11 +320,14 @@
                         if (!vf) {
                             return 'vframe已被销毁，但未从vom中移除';
                         }
-                        if (!vf.path && !vf.view) {
-                            return '未加载view';
-                        }
-                        if (vf.path && ((vf.cM && !vf.$v) || (vf.$c && !vf.$v))) {
-                            return '未加载view';
+                        if (!vf.path) {
+                            if (!vf.view) {
+                                return '未加载view';
+                            }
+                        } else {
+                            if ((vf.cM && !vf.view) || (vf.$c && !vf.$v)) {
+                                return '未加载view';
+                            }
                         }
                         if (vf.cM) {
                             if (!vf.fcc) {
@@ -381,6 +375,12 @@
             clearTimeout(UI.$hideManagerTimer);
             var node = D.getElementById('magix_helper_manager_moreinfo');
             node.style.display = 'block';
+            node.style.left = item.rect[0] + 'px';
+            var top = item.rect[1] + item.rect[3] + Consts.titleHeight;
+            var st = D.getElementById('magix_helper_manager').scrollTop;
+            top -= st;
+            node.style.top = top + 'px';
+            console.log(item);
             node.innerHTML = UI.moreManagerInfo.replace(/\{(\w+)\}/g, function(m, v) {
                 switch (v) {
                     case 'id':
@@ -941,6 +941,16 @@
                 old.apply(KISSY.Loader.Utils, arguments);
                 callback();
             };
+        },
+        dragIt: function(node, handle) {
+            KISSY.use('dd', function(S, DD) {
+                console.log(node);
+                new DD.Draggable({
+                    node: node,
+                    move: true,
+                    handlers: [handle]
+                });
+            });
         }
     };
     var Helper = {
