@@ -332,7 +332,7 @@
                         if (!vf.path && !vf.view) {
                             return '未加载view';
                         }
-                        if (vf.path && (!vf.view || !vf.$v)) {
+                        if (vf.path && ((vf.cM && !vf.$v) || (vf.$c && !vf.$v))) {
                             return '未加载view';
                         }
                         if (vf.cM) {
