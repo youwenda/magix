@@ -15,7 +15,9 @@ title: Demos
 ## 其他
 
  1. [Magix 脚手架][1]
- 2. [Magix 1.0 PPT][2]
+ 2. [Magix 脚手架][2]
+ 3. [Magix 1.0 PPT][3]
 
-[1]: /magix-demo-ad/
-[2]: /magix-demo-ppt/
+[1]: /magix-os/
+[2]: /magix-demo-ad/
+[3]: /magix-demo-ppt/
