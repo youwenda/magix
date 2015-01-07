@@ -60,10 +60,10 @@ define('magix', ['jquery', 'brix/event'], function($, BXEvent) {
     var bxEvent = BXEvent('mx-');
     var Tmpls = {}, Locker = {};
     VProto.delegateEvents = function(node) {
-        bxEvent.delegateBxTypeEvents($(node), this);
+        bxEvent.delegate($(node), this);
     };
     VProto.undelegateEvents = function(node) {
-        bxEvent.undelegateBxTypeEvents($(node), this);
+        bxEvent.undelegate($(node), this);
     };
     VProto.fetchTmpl = function(path, fn) {
         var me = this;
