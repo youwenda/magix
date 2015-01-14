@@ -186,7 +186,7 @@
             div.innerHTML = UI.main.replace(/\{(\w+)\}/g, function(m, v) {
                 return Consts[v];
             });
-            D.body.appendChild(div);
+            D.documentElement.appendChild(div);
             UI.attachEvent();
             var env = Helper.getEnv();
             env.dragIt('#magix_helper', '#magix_helper_mover');
@@ -380,7 +380,6 @@
             var st = D.getElementById('magix_helper_manager').scrollTop;
             top -= st;
             node.style.top = top + 'px';
-            console.log(item);
             node.innerHTML = UI.moreManagerInfo.replace(/\{(\w+)\}/g, function(m, v) {
                 switch (v) {
                     case 'id':
@@ -527,7 +526,6 @@
                         if (e.x >= rect[0] && e.y >= rect[1] && e.x <= (rect[0] + rect[2]) && e.y <= (rect[1] + rect[3])) {
                             if (g.$managerLast != one) {
                                 g.$managerLast = one;
-                                console.log(e, one);
                                 g.onHoverManagerItem({
                                     item: one,
                                     action: 'enter'
@@ -683,7 +681,6 @@
             }
         },
         drawManagerTree: function(tree) {
-            console.log(tree);
             var gs = Graphics;
             gs.captureManagerItmes();
             var height = Consts.managerMargin * (tree.rows + 1) + tree.rows * Consts.managerHeight + (Consts.managerGroupSpace + Consts.managerMargin) * tree.groups.length;
@@ -763,7 +760,6 @@
                                     x: endOne.rect[0],
                                     y: endOne.rect[1] + (endOne.rect[3] / 2 | 0)
                                 };
-                                console.log(beginPos, endPos);
                                 ctx.beginPath();
 
                                 ctx.moveTo(beginPos.x, beginPos.y); // 设置路径起点，坐标为(20,20)
@@ -848,14 +844,15 @@
             if (old) {
                 return KISSY.require('magix/vom');
             }
-            return KISSY.require('magix').VOM;
+            var magix = KISSY.require('magix');
+            return magix.VOM || magix.Vframe;
         },
         getMangerMods: function() {
             var mods = KISSY.Env.mods;
             var result = [];
             for (var p in mods) {
                 var v = mods[p].exports || mods[p].value;
-                if (v && v.$mMetas && v.$mCache) {
+                if (v && ((v.$mMetas && v.$mCache) || (v.$mm && v.$mc))) {
                     result.push({
                         name: mods[p].name,
                         exports: v
@@ -901,7 +898,7 @@
             var type = '';
             var e = r.res || r.e;
             if (e) {
-                if (e.fetchAll) {
+                if (e.fetchAll || (e.all && e.one && e.next && e.then)) {
                     type = 'Model Manager';
                 } else if (e.bricks) {
                     type = 'Pagelet';
@@ -914,7 +911,6 @@
                         if (v && e.constructor == v) {
                             type = info.name;
                             found = true;
-                            console.log(info);
                             break;
                         }
                     }
@@ -944,7 +940,6 @@
         },
         dragIt: function(node, handle) {
             KISSY.use('dd', function(S, DD) {
-                console.log(node);
                 new DD.Draggable({
                     node: node,
                     move: true,
@@ -1032,8 +1027,10 @@
                     maxLeft = 0,
                     maxRight = 0,
                     p, info;
-                for (p in m.exports.$mMetas) {
-                    info = m.exports.$mMetas[p];
+                var metas = m.exports.$mMetas || m.exports.$mm;
+
+                for (p in metas) {
+                    info = metas[p];
                     if (info.cleans) {
                         var a = (info.cleans + '').split(',');
                         for (var j = 0; j < a.length; j++) {
@@ -1041,8 +1038,8 @@
                         }
                     }
                 }
-                for (p in m.exports.$mMetas) {
-                    info = m.exports.$mMetas[p];
+                for (p in metas) {
+                    info = metas[p];
                     var c = ManagerColors.normal;
                     var ti = {
                         id: p,
