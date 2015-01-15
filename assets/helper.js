@@ -61,6 +61,7 @@
                     font-size:12px;
                     line-height:1.5;
                 }
+                .magix-helper ul{list-style:none;padding:0}
                 .magix-helper .m5{margin-left:5px;}
                 .magix-helper .fl{
                     float:left
@@ -868,7 +869,6 @@
             var result = [];
             for (var p in mods) {
                 var v = mods[p].exports || mods[p].value;
-                console.log(v);
                 if (v && ((v.$mMetas && v.$mCache) || (v.$mm && v.$mc) || (v.$m && v.$c))) {
                     result.push({
                         name: mods[p].name,
@@ -965,10 +965,130 @@
             });
         }
     };
+    var RequireEnv = {
+        prepare: function() {
+
+        },
+        getRootId: function() {
+            var mods = require.s.contexts._.defined;
+            var old = mods['magix/magix'];
+            var magix;
+            if (old) {
+                magix = old;
+            } else {
+                magix = mods.magix;
+            }
+            return magix.config('rootId');
+        },
+        getVOM: function() {
+            var mods = require.s.contexts._.defined;
+            var old = mods['magix/magix'];
+            if (old) {
+                return mods['magix/vom'];
+            }
+            var magix = mods['magix'];
+            return magix.VOM || magix.Vframe;
+        },
+        getMangerMods: function() {
+            var mods = require.s.contexts._.defined;
+            var result = [];
+            for (var p in mods) {
+                var v = mods[p];
+                if (v && ((v.$mMetas && v.$mCache) || (v.$mm && v.$mc) || (v.$m && v.$c))) {
+                    result.push({
+                        name: p,
+                        exports: v
+                    });
+                }
+            }
+            return result;
+        },
+        isReady: function() {
+            var mods = require.s.contexts._.defined;
+            var magix = mods['magix/magix'];
+            if (magix) {
+                return true;
+            } else {
+                magix = mods['magix'];
+                return magix;
+            }
+        },
+        getDOMOffset: function(id) {
+            var $ = require.s.contexts._.defined.jquery;
+            return $('#' + id).offset();
+        },
+        getDOMSize: function(id) {
+            var $ = require.s.contexts._.defined.jquery;
+            var n = $('#' + id);
+            return {
+                height: n.outerHeight(),
+                width: n.outerWidth()
+            };
+        },
+        bind: function(id, type, fn) {
+            var $ = require.s.contexts._.defined.jquery;
+            if ($.type(id) == 'string') id = '#' + id;
+            return $(id).on(type, fn);
+        },
+        unbind: function(id, type, fn) {
+            var $ = require.s.contexts._.defined.jquery;
+            if ($.type(id) == 'string') id = '#' + id;
+            return $(id).off(type, fn);
+        },
+        getResType: function(r) {
+            var type = '';
+            var e = r.res || r.e;
+            if (e) {
+                if (e.fetchAll || (e.all && e.one && e.next && e.then)) {
+                    type = 'Model Manager';
+                } else if (e.bricks) {
+                    type = 'Pagelet';
+                }
+            } else {
+                var $ = require.s.contexts._.defined.jquery;
+                type = $.type(type);
+            }
+            return type;
+        },
+        hookAttachMod: function(callback) {
+            /*var old = KISSY.Loader.Utils.attachMod;
+            KISSY.Loader.Utils.attachMod = function() {
+                old.apply(KISSY.Loader.Utils, arguments);
+                callback();
+            };*/
+            //setInterval(callback, 1000);
+        },
+        dragIt: function(node, handle) {
+            var $ = require.s.contexts._.defined.jquery;
+            var root = $('#magix_helper');
+            $(node).on('mousedown', function(e) {
+                var right = parseInt(root.css('right'), 10);
+                var top = parseInt(root.css('top'), 10);
+                var x = e.pageX;
+                var y = e.pageY;
+                var move = function(e) {
+                    var fx = e.pageX - x,
+                        fy = e.pageY - y;
+                    root.css({
+                        right: right - fx,
+                        top: top + fy
+                    });
+                };
+                var up = function() {
+                    doc.off('mousemove', move).off('mouseup', up);
+                };
+                var doc = $(document);
+                doc.on('mousemove', move).on('mouseup', up);
+            });
+        }
+    };
     var Helper = {
         getEnv: function() {
             if (window.KISSY) {
                 return KISSYEnv;
+            }
+            if (window.requirejs) {
+                return RequireEnv;
             }
             throw new Error('unsupport');
         },
