@@ -58,6 +58,8 @@
                     z-index:100000;
                     border:solid 1px #ccc;
                     background-color:#fff;
+                    font-size:12px;
+                    line-height:1.5;
                 }
                 .magix-helper .m5{margin-left:5px;}
                 .magix-helper .fl{
@@ -733,16 +735,30 @@
                     var u, one;
                     var max = Math.max(g.maxLeft, g.maxRight);
                     var maps = {};
+                    var linecolorIndex = 0;
+                    var leftTopSpace = ((max - g.maxLeft) / 2) * (Consts.managerHeight + Consts.managerMargin);
+                    var rightTopSpace = ((max - g.maxRight) / 2) * (Consts.managerHeight + Consts.managerMargin);
                     for (u = 0; u < max; u++) {
                         var lo = g.cleans.left[u];
                         var ro = g.cleans.right[u];
                         if (lo) {
-                            drawRect(ctx, [left, top, 150, Consts.managerHeight], lo, g.name);
+                            drawRect(ctx, [
+                                left,
+                                top + leftTopSpace,
+                                150,
+                                Consts.managerHeight
+                            ], lo, g.name);
                             maps[lo.id] = lo;
                         }
                         if (ro) {
-                            drawRect(ctx, [Consts.canvasWidth - Consts.managerMargin - 150, top, 150, Consts.managerHeight], ro, g.name);
+                            drawRect(ctx, [
+                                Consts.canvasWidth - Consts.managerMargin - 150,
+                                top + rightTopSpace,
+                                150,
+                                Consts.managerHeight
+                            ], ro, g.name);
                             maps[ro.id] = ro;
+                            ro.lineColor = Lines[linecolorIndex++ % Lines.length];
                         }
                         top += Consts.managerMargin + Consts.managerHeight;
                     }
@@ -765,7 +781,7 @@
                                 ctx.moveTo(beginPos.x, beginPos.y); // 设置路径起点，坐标为(20,20)
                                 ctx.lineTo(endPos.x, endPos.y); // 绘制一条到(200,20)的直线
                                 ctx.lineWidth = 1.0; // 设置线宽
-                                ctx.strokeStyle = '#996699';
+                                ctx.strokeStyle = '#' + (endOne.lineColor || '996699');
                                 ctx.stroke();
                             }
                         }
@@ -852,7 +868,8 @@
             var result = [];
             for (var p in mods) {
                 var v = mods[p].exports || mods[p].value;
-                if (v && ((v.$mMetas && v.$mCache) || (v.$mm && v.$mc))) {
+                console.log(v);
+                if (v && ((v.$mMetas && v.$mCache) || (v.$mm && v.$mc) || (v.$m && v.$c))) {
                     result.push({
                         name: mods[p].name,
                         exports: v
@@ -1014,7 +1031,7 @@
             var result = [],
                 rows = 0,
 
-                cleansMap = {}, total = 0;
+                cleanedMap = {}, total = 0;
             for (var i = 0; i < managers.length; i++) {
                 var m = managers[i];
                 var r = [];
@@ -1027,14 +1044,14 @@
                     maxLeft = 0,
                     maxRight = 0,
                     p, info;
-                var metas = m.exports.$mMetas || m.exports.$mm;
+                var metas = m.exports.$mMetas || m.exports.$mm || m.exports.$m;
 
                 for (p in metas) {
                     info = metas[p];
                     if (info.cleans) {
                         var a = (info.cleans + '').split(',');
                         for (var j = 0; j < a.length; j++) {
-                            cleansMap[a[j]] = p;
+                            cleanedMap[a[j]] = p;
                         }
                     }
                 }
@@ -1048,7 +1065,7 @@
                         cache: ((info.cache || info.cacheTime | 0) / 1000) + 'sec',
                         desc: info.desc || '',
                         cleans: info.cleans || '',
-                        cleaned: cleansMap[p] || '',
+                        cleaned: cleanedMap[p] || '',
                         hasAfter: !! info.after
                     };
                     if (info.cleans) {
@@ -1056,7 +1073,7 @@
                         ti.color = c;
                         cleans.left.push(ti);
                         maxLeft++;
-                    } else if (cleansMap[p]) {
+                    } else if (cleanedMap[p]) {
                         c = ManagerColors.cleaned;
                         ti.color = c;
                         cleans.right.push(ti);
