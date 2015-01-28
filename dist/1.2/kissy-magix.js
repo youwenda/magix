@@ -3,10 +3,12 @@
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.2
  **/
-LIB('magix/magix', ['jquery'], function($) {
+LIB.add('magix/magix', function(S) {
+    var Slice = [].slice;
+    var Include = function(path) {
+        var magixPackages = S.Config.packages.magix;
+        var mPath = magixPackages.base || magixPackages.path || magixPackages.uri;
 
-    var Include = function(path, mxext) {
-        var mPath = require.s.contexts._.config.paths[mxext ? 'mxext' : 'magix'];
         var url = mPath + path + ".js?r=" + Math.random() + '.js';
         var xhr = WINDOW.ActiveXObject || WINDOW.XMLHttpRequest;
         var r = new xhr('Microsoft.XMLHTTP');
@@ -204,12 +206,12 @@ var SafeExec = function(fns, args, context, i, r, e) {
         args = [args];
     }
     for (i = 0; i < fns.length; i++) {
-        /*_*/try{/*_*/
+        
         e = fns[i];
         r = e && e.apply(context, args);
-        /*_*/}catch(x){/*_*/
-             Cfg.error(x);/*_*/
-        /*_*/}/*_*/
+        
+             
+        
     }
     return r;
 };
@@ -634,41 +636,19 @@ var Magix = {
      */
     cache: Cache
 };
-    var T = function() {};
     return Mix(Magix, {
         
         use: function(name, fn) {
-            if (name) {
-                if (!$.isArray(name)) {
-                    name = [name];
+            S.use(name && (name + EMPTY), function(S) {
+                if (fn) {
+                    fn.apply(S, Slice.call(arguments, 1));
                 }
-                require(name, fn);
-            } else if (fn) {
-                fn();
-            }
+            });
         },
-        _a: $.isArray,
-        _f: $.isFunction,
-        _s: function(o) {
-            return $.type(o) == 'string';
-        },
-        _o: function(o) {
-            return $.type(o) == 'object';
-        },
-        /*isRegExp: function(r) {
-            return ToString.call(r) == '[object RegExp]';
-        },*/
-        extend: function(ctor, base, props, statics) {
-            var bProto = base.prototype;
-            bProto.constructor = base;
-            T.prototype = bProto;
-            var cProto = new T();
-            Mix(cProto, props);
-            Mix(ctor, statics);
-            cProto.constructor = ctor;
-            ctor.prototype = cProto;
-            return ctor;
-        }
+        _s: S.isString,
+        _a: S.isArray,
+        _f: S.isFunction,
+        _o: S.isObject
     });
 });
 /**
@@ -676,7 +656,7 @@ var Magix = {
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.2
  **/
-LIB("magix/event", ["magix/magix"], function(Magix) {
+LIB.add("magix/event", function(S, Magix) {
     var SafeExec = Magix.tryCall;
 /**
  * 多播事件对象
@@ -810,14 +790,15 @@ var Event = {
 };
 Magix.mix(Magix.local, Event);
     return Event;
+}, {
+    requires: ["magix/magix"]
 });
 /**
  * @fileOverview 路由
  * @author 行列
  * @version 1.2
  */
-LIB('magix/router', ["magix/magix", "magix/event", 'jquery'], function(Magix, Event, $) {
-    //todo dom event;
+LIB.add('magix/router', function(S, Magix, Event, SE) {
     var EMPTY = '';
 var PATH = 'path';
 var VIEW = 'view';
@@ -1213,26 +1194,28 @@ var Router = Mix({
 
 }, Event);
     Router.bind = function(useState) {
-        var initialURL = location.href;
         if (useState) {
-            $(window).on('popstate', function(e) {
+            var initialURL = location.href;
+            SE.on(WINDOW, 'popstate', function(e) {
                 var equal = location.href == initialURL;
                 if (!Router.did && equal) return;
                 Router.did = 1;
                 Router.route();
             });
         } else {
-            $(window).on('hashchange', Router.route);
+            SE.on(WINDOW, 'hashchange', Router.route);
         }
     };
     return Router;
+}, {
+    requires: ["magix/magix", "magix/event", "event"]
 });
 /**
  * @fileOverview VOM
  * @author 行列
  * @version 1.2
  */
-LIB("magix/vom", ["magix/vframe", "magix/magix", "magix/event"], function(Vframe, Magix, Event) {
+LIB.add("magix/vom", function(S, Vframe, Magix, Event) {
     var Has = Magix.has;
 var Mix = Magix.mix;
 
@@ -1336,13 +1319,15 @@ var VOM = Magix.mix({
      */
 }, Event);
     return VOM;
+}, {
+    requires: ["magix/vframe", "magix/magix", "magix/event"]
 });
 /**
  * @fileOverview Vframe类
  * @author 行列
  * @version 1.2
  */
-LIB('magix/vframe', ["magix/magix", "magix/event", "magix/view"], function(Magix, Event, BaseView) {
+LIB.add('magix/vframe', function(S, Magix, Event, BaseView) {
     var SafeExec = Magix.tryCall;
 var EmptyArr = [];
 
@@ -1840,38 +1825,30 @@ Mix(Mix(Vframe.prototype, Event), {
  *      fca firstChildrenAlter  fcc firstChildrenCreated
  */
     return Vframe;
+}, {
+    requires: ["magix/magix", "magix/event", "magix/view"]
 });
 /**
  * @fileOverview view类
  * @author 行列
  * @version 1.2
  */
-LIB('magix/view', ["magix/magix", "magix/event", "magix/router", 'jquery'], function(Magix, Event, Router, $) {
-
+LIB.add('magix/view', function(S, Magix, Event, Router, IO) {
     var Delegates = {
-        focus: 2,
-        blur: 2,
         mouseenter: 2,
         mouseleave: 2
     };
-    var G = $.now();
     var DOMEventLibBind = function(node, type, cb, remove, scope, direct) {
-        var flag = Delegates[type];
-        if (scope) {
-            if (!cb.$n) cb.$n = G--;
-            var key = '_$' + cb.$n;
-            if (!scope[key]) {
-                scope[key] = function() {
-                    cb.apply(scope, arguments);
-                };
+        S.use('event', function(S, SE) {
+            var flag = Delegates[type];
+            if (!direct && flag == 2) {
+                flag = (remove ? 'un' : EMPTY) + 'delegate';
+                SE[flag](node, type, '[mx-' + type + ']', cb);
+            } else {
+                flag = remove ? 'detach' : ON;
+                SE[flag](node, type, cb, scope);
             }
-            cb = scope[key];
-        }
-        if (!direct && flag == 2) {
-            $(node)[(remove ? 'un' : EMPTY) + 'delegate']('[mx-' + type + ']', type, cb);
-        } else {
-            $(node)[remove ? 'off' : ON](type, cb);
-        }
+        });
     };
     var SafeExec = Magix.tryCall;
 var Has = Magix.has;
@@ -2901,12 +2878,12 @@ Mix(Mix(VProto, Event), {
      * @param {Object} e
      */
 });
-    var Paths = {};
-    var Suffix = '?t=' + Math.random();
+    var Suffix = '?t=' + S.now();
+    var Mods = S.Env.mods;
 
-    /* var ProcessObject = function(props, proto, enterObject) {
+    /*var ProcessObject = function(props, proto, enterObject) {
         for (var p in proto) {
-            if (Magix.isObject(proto[p])) {
+            if (S.isObject(proto[p])) {
                 if (!Has(props, p)) props[p] = {};
                 ProcessObject(props[p], proto[p], 1);
             } else if (enterObject) {
@@ -2914,7 +2891,6 @@ Mix(Mix(VProto, Event), {
             }
         }
     };*/
-
 
     var Tmpls = {}, Locker = {};
     VProto.fetchTmpl = function(path, fn) {
@@ -2924,12 +2900,13 @@ Mix(Mix(VProto, Event), {
             if (Has(Tmpls, path)) {
                 fn(Tmpls[path]);
             } else {
-                var idx = path.indexOf('/');
-                var name = path.substring(0, idx);
-                if (!Paths[name]) {
-                    Paths[name] = require.s.contexts._.config.paths[name];
+                var info = Mods[path];
+                var url;
+                if (info) {
+                    url = info.uri || info.fullpath;
+                    url = url.slice(0, url.indexOf(path) + path.length);
                 }
-                var file = Paths[name] + path.substring(idx + 1) + '.html';
+                var file = url + '.html';
                 var l = Locker[file];
                 var onload = function(tmpl) {
                     fn(Tmpls[path] = tmpl);
@@ -2938,14 +2915,10 @@ Mix(Mix(VProto, Event), {
                     l.push(onload);
                 } else {
                     l = Locker[file] = [onload];
-                    $.ajax({
+                    IO({
                         url: file + Suffix,
-                        success: function(x) {
-                            SafeExec(l, x);
-                            delete Locker[file];
-                        },
-                        error: function(e, m) {
-                            SafeExec(l, m);
+                        complete: function(data, status) {
+                            SafeExec(l, data || status);
                             delete Locker[file];
                         }
                     });
@@ -2968,16 +2941,19 @@ Mix(Mix(VProto, Event), {
             }
         };
         BaseView.extend = me.extend;
-        return Magix.extend(BaseView, me, props, statics);
+        return S.extend(BaseView, me, props, statics);
     };
+
     return View;
+}, {
+    requires: ['magix/magix', 'magix/event', 'magix/router', 'io']
 });
 /**
  * @fileOverview Model
  * @version 1.2
  * @author 行列
  */
-LIB('magix/model', ['magix/magix'], function(Magix) {
+LIB.add('magix/model', function(S, Magix) {
     /**
  * Model类
  * @name Model
@@ -3250,27 +3226,31 @@ Magix.mix(Model.prototype, {
                 ctor.call(this);
             }
         };
-        return Magix.extend(BaseModel, me, props, statics);
+        return S.extend(BaseModel, me, props, statics);
     };
     return Model;
+}, {
+    requires: ['magix/magix']
 });
 /**
  * @fileOverview model管理工厂，可方便的对Model进行缓存和更新
  * @author 行列
  * @version 1.2
  **/
-LIB("magix/manager", ["magix/magix", "magix/event"], function(Magix, Event) {
+LIB.add("magix/manager", function(S, Magix, Event) {
     /*
         #begin mm_fetchall_1#
-        LIB('testMM',["magix/manager","magix/model"],function(MM,Model){
+        LIB.add('testMM',function(S,MM,Model){
         #end#
 
         #begin mm_fetchall_2#
+        },{
+            requires:["magix/manager","magix/model"]
         });
         #end#
 
         #begin mm_fetchall_3#
-        requirejs('testMM',function(TM){
+        LIB.use('testMM',function(S,TM){
         #end#
      */
     var Has = Magix.has;
@@ -3612,7 +3592,7 @@ Mix(Request.prototype, {
      * @example
         //定义
         
-        LIB('testMM',["magix/manager","magix/model"],function(MM,Model){
+        LIB.add('testMM',function(S,MM,Model){
         
             var TestMM=MM.create(Model);
             TestMM.registerModels([{
@@ -3627,11 +3607,13 @@ Mix(Request.prototype, {
             }]);
             return TestMM;
         
+        },{
+            requires:["magix/manager","magix/model"]
         });
         
         //使用
         
-        requirejs('testMM',function(TM){
+        LIB.use('testMM',function(S,TM){
         
             TM.fetchAll([{
                 name:'Test1'
@@ -4155,4 +4137,6 @@ Mix(Mix(MP, Event), {
  * @param {Model} e.model model对象
  */
     return Manager;
-});;DOCUMENT.createElement("vframe");})(null,window,document,function(){},"\u001f","",",",define);
+}, {
+    requires: ["magix/magix", "magix/event"]
+});;DOCUMENT.createElement("vframe");})(null,window,document,function(){},"\u001f","",",",KISSY);

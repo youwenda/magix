@@ -204,12 +204,12 @@ var SafeExec = function(fns, args, context, i, r, e) {
         args = [args];
     }
     for (i = 0; i < fns.length; i++) {
-        /*_*/try{/*_*/
+        
         e = fns[i];
         r = e && e.apply(context, args);
-        /*_*/}catch(x){/*_*/
-             Cfg.error(x);/*_*/
-        /*_*/}/*_*/
+        
+             
+        
     }
     return r;
 };

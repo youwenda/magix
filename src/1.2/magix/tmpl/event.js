@@ -88,7 +88,7 @@ var Event = {
         if (p !== insertOrRely) {
             if (insertOrRely && insertOrRely.on && relyName) {
                 insertOrRely.on(relyName, function() {
-                    wrap.r = 1;
+                    wrap.d = 1;
                 }, SafeExec);
                 insertOrRely = 0;
             }

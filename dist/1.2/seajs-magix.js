@@ -3,10 +3,10 @@
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.2
  **/
-LIB('magix/magix', ['jquery'], function($) {
-
+LIB('magix/magix', function(require) {
+    var $ = require('jquery');
     var Include = function(path, mxext) {
-        var mPath = require.s.contexts._.config.paths[mxext ? 'mxext' : 'magix'];
+        var mPath = seajs.data.paths[mxext ? 'mxext' : 'magix'];
         var url = mPath + path + ".js?r=" + Math.random() + '.js';
         var xhr = WINDOW.ActiveXObject || WINDOW.XMLHttpRequest;
         var r = new xhr('Microsoft.XMLHTTP');
@@ -204,12 +204,12 @@ var SafeExec = function(fns, args, context, i, r, e) {
         args = [args];
     }
     for (i = 0; i < fns.length; i++) {
-        /*_*/try{/*_*/
+        
         e = fns[i];
         r = e && e.apply(context, args);
-        /*_*/}catch(x){/*_*/
-             Cfg.error(x);/*_*/
-        /*_*/}/*_*/
+        
+             
+        
     }
     return r;
 };
@@ -639,10 +639,7 @@ var Magix = {
         
         use: function(name, fn) {
             if (name) {
-                if (!$.isArray(name)) {
-                    name = [name];
-                }
-                require(name, fn);
+                seajs.use(name, fn);
             } else if (fn) {
                 fn();
             }
@@ -655,7 +652,7 @@ var Magix = {
         _o: function(o) {
             return $.type(o) == 'object';
         },
-        /*isRegExp: function(r) {
+        /* isRegExp: function(r) {
             return ToString.call(r) == '[object RegExp]';
         },*/
         extend: function(ctor, base, props, statics) {
@@ -676,7 +673,8 @@ var Magix = {
  * @author 行列<xinglie.lkf@taobao.com>
  * @version 1.2
  **/
-LIB("magix/event", ["magix/magix"], function(Magix) {
+LIB("magix/event", function(require) {
+    var Magix = require("./magix");
     var SafeExec = Magix.tryCall;
 /**
  * 多播事件对象
@@ -816,7 +814,10 @@ Magix.mix(Magix.local, Event);
  * @author 行列
  * @version 1.2
  */
-LIB('magix/router', ["magix/magix", "magix/event", 'jquery'], function(Magix, Event, $) {
+LIB('magix/router', function(require) {
+    var Magix = require("./magix");
+    var Event = require("./event");
+    var $ = require('jquery');
     //todo dom event;
     var EMPTY = '';
 var PATH = 'path';
@@ -1232,7 +1233,10 @@ var Router = Mix({
  * @author 行列
  * @version 1.2
  */
-LIB("magix/vom", ["magix/vframe", "magix/magix", "magix/event"], function(Vframe, Magix, Event) {
+LIB("magix/vom", function(require) {
+    var Vframe = require("./vframe");
+    var Magix = require("./magix");
+    var Event = require("./event");
     var Has = Magix.has;
 var Mix = Magix.mix;
 
@@ -1342,7 +1346,10 @@ var VOM = Magix.mix({
  * @author 行列
  * @version 1.2
  */
-LIB('magix/vframe', ["magix/magix", "magix/event", "magix/view"], function(Magix, Event, BaseView) {
+LIB('magix/vframe', function(require) {
+    var Magix = require("./magix");
+    var Event = require("./event");
+    var BaseView = require("./view");
     var SafeExec = Magix.tryCall;
 var EmptyArr = [];
 
@@ -1846,8 +1853,11 @@ Mix(Mix(Vframe.prototype, Event), {
  * @author 行列
  * @version 1.2
  */
-LIB('magix/view', ["magix/magix", "magix/event", "magix/router", 'jquery'], function(Magix, Event, Router, $) {
-
+LIB('magix/view', function(require) {
+    var Magix = require("./magix");
+    var Event = require("./event");
+    var Router = require("./router");
+    var $ = require('jquery');
     var Delegates = {
         focus: 2,
         blur: 2,
@@ -2904,7 +2914,7 @@ Mix(Mix(VProto, Event), {
     var Paths = {};
     var Suffix = '?t=' + Math.random();
 
-    /* var ProcessObject = function(props, proto, enterObject) {
+    /*var ProcessObject = function(props, proto, enterObject) {
         for (var p in proto) {
             if (Magix.isObject(proto[p])) {
                 if (!Has(props, p)) props[p] = {};
@@ -2927,7 +2937,7 @@ Mix(Mix(VProto, Event), {
                 var idx = path.indexOf('/');
                 var name = path.substring(0, idx);
                 if (!Paths[name]) {
-                    Paths[name] = require.s.contexts._.config.paths[name];
+                    Paths[name] = seajs.data.paths[name];
                 }
                 var file = Paths[name] + path.substring(idx + 1) + '.html';
                 var l = Locker[file];
@@ -2966,7 +2976,7 @@ Mix(Mix(VProto, Event), {
             if (ctor) {
                 ctor.call(this, a);
             }
-        };
+        }
         BaseView.extend = me.extend;
         return Magix.extend(BaseView, me, props, statics);
     };
@@ -2977,7 +2987,8 @@ Mix(Mix(VProto, Event), {
  * @version 1.2
  * @author 行列
  */
-LIB('magix/model', ['magix/magix'], function(Magix) {
+LIB('magix/model', function(require) {
+    var Magix = require('./magix');
     /**
  * Model类
  * @name Model
@@ -3251,6 +3262,7 @@ Magix.mix(Model.prototype, {
             }
         };
         return Magix.extend(BaseModel, me, props, statics);
+
     };
     return Model;
 });
@@ -3259,10 +3271,12 @@ Magix.mix(Model.prototype, {
  * @author 行列
  * @version 1.2
  **/
-LIB("magix/manager", ["magix/magix", "magix/event"], function(Magix, Event) {
+LIB("magix/manager", function(require) {
     /*
         #begin mm_fetchall_1#
-        LIB('testMM',["magix/manager","magix/model"],function(MM,Model){
+        LIB('testMM',["magix/manager","magix/model"],function(require){
+            var MM=require("magix/manager");
+            var Model=require("magix/model");
         #end#
 
         #begin mm_fetchall_2#
@@ -3270,9 +3284,11 @@ LIB("magix/manager", ["magix/magix", "magix/event"], function(Magix, Event) {
         #end#
 
         #begin mm_fetchall_3#
-        requirejs('testMM',function(TM){
+        seajs.use('testMM',function(TM){
         #end#
      */
+    var Magix = require("./magix");
+    var Event = require("./event");
     var Has = Magix.has;
 var SafeExec = Magix.tryCall;
 var IsArray = Magix._a;
@@ -3612,7 +3628,9 @@ Mix(Request.prototype, {
      * @example
         //定义
         
-        LIB('testMM',["magix/manager","magix/model"],function(MM,Model){
+        LIB('testMM',["magix/manager","magix/model"],function(require){
+            var MM=require("magix/manager");
+            var Model=require("magix/model");
         
             var TestMM=MM.create(Model);
             TestMM.registerModels([{
@@ -3631,7 +3649,7 @@ Mix(Request.prototype, {
         
         //使用
         
-        requirejs('testMM',function(TM){
+        seajs.use('testMM',function(TM){
         
             TM.fetchAll([{
                 name:'Test1'
