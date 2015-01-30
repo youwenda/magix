@@ -3,6 +3,8 @@
  */
 (function() {
     var D = document;
+    if (D._magix) return;
+    D._magix = true;
     var Status = {
         created: '#008B00',
         init: '#FF3030',
@@ -356,7 +358,7 @@
                         if (res) {
                             t.push('<table style="width:100%"><tr><td>hasKey</td><td>key</td><td>res</td></tr>');
                             for (var p in res) {
-                                t.push('<tr><td>', nKey || res[p].hasKey || !! (res[p].hk), '</td><td>', p, '</td><td>', env.getResType(res[p]), '</td></tr>');
+                                t.push('<tr><td>', nKey || res[p].hasKey || !!(res[p].hk), '</td><td>', p, '</td><td>', env.getResType(res[p]), '</td></tr>');
                             }
                             t.push('</table>');
                         }
@@ -627,11 +629,20 @@
                         ctx.strokeStyle = lineColor;
                         ctx.stroke(); // 进行线的着色，这时整条线才变得可见
                     }
-                    ctx.beginPath();
+
                     ctx.moveTo(pos.x, pos.y);
+                    ctx.beginPath();
                     ctx.arc(pos.x, pos.y, params.radius, 0, Math.PI * 2, true);
                     ctx.fillStyle = item.status;
                     ctx.fill();
+
+                    ctx.moveTo(pos.x, pos.y);
+                    ctx.beginPath();
+                    var band = (params.radius / 20).toFixed(1);
+                    ctx.arc(pos.x, pos.y, params.radius - band - 1, 0, Math.PI * 2, true);
+                    ctx.lineWidth = band;
+                    ctx.strokeStyle = "#fff";
+                    ctx.stroke();
 
                     g.list.push({
                         id: item.id,
@@ -1151,7 +1162,8 @@
             var result = [],
                 rows = 0,
 
-                cleanedMap = {}, total = 0;
+                cleanedMap = {},
+                total = 0;
             for (var i = 0; i < managers.length; i++) {
                 var m = managers[i];
                 var r = [];
@@ -1186,7 +1198,7 @@
                         desc: info.desc || '',
                         cleans: info.cleans || '',
                         cleaned: cleanedMap[p] || '',
-                        hasAfter: !! info.after
+                        hasAfter: !!info.after
                     };
                     if (info.cleans) {
                         c = ManagerColors.cleans;
