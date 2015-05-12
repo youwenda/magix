@@ -117,8 +117,4 @@ MM.regitesrModels([{
 再后来就把model中的urlMap去掉了，把接口地址放到了manager中。不过淘宝直通车中，根据模块拆分出了多个manager，导致在某些地方需要跨模块取数据时仍然会有不方便，不过这种情况很少见，也就没有再去解决。
 
 目前项目中的的做法是：
-一个项目中只有一个manager对象，但可以拆成几个文件，每个文件中调用Manager.registerModels向这个对象注册相应的信息。
-
-##总结
-1. 合并model文件
-2. manager自由组合调用model
+一个项目中只有一个manager对象，但可以拆成几个文件，每个文件中调用Manager.registerModels向这个对象注册相应的信息。通过这一个manager对象就可以灵活、方便的组合任意想要的接口获取数据了。
