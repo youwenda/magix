@@ -40,35 +40,38 @@ KISSY.add('apiapp/mviews/xpartials/class', function(S, View, MM, Magix, Crox) {
         }
         return a;
     };
-    var ExtendClass = {
-        view: null,
-        data: null,
-        infos: null,
+    var ExtendClass = function() {
+
+    };
+    ExtendClass.prototype = {
         method_params: function(params) {
             var a = [];
             if (params) {
                 for (var i = 0, name, info; i < params.length; i++) {
                     info = params[i];
                     name = info.name;
+                    console.log(name);
                     if (name.indexOf('.') == -1) {
                         a.push(name);
                     }
                 }
             }
+            console.log(a);
             return a;
         },
         moreInfos: function(key, val) {
             key = '$' + key;
-            if (!ExtendClass[key]) {
-                ExtendClass[key] = {};
+            var me=this;
+            if (!me[key]) {
+                me[key] = {};
             }
-            ExtendClass[key][val._name] = val;
+            me[key][val._name] = val;
             return '';
         },
         inherits_relation: function(name) {
             var result = '';
-            var tmpl = ExtendClass.view.getSubTmpl('inherits');
-            var ir = FindParent(name, ExtendClass.infos.map);
+            var tmpl = this.view.getSubTmpl('inherits');
+            var ir = FindParent(name, this.infos.map);
             result = Crox.render(tmpl, {
                 list: ir.reverse()
             });
@@ -87,7 +90,6 @@ KISSY.add('apiapp/mviews/xpartials/class', function(S, View, MM, Magix, Crox) {
         },
         render: function() {
             var me = this;
-            var infos = Magix.local('APIPathInfo');
             var r = MM.fetchClassInfos(me);
             r.next(function(e, i) {
                 if (e) {
@@ -96,10 +98,12 @@ KISSY.add('apiapp/mviews/xpartials/class', function(S, View, MM, Magix, Crox) {
                     var m = i.map[me.name];
                     if (m) {
                         var data = m.get();
-                        ExtendClass.data = data;
-                        ExtendClass.infos = i;
-                        ExtendClass.view = me;
-                        var html = Crox.render(me.tmpl, ExtendClass);
+                        var ec=new ExtendClass();
+                        ec.data=data;
+                        ec.infos=i;
+                        ec.view=me;
+                        me.$ec=ec;
+                        var html = Crox.render(me.tmpl, ec);
                         me.setViewHTML(me.id, html);
                     } else {
                         me.setViewHTML(me.id, 'not found:' + me.name);
@@ -143,7 +147,7 @@ KISSY.add('apiapp/mviews/xpartials/class', function(S, View, MM, Magix, Crox) {
             }
             me.$lastIcon = icon;
             var tmpl = me.getSubTmpl('method');
-            var data = ExtendClass;
+            var data = me.$ec;
             var methods = data['$' + e.params.type] || {};
             var info = methods[e.params.name] || {};
             ClassExample.info = info;
@@ -151,6 +155,7 @@ KISSY.add('apiapp/mviews/xpartials/class', function(S, View, MM, Magix, Crox) {
             if (top < S.DOM.scrollTop()) {
                 S.DOM.scrollTop(top - 50);
             }
+            console.log(info);
             cnt.html(Crox.render(tmpl, ClassExample));
         }
     });

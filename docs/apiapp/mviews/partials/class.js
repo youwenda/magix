@@ -50,11 +50,13 @@ KISSY.add('apiapp/mviews/partials/class', function(S, View, MM, Magix, Crox) {
                 for (var i = 0, name, info; i < params.length; i++) {
                     info = params[i];
                     name = info.name;
+                    console.log(name);
                     if (name.indexOf('.') == -1) {
                         a.push(name);
                     }
                 }
             }
+            console.log(a);
             return a;
         },
         moreInfos: function(key, val) {
@@ -165,6 +167,7 @@ KISSY.add('apiapp/mviews/partials/class', function(S, View, MM, Magix, Crox) {
             me.$lastIcon = icon;
             var tmpl = me.getSubTmpl('method');
             var data = ExtendClass;
+            console.log(data);
             var methods = data['$' + e.params.type] || {};
             var info = methods[e.params.name] || {};
             ClassExample.info = info;
