@@ -107,6 +107,7 @@ list.destroy();
 在Magix中，简化了开发，提供了托管的概念，即所有的资源都应该托管到view对象上，并实现destroy方法，当view有变化并需要对这些资源销毁处理时，会自动调用它们的destroy方法。
 
 比如：
+
 ```js
 define('app/views/default',['magix'],function(require){
     var Magix=require('magix');
