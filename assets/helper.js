@@ -1093,6 +1093,118 @@
             });
         }
     };
+    var SeajsEnv = {
+        getMod: function(key) {
+            var mods = seajs.cache;
+            for (var p in mods) {
+                var mod = mods[p];
+                if (mod.id === key) {
+                    return mod.exports;
+                }
+            }
+            return;
+        },
+        prepare: function() {
+
+        },
+        getRootId: function() {
+            var old = SeajsEnv.getMod('magix/magix');
+            var magix;
+            if (old) {
+                magix = old;
+            } else {
+                magix = SeajsEnv.getMod('magix');
+            }
+            return magix.config('rootId');
+        },
+        getVOM: function() {
+            var old = SeajsEnv.getMod('magix/vom');
+            if (old) {
+                return old;
+            }
+            var magix = SeajsEnv.getMod('magix');
+            return magix.VOM || magix.Vframe;
+        },
+        getMangerMods: function() {
+            var mods = seajs.cache;
+            var result = [];
+            for (var p in mods) {
+                var v = mods[p];
+                var exports = v.exports;
+                if (exports && (exports.$m && exports.$s)) {
+                    result.push({
+                        name: v.id,
+                        exports: exports
+                    });
+                }
+            }
+            return result;
+        },
+        isReady: function() {
+            return SeajsEnv.getMod('magix/magix') || SeajsEnv.getMod('magix');
+        },
+        getDOMOffset: function(id) {
+            var $ = SeajsEnv.getMod('$') || SeajsEnv.getMod('jquery');
+            return $('#' + id).offset();
+        },
+        getDOMSize: function(id) {
+            var $ = SeajsEnv.getMod('$') || SeajsEnv.getMod('jquery');
+            var n = $('#' + id);
+            return {
+                height: n.outerHeight ? n.outerHeight() : n.height(),
+                width: n.outerWidth ? n.outerWidth() : n.width()
+            };
+        },
+        bind: function(id, type, fn) {
+            var $ = SeajsEnv.getMod('$') || SeajsEnv.getMod('jquery');
+            if ($.type(id) == 'string') id = '#' + id;
+            return $(id).on(type, fn);
+        },
+        unbind: function(id, type, fn) {
+            var $ = SeajsEnv.getMod('$') || SeajsEnv.getMod('jquery');
+            if ($.type(id) == 'string') id = '#' + id;
+            return $(id).off(type, fn);
+        },
+        getResType: function(r) {
+            var type = '';
+            var e = r.res || r.e;
+            if (e) {
+                if (e.fetchAll || (e.all && e.one && e.next && e.then)) {
+                    type = 'Model Manager';
+                } else if (e.bricks) {
+                    type = 'Pagelet';
+                }
+            } else {
+                var $ = SeajsEnv.getMod('$') || SeajsEnv.getMod('jquery');
+                type = $.type(type);
+            }
+            return type;
+        },
+        hookAttachMod: function(callback) {},
+        dragIt: function(node, handle) {
+            var $ = SeajsEnv.getMod('$') || SeajsEnv.getMod('jquery');
+            var root = $('#magix_helper');
+            $(node).on('mousedown', function(e) {
+                var right = parseInt(root.css('right'), 10);
+                var top = parseInt(root.css('top'), 10);
+                var x = e.pageX;
+                var y = e.pageY;
+                var move = function(e) {
+                    var fx = e.pageX - x,
+                        fy = e.pageY - y;
+                    root.css({
+                        right: right - fx,
+                        top: top + fy
+                    });
+                };
+                var up = function() {
+                    doc.off('mousemove', move).off('mouseup', up);
+                };
+                var doc = $(document);
+                doc.on('mousemove', move).on('mouseup', up);
+            });
+        }
+    };
     var Helper = {
         getEnv: function() {
             if (window.KISSY) {
@@ -1100,6 +1212,9 @@
             }
             if (window.requirejs) {
                 return RequireEnv;
+            }
+            if (window.seajs) {
+                return SeajsEnv;
             }
             throw new Error('unsupport');
         },
@@ -1282,18 +1397,21 @@
                     });
                     vf.___mh = true;
                 };
+                var attachVframes = function() {
+                    var all = vom.all();
+                    for (var a in all) {
+                        var vf = vom.get(a);
+                        if (!vf.___mh) {
+                            attachVframe(vf);
+                        }
+                    }
+                };
                 var drawTree = function(e) {
                     if (e) {
                         if (e.type == 'remove') {
                             Tracer.log('销毁vframe:' + e.vframe.id);
                         } else if (e.type == 'created') {
-                            var all = vom.all();
-                            for (var a in all) {
-                                var vf = vom.get(a);
-                                if (!vf.___mh) {
-                                    attachVframe(vf);
-                                }
-                            }
+                            attachVframes();
                         }
                     }
                     clearTimeout(drawTimer);
@@ -1316,6 +1434,7 @@
                 if (rootVf) {
                     rootVf.on('created', drawTree);
                 }
+                attachVframes();
                 drawTree();
 
                 var managerTimer;
