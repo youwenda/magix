@@ -1095,6 +1095,7 @@
     };
     var SeajsEnv = {
         getMod: function(key) {
+            debugger;
             var mods = seajs.cache;
             for (var p in mods) {
                 var mod = mods[p];
@@ -1104,25 +1105,28 @@
             }
             return;
         },
+        getDL: function() {
+            return this.getMod('$') || this.getMod('jquery') || this.getMod('zepto');
+        },
         prepare: function() {
 
         },
         getRootId: function() {
-            var old = SeajsEnv.getMod('magix/magix');
+            var old = this.getMod('magix/magix');
             var magix;
             if (old) {
                 magix = old;
             } else {
-                magix = SeajsEnv.getMod('magix');
+                magix = this.getMod('magix');
             }
             return magix.config('rootId');
         },
         getVOM: function() {
-            var old = SeajsEnv.getMod('magix/vom');
+            var old = this.getMod('magix/vom');
             if (old) {
                 return old;
             }
-            var magix = SeajsEnv.getMod('magix');
+            var magix = this.getMod('magix');
             return magix.VOM || magix.Vframe;
         },
         getMangerMods: function() {
@@ -1141,14 +1145,14 @@
             return result;
         },
         isReady: function() {
-            return SeajsEnv.getMod('magix/magix') || SeajsEnv.getMod('magix');
+            return this.getMod('magix/magix') || this.getMod('magix');
         },
         getDOMOffset: function(id) {
-            var $ = SeajsEnv.getMod('$') || SeajsEnv.getMod('jquery');
+            var $ = this.getDL();
             return $('#' + id).offset();
         },
         getDOMSize: function(id) {
-            var $ = SeajsEnv.getMod('$') || SeajsEnv.getMod('jquery');
+            var $ = this.getDL();
             var n = $('#' + id);
             return {
                 height: n.outerHeight ? n.outerHeight() : n.height(),
@@ -1156,12 +1160,12 @@
             };
         },
         bind: function(id, type, fn) {
-            var $ = SeajsEnv.getMod('$') || SeajsEnv.getMod('jquery');
+            var $ = this.getDL();
             if ($.type(id) == 'string') id = '#' + id;
             return $(id).on(type, fn);
         },
         unbind: function(id, type, fn) {
-            var $ = SeajsEnv.getMod('$') || SeajsEnv.getMod('jquery');
+            var $ = this.getDL();
             if ($.type(id) == 'string') id = '#' + id;
             return $(id).off(type, fn);
         },
@@ -1175,14 +1179,14 @@
                     type = 'Pagelet';
                 }
             } else {
-                var $ = SeajsEnv.getMod('$') || SeajsEnv.getMod('jquery');
+                var $ = this.getDL();
                 type = $.type(type);
             }
             return type;
         },
         hookAttachMod: function(callback) {},
         dragIt: function(node, handle) {
-            var $ = SeajsEnv.getMod('$') || SeajsEnv.getMod('jquery');
+            var $ = this.getDL();
             var root = $('#magix_helper');
             $(node).on('mousedown', function(e) {
                 var right = parseInt(root.css('right'), 10);
@@ -1205,6 +1209,20 @@
             });
         }
     };
+    var SeajsSEnv = {
+
+    };
+    for (var p in SeajsEnv) SeajsSEnv[p] = SeajsEnv[p];
+    SeajsSEnv.getMod = function(key) {
+        try {
+            return require(key);
+        } catch (e) {
+            return null;
+        }
+    };
+    SeajsSEnv.getMangerMods = function() {
+        return [];
+    };
     var Helper = {
         getEnv: function() {
             if (window.KISSY) {
@@ -1215,6 +1233,9 @@
             }
             if (window.seajs) {
                 return SeajsEnv;
+            }
+            if (window.define && window.require) {
+                return SeajsSEnv;
             }
             throw new Error('unsupport');
         },
