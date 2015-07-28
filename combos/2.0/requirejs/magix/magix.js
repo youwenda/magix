@@ -769,9 +769,10 @@ var ChgdCache = Magix.Cache();
 var WinLoc = window.location;
 var WinHistory = window.history;
 var TLoc, LLoc = {
-    params: {},
-    href: EMPTY
-}, Pnr;
+        params: {},
+        href: EMPTY
+    },
+    Pnr;
 var TrimHashReg = /(?:^https?:\/\/[^\/]+|#.*$)/gi,
     TrimQueryReg = /^[^#]*#?!?/;
 var PARAMS = 'params';
@@ -1090,6 +1091,7 @@ var Router = Mix({
             } else { //只有参数，如:a=b&c=d
                 tPath = lPath;
                 tParams = Mix(Mix({}, TLoc[PARAMS]), tParams); //复制原来的参数
+                temp[PARAMS] = tParams;
             }
             tPath = ToUrl(temp[PATH] = tPath, tParams, UseEdgeHistory ? PATH : querys); //hash需要保留query中的空白值参数
 

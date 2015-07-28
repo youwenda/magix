@@ -2,9 +2,7 @@
 .project
 *.idea
 .DS_Store
-tests/
-test/node_modules/
-tools/node_modules/
+node_modules
 README.html
 
 # Jekyll generated result

@@ -8,7 +8,7 @@ module.exports = function(grunt) {
     var distDir = '../../dist';
     var docDir = '../../docs';
     var combosDir = '../../combos';
-    var platType = String(grunt.option('platType')).replace(/'/g, ''); //'1.0' or 'm1.0'
+    var platType = '2.0'; //String(grunt.option('platType')).replace(/'/g, ''); //'1.0' or 'm1.0'
     var loaderType = String(grunt.option('loaderType')).replace(/'/g, ''); //'kissy' or 'seajs'
 
     if (!platType || !loaderType) {
@@ -97,6 +97,6 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-exec');
     grunt.loadTasks('tasks');
-    grunt.registerTask('default', ['cpsource', 'deconsole', 'subtmpls', 'generatedoc', 'concatfiles', 'removeunimpl', 'compresslibs', 'copytocombos', 'unsetry', 'clean']);
+    grunt.registerTask('default', ['cpsource', 'deconsole', 'subtmpls', /*'generatedoc',*/ 'concatfiles', 'removeunimpl', 'compresslibs', 'copytocombos', 'unsetry', 'clean']);
     // grunt.registerTask('default', ['exec']);
 };
