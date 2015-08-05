@@ -1095,7 +1095,6 @@
     };
     var SeajsEnv = {
         getMod: function(key) {
-            debugger;
             var mods = seajs.cache;
             for (var p in mods) {
                 var mod = mods[p];
@@ -1154,10 +1153,13 @@
         getDOMSize: function(id) {
             var $ = this.getDL();
             var n = $('#' + id);
-            return {
+
+            var size = {
                 height: n.outerHeight ? n.outerHeight() : n.height(),
                 width: n.outerWidth ? n.outerWidth() : n.width()
             };
+            if (!size.height) size.height = n.children().height();
+            return size;
         },
         bind: function(id, type, fn) {
             var $ = this.getDL();
@@ -1212,7 +1214,13 @@
     var SeajsSEnv = {
 
     };
-    for (var p in SeajsEnv) SeajsSEnv[p] = SeajsEnv[p];
+    var MagixEnv = {
+
+    };
+    for (var p in SeajsEnv) {
+        SeajsSEnv[p] = SeajsEnv[p];
+        MagixEnv[p] = SeajsEnv[p];
+    }
     SeajsSEnv.getMod = function(key) {
         try {
             return require(key);
@@ -1222,6 +1230,22 @@
     };
     SeajsSEnv.getMangerMods = function() {
         return [];
+    };
+    MagixEnv.getDL = function() {
+        return window.$;
+    };
+
+    MagixEnv.getRootId = function() {
+        return Magix.config('rootId');
+    };
+    MagixEnv.getVOM = function() {
+        return Magix.VOM || Magix.Vframe;
+    };
+    MagixEnv.getMangerMods = function() {
+        return [];
+    };
+    MagixEnv.isReady = function() {
+        return true;
     };
     var Helper = {
         getEnv: function() {
@@ -1236,6 +1260,9 @@
             }
             if (window.define && window.require) {
                 return SeajsSEnv;
+            }
+            if (window.Magix) {
+                return MagixEnv;
             }
             throw new Error('unsupport');
         },
