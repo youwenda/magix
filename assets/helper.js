@@ -304,12 +304,7 @@
             node.style.left = left + 'px';
             node.style.top = item.center.y + item.radius + Consts.titleHeight + 5 + 'px';
             var env = Helper.getEnv();
-            var offset = env.getDOMOffset(vf.id);
-            var size = env.getDOMSize(vf.id);
-            cover.style.left = offset.left + 'px';
-            cover.style.top = offset.top + 'px';
-            cover.style.width = size.width + 'px';
-            cover.style.height = size.height + 'px';
+            env.updateDOMStyle(cover.style, vf.id);
             cover.style.display = 'block';
 
             node.innerHTML = UI.moreInfo.replace(/\{(\w+)\}/g, function(m, v) {
@@ -900,6 +895,46 @@
                 return magix && magix.status === KISSY.Loader.Status.ATTACHED && node && node.status === KISSY.Loader.Status.ATTACHED;
             }
         },
+        updateDOMStyle: function(style, id) {
+            var node = KISSY.require('node').one('#' + id);
+            var n = node;
+            var size = {
+                height: n.outerHeight ? n.outerHeight() : n.height(),
+                width: n.outerWidth ? n.outerWidth() : n.width()
+            };
+            if (!size.height) {
+                var max = 4;
+                var nodes = n;
+                do {
+                    max--;
+                    if (!max) break;
+                    nodes = nodes.children();
+                    size.height = nodes.height();
+                    if (size.height) {
+                        var pos = nodes.css('position');
+                        if (pos == 'fixed') {
+                            n = nodes.css('left');
+                            style.left = n;
+                            style.position = pos;
+                            n = nodes.css('top');
+                            style.top = n;
+                            n = nodes.css('right');
+                            style.right = n;
+                            n = nodes.css('bottom');
+                            style.bottom = n;
+                        }
+                    }
+                } while (!size.height);
+            } else {
+                var offset = node.offset();
+                style.left = offset.left + 'px';
+                style.top = offset.top + 'px';
+                style.position = 'absolute';
+            }
+
+            style.width = size.width + 'px';
+            style.height = size.height + 'px';
+        },
         getDOMOffset: function(id) {
             var node = KISSY.require('node');
             return node.one('#' + id).offset();
@@ -980,6 +1015,9 @@
         prepare: function() {
 
         },
+        getDL: function() {
+            return require.s.contexts.jquery;
+        },
         getRootId: function() {
             var mods = require.s.contexts._.defined;
             var old = mods['magix/magix'];
@@ -997,7 +1035,7 @@
             if (old) {
                 return mods['magix/vom'];
             }
-            var magix = mods['magix'];
+            var magix = mods.magix;
             return magix.VOM || magix.Vframe;
         },
         getMangerMods: function() {
@@ -1020,16 +1058,57 @@
             if (magix) {
                 return true;
             } else {
-                magix = mods['magix'];
+                magix = mods.magix;
                 return magix;
             }
         },
+        updateDOMStyle: function(style, id) {
+            var $ = this.getDL();
+            var node = $('#' + id);
+            var n = node;
+            var size = {
+                height: n.outerHeight ? n.outerHeight() : n.height(),
+                width: n.outerWidth ? n.outerWidth() : n.width()
+            };
+            if (!size.height) {
+                var max = 4;
+                var nodes = n;
+                do {
+                    max--;
+                    if (!max) break;
+                    nodes = nodes.children();
+                    size.height = nodes.height();
+                    if (size.height) {
+                        var pos = nodes.css('position');
+                        if (pos == 'fixed') {
+                            n = nodes.css('left');
+                            style.left = n;
+                            style.position = pos;
+                            n = nodes.css('top');
+                            style.top = n;
+                            n = nodes.css('right');
+                            style.right = n;
+                            n = nodes.css('bottom');
+                            style.bottom = n;
+                        }
+                    }
+                } while (!size.height);
+            } else {
+                var offset = node.offset();
+                style.left = offset.left + 'px';
+                style.top = offset.top + 'px';
+                style.position = 'absolute';
+            }
+
+            style.width = size.width + 'px';
+            style.height = size.height + 'px';
+        },
         getDOMOffset: function(id) {
-            var $ = require.s.contexts._.defined.jquery;
+            var $ = this.getDL();
             return $('#' + id).offset();
         },
         getDOMSize: function(id) {
-            var $ = require.s.contexts._.defined.jquery;
+            var $ = this.getDL();
             var n = $('#' + id);
             return {
                 height: n.outerHeight(),
@@ -1037,12 +1116,12 @@
             };
         },
         bind: function(id, type, fn) {
-            var $ = require.s.contexts._.defined.jquery;
+            var $ = this.getDL();
             if ($.type(id) == 'string') id = '#' + id;
             return $(id).on(type, fn);
         },
         unbind: function(id, type, fn) {
-            var $ = require.s.contexts._.defined.jquery;
+            var $ = this.getDL();
             if ($.type(id) == 'string') id = '#' + id;
             return $(id).off(type, fn);
         },
@@ -1056,7 +1135,7 @@
                     type = 'Pagelet';
                 }
             } else {
-                var $ = require.s.contexts._.defined.jquery;
+                var $ = this.getDL();
                 type = $.type(type);
             }
             return type;
@@ -1070,9 +1149,9 @@
             //setInterval(callback, 1000);
         },
         dragIt: function(node, handle) {
-            var $ = require.s.contexts._.defined.jquery;
-            var root = $('#magix_helper');
-            $(node).on('mousedown', function(e) {
+            var $ = this.getDL();
+            var root = $(node);
+            $(handle).on('mousedown', function(e) {
                 var right = parseInt(root.css('right'), 10);
                 var top = parseInt(root.css('top'), 10);
                 var x = e.pageX;
@@ -1146,6 +1225,47 @@
         isReady: function() {
             return this.getMod('magix/magix') || this.getMod('magix');
         },
+        updateDOMStyle: function(style, id) {
+            var $ = this.getDL();
+            var node = $('#' + id);
+            var n = node;
+            var size = {
+                height: n.outerHeight ? n.outerHeight() : n.height(),
+                width: n.outerWidth ? n.outerWidth() : n.width()
+            };
+            if (!size.height) {
+                var max = 4;
+                var nodes = n;
+                do {
+                    max--;
+                    if (!max) break;
+                    nodes = nodes.children();
+                    size.height = nodes.height();
+                    if (size.height) {
+                        var pos = nodes.css('position');
+                        if (pos == 'fixed') {
+                            n = nodes.css('left');
+                            style.left = n;
+                            style.position = pos;
+                            n = nodes.css('top');
+                            style.top = n;
+                            n = nodes.css('right');
+                            style.right = n;
+                            n = nodes.css('bottom');
+                            style.bottom = n;
+                        }
+                    }
+                } while (!size.height);
+            } else {
+                var offset = node.offset();
+                style.left = offset.left + 'px';
+                style.top = offset.top + 'px';
+                style.position = 'absolute';
+            }
+
+            style.width = size.width + 'px';
+            style.height = size.height + 'px';
+        },
         getDOMOffset: function(id) {
             var $ = this.getDL();
             return $('#' + id).offset();
@@ -1189,8 +1309,8 @@
         hookAttachMod: function(callback) {},
         dragIt: function(node, handle) {
             var $ = this.getDL();
-            var root = $('#magix_helper');
-            $(node).on('mousedown', function(e) {
+            var root = $(node);
+            $(handle).on('mousedown', function(e) {
                 var right = parseInt(root.css('right'), 10);
                 var top = parseInt(root.css('top'), 10);
                 var x = e.pageX;
