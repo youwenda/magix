@@ -922,6 +922,8 @@
                             style.right = n;
                             n = nodes.css('bottom');
                             style.bottom = n;
+                            var zIndex = parseInt(nodes.css('z-index')) || 1;
+                            style.zIndex = zIndex + 1;
                         }
                     }
                 } while (!size.height);
@@ -930,6 +932,8 @@
                 style.left = offset.left + 'px';
                 style.top = offset.top + 'px';
                 style.position = 'absolute';
+                var zIndex = parseInt(node.css('z-index')) || 1;
+                style.zIndex = zIndex + 1;
             }
 
             style.width = size.width + 'px';
@@ -1090,6 +1094,8 @@
                             style.right = n;
                             n = nodes.css('bottom');
                             style.bottom = n;
+                            var zIndex = parseInt(nodes.css('z-index')) || 1;
+                            style.zIndex = zIndex + 1;
                         }
                     }
                 } while (!size.height);
@@ -1098,6 +1104,8 @@
                 style.left = offset.left + 'px';
                 style.top = offset.top + 'px';
                 style.position = 'absolute';
+                var zIndex = parseInt(node.css('z-index')) || 1;
+                style.zIndex = zIndex + 1;
             }
 
             style.width = size.width + 'px';
@@ -1253,6 +1261,8 @@
                             style.right = n;
                             n = nodes.css('bottom');
                             style.bottom = n;
+                            var zIndex = parseInt(nodes.css('z-index')) || 1;
+                            style.zIndex = zIndex + 1;
                         }
                     }
                 } while (!size.height);
@@ -1261,6 +1271,8 @@
                 style.left = offset.left + 'px';
                 style.top = offset.top + 'px';
                 style.position = 'absolute';
+                var zIndex = parseInt(node.css('z-index')) || 1;
+                style.zIndex = zIndex + 1;
             }
 
             style.width = size.width + 'px';
