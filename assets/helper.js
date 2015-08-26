@@ -911,6 +911,7 @@
                     nodes = nodes.children();
                     size.height = nodes.height();
                     if (size.height) {
+                        size.width = nodes.width();
                         var pos = nodes.css('position');
                         if (pos == 'fixed') {
                             n = nodes.css('left');
@@ -925,6 +926,7 @@
                             var zIndex = parseInt(nodes.css('z-index')) || 1;
                             style.zIndex = zIndex + 1;
                         }
+                        break;
                     }
                 } while (!size.height);
             } else {
@@ -932,7 +934,12 @@
                 style.left = offset.left + 'px';
                 style.top = offset.top + 'px';
                 style.position = 'absolute';
-                var zIndex = parseInt(node.css('z-index')) || 1;
+                var zIndex = -1;
+                do {
+                    var z = parseInt(node.css('z-index')) || 1;
+                    if (z && z > zIndex) zIndex = z;
+                    node = node.parent();
+                } while (node);
                 style.zIndex = zIndex + 1;
             }
 
@@ -1097,6 +1104,7 @@
                             var zIndex = parseInt(nodes.css('z-index')) || 1;
                             style.zIndex = zIndex + 1;
                         }
+                        break;
                     }
                 } while (!size.height);
             } else {
@@ -1104,7 +1112,12 @@
                 style.left = offset.left + 'px';
                 style.top = offset.top + 'px';
                 style.position = 'absolute';
-                var zIndex = parseInt(node.css('z-index')) || 1;
+                var zIndex = -1;
+                do {
+                    var z = parseInt(node.css('z-index')) || 1;
+                    if (z && z > zIndex) zIndex = z;
+                    node = node.parent();
+                } while (node.size() && $.contains(document.body, node[0]));
                 style.zIndex = zIndex + 1;
             }
 
@@ -1264,6 +1277,7 @@
                             var zIndex = parseInt(nodes.css('z-index')) || 1;
                             style.zIndex = zIndex + 1;
                         }
+                        break;
                     }
                 } while (!size.height);
             } else {
@@ -1271,7 +1285,12 @@
                 style.left = offset.left + 'px';
                 style.top = offset.top + 'px';
                 style.position = 'absolute';
-                var zIndex = parseInt(node.css('z-index')) || 1;
+                var zIndex = -1;
+                do {
+                    var z = parseInt(node.css('z-index')) || 1;
+                    if (z && z > zIndex) zIndex = z;
+                    node = node.parent();
+                } while (node.size() && $.contains(document.body, node[0]));
                 style.zIndex = zIndex + 1;
             }
 
