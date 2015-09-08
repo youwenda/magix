@@ -51,6 +51,19 @@
         main: Heredoc(function() {
             /*
                 <style type="text/css">
+                .magix-vf-icon:before{
+                    width:12px;
+                    content:'M';
+                    height:12px;
+                    border-radius:6px;
+                    position:absolute;
+                    background-color:#008B00;
+                    opacity:.4;
+                    font-size:10px;
+                    line-height:12px;
+                    text-align:center;
+                    color:#fff;
+                }
                 .magix-helper{
                     position:fixed;
                     right:0;
@@ -636,7 +649,7 @@
                     var band = (params.radius / 20).toFixed(1);
                     ctx.arc(pos.x, pos.y, params.radius - band - 1, 0, Math.PI * 2, true);
                     ctx.lineWidth = band;
-                    ctx.strokeStyle = "#fff";
+                    ctx.strokeStyle = '#fff';
                     ctx.stroke();
 
                     g.list.push({
@@ -724,7 +737,7 @@
                 }
                 ctx.fillText(id, rect[0] + 5, rect[1] + 25);
 
-                one['package'] = pname;
+                one.package = pname;
                 one.rect = rect;
                 gs.managerList.push(one);
             };
@@ -1020,6 +1033,13 @@
                     handlers: [handle]
                 });
             });
+        },
+        drawIcons: function() {
+            var vfs = this.getVOM().all();
+            for (var p in vfs) {
+                var root = KISSY.one('#' + p);
+                root.addClass('magix-vf-icon');
+            }
         }
     };
     var RequireEnv = {
@@ -1191,6 +1211,14 @@
                 var doc = $(document);
                 doc.on('mousemove', move).on('mouseup', up);
             });
+        },
+        drawIcons: function() {
+            var vfs = this.getVOM().all();
+            var $ = this.getDL();
+            for (var p in vfs) {
+                var root = $('#' + p);
+                root.addClass('magix-vf-icon');
+            }
         }
     };
     var SeajsEnv = {
@@ -1360,7 +1388,8 @@
                 var doc = $(document);
                 doc.on('mousemove', move).on('mouseup', up);
             });
-        }
+        },
+        drawIcons: RequireEnv.drawIcons
     };
     var SeajsSEnv = {
 
@@ -1617,6 +1646,7 @@
                     drawTimer = setTimeout(function() {
                         var tree = Helper.getTree(env);
                         Graphics.drawTree(tree);
+                        env.drawIcons();
                     }, 0);
                 };
                 var vom = env.getVOM();
