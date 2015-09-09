@@ -9,7 +9,8 @@
         created: '#008B00',
         init: '#FF3030',
         alter: '#BC8F8F',
-        isolated: '#FF3030'
+        isolated: '#FF3030',
+        build: '#9AC0CD'
     };
     var Consts = {
         width: 500,
@@ -63,6 +64,7 @@
                     line-height:12px;
                     text-align:center;
                     color:#fff;
+                    z-index:10
                 }
                 .magix-helper{
                     position:fixed;
@@ -71,7 +73,7 @@
                     width:{width}px;
                     height:{height}px;
                     z-index:100000;
-                    border:solid 1px #ccc;
+                    box-shadow:0 0 10px #b9b9b9;
                     background-color:#fff;
                     font-size:12px;
                     line-height:1.5;
@@ -105,14 +107,21 @@
                 .magix-helper .clearfix {
                     *zoom: 1;
                 }
+                .magix-bar{
+                    height: 1px;
+                    border: 0;
+                    padding: 0;
+                    margin:5px;
+                    background: rgba(0,0,0,0.20);
+                    background: -webkit-gradient(linear, left top, right top, from(rgba(165, 69, 243, 0.0)), color-stop(0.5, rgba(125, 118, 132, 0.33)), to(rgba(165, 69, 243, 0.0)));
+                }
                 #magix_helper_moreinfo,#magix_helper_manager_moreinfo{
                     position:absolute;
                     background-color:#eee;
                     padding:8px;
                     width:{moreInfoWidth}px;
                     display:none;
-                    left:-457px;
-                    top:0;
+                    box-shadow:0 5px 10px #b9b9b9
                 }
                 </style>
                 <div class="magix-helper" id="magix_helper">
@@ -127,7 +136,7 @@
                         <canvas width="{width}" height="{canvasHeight}" id="magix_helper_view_canvas"></canvas>
                         <ul class="clearfix p8" id="magix_helper_view_total"></ul>
                     </div>
-                    <div id="magix_helper_trancer" style="height:{canvasHeight}px;overflow:scroll;overflow-x:auto;display:none">
+                    <div id="magix_helper_trancer" style="height:{canvasHeight}px;overflow:scroll;overflow-x:auto;display:none;padding:8px;">
                     </div>
                     <div id="magix_helper_manager" style="height:{canvasHeight}px;overflow:scroll;overflow-x:auto;display:none">
                         <canvas width="{canvasWidth}" height="{canvasHeight}" id="magix_helper_manager_canvas"></canvas>
@@ -364,11 +373,18 @@
                             res = vf && vf.$v && vf.$v.$res;
                         }
                         if (res) {
-                            t.push('<table style="width:100%"><tr><td>hasKey</td><td>key</td><td>res</td></tr>');
+                            var hasRrs;
                             for (var p in res) {
-                                t.push('<tr><td>', nKey || res[p].hasKey || !!(res[p].hk), '</td><td>', p, '</td><td>', env.getResType(res[p]), '</td></tr>');
+                                hasRrs = true;
+                                break;
                             }
-                            t.push('</table>');
+                            if (hasRrs) {
+                                t.push('<table style="width:100%"><tr><td>hasKey</td><td>key</td><td>res</td></tr>');
+                                for (var p in res) {
+                                    t.push('<tr><td>', nKey || res[p].hasKey || !!(res[p].hk), '</td><td>', p, '</td><td>', env.getResType(res[p]), '</td></tr>');
+                                }
+                                t.push('</table>');
+                            }
                         }
                         return t.join('');
                     default:
@@ -453,14 +469,17 @@
         }
     };
     var Tracer = {
-        log: function(info) {
+        log: function(info, color) {
             var node = D.getElementById('magix_helper_trancer');
             if (Tracer.idle) {
-                node.insertBefore(D.createElement('hr'), node.firstChild);
+                var t = D.createElement('hr');
+                t.className = 'magix-bar';
+                node.insertBefore(t, node.firstChild);
                 delete Tracer.idle;
             }
             var d = D.createElement('div');
             d.innerHTML = info;
+            if (color) d.style.color = color;
             node.insertBefore(d, node.firstChild);
             if (node.getElementsByTagName('div').length > 200) {
                 node.removeChild(node.lastChild);
@@ -469,7 +488,7 @@
             clearTimeout(Tracer.$timer);
             Tracer.$timer = setTimeout(function() {
                 Tracer.idle = true;
-            }, 2000);
+            }, 1500);
         }
     };
     var Graphics = {
@@ -607,20 +626,30 @@
                 var params = g.getBestParams(tree, width, height);
                 var ctx = D.getElementById('magix_helper_view_canvas').getContext('2d');
                 ctx.clearRect(0, 0, width, height);
-                var maxTextLen = (function() {
-                    var len = 2;
-                    ctx.font = 'normal 14px Arial';
-                    while (true) {
-                        var width = ctx.measureText(new Array(len).join('M')).width;
-                        if (width < params.radius * 2) {
-                            len += 2;
+                var band = (params.radius / 20).toFixed(1);
+                var max = params.radius * 2 - 2 * (band + 1) - 1;
+                if (!g.$tWidth) g.$tWidth = {};
+                var getWidth = function(text) {
+                    if (!g.$tWidth[text]) {
+                        ctx.font = 'normal 12px Arial';
+                        console.log(text);
+                        g.$tWidth[text] = ctx.measureText(text).width;
+                    }
+                    return g.$tWidth[text];
+                };
+                var cutText = function(text) {
+                    var len = 1,
+                        width = 0;
+                    while (len <= text.length) {
+                        width += getWidth(text.substring(len - 1, len));
+                        if (width < max) {
+                            len += 1;
                         } else {
-                            len -= 2;
-                            break;
+                            return text.substring(0, len - 3) + '..';
                         }
                     }
-                    return len;
-                })();
+                    return text;
+                };
                 var linecolorIndex = 0;
                 var drawCircle = function(item, pos, ppos, lineColor) {
                     if (ppos) {
@@ -646,7 +675,7 @@
 
                     ctx.moveTo(pos.x, pos.y);
                     ctx.beginPath();
-                    var band = (params.radius / 20).toFixed(1);
+
                     ctx.arc(pos.x, pos.y, params.radius - band - 1, 0, Math.PI * 2, true);
                     ctx.lineWidth = band;
                     ctx.strokeStyle = '#fff';
@@ -661,12 +690,9 @@
                     //text
                     ctx.beginPath();
                     ctx.moveTo(pos.x, pos.y);
-                    ctx.font = 'normal 14px Arial';
-                    ctx.fillStyle = '#282828';
-                    var id = item.id;
-                    if (id.length - 3 > maxTextLen) {
-                        id = id.substring(0, maxTextLen) + '...';
-                    }
+                    ctx.font = 'normal 12px Arial';
+                    ctx.fillStyle = '#eee';
+                    var id = cutText(item.id);
                     var textWidth = Math.round(ctx.measureText(id).width);
                     var left = (2 * params.radius - textWidth) / 2;
                     ctx.fillText(id, pos.x + left - params.radius, pos.y + 4);
@@ -947,6 +973,7 @@
                 style.left = offset.left + 'px';
                 style.top = offset.top + 'px';
                 style.position = 'absolute';
+                size.width = Math.max(size.width, node.children().width());
                 var zIndex = -1;
                 do {
                     var z = parseInt(node.css('z-index')) || 1;
@@ -962,14 +989,6 @@
         getDOMOffset: function(id) {
             var node = KISSY.require('node');
             return node.one('#' + id).offset();
-        },
-        getDOMSize: function(id) {
-            var node = KISSY.require('node');
-            var n = node.one('#' + id);
-            return {
-                height: n.outerHeight(),
-                width: n.outerWidth()
-            };
         },
         bind: function(id, type, fn) {
             var node = KISSY.require('node');
@@ -1132,6 +1151,7 @@
                 style.left = offset.left + 'px';
                 style.top = offset.top + 'px';
                 style.position = 'absolute';
+                size.width = Math.max(size.width, node.children().width());
                 var zIndex = -1;
                 do {
                     var z = parseInt(node.css('z-index')) || 1;
@@ -1147,14 +1167,6 @@
         getDOMOffset: function(id) {
             var $ = this.getDL();
             return $('#' + id).offset();
-        },
-        getDOMSize: function(id) {
-            var $ = this.getDL();
-            var n = $('#' + id);
-            return {
-                height: n.outerHeight(),
-                width: n.outerWidth()
-            };
         },
         bind: function(id, type, fn) {
             var $ = this.getDL();
@@ -1274,121 +1286,13 @@
         isReady: function() {
             return this.getMod('magix/magix') || this.getMod('magix');
         },
-        updateDOMStyle: function(style, id) {
-            var $ = this.getDL();
-            var node = $('#' + id);
-            var n = node;
-            var size = {
-                height: n.outerHeight ? n.outerHeight() : n.height(),
-                width: n.outerWidth ? n.outerWidth() : n.width()
-            };
-            if (!size.height) {
-                var max = 4;
-                var nodes = n;
-                do {
-                    max--;
-                    if (!max) break;
-                    nodes = nodes.children();
-                    size.height = nodes.height();
-                    if (size.height) {
-                        var pos = nodes.css('position');
-                        if (pos == 'fixed') {
-                            n = nodes.css('left');
-                            style.left = n;
-                            style.position = pos;
-                            n = nodes.css('top');
-                            style.top = n;
-                            n = nodes.css('right');
-                            style.right = n;
-                            n = nodes.css('bottom');
-                            style.bottom = n;
-                            var zIndex = parseInt(nodes.css('z-index')) || 1;
-                            style.zIndex = zIndex + 1;
-                        }
-                        break;
-                    }
-                } while (!size.height);
-            } else {
-                var offset = node.offset();
-                style.left = offset.left + 'px';
-                style.top = offset.top + 'px';
-                style.position = 'absolute';
-                var zIndex = -1;
-                do {
-                    var z = parseInt(node.css('z-index')) || 1;
-                    if (z && z > zIndex) zIndex = z;
-                    node = node.parent();
-                } while (node.size() && $.contains(document.body, node[0]));
-                style.zIndex = zIndex + 1;
-            }
-
-            style.width = size.width + 'px';
-            style.height = size.height + 'px';
-        },
-        getDOMOffset: function(id) {
-            var $ = this.getDL();
-            return $('#' + id).offset();
-        },
-        getDOMSize: function(id) {
-            var $ = this.getDL();
-            var n = $('#' + id);
-
-            var size = {
-                height: n.outerHeight ? n.outerHeight() : n.height(),
-                width: n.outerWidth ? n.outerWidth() : n.width()
-            };
-            if (!size.height) size.height = n.children().height();
-            return size;
-        },
-        bind: function(id, type, fn) {
-            var $ = this.getDL();
-            if ($.type(id) == 'string') id = '#' + id;
-            return $(id).on(type, fn);
-        },
-        unbind: function(id, type, fn) {
-            var $ = this.getDL();
-            if ($.type(id) == 'string') id = '#' + id;
-            return $(id).off(type, fn);
-        },
-        getResType: function(r) {
-            var type = '';
-            var e = r.res || r.e;
-            if (e) {
-                if (e.fetchAll || (e.all && e.one && e.next && e.then)) {
-                    type = 'Model Manager';
-                } else if (e.bricks) {
-                    type = 'Pagelet';
-                }
-            } else {
-                var $ = this.getDL();
-                type = $.type(type);
-            }
-            return type;
-        },
-        hookAttachMod: function(callback) {},
-        dragIt: function(node, handle) {
-            var $ = this.getDL();
-            var root = $(node);
-            $(handle).on('mousedown', function(e) {
-                var right = parseInt(root.css('right'), 10);
-                var top = parseInt(root.css('top'), 10);
-                var x = e.pageX;
-                var y = e.pageY;
-                var move = function(e) {
-                    var fx = e.pageX - x,
-                        fy = e.pageY - y;
-                    root.css({
-                        right: right - fx,
-                        top: top + fy
-                    });
-                };
-                var up = function() {
-                    doc.off('mousemove', move).off('mouseup', up);
-                };
-                var doc = $(document);
-                doc.on('mousemove', move).on('mouseup', up);
-            });
-        },
+        updateDOMStyle: RequireEnv.updateDOMStyle,
+        getDOMOffset: RequireEnv.getDOMOffset,
+        bind: RequireEnv.bind,
+        unbind: RequireEnv.unbind,
+        getResType: RequireEnv.getResType,
+        hookAttachMod: RequireEnv.hookAttachMod,
+        dragIt: RequireEnv.dragIt,
         drawIcons: RequireEnv.drawIcons
     };
     var SeajsSEnv = {
@@ -1607,21 +1511,21 @@
                 var drawTimer;
                 var attachVframe = function(vf) {
                     vf.on('created', function() {
-                        Tracer.log('vframe:' + vf.id + '(' + (vf.path || vf.view.path) + ')渲染完毕');
+                        Tracer.log('vframe:' + vf.id + '(' + (vf.path || vf.view.path) + ')渲染完毕', Status.created);
                         drawTree();
                     });
-                    vf.on('alter', function() {
-                        Tracer.log('vframe:' + vf.id + '或子(孙)view正在更改');
+                    vf.on('alter', function(e) {
+                        Tracer.log('vframe:' + vf.id + '或子(孙)view' + (e.id ? '(' + e.id + ')' : '') + '正在更改', Status.alter);
                         drawTree();
                     });
                     vf.on('viewInited', function() {
-                        Tracer.log('vframe:' + vf.id + '的view(' + vf.view.path + ')，init调用完毕');
+                        Tracer.log('vframe:' + vf.id + '的view(' + vf.view.path + ')，init调用完毕', Status.init);
                     });
                     vf.on('viewUnmounted', function() {
-                        Tracer.log('vframe:' + vf.id + '的view(' + (vf.path || (vf.view && vf.view.path || '')) + ')销毁完毕');
+                        Tracer.log('vframe:' + vf.id + '的view(' + (vf.path || (vf.view && vf.view.path || '')) + ')销毁完毕', Status.isolated);
                     });
                     vf.on('viewMounted', function() {
-                        Tracer.log('vframe:' + vf.id + '的view(' + vf.view.path + ')，首次渲染完毕');
+                        Tracer.log('vframe:' + vf.id + '的view(' + vf.view.path + ')，首次渲染完毕', Status.init);
                     });
                     vf.___mh = true;
                 };
@@ -1637,7 +1541,7 @@
                 var drawTree = function(e) {
                     if (e) {
                         if (e.type == 'remove') {
-                            Tracer.log('销毁vframe:' + e.vframe.id);
+                            Tracer.log('销毁vframe:' + e.vframe.id + '(' + (e.vframe.path || e.vframe.view.path) + ')', Status.isolated);
                         } else if (e.type == 'created') {
                             attachVframes();
                         }
@@ -1653,9 +1557,9 @@
                 vom.on('add', function(e) {
                     drawTree();
                     if (e.vframe.pId) {
-                        Tracer.log('找到vframe:' + e.vframe.pId + '的子vframe:' + e.vframe.id);
+                        Tracer.log('找到vframe:' + e.vframe.pId + '的子vframe:' + e.vframe.id, Status.build);
                     }
-                    Tracer.log('创建vframe:' + e.vframe.id);
+                    Tracer.log('创建vframe:' + e.vframe.id, Status.build);
                     attachVframe(e.vframe);
                 });
                 vom.on('remove', drawTree);
