@@ -379,9 +379,9 @@
                                 break;
                             }
                             if (hasRrs) {
-                                t.push('<table style="width:100%"><tr><td>hasKey</td><td>key</td><td>res</td></tr>');
+                                t.push('<table style="width:100%"><tr><td>key</td><td>type</td></tr>');
                                 for (var p in res) {
-                                    t.push('<tr><td>', nKey || res[p].hasKey || !!(res[p].hk), '</td><td>', p, '</td><td>', env.getResType(res[p]), '</td></tr>');
+                                    t.push('<tr><td>', p, '</td><td>', env.getResType(res[p]), '</td></tr>');
                                 }
                                 t.push('</table>');
                             }
@@ -632,7 +632,6 @@
                 var getWidth = function(text) {
                     if (!g.$tWidth[text]) {
                         ctx.font = 'normal 12px Arial';
-                        console.log(text);
                         g.$tWidth[text] = ctx.measureText(text).width;
                     }
                     return g.$tWidth[text];
@@ -1062,30 +1061,30 @@
         }
     };
     var RequireEnv = {
-        prepare: function() {
-
+        prepare: function() {},
+        hookAttachMod: function() {},
+        getMod: function(key) {
+            return require.s.contexts._.defined[key];
         },
         getDL: function() {
-            return require.s.contexts.jquery;
+            return this.getMod('$') || this.getMod('jquery') || this.getMod('zepto');
         },
         getRootId: function() {
-            var mods = require.s.contexts._.defined;
-            var old = mods['magix/magix'];
+            var old = this.getMod('magix/magix');
             var magix;
             if (old) {
                 magix = old;
             } else {
-                magix = mods.magix;
+                magix = this.getMod('magix');
             }
             return magix.config('rootId');
         },
         getVOM: function() {
-            var mods = require.s.contexts._.defined;
-            var old = mods['magix/magix'];
+            var old = this.getMod('magix/vom');
             if (old) {
-                return mods['magix/vom'];
+                return old;
             }
-            var magix = mods.magix;
+            var magix = this.getMod('magix');
             return magix.VOM || magix.Vframe;
         },
         getMangerMods: function() {
@@ -1103,14 +1102,7 @@
             return result;
         },
         isReady: function() {
-            var mods = require.s.contexts._.defined;
-            var magix = mods['magix/magix'];
-            if (magix) {
-                return true;
-            } else {
-                magix = mods.magix;
-                return magix;
-            }
+            return this.getMod('magix/magix') || this.getMod('magix');
         },
         updateDOMStyle: function(style, id) {
             var $ = this.getDL();
@@ -1193,14 +1185,6 @@
             }
             return type;
         },
-        hookAttachMod: function(callback) {
-            /*var old = KISSY.Loader.Utils.attachMod;
-            KISSY.Loader.Utils.attachMod = function() {
-                old.apply(KISSY.Loader.Utils, arguments);
-                callback();
-            };*/
-            //setInterval(callback, 1000);
-        },
         dragIt: function(node, handle) {
             var $ = this.getDL();
             var root = $(node);
@@ -1233,78 +1217,37 @@
             }
         }
     };
-    var SeajsEnv = {
-        getMod: function(key) {
-            var mods = seajs.cache;
-            for (var p in mods) {
-                var mod = mods[p];
-                if (mod.id === key) {
-                    return mod.exports;
-                }
-            }
-            return;
-        },
-        getDL: function() {
-            return this.getMod('$') || this.getMod('jquery') || this.getMod('zepto');
-        },
-        prepare: function() {
-
-        },
-        getRootId: function() {
-            var old = this.getMod('magix/magix');
-            var magix;
-            if (old) {
-                magix = old;
-            } else {
-                magix = this.getMod('magix');
-            }
-            return magix.config('rootId');
-        },
-        getVOM: function() {
-            var old = this.getMod('magix/vom');
-            if (old) {
-                return old;
-            }
-            var magix = this.getMod('magix');
-            return magix.VOM || magix.Vframe;
-        },
-        getMangerMods: function() {
-            var mods = seajs.cache;
-            var result = [];
-            for (var p in mods) {
-                var v = mods[p];
-                var exports = v.exports;
-                if (exports && (exports.$m && exports.$s)) {
-                    result.push({
-                        name: v.id,
-                        exports: exports
-                    });
-                }
-            }
-            return result;
-        },
-        isReady: function() {
-            return this.getMod('magix/magix') || this.getMod('magix');
-        },
-        updateDOMStyle: RequireEnv.updateDOMStyle,
-        getDOMOffset: RequireEnv.getDOMOffset,
-        bind: RequireEnv.bind,
-        unbind: RequireEnv.unbind,
-        getResType: RequireEnv.getResType,
-        hookAttachMod: RequireEnv.hookAttachMod,
-        dragIt: RequireEnv.dragIt,
-        drawIcons: RequireEnv.drawIcons
-    };
-    var SeajsSEnv = {
-
-    };
-    var MagixEnv = {
-
-    };
-    for (var p in SeajsEnv) {
-        SeajsSEnv[p] = SeajsEnv[p];
-        MagixEnv[p] = SeajsEnv[p];
+    var SeajsEnv = {},
+        SeajsSEnv = {},
+        MagixEnv = {};
+    for (var p in RequireEnv) {
+        SeajsEnv[p] = SeajsSEnv[p] = MagixEnv[p] = RequireEnv[p];
     }
+    SeajsEnv.getMod = function(key) {
+        var mods = seajs.cache;
+        for (var p in mods) {
+            var mod = mods[p];
+            if (mod.id === key) {
+                return mod.exports;
+            }
+        }
+        return;
+    };
+    SeajsEnv.getMangerMods = function() {
+        var mods = seajs.cache;
+        var result = [];
+        for (var p in mods) {
+            var v = mods[p];
+            var exports = v.exports;
+            if (exports && (exports.$m && exports.$s)) {
+                result.push({
+                    name: v.id,
+                    exports: exports
+                });
+            }
+        }
+        return result;
+    };
     SeajsSEnv.getMod = function(key) {
         try {
             return require(key);
@@ -1316,7 +1259,7 @@
         return [];
     };
     MagixEnv.getDL = function() {
-        return window.$;
+        return window.$ || window.jQuery;
     };
 
     MagixEnv.getRootId = function() {
