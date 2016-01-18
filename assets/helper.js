@@ -1359,9 +1359,9 @@
             for (var i = 0; i < managers.length; i++) {
                 var t = managers[i];
                 var o = t.exports.$mMetas || t.exports.$mm || t.exports.$m;
-                if (!o._id) o._id = 't' + id++;
-                if (temp[o._id]) temp[o._id].continued = true;
-                temp[o._id] = t;
+                if (!o._$id) o._$id = 't' + id++;
+                if (temp[o._$id]) temp[o._$id].continued = true;
+                temp[o._$id] = t;
             }
             for (var j = 0; j < managers.length; j++) {
                 var m = managers[j];
@@ -1376,7 +1376,8 @@
                     maxRight = 0,
                     p, info;
                 var metas = m.exports.$mMetas || m.exports.$mm || m.exports.$m;
-                if(!m.continued){
+                delete metas._$id;
+                if (!m.continued) {
                     for (p in metas) {
                         info = metas[p];
                         if (info.cleans) {
