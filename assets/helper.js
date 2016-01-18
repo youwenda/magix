@@ -1354,8 +1354,17 @@
 
                 cleanedMap = {},
                 total = 0;
+            var temp = {},
+                id = 0;
             for (var i = 0; i < managers.length; i++) {
-                var m = managers[i];
+                var t = managers[i];
+                var o = t.exports.$mMetas || t.exports.$mm || t.exports.$m;
+                if (!o._id) o._id = 't' + id++;
+                if (temp[o._id]) temp[o._id].continued = true;
+                temp[o._id] = t;
+            }
+            for (var j = 0; j < managers.length; j++) {
+                var m = managers[j];
                 var r = [];
                 var cleans = {
                     left: [],
@@ -1367,50 +1376,51 @@
                     maxRight = 0,
                     p, info;
                 var metas = m.exports.$mMetas || m.exports.$mm || m.exports.$m;
-
-                for (p in metas) {
-                    info = metas[p];
-                    if (info.cleans) {
-                        var a = (info.cleans + '').split(',');
-                        for (var j = 0; j < a.length; j++) {
-                            cleanedMap[a[j]] = p;
+                if(!m.continued){
+                    for (p in metas) {
+                        info = metas[p];
+                        if (info.cleans) {
+                            var a = (info.cleans + '').split(',');
+                            for (var x = 0; x < a.length; x++) {
+                                cleanedMap[a[x]] = p;
+                            }
                         }
                     }
-                }
-                for (p in metas) {
-                    info = metas[p];
-                    var c = ManagerColors.normal;
-                    var ti = {
-                        id: p,
-                        color: c,
-                        url: info.url || info.uri,
-                        cache: ((info.cache || info.cacheTime | 0) / 1000) + 'sec',
-                        desc: info.desc || '',
-                        cleans: info.cleans || '',
-                        cleaned: cleanedMap[p] || '',
-                        hasAfter: !!info.after
-                    };
-                    if (info.cleans) {
-                        c = ManagerColors.cleans;
-                        ti.color = c;
-                        cleans.left.push(ti);
-                        maxLeft++;
-                    } else if (cleanedMap[p]) {
-                        c = ManagerColors.cleaned;
-                        ti.color = c;
-                        cleans.right.push(ti);
-                        maxRight++;
-                    } else {
-                        if (info.cache || info.cacheTime) {
-                            c = ManagerColors.cache;
+                    for (p in metas) {
+                        info = metas[p];
+                        var c = ManagerColors.normal;
+                        var ti = {
+                            id: p,
+                            color: c,
+                            url: info.url || info.uri,
+                            cache: ((info.cache || info.cacheTime | 0) / 1000) + 'sec',
+                            desc: info.desc || '',
+                            cleans: info.cleans || '',
+                            cleaned: cleanedMap[p] || '',
+                            hasAfter: !!info.after
+                        };
+                        if (info.cleans) {
+                            c = ManagerColors.cleans;
                             ti.color = c;
-                            caches.push(ti);
+                            cleans.left.push(ti);
+                            maxLeft++;
+                        } else if (cleanedMap[p]) {
+                            c = ManagerColors.cleaned;
+                            ti.color = c;
+                            cleans.right.push(ti);
+                            maxRight++;
                         } else {
-                            r.push(ti);
-                            counter++;
+                            if (info.cache || info.cacheTime) {
+                                c = ManagerColors.cache;
+                                ti.color = c;
+                                caches.push(ti);
+                            } else {
+                                r.push(ti);
+                                counter++;
+                            }
                         }
+                        total++;
                     }
-                    total++;
                 }
                 rows += Math.ceil(counter / Consts.managerCols);
                 rows += Math.max(maxLeft, maxRight);
