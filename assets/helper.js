@@ -1032,7 +1032,7 @@
                     type = '函数或构造器';
                 }
             } else {
-                type = KISSY.type(type);
+                type = KISSY.type(r);
             }
             return type;
         },
@@ -1171,17 +1171,17 @@
             return $(id).off(type, fn);
         },
         getResType: function(r) {
-            var type = '';
             var e = r.res || r.e;
+            var $ = this.getDL();
+            var type = $.type(r);
             if (e) {
                 if (e.fetchAll || (e.all && e.one && e.next && e.then)) {
                     type = 'Model Manager';
                 } else if (e.bricks) {
                     type = 'Pagelet';
+                } else if ($.isFunction(r)) {
+                    type = '函数或构造器';
                 }
-            } else {
-                var $ = this.getDL();
-                type = $.type(type);
             }
             return type;
         },
