@@ -10,7 +10,7 @@ _site
 
 # Sublime Project files
 *.sublime-*
-
+tools/
 combos/edge
 dist/edge
 tools/edge

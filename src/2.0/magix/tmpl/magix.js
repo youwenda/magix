@@ -57,7 +57,7 @@ var CacheSort = function(a, b) {
 };
 var Cache = function(max, buffer) {
     var me = this;
-    if (me.get) {
+    if (me instanceof Cache) {
         me.c = [];
         me.b = buffer | 0 || 5; //buffer先取整，如果为0则再默认5
         me.x = me.b + (max || 20);
@@ -565,7 +565,8 @@ var Magix = {
      * //=>{20:{id:20},30:{id:30},40:{id:40}}
      */
     toMap: function(list, key) {
-        var i, e, map = {}, l, hasKey = arguments.length > 1;
+        var i, e, map = {},
+            l, hasKey = arguments.length > 1;
         if (list && (l = list.length)) {
             for (i = 0; i < l; i++) {
                 e = list[i];

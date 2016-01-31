@@ -40,7 +40,7 @@ module.exports = function(grunt) {
         var mxextSource = [srcDir, platType, MXEXT, loaderType].join(SEP);
         var magixTmplSource = [srcDir, platType, MAGIX, TMPL].join(SEP);
         var mxextTmplSource = [srcDir, platType, MXEXT, TMPL].join(SEP);
-
+console.log(magixTmplSource,[dir,MAGIX]);
         grunt.config.set('copy', {
             main: {
                 files: [{

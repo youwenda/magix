@@ -97,6 +97,6 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-exec');
     grunt.loadTasks('tasks');
-    grunt.registerTask('default', ['cpsource', 'deconsole', 'subtmpls', 'generatedoc', 'concatfiles', 'removeunimpl', 'compresslibs', 'copytocombos', 'unsetry', 'clean']);
+    grunt.registerTask('default', ['cpsource', 'deconsole', 'subtmpls', /*'generatedoc',*/ 'concatfiles', 'removeunimpl', 'compresslibs', 'copytocombos', 'unsetry', 'clean']);
     // grunt.registerTask('default', ['exec']);
 };

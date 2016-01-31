@@ -93,7 +93,7 @@ var CacheSort = function(a, b) {
 };
 var Cache = function(max, buffer) {
     var me = this;
-    if (me.get) {
+    if (me instanceof Cache) {
         me.c = [];
         me.x = max || 20;
         me.b = me.x + (buffer | 0 || 5); //buffer先取整，如果为0则再默认5

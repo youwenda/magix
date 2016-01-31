@@ -3,11 +3,11 @@
  * used to package magix
  */
 module.exports = function(grunt) {
-    var srcDir = '../src';
-    var tmpDir = '../tmp';
-    var distDir = '../dist';
-    var docDir = '../docs';
-    var combosDir = '../combos';
+    var srcDir = '../../src';
+    var tmpDir = '../../tmp';
+    var distDir = '../../dist';
+    var docDir = '../../docs';
+    var combosDir = '../../combos';
     var platType = String(grunt.option('platType')).replace(/'/g, ''); //'1.0' or 'm1.0'
     var loaderType = String(grunt.option('loaderType')).replace(/'/g, ''); //'kissy' or 'seajs'
     var addMagixStartFile = platType == '1.0';
@@ -91,6 +91,6 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-exec');
     grunt.loadTasks('tasks');
-    grunt.registerTask('default', ['cpsource', 'deconsole', 'subtmpls', 'generatedoc', 'concatfiles', 'removeunimpl', 'compresslibs', 'unsetry', 'clean']);
+    grunt.registerTask('default', ['cpsource', 'deconsole', 'subtmpls', /*'generatedoc',*/ 'concatfiles', 'removeunimpl', 'compresslibs', 'unsetry', 'clean']);
     // grunt.registerTask('default', ['exec']);
 };
