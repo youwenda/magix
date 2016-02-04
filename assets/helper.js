@@ -1495,7 +1495,7 @@
                 var drawTree = function(e) {
                     if (e) {
                         if (e.type == 'remove') {
-                            Tracer.log('销毁vframe:' + e.vframe.id + '(' + (e.vframe.path || e.vframe.view.path) + ')', Status.isolated);
+                            Tracer.log('销毁vframe:' + e.vframe.id + '(' + (e.vframe.path || e.vframe.view && e.vframe.view.path) + ')', Status.isolated);
                         } else if (e.type == 'created') {
                             attachVframes();
                         }
