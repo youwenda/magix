@@ -963,6 +963,19 @@
                             style.bottom = n;
                             var zIndex = parseInt(nodes.css('z-index')) || 1;
                             style.zIndex = zIndex + 1;
+                        } else {
+                            var offset = nodes.offset();
+                            style.left = offset.left + 'px';
+                            style.top = offset.top + 'px';
+                            style.position = 'absolute';
+                            size.width = Math.max(size.width, nodes.children().width());
+                            var zIndex = -1;
+                            do {
+                                var z = parseInt(nodes.css('z-index')) || 1;
+                                if (z && z > zIndex) zIndex = z;
+                                nodes = nodes.parent();
+                            } while (nodes);
+                            style.zIndex = zIndex + 1;
                         }
                         break;
                     }
@@ -1133,6 +1146,19 @@
                             n = nodes.css('bottom');
                             style.bottom = n;
                             var zIndex = parseInt(nodes.css('z-index')) || 1;
+                            style.zIndex = zIndex + 1;
+                        } else {
+                            var offset = nodes.offset();
+                            style.left = offset.left + 'px';
+                            style.top = offset.top + 'px';
+                            style.position = 'absolute';
+                            size.width = Math.max(size.width, nodes.children().width());
+                            var zIndex = -1;
+                            do {
+                                var z = parseInt(nodes.css('z-index')) || 1;
+                                if (z && z > zIndex) zIndex = z;
+                                nodes = nodes.parent();
+                            } while (nodes.size() && $.contains(document.body, nodes[0]));
                             style.zIndex = zIndex + 1;
                         }
                         break;
