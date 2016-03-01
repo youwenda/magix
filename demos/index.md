@@ -18,8 +18,10 @@ title: Demos
  2. [Magix 脚手架][2]
  3. [Magix 1.0 PPT][3]
  4. [阿里妈妈帮助中心][4]
+ 5. [一淘搜索结果页][5]
 
 [1]: /magix-os/
 [2]: /magix-demo-ad/
 [3]: /magix-demo-ppt/
 [4]: http://help.alimama.com/
+[5]: http://s.etao.com/search?q=magix&eq=magix&initiative_id=wwwetao_20160301&spm=1002.1.8.1
