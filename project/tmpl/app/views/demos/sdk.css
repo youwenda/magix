@@ -1,0 +1,28 @@
+.vm{
+    vertical-align: middle;
+}
+.w100{
+    width:100px;
+}
+.w700{
+    width:700px;
+}
+.m50{
+    margin:50px;
+}
+.float{
+    position: fixed;
+    left:1000px;
+    top:100px;
+    border:solid 1px #ccc;
+    height: 400px;
+    width:200px;
+}
+.sitem{
+    height:26px;
+    line-height: 26px;
+    padding:0 10px;
+}
+.fr{
+    float:right;
+}

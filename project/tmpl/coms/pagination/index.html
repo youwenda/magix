@@ -1,0 +1,19 @@
+<div class="page-list" mx-keys="start,end,index,path,pages">
+    <a href="#!<%=path%>"<%if(index==1){%> class="page-disabled"<%}else{%> mx-click="toPrev()"<%}%>>⇦</a>
+    <%if(start>1){%>
+    <a href="#!<%=path%>" mx-click="toPage({page:1})">1</a>
+    <%}%>
+    <%if(start>2){%>
+        <a class="page-others">...</a>
+    <%}%>
+    <%for(var i=start;i<=end;i++){%>
+        <a class="page-item<%if(i==index){%> page-active<%}%>" href="#!<%=path%>" mx-click="toPage({page:<%=i%>})"><%=i%></a>
+    <%}%>
+    <%if(end+2<=pages){%>
+        <a class="page-others">...</a>
+    <%}%>
+    <%if(end<pages){%>
+        <a href="#!<%=path%>" mx-click="toPage({page:<%=pages%>})"><%=pages%></a>
+    <%}%>
+    <a href="#!<%=path%>"<%if(index==pages){%> class="page-disabled"<%}else{%> mx-click="toNext()"<%}%>>⇨</a>
+</div>

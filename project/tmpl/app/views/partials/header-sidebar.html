@@ -1,0 +1,13 @@
+<ul class="menus" mx-keys="menus,url">
+    <%for(var i=0,menu;i<menus.length;i++){%>
+    <%menu=menus[i]%>
+    <li>
+        <a href="#!<%=menu.url%>"<%if(menu.url==url){%> class="on"<%}%>>
+        <%if(menu.icon){%>
+            <i class="iconfont"><%=menu.icon%></i>
+        <%}%>
+            <%=menu.text%>
+        </a>
+    </li>
+    <%}%>
+</ul>

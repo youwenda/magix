@@ -1,0 +1,213 @@
+/*
+    author:xinglie.lkf@taobao.com
+ */
+define('magix', ['$'], function(require) {
+    var $ = require('$');
+    var T = function() {};
+    var G_Extend = function(ctor, base, props, statics, cProto) {
+        //bProto.constructor = base;
+        T[G_PROTOTYPE] = base[G_PROTOTYPE];
+        cProto = new T();
+        G_Mix(cProto, props);
+        G_Mix(ctor, statics);
+        cProto.constructor = ctor;
+        ctor[G_PROTOTYPE] = cProto;
+        return ctor;
+    };
+    var G_Require = function(name, fn) {
+        if (name) {
+            var a = [];
+            if (!G_IsArray(name)) name = [name];
+            for (var i = 0; i < name.length; i++) {
+                a.push(require(name[i]));
+            }
+            if (fn) fn.apply(G_NULL, a);
+        }
+        /*
+            fn回调一定要确保是异步的，原因：所有js都放在页面上，回调是同步的，会导致mountZone中循环时，渲染一个vframe触发一次vframe上的created事件。
+            magix单独使用时，由外部在合适的时机boot，不添加虚拟根节点，不自动boot，这样可选择的空间更大
+         */
+        // if (name) {
+        //     seajs.use(name, fn);
+        // } else if (fn) {
+        //     setTimeout(fn, 0);
+        // }
+    };
+    var G_IsObject = $.isPlainObject;
+    var G_IsArray = $.isArray;
+    var G_HTML = function(node, html) {
+        if (1 in arguments) {
+            $(node).html(html);
+        } else {
+            html = $(node).html();
+        }
+        return html;
+    };
+    /*#if(modules.style){#*/
+    var GId = 'mxstyle';
+    var StyleAddMap = {};
+    var View_ApplyStyle = function(key, css, node, sheet) {
+        if (css && !StyleAddMap[key]) {
+            StyleAddMap[key] = 1;
+            node = $('#' + GId);
+            if (node.size()) {
+                sheet = node.prop('styleSheet');
+                if (sheet) {
+                    sheet.cssText += css;
+                } else {
+                    node.append(css);
+                }
+            } else {
+                $('head').append('<style id="' + GId + '">' + css + '</style>');
+            }
+        }
+    };
+    /*#}#*/
+    Inc('../tmpl/magix');
+    Inc('../tmpl/event');
+    /*#if(modules.router||modules.service){#*/
+    var G_IsFunction = $.isFunction;
+    /*#}#*/
+    Inc('../tmpl/router');
+    /*#if(modules.router){#*/
+    /*#if(modules.tiprouter){#*/
+    Router.bind = function() {
+        var lastHash = Router.parse().srcHash;
+        var newHash;
+        $(window).on('hashchange', function(e, loc) {
+            loc = Router.parse();
+            newHash = loc.srcHash;
+            if (newHash != lastHash) {
+                e = {
+                    backward: function() {
+                        e.p = 1;
+                        location.hash = '#!' + lastHash;
+                    },
+                    forward: function() {
+                        e.p = 1;
+                        lastHash = newHash;
+                        Router.diff();
+                    },
+                    prevent: function() {
+                        e.p = 1;
+                    },
+                    location: loc
+                };
+                Router.fire('change', e);
+                if (!e.p) {
+                    e.forward();
+                }
+            }
+        });
+        window.onbeforeunload = function(e) {
+            e = e || window.event;
+            var te = {};
+            Router.fire('pageunload', te);
+            if (te.msg) {
+                if (e) e.returnValue = te.msg;
+                return te.msg;
+            }
+        };
+        Router.diff();
+    };
+    /*#}else{#*/
+    Router.bind = function() {
+        $(window).on('hashchange', Router.diff);
+        Router.diff();
+    };
+    /*#}#*/
+    /*#if(modules.edgerouter){#*/
+    /*#if(modules.tiprouter){#*/
+    /*#}else{#*/
+    var WinHistory = window.history;
+    if (WinHistory.pushState) {
+        Router.edge = 1;
+        Router.update = function(path, params, loc, replace) {
+            path = G_ToUri(path, params);
+            if (path != loc.srcQuery) {
+                WinHistory[replace ? 'replaceState' : 'pushState'](null, null, path);
+                Router.diff();
+                Router.did = 1;
+            }
+        };
+        Router.bind = function() {
+            var initialURL = Router_WinLoc.href;
+            $(window).on('popstate', function() {
+                var equal = Router_WinLoc.href == initialURL;
+                if (!Router.did && equal) return;
+                Router.did = 1;
+                Router.diff();
+            });
+            Router.diff();
+        };
+    }
+    /*#}#*/
+    /*#}#*/
+    /*#}#*/
+    var Vframe_GetVframes = $;
+    Inc('../tmpl/vframe');
+    var Body_DOMGlobalProcessor = function(e, d) {
+        d = e.data;
+        G_ToTry(d.f, e, d.v);
+    };
+    var Body_DOMEventLibBind = function(node, type, cb, remove, scope) {
+        $(node)[remove ? 'off' : Event_ON](type, scope, cb);
+    };
+    Inc('../tmpl/body');
+    /*#if(modules.fullstyle){#*/
+    var View_Style_Cache = new G_Cache(15, 5, function(key) {
+        $('#' + key).remove();
+    });
+    var View_ApplyStyle = function(key, css) {
+        if (css) {
+            if (!View_Style_Cache.has(key)) {
+                $('head').append('<style id="' + key + '">' + css + '</style>');
+            }
+            View_Style_Cache.num(key, 1);
+            //$(node).addClass(key);
+        }
+    };
+    var View_RemoveStyle = function(key) {
+        if (key) {
+            //$(node).removeClass(key);
+            View_Style_Cache.num(key);
+        }
+    };
+    /*#}#*/
+
+    Inc('../tmpl/view');
+    /*#if(modules.service){#*/
+    var G_Type = $.type;
+    var G_Proxy = $.proxy;
+    var G_Now = $.now || Date.now;
+    /*#}#*/
+    Inc('../tmpl/service');
+    /*#if(modules.base){#*/
+    var T_Extend = function(props, statics) {
+        var me = this;
+        var ctor = props && props.ctor;
+        var X = function() {
+            var t = this,
+                a = arguments;
+            me.apply(t, a);
+            if (ctor) ctor.apply(t, a);
+        };
+        X.extend = T_Extend;
+        return G_Extend(X, me, props, statics);
+    };
+    G_Mix(G_NOOP[G_PROTOTYPE], Event);
+    G_NOOP.extend = T_Extend;
+    /**
+     * 组件基类
+     * @name Base
+     * @constructor
+     * @borrows Event.fire as #fire
+     * @borrows Event.on as #on
+     * @borrows Event.off as #off
+     * @beta
+     * @module base
+     */
+    Magix.Base = G_NOOP;
+    /*#}#*/
+    return Magix;
+});

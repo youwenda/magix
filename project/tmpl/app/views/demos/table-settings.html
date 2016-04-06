@@ -1,0 +1,29 @@
+<div class="wrapper">
+    <button class="btn" mx-click="showSettings()">设置</button>
+    <button class="btn fr" mx-click="showSettings({dock:'right'})">设置</button>
+    <table class="table">
+        <thead>
+            <tr mx-keys="checkedFields">
+                <th>名称</th>
+                <%for(var i=0;i<checkedFields.length;i++){%>
+                <th><%=fieldsMap[checkedFields[i]].text%></th>
+                <%}%>
+            </tr>
+        </thead>
+        <tbody mx-keys="checkedFields">
+            <%for(var i=0;i<20;i++){%>
+            <tr>
+                <td>测试<%=Math.random()%></td>
+                <%for(var j=0;j<checkedFields.length;j++){%>
+                <td><%=fieldsMap[checkedFields[j]].text+Math.random()%></td>
+                <%}%>
+            </tr>
+            <%}%>
+        </tbody>
+        <tfoot mx-mousedown="drag()">
+            <tr>
+                <td colspan="4">xxx</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>

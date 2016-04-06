@@ -1,0 +1,12 @@
+<div class="wrapper">
+    <div class="autocomplete">
+        <input class="input search" mx-click="showList()" id="ipt_<%=id%>" mx-keyup="search()" mx-paste="search()" mx-keydown="select()" />
+    </div>
+    <div class="list none" id="list_<%=id%>" mx-mouseout="leave()">
+        <ul mx-keys="list">
+            <%for(var i=0;i<list.length;i++){%>
+            <li id="idx_<%=i%>" class="item ellipsis" mx-mouseover="hover({index:<%=i%>})" mx-click="fill()" data-text="<%=list[i].text%>"><%=list[i].text%></li>
+            <%}%>
+        </ul>
+    </div>
+</div>

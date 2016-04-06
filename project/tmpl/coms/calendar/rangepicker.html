@@ -1,0 +1,17 @@
+<%if(quickDates.length){%>
+    <div class="shortcuts-header">快捷日期</div>
+    <div class="shortcuts clearfix" mx-keys="dates">
+        <%for(var i=0;i<quickDates.length;i++){%>
+            <%var key=quickDates[i],info=quickDatesMap[key]%>
+            <a<%if(dates.quickDateKey==key){%> class="selected"<%}%> mx-click="picked({quick:true,key:'<%=key%>'})"><%=info?info.text:key%></a>
+        <%}%>
+    </div>
+<%}%>
+<div class="shortcuts-header">日期范围</div>
+<div class="datepicker clearfix" mx-keys="dates">
+    <input class="input" value="<%=dates.startStr%>" readonly="readonly" mx-click="showDatepicker({first:true})" id="start_<%=id%>" />-<input class="input" value="<%=dates.endStr%>" readonly="readonly" mx-click="showDatepicker()" id="end_<%=id%>" />
+</div>
+<div class="buttons clearfix">
+    <button mx-click="picked()" class="btn">确定</button>
+    <button mx-click="hide()" class="btn">取消</button>
+</div>

@@ -1,0 +1,18 @@
+.wrapper{
+    margin:20px;
+}
+.w80{
+    width:80px;
+}
+.fl{
+    float: left;
+}
+.ml10{
+    margin-left: 10px;
+}
+.wrapper li{
+    margin:5px 0;
+}
+.red{
+    border:solid 1px #ff0000;
+}

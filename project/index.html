@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html style="overflow-y:scroll">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+        <title>Magix Project</title>
+        <script src="src/libs/sea.js"></script>
+        <script src="src/libs/jquery-1.12.1.js"></script>
+        <script src="src/libs/tmpl.js"></script>
+        <link rel="stylesheet" type="text/css" href="src/assets/reset.css"  />
+        <link rel="stylesheet" type="text/css" href="src/assets/project.css"  />
+    </head>
+    <body >
+        <script type="text/javascript">
+        var Env={
+            cdn:'./src/'
+        };
+        seajs.config({
+            debug:true,
+            paths:{
+                app:Env.cdn+'app/',
+                coms:Env.cdn+'coms/'
+            }
+        });
+        define('$',function(){//shim
+            return jQuery;
+        });
+        seajs.use('magix',function(Magix){
+            Magix.boot({
+                defaultPath:'/home/index',
+                defaultView:'app/views/default',
+                exts:['app/exts','coms/exports','app/refresh'],
+                error:function(e){
+                    throw e;
+                }
+            });
+        });
+        </script>
+    </body>
+</html>

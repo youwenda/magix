@@ -1,0 +1,35 @@
+.wrapper{
+    margin:80px;
+}
+.search{
+    width:300px;
+}
+.list{
+    width:318px;
+    /*max-height: 200px;*/
+    overflow: auto;
+    position: absolute;
+    background:#eee;
+}
+.none{
+    display: none;
+}
+.item{
+    height:21px;
+    line-height: 21px;
+    padding:2px 8px;
+    cursor: default;
+    border-radius: 2px;
+    user-select:none;
+    -webkit-user-select:none;
+    -moz-user-select:none;
+    cursor: default;
+}
+
+.over{
+    background-color: #6363e6;
+    background-image: -webkit-linear-gradient(top, #1b87e3 2%, #6363e6 98%);
+    background-image: linear-gradient(to bottom,#1b87e3 2%, #6363e6 98%);
+    color: #ecf2f8;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.05);
+}

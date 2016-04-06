@@ -1,0 +1,17 @@
+2014.9.19
+
+1.view inside 方法可省略nodes参数，省略时，默认为view.id
+2.model 合并setFormParams,getFormParams为formParams。setUrlParams,getUrlParams为urlParams
+3.request 方法改名：next=>then  doNext=>next fetchAll=>all fetchOrder=>order fetchOne=>one
+4.manager 方法改名 getMeta=>meta getModel=>model getCached=>cached clearCache=>clear createRequest=>request registerModels=>add registerMethods=>mixin
+5. manager不再取消请求，不应该取消请求中的http(个人观点),当某个接口需要缓存时，不至于前一个请求尚未成功时，就因后续的重复请求而被取消，从而再次请求
+6. 支持任意标签带mx-vframe时，均可被识别成Vframe节点，移除默认标签vframe
+7. 重新调整的继承，extend(props,statics,ctor)=>extend(props,statics) ctor=>props.ctor
+8. 简化cancelTriggerEvent参数，统一派发事件，尽管某些情况下性能不太好
+9. 移除view的init方法，统一使用ctor方法，并且继承链上的ctor会从根到子依次调用
+10. 移除自动加载模板文件，自已处理
+11. 移除view上的navigate方法，自已处理
+12. model缓存时，当get值时，如果为数组或对象，则浅克隆一份
+13. 移除urlParams,formParams，自已处理
+14. history push state不再内置，通过插件处理
+15. 所有对象挂到Magix上

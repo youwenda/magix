@@ -1,0 +1,41 @@
+<div>
+<table class="table w700 m50">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody mx-keys="list">
+        <%for(var i=0;i<list.length;i++){%>
+        <%var item=list[i]%>
+        <tr>
+            <td>
+                <%if(item.editable){%>
+                    <input class="input w60" value="<%=item.id%>" mx-change="setValue({path:'list.<%=item.index%>.id'})" />
+                <%}else{%>
+                    <%=item.id%>
+                <%}%>
+            </td>
+            <td>
+                <%if(item.editable){%>
+                    <input class="input w100" value="<%=item.name%>" mx-change="setValue({path:'list.<%=item.index%>.name'})" />
+                <%}else{%>
+                    <%=item.name%>
+                <%}%>
+            </td>
+            <td>
+                <div class="operation">
+                    <%if(item.editable){%>
+                    <a href="javascript:;" mx-click="save({index:<%=item.index%>})">保存</a>
+                    <%}else{%>
+                    <a href="javascript:;" mx-click="edit({index:<%=item.index%>})">编辑</a>
+                    <%}%>
+                </div>
+            </td>
+        </tr>
+        <%}%>
+    </tbody>
+</table>
+</div>

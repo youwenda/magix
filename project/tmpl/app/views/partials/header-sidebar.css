@@ -1,0 +1,27 @@
+.expand{
+    margin-left:0;
+}
+.shrink{
+    margin-left:200px;
+}
+.menus{
+    padding-top:45px;
+}
+.menus a{
+    padding-left:30px;
+    border-left: 4px solid rgba(0, 0, 0, 0);
+    color: rgb(255, 255, 255);
+    opacity: 0.55;
+    display: block;
+    padding: 11px 0 12px 40px;
+}
+.menus a.on{
+    opacity: 1;
+    border-color: rgb(138, 107, 190);
+    background-color: rgb(51, 51, 51);
+}
+.fixed{
+    position: fixed;
+    left:0;
+    top:0;
+}

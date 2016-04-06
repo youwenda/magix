@@ -1,0 +1,13 @@
+.dropdown{
+    height:36px;
+    float:left;
+    margin:0 8px;
+}
+.bottom{
+    position: absolute;
+    bottom: 0;
+    left:400px;
+}
+.wrapper{
+    margin:50px;
+}

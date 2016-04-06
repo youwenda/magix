@@ -1,0 +1,523 @@
+var Vframe_RootVframe;
+var Vframe_GlobalAlter;
+
+var Vframe_NotifyCreated = function(vframe, mId, p) {
+    if (vframe.$cc == vframe.$rc) { //childrenCount === readyCount
+        if (!vframe.$cr) { //childrenCreated
+            vframe.$cr = 1; //childrenCreated
+            vframe.$ca = 0; //childrenAlter
+            vframe.fire('created'); //不在view上派发事件，如果view需要绑定，则绑定到owner上，view一般不用该事件，如果需要这样处理：this.owner.oncreated=function(){};this.ondestroy=function(){this.owner.off('created')}
+        }
+        mId = vframe.id;
+        p = Vframe_Vframes[vframe.pId];
+        if (p && !G_Has(p.$r, mId)) { //readyChildren
+            p.$r[mId] = 1; //readyChildren
+            p.$rc++; //readyCount
+            Vframe_NotifyCreated(p);
+        }
+    }
+};
+var Vframe_NotifyAlter = function(vframe, e, mId, p) {
+    if (!e) e = {};
+    if (!vframe.$ca && vframe.$cr) { //childrenAlter childrenCreated 当前vframe触发过created才可以触发alter事件
+        vframe.$cr = 0; //childrenCreated
+        vframe.$ca = 1; //childreAleter
+        vframe.fire('alter', e);
+        mId = vframe.id;
+        //var vom = vframe.owner;
+        p = Vframe_Vframes[vframe.pId];
+        if (p && G_Has(p.$r, mId)) { //readyMap
+            p.$rc--; //readyCount
+            delete p.$r[mId]; //readyMap
+            Vframe_NotifyAlter(p, e);
+        }
+    }
+};
+/**
+ * 获取根vframe;
+ * @return {Vframe}
+ * @private
+ */
+var Vframe_Root = function(rootId, e) {
+    if (!Vframe_RootVframe) {
+        /*
+            尽可能的延迟配置，防止被依赖时，配置信息不正确
+        */
+        G_DOCBODY = G_DOCUMENT.body;
+
+        rootId = Magix_Cfg.rootId;
+        e = G_GetById(rootId);
+        if (!e) {
+            G_DOCBODY.id = rootId;
+        }
+        Vframe_RootVframe = new Vframe(rootId);
+    }
+    return Vframe_RootVframe;
+};
+var Vframe_Vframes = {};
+
+
+var Vframe_AddVframe = function(id, vf) {
+    if (!G_Has(Vframe_Vframes, id)) {
+        Vframe_Vframes[id] = vf;
+        Vframe.fire('add', {
+            vframe: vf
+        });
+    }
+};
+/*#if(modules.linkage){#*/
+var Vframe_RunInvokes = function(vf, list, o) {
+    list = vf.$il; //invokeList
+    while (list.length) {
+        o = list.shift();
+        if (!o.r) { //remove
+            vf.invoke(o.n, o.a); //name,arguments
+        }
+        delete list[o.k]; //key
+    }
+};
+/*#}#*/
+var Vframe_RemoveVframe = function(id, fcc, vf) {
+    vf = Vframe_Vframes[id];
+    if (vf) {
+        delete Vframe_Vframes[id];
+        Vframe.fire('remove', {
+            vframe: vf,
+            fcc: fcc //fireChildrenCreated
+        });
+    }
+};
+/*#if(modules.router){#*/
+/**
+ * 通知当前vframe，地址栏发生变化
+ * @param {Vframe} vframe vframe对象
+ * @private
+ */
+var Vframe_Update = function(vframe, view) {
+    if (vframe && (view = vframe.$v) && view.$s > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
+
+        var isChanged = View_IsObsveChanged(view);
+        /**
+         * 事件对象
+         * @type {Object}
+         * @ignore
+         */
+        /*var args = {
+                location: RefLoc,
+                changed: RefG_LocationChanged,*/
+        /**
+         * 阻止向所有的子view传递
+         * @ignore
+         */
+        /* prevent: function() {
+                    args.cs = EmptyArr;
+                },*/
+        /**
+         * 向特定的子view传递
+         * @param  {Array} c 子view数组
+         * @ignore
+         */
+        /*to: function(c) {
+                    c = (c + EMPTY).split(COMMA);
+                    args.cs = c;
+                }
+            };*/
+        if (isChanged) { //检测view所关注的相应的参数是否发生了变化
+            view.render();
+        }
+        var cs = vframe.children(),
+            j = cs.length,
+            i = 0;
+        //console.log(me.id,cs);
+        while (i < j) {
+            Vframe_Update(cs[i++]);
+        }
+    }
+};
+/**
+ * 向vframe通知地址栏发生变化
+ * @param {Object} e 事件对象
+ * @param {Object} e.location G_WINDOW.location.href解析出来的对象
+ * @private
+ */
+var Vframe_NotifyLocationChange = function(e) {
+    var vf = Vframe_Root(),
+        view;
+    if ((view = e.view)) {
+        vf.mountView(view.to);
+    } else {
+        Vframe_Update(vf);
+    }
+};
+/*#}#*/
+/**
+ * Vframe类
+ * @name Vframe
+ * @class
+ * @constructor
+ * @borrows Event.on as on
+ * @borrows Event.fire as fire
+ * @borrows Event.off as off
+ * @borrows Event.on as #on
+ * @borrows Event.fire as #fire
+ * @borrows Event.off as #off
+ * @param {String} id vframe id
+ * @property {String} id vframe id
+ * @property {String} path 当前view的路径名，包括参数
+ * @property {String} pId 父vframe的id，如果是根节点则为undefined
+ */
+var Vframe = function(id, pId, me) {
+    me = this;
+    me.id = id;
+    //me.vId=id+'_v';
+    me.$c = {}; //childrenMap
+    me.$cc = 0; //childrenCount
+    me.$rc = 0; //readyCount
+    me.$s = 1; //signature
+    me.$r = {}; //readyMap
+    /*#if(modules.linkage){#*/
+    me.$il = []; //invokeList
+    /*#}#*/
+    me.pId = pId;
+    Vframe_AddVframe(id, me);
+};
+G_Mix(Vframe, G_Mix({
+    /**
+     * @lends Vframe
+     */
+    /**
+     * 获取vframe节点
+     * @type {Vframe}
+     * @return {Vframe} vframe对象
+     */
+    root: Vframe_Root,
+    /**
+     * 获取所有的vframe对象
+     * @return {Object}
+     */
+    all: function() {
+        return Vframe_Vframes;
+    },
+    /**
+     * 根据vframe的id获取vframe对象
+     * @param {String} id vframe的id
+     * @return {Vframe|undefined} vframe对象
+     */
+    get: function(id) {
+            return Vframe_Vframes[id];
+        }
+        /**
+         * 注册vframe对象时触发
+         * @name Vframe.add
+         * @event
+         * @param {Object} e
+         * @param {Vframe} e.vframe
+         */
+        /**
+         * 删除vframe对象时触发
+         * @name Vframe.remove
+         * @event
+         * @param {Object} e
+         * @param {Vframe} e.vframe
+         * @param {Boolean} e.fcc 是否派发过created事件
+         */
+}, Event));
+
+G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
+    /**
+     * @lends Vframe#
+     */
+    /**
+     * 加载对应的view
+     * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的view路径
+     * @param {Object|Null} viewInitParams 调用view的init方法时传递的参数
+     */
+    mountView: function(viewPath, viewInitParams) {
+        var me = this;
+        var node = G_GetById(me.id),
+            po, sign, view;
+        if (!me.$a && node) { //alter
+            me.$a = 1;
+            me.$t = G_HTML(node); //.replace(ScriptsReg, ''); template
+        }
+        //var useTurnaround=me.$vr&&me.useAnimUpdate();
+        me.unmountView();
+        me.$d = 0; //destroyed 详见unmountView
+        if (node && viewPath) {
+            me.path = viewPath;
+            po = G_ParseUri(viewPath);
+            sign = ++me.$s;
+            G_Require(po.path, function(TView) {
+                if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
+                    View_Prepare(TView);
+                    view = new TView({
+                        owner: me,
+                        id: me.id
+                    }, G_Mix(po.params, viewInitParams));
+                    me.$v = view;
+                    // view.on('rendered', function(e) {
+                    //     me.mountZone(e.id);
+                    // });
+                    // view.on('prerender', function(e) {
+                    //     if (!me.unmountZone(e.id, 0, 1)) {
+                    //         Vframe_NotifyAlter(me);
+                    //     }
+                    // });
+                    View_DelegateEvents(view);
+                    //Vframe_RunInvokes(me);
+                    view.render();
+                }
+            });
+        }
+    },
+    /**
+     * 销毁对应的view
+     */
+    unmountView: function() {
+        var me = this;
+        var view = me.$v,
+            node, reset;
+        /*#if(modules.linkage){#*/
+        me.$il = []; //invokeList 销毁当前view时，连同调用列表一起销毁
+        /*#}#*/
+        if (view) {
+            if (!Vframe_GlobalAlter) {
+                reset = 1;
+                Vframe_GlobalAlter = {
+                    id: me.id
+                };
+            }
+            me.$d = 1; //用于标记当前vframe处于view销毁状态，在当前vframe上再调用unmountZone时不派发created事件
+            me.unmountZone(0, 1);
+            Vframe_NotifyAlter(me, Vframe_GlobalAlter);
+
+            me.$v = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
+            View_Oust(view);
+            node = G_GetById(me.id);
+            if (node && me.$a) { //如果view本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且view有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即view安装前什么样，销毁后把节点恢复到安装前的情况
+                G_HTML(node, me.$t);
+            }
+
+            /*if (me.$vPrimed) { //viewMounted与viewUnmounted成对出现
+                me.$vPrimed = 0;
+                me.fire('viewUnmounted');
+            }*/
+            if (reset)
+                Vframe_GlobalAlter = 0;
+        }
+        me.$s++; //增加signature，阻止相应的回调，见mountView
+    },
+    /**
+     * 加载vframe
+     * @param  {String} id             节点id
+     * @param  {String} viewPath       view路径
+     * @param  {Object} viewInitParams 传递给view init方法的参数
+     * @return {Vframe} vframe对象
+     * @example
+     * //html
+     * &lt;div id="magix_vf_defer"&gt;&lt;/div&gt;
+     *
+     *
+     * //js
+     * view.owner.mountVframe('magix_vf_defer','app/views/list',{page:2})
+     * //注意：动态向某个节点渲染view时，该节点无须是vframe标签
+     */
+    mountVframe: function(id, viewPath, viewInitParams /*, cancelTriggerEvent*/ ) {
+        var me = this,
+            vf;
+        //me._p = cancelTriggerEvent;
+        if (me.$cr) Vframe_NotifyAlter(me); //如果在就绪的vframe上渲染新的vframe，则通知有变化
+        //var vom = me.owner;
+        vf = Vframe_Vframes[id];
+        if (!vf) {
+            if (!G_Has(me.$c, id)) { //childrenMap,当前子vframe不包含这个id
+                /*#if(modules.linkage){#*/
+                me.$cl = G_EMPTY; //childrenList 清空缓存的子列表
+                /*#}#*/
+                me.$cc++; //childrenCount ，增加子节点
+            }
+            me.$c[id] = id; //map
+            vf = new Vframe(id, me.id);
+        }
+        //vf._p = cancelTriggerEvent;
+        vf.mountView(viewPath, viewInitParams);
+        return vf;
+    },
+    /**
+     * 加载当前view下面的子view，因为view的持有对象是vframe，所以是加载vframes
+     * @param {HTMLElement|String} zoneId 节点对象或id
+     * @param {Object} viewInitParams 传递给view init方法的参数
+     */
+    mountZone: function(zoneId, viewInitParams) {
+        var me = this;
+        //var subs = {};
+        var i, vf, id;
+        zoneId = zoneId || me.id;
+
+        var vframes = Vframe_GetVframes('#' + zoneId + ' [mx-vframe]');
+        /*
+            body(#mx-root)
+                div(mx-vframe=true,mx-view='xx')
+                    div(mx-vframe=true,mx-view=yy)
+            这种结构，自动构建父子关系，
+            根结点渲染，获取到子列表[div(mx-view=xx)]
+                子列表渲染，获取子子列表的子列表
+                    加入到忽略标识里
+            会导致过多的dom查询
+
+            现在使用的这种，无法处理这样的情况，考虑到项目中几乎没出现过这种情况，先采用高效的写法
+            上述情况一般出现在展现型页面，dom结构已经存在，只是附加上js行为
+            不过就展现来讲，一般是不会出现嵌套的情况，出现的话，把里面有层级的vframe都挂到body上也未尝不可，比如brix2.0
+         */
+        me.unmountZone(zoneId, 1);
+        for (i = vframes.length - 1; i >= 0; i--) {
+            vf = vframes[i];
+            id = vf.id || (vf.id = G_Id());
+            //if (!G_Has(subs, id)) {
+            me.mountVframe(id, vf.getAttribute('mx-view'), viewInitParams);
+            // vfs = Vframe_GetVframes(vf);
+            // for (j = vfs.length - 1; j >= 0; j--) {
+            //     subs[Vframe_IdIt(vfs[j])] = 1;
+            // }
+            //}
+        }
+        Vframe_NotifyCreated(me);
+    },
+    /**
+     * 销毁vframe
+     * @param  {String} [id]      节点id
+     */
+    unmountVframe: function(id, inner) { //inner 标识是否是由内部调用，外部不应该传递该参数
+        var me = this,
+            vf, fcc, pId;
+        id = id ? me.$c[id] : me.id;
+        //var vom = me.owner;
+        vf = Vframe_Vframes[id];
+        if (vf) {
+            fcc = vf.$cr; //childrenCreated
+            pId = vf.pId;
+            vf.unmountView();
+            Vframe_RemoveVframe(id, fcc);
+            vf.id = vf.pId = G_EMPTY; //清除引用,防止被移除的view内部通过setTimeout之类的异步操作有关的界面，影响真正渲染的view
+            vf = Vframe_Vframes[pId];
+            if (vf && G_Has(vf.$c, id)) { //childrenMap
+                delete vf.$c[id]; //childrenMap
+                /*#if(modules.linkage){#*/
+                vf.$cl = G_EMPTY;
+                /*#}#*/
+                vf.$cc--; //cildrenCount
+                if (!inner) {
+                    Vframe_NotifyCreated(vf); //移除后通知完成事件
+                }
+            }
+        }
+    },
+    /**
+     * 销毁某个区域下面的所有子vframes
+     * @param {HTMLElement|String} [zoneId]节点对象或id
+     */
+    unmountZone: function(zoneId, inner) {
+        var me = this;
+        var hasVframe;
+        var p;
+        var cm = me.$c;
+        for (p in cm) {
+            if (!zoneId || (p != zoneId && G_NodeIn(p, zoneId))) {
+                me.unmountVframe(p, hasVframe = 1);
+            }
+        }
+        if (!inner && !me.$d) {
+            Vframe_NotifyCreated(me);
+        }
+        return hasVframe;
+    } /*#if(modules.linkage){#*/ ,
+    /**
+     * 获取父vframe
+     * @param  {Integer} level 层级，默认1,取当前vframe的父级
+     * @return {Vframe}
+     * @module linkage
+     */
+    parent: function(level, vf) {
+        vf = this;
+        level = (level >>> 0) || 1;
+        while (vf && level--) {
+            vf = Vframe_Vframes[vf.pId];
+        }
+        return vf;
+    },
+    /**
+     * 获取当前vframe的所有子vframe。返回数组中，vframe在数组中的位置并不固定
+     * @return {Array[Vframe]}
+     * @module linkage
+     */
+    children: function(me, p, z, c) {
+        me = this;
+        if (!(z = me.$cl)) {
+            z = me.$cl = [];
+            c = me.$c;
+            for (p in c) {
+                if (G_Has(c, p))
+                    z.push(Vframe_Vframes[p]);
+            }
+        }
+        return z;
+    },
+    /**
+     * 调用view的方法
+     * @param  {String} name 方法名
+     * @param  {Array} args 参数
+     * @return {Object}
+     * @module linkage
+     */
+    invoke: function(name, args) {
+            var result;
+            var vf = this,
+                view, fn, o, list, key;
+            if ((view = vf.$v) && view.$p) { //view rendered
+                result = (fn = view[name]) && G_ToTry(fn, args, view);
+            } else {
+                list = vf.$il;
+                o = list[key = G_SPLITER + name];
+                if (o) {
+                    o.r = 1;
+                }
+                o = {
+                    n: name,
+                    a: args,
+                    k: key
+                };
+                list.push(o);
+                list[key] = o;
+            }
+            return result;
+        }
+        /*#}#*/
+        /**
+         * 子孙view修改时触发
+         * @name Vframe#alter
+         * @event
+         * @param {Object} e
+         */
+
+    /**
+     * 子孙view创建完成时触发
+     * @name Vframe#created
+     * @event
+     * @param {Object} e
+     */
+});
+Magix.Vframe = Vframe;
+
+
+/**
+ * Vframe 中的2条线
+ * 一：
+ *     渲染
+ *     每个Vframe有$cc(childrenCount)属性和$c(childrenItems)属性
+ *
+ * 二：
+ *     修改与创建完成
+ *     每个Vframe有rC(readyCount)属性和$r(readyMap)属性
+ *
+ *      fca firstChildrenAlter  fcc firstChildrenCreated
+ */

@@ -1,0 +1,66 @@
+.table{
+    width: 100%;
+    max-width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+.table th{
+    background-color: rgb(235, 235, 235);
+    font-weight: normal;
+    padding: 7px 5px 6px;
+    color: rgb(153, 153, 153);
+    border-bottom: 1px solid rgb(225, 225, 225);
+    text-align:left;
+}
+.table tbody td{
+    border-bottom: 1px solid rgb(225, 225, 225);
+    padding: 10px 5px 9px;
+}
+
+.table tfoot td {
+    background-color: rgb(247, 247, 247);
+    border-bottom: 1px solid rgb(225, 225, 225);
+    padding: 10px 14px;
+}
+.table tbody tr:hover td{
+    background-color: rgb(235, 235, 235);
+}
+.table tbody .operation{
+    visibility: hidden;
+}
+.table tbody tr:hover .operation{
+    visibility: visible;
+}
+
+/* 子表格样式 */
+.table-child {
+  width: 100%;
+}
+.table-child thead th {
+  border: 0;
+  background: none;
+  border-bottom: 1px dashed #e1e1e1;
+}
+.table-child tbody td {
+  border: 0;
+}
+.table-child tbody tr td {
+  background: none!important;
+  border-bottom: 1px solid #e1e1e1;
+}
+.table-child tbody tr:hover td {
+  background: #EBEBEB!important;
+}
+.table-child tbody tr:hover .operation {
+  visibility: visible!important;
+}
+.table-child tbody tr:last-child td {
+  border-bottom: none;
+}
+.table-child tbody tr .operation {
+  visibility: hidden!important;
+  _visibility: visible;
+}
+.table tbody tr:hover td.table-child-td {
+  background: 0;
+}
