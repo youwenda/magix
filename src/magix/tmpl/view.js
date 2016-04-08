@@ -274,6 +274,9 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @function
      */
     render: G_NOOP,
+    /*#if(modules.viewInit){#*/
+    init: G_NOOP,
+    /*#}#*/
     // *
     //  * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^test<prevent>({key:'field})"，以方便识别交由哪个view处理
     //  * @function

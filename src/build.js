@@ -8,6 +8,9 @@ var configs = {
     excludeTmplFolders: [],
     generateJSFile: function() {
         return '';
+    },
+    atAttrIf: function(name, tmpl) {
+        return tmpl;
     }
 };
 var md5Cache = {};
@@ -154,7 +157,7 @@ var anchor = '-\u001e';
 var tmplCommandAnchorReg = /\&\d+\-\u001e/g;
 var tmplCommandAnchorRegTest = /\&\d+\-\u001e/;
 
-var StoreTmplCommands = function(tmpl, store) {
+var storeTmplCommands = function(tmpl, store) {
     var idx = 0;
     return tmpl.replace(configs.tmplCommand, function(match) {
         if (!store[match]) {
@@ -204,10 +207,7 @@ var fixedAttrPropsTags = {
     'select': 1,
     'textarea': 1
 };
-var atAttrIfCondition = function(name, tmpl) {
-    var cond = tmpl.replace(/<%=([\s\S]+?)%>/g, '$1');
-    return '<%if(' + cond + '){%>' + name + '<%}%>';
-};
+
 var commandAnchorRecover = function(tmpl, refTmplCommands) {
     return tmpl.replace(tmplCommandAnchorReg, function(match) {
         var value = refTmplCommands[match];
@@ -240,14 +240,14 @@ var addAttrs = function(tag, tmpl, info, keysReg, refTmplCommands) {
                 if (key && fixedAttrPropsTags[tag] == 1) {
                     aInfo.p = true;
                 }
+                if (name.charAt(0) == '@') {
+                    aInfo.v = configs.atAttrIf(name.slice(1), aInfo.v);
+                }
                 info.attrs.push(aInfo);
             }
         }
         if (name == 'mx-vframe') {
             info.vf = true;
-        }
-        if (hasKey && name.charAt(0) == '@') {
-            aInfo.v = atAttrIfCondition(name.slice(1), aInfo.v);
         }
         return match;
     });
@@ -257,7 +257,7 @@ var expandAtAttr = function(tmpl, refTmplCommands) {
         return match.replace(attrsNameValueReg, function(match, name, quote, content) {
             if (name.charAt(0) == '@') {
                 content = commandAnchorRecover(content, refTmplCommands);
-                match = atAttrIfCondition(name.slice(1), content);
+                match = configs.atAttrIf(name.slice(1), content);
             }
             return match;
         });
@@ -374,7 +374,7 @@ var processTmpl = function(result) {
                     var guid = md5(from);
                     var refGuidToKeys = {},
                         refTmplCommands = {};
-                    fileContent = StoreTmplCommands(fileContent, refTmplCommands); //模板命令移除，防止影响分析
+                    fileContent = storeTmplCommands(fileContent, refTmplCommands); //模板命令移除，防止影响分析
 
                     fileContent = fileContent.replace(htmlTagCleanReg, '><'); //简单压缩
                     fileContent = addGuid(fileContent, guid, refGuidToKeys);
@@ -544,7 +544,5 @@ module.exports = {
     },
     processFile: processFile,
     walk: walk,
-    copyFile: copyFile,
-    processCSS: processCSS,
-    processTmpl: processTmpl
+    copyFile: copyFile
 };

@@ -20,6 +20,7 @@ var extModules = {
   style: 1,
   //cnum: 1,
   //ceach:1,
+  //viewInit:1,
   service: 1,
   router: 1,
   resource: 1,

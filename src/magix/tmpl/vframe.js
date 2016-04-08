@@ -232,7 +232,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的view路径
      * @param {Object|Null} viewInitParams 调用view的init方法时传递的参数
      */
-    mountView: function(viewPath, viewInitParams) {
+    mountView: function(viewPath, viewInitParams /*,keepPreHTML*/ ) {
         var me = this;
         var node = G_GetById(me.id),
             po, sign, view;
@@ -241,7 +241,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             me.$t = G_HTML(node); //.replace(ScriptsReg, ''); template
         }
         //var useTurnaround=me.$vr&&me.useAnimUpdate();
-        me.unmountView();
+        me.unmountView( /*keepPreHTML*/ );
         me.$d = 0; //destroyed 详见unmountView
         if (node && viewPath) {
             me.path = viewPath;
@@ -264,6 +264,9 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     //     }
                     // });
                     View_DelegateEvents(view);
+                    /*#if(modules.viewInit){#*/
+                    view.init(G_Mix(po.params, viewInitParams));
+                    /*#}#*/
                     //Vframe_RunInvokes(me);
                     view.render();
                 }
@@ -273,7 +276,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
     /**
      * 销毁对应的view
      */
-    unmountView: function() {
+    unmountView: function( /*keepPreHTML*/ ) {
         var me = this;
         var view = me.$v,
             node, reset;
@@ -294,7 +297,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             me.$v = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
             View_Oust(view);
             node = G_GetById(me.id);
-            if (node && me.$a) { //如果view本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且view有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即view安装前什么样，销毁后把节点恢复到安装前的情况
+            if (node && me.$a /*&&!keepPreHTML*/ ) { //如果view本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且view有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即view安装前什么样，销毁后把节点恢复到安装前的情况
                 G_HTML(node, me.$t);
             }
 
@@ -322,10 +325,9 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * view.owner.mountVframe('magix_vf_defer','app/views/list',{page:2})
      * //注意：动态向某个节点渲染view时，该节点无须是vframe标签
      */
-    mountVframe: function(id, viewPath, viewInitParams /*, cancelTriggerEvent*/ ) {
+    mountVframe: function(id, viewPath, viewInitParams /*, keepPreHTML*/ ) {
         var me = this,
             vf;
-        //me._p = cancelTriggerEvent;
         if (me.$cr) Vframe_NotifyAlter(me); //如果在就绪的vframe上渲染新的vframe，则通知有变化
         //var vom = me.owner;
         vf = Vframe_Vframes[id];
@@ -339,8 +341,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             me.$c[id] = id; //map
             vf = new Vframe(id, me.id);
         }
-        //vf._p = cancelTriggerEvent;
-        vf.mountView(viewPath, viewInitParams);
+        vf.mountView(viewPath, viewInitParams /*,keepPreHTML*/ );
         return vf;
     },
     /**
@@ -348,7 +349,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * @param {HTMLElement|String} zoneId 节点对象或id
      * @param {Object} viewInitParams 传递给view init方法的参数
      */
-    mountZone: function(zoneId, viewInitParams) {
+    mountZone: function(zoneId, viewInitParams /*,keepPreHTML*/ ) {
         var me = this;
         //var subs = {};
         var i, vf, id;
@@ -374,7 +375,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             vf = vframes[i];
             id = vf.id || (vf.id = G_Id());
             //if (!G_Has(subs, id)) {
-            me.mountVframe(id, vf.getAttribute('mx-view'), viewInitParams);
+            me.mountVframe(id, vf.getAttribute('mx-view'), viewInitParams /*,keepPreHTML*/ );
             // vfs = Vframe_GetVframes(vf);
             // for (j = vfs.length - 1; j >= 0; j--) {
             //     subs[Vframe_IdIt(vfs[j])] = 1;
@@ -387,7 +388,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * 销毁vframe
      * @param  {String} [id]      节点id
      */
-    unmountVframe: function(id, inner) { //inner 标识是否是由内部调用，外部不应该传递该参数
+    unmountVframe: function(id, /*keepPreHTML,*/ inner) { //inner 标识是否是由内部调用，外部不应该传递该参数
         var me = this,
             vf, fcc, pId;
         id = id ? me.$c[id] : me.id;
@@ -396,7 +397,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         if (vf) {
             fcc = vf.$cr; //childrenCreated
             pId = vf.pId;
-            vf.unmountView();
+            vf.unmountView( /*keepPreHTML*/ );
             Vframe_RemoveVframe(id, fcc);
             vf.id = vf.pId = G_EMPTY; //清除引用,防止被移除的view内部通过setTimeout之类的异步操作有关的界面，影响真正渲染的view
             vf = Vframe_Vframes[pId];
@@ -416,14 +417,14 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * 销毁某个区域下面的所有子vframes
      * @param {HTMLElement|String} [zoneId]节点对象或id
      */
-    unmountZone: function(zoneId, inner) {
+    unmountZone: function(zoneId, /*keepPreHTML,*/ inner) {
         var me = this;
         var hasVframe;
         var p;
         var cm = me.$c;
         for (p in cm) {
             if (!zoneId || (p != zoneId && G_NodeIn(p, zoneId))) {
-                me.unmountVframe(p, hasVframe = 1);
+                me.unmountVframe(p, /*keepPreHTML,*/ hasVframe = 1);
             }
         }
         if (!inner && !me.$d) {

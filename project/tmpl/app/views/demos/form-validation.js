@@ -62,17 +62,13 @@ module.exports = View.extend({
         list.push({
             test: ''
         });
-        me.data.set({
-            list: list
-        }).digest();
+        me.data.digest();
     },
     'remove<click>': function(e) {
         var me = this;
         var list = me.data.get('list');
         list.splice(e.params.index, 1);
-        me.data.set({
-            list: list
-        }).digest();
+        me.data.digest();
     },
     'addPlatform<click>': function() {
         var me = this;
@@ -81,17 +77,13 @@ module.exports = View.extend({
             platformId: '',
             operatorId: ''
         });
-        me.data.set({
-            platforms: list
-        }).digest();
+        me.data.digest();
     },
     'removePlatform<click>': function(e) {
         var me = this;
         var list = me.data.get('platforms');
         list.splice(e.params.index, 1);
-        me.data.set({
-            platforms: list
-        }).digest();
+        me.data.digest();
     },
     'saveSnapshot<click>': function() {
         if (this.isValid()) {

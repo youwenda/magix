@@ -63,10 +63,14 @@
             linkage
             <span class="desc">Vframe上是否有parent,children,invoke等父子间获取数据的方法</span>
         </div>
+        <div class="item">
+            viewInit
+            <span class="desc">View类上是否有init方法，推荐使用ctor方法：当view间继承时，会自动调用每个层级的ctor方法，而旧版的init并不会。如果认可旧版init的方式：由开发者自己手动调用，请选择该模块</span>
+        </div>
     </div>
     <h3>打包</h3>
     <div class="list">
-        在tool目录下运行gulp combine,成功后再运行gulp compress即可在dist目录下生成相应的文件
+        在tool目录下运行gulp combine,成功后生成dist/type/magix-debug.js。再运行gulp compress即可在同目录下生成相应的压缩文件magix.js
     </div>
 </div>
 <div class="content">

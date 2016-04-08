@@ -41,6 +41,10 @@ buildTool.config({
     moduleIdRemoved: moduleIdRemovedPath,
     prefix: 'mp-',
     tmplCommand: /<%[\s\S]+?%>|<%=[\s\S]+?%>|$/g,
+    atAttrIf: function(name, tmpl) {
+        var cond = tmpl.replace(/<%=([\s\S]+?)%>/g, '$1');
+        return '<%if(' + cond + '){%>' + name + '<%}%>';
+    },
     generateJSFile: function(o) {
         var tmpl = o.requires.length ? wrapTMPL : wrapNoDepsTMPL;
         // if (!o.hasExports) {

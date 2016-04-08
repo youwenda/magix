@@ -2,7 +2,7 @@
     author:xinglie.lkf@taobao.com
  */
 var Magix = require('magix');
-var Rangepicker = require('../../../coms/calendar/rangepicker');
+var Rangepicker = require('@coms/calendar/rangepicker');
 module.exports = Magix.View.extend({
     tmpl: '@calendar.html',
     render: function() {

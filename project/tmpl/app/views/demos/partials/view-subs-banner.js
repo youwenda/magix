@@ -7,6 +7,8 @@ module.exports = Magix.View.extend({
     tmpl: '@view-subs-banner.html',
     render: function() {
         var me = this;
-        me.data.digest();
+        setTimeout(function(){
+            me.data.digest();
+        },10000);
     }
 });
