@@ -186,21 +186,19 @@ var Router = G_Mix({
      * @param {String|Object} [params] 参数对象
      * @param {Boolean} [replace] 是否替换当前历史记录
      * @example
-     * Magix.use('magix/router',function(S,R){
-     *      R.to('/list?page=2&rows=20');//改变path和相关的参数，地址栏上的其它参数会进行丢弃，不会保留
-     *      R.to('page=2&rows=20');//只修改参数，地址栏上的其它参数会保留
-     *      R.to({//通过对象修改参数，地址栏上的其它参数会保留
-     *          page:2,
-     *          rows:20
-     *      });
-     *      R.to('/list',{//改变path和相关参数，丢弃地址栏上原有的其它参数
-     *          page:2,
-     *          rows:20
-     *      });
-     *
-     *      //凡是带path的修改地址栏，都会把原来地址栏中的参数丢弃
-     *
+     * var R=Magix.Router;
+     * R.to('/list?page=2&rows=20');//改变path和相关的参数，地址栏上的其它参数会进行丢弃，不会保留
+     * R.to('page=2&rows=20');//只修改参数，地址栏上的其它参数会保留
+     * R.to({//通过对象修改参数，地址栏上的其它参数会保留
+     *     page:2,
+     *     rows:20
      * });
+     * R.to('/list',{//改变path和相关参数，丢弃地址栏上原有的其它参数
+     *     page:2,
+     *     rows:20
+     * });
+     *
+     * //凡是带path的修改地址栏，都会把原来地址栏中的参数丢弃
      */
     to: function(pn, params, replace) {
         if (!params && G_IsObject(pn)) {

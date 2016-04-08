@@ -16,7 +16,6 @@ var G_DOCBODY; //initilize at vframe_root
 /*
     关于spliter
     出于安全考虑，使用不可见字符\u0000，然而，window手机上ie11有这样的一个问题：'\u0000'+"abc",结果却是一个空字符串，好奇特。
-    那就用一个可见字符好了
  */
 var G_SPLITER = '\u001f';
 var Magix_StrObject = 'object';

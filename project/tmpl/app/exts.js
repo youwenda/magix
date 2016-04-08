@@ -3,6 +3,7 @@
  */
 var Magix = require('magix');
 var Service = require('./services/service');
+Magix.applyStyle('global@exts-global.css');
 Magix.View.merge({
     ctor: function() {
         this.$locker = {};

@@ -7,8 +7,6 @@
         <script src="src/libs/sea.js"></script>
         <script src="src/libs/jquery-1.12.1.js"></script>
         <script src="src/libs/tmpl.js"></script>
-        <link rel="stylesheet" type="text/css" href="src/assets/reset.css"  />
-        <link rel="stylesheet" type="text/css" href="src/assets/project.css"  />
     </head>
     <body >
         <script type="text/javascript">
@@ -29,7 +27,7 @@
             Magix.boot({
                 defaultPath:'/home/index',
                 defaultView:'app/views/default',
-                exts:['app/exts','coms/exports','app/refresh'],
+                exts:['coms/exports','app/refresh','app/exts'],
                 error:function(e){
                     throw e;
                 }

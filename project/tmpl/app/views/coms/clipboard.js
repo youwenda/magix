@@ -3,8 +3,8 @@
  */
 var Magix = require('magix');
 Magix.applyStyle('@../demos/editable.css');
-var Clipboard = require('../../../coms/clipboard/index');
-var Dialog = require('../../../coms/dialog/index');
+var Clipboard = require('@coms/clipboard/index');
+var Dialog = require('@coms/dialog/index');
 module.exports = Magix.View.extend({
     tmpl: '@clipboard.html',
     render: function() {

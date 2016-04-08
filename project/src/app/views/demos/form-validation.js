@@ -65,17 +65,13 @@ tmplData:[{"guid":1,"keys":["list"],"tmpl":"<li><input class=\"input\" type=\"te
         list.push({
             test: ''
         });
-        me.data.set({
-            list: list
-        }).digest();
+        me.data.digest();
     },
     'remove<click>': function(e) {
         var me = this;
         var list = me.data.get('list');
         list.splice(e.params.index, 1);
-        me.data.set({
-            list: list
-        }).digest();
+        me.data.digest();
     },
     'addPlatform<click>': function() {
         var me = this;
@@ -84,17 +80,13 @@ tmplData:[{"guid":1,"keys":["list"],"tmpl":"<li><input class=\"input\" type=\"te
             platformId: '',
             operatorId: ''
         });
-        me.data.set({
-            platforms: list
-        }).digest();
+        me.data.digest();
     },
     'removePlatform<click>': function(e) {
         var me = this;
         var list = me.data.get('platforms');
         list.splice(e.params.index, 1);
-        me.data.set({
-            platforms: list
-        }).digest();
+        me.data.digest();
     },
     'saveSnapshot<click>': function() {
         if (this.isValid()) {

@@ -3,6 +3,7 @@
  */
 var Magix = require('magix');
 var $ = require('$');
+Magix.applyStyle('global@exports-reset.css');
 Magix.applyStyle('global@exports-table.css');
 Magix.applyStyle('global@exports-form.css');
 var Vframe = Magix.Vframe;
