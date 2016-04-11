@@ -85,6 +85,18 @@ module.exports = View.extend({
         list.splice(e.params.index, 1);
         me.data.digest();
     },
+    'clearOnePlatform<click>': function() {
+        //var vf = Magix.Vframe.get('p_0');
+        var owner = this.owner;
+        owner.unmountVframe('p_0');
+        //vf.unmountView();
+    },
+    'clearPlatform<click>': function() {
+        var data = this.data;
+        var pfs = data.get('platforms');
+        pfs.length = 0;
+        data.digest();
+    },
     'saveSnapshot<click>': function() {
         if (this.isValid()) {
             this.data.snapshot();

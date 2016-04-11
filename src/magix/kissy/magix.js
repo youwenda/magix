@@ -18,12 +18,10 @@ KISSY.add('magix', function(S, SE) {
     var G_HTML = G_DOM.html;
 
     /*#if(modules.style){#*/
-    var GId = 'mxstyle';
-    var StyleAddMap = {};
     var View_ApplyStyle = function(key, css, node, sheet) {
-        if (css && !StyleAddMap[key]) {
-            StyleAddMap[key] = 1;
-            node = S.one('#' + GId);
+        if (css && !View_ApplyStyle[key]) {
+            View_ApplyStyle[key] = 1;
+            node = S.one('#' + MxStyleGlobalId);
             if (node) {
                 sheet = node.prop('styleSheet');
                 if (sheet) {
@@ -32,7 +30,7 @@ KISSY.add('magix', function(S, SE) {
                     node.append(css);
                 }
             } else {
-                S.one('head').append('<style id="' + GId + '">' + css + '</style>');
+                S.one('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
             }
         }
     };

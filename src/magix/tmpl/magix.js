@@ -30,12 +30,14 @@ var Magix_IsParam = /(?!^)=|&/;
 var G_Id = function(prefix) {
     return (prefix || 'mx_') + G_COUNTER++;
 };
-var Magix_Console = G_WINDOW.console;
+/*#if(modules.style){#*/
+var MxStyleGlobalId = G_Id();
+/*#}#*/
 var Magix_Cfg = {
     rootId: G_Id(),
-    error: Magix_Console && function(e) {
-        Magix_Console.error(e);
-    } || G_NOOP
+    error: function(e) {
+        throw e;
+    }
 };
 var Magix_HasProp = Magix_Cfg.hasOwnProperty;
 

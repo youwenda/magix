@@ -52,6 +52,10 @@ var Menus = [{
         url: '/coms/clipboard',
         text: '复制到剪切板',
         icon: '&#xe600;'
+    }, {
+        url: '/coms/inputmask',
+        text: 'Inputmask',
+        icon: '&#xe600;'
     }]
 }, {
     url: '/demos/index',

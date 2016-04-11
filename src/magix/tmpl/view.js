@@ -304,13 +304,10 @@ G_Mix(G_Mix(ViewProto, Event), {
      * 通知当前view即将开始进行html的更新
      * @param {String} [id] 哪块区域需要更新，默认整个view
      */
-    beginUpdate: function(id, me, o) {
+    beginUpdate: function(id, me) {
         me = this;
         if (me.$s > 0 && me.$p) {
-            o = me.owner;
-            if (!o.unmountZone(id, 0, 1)) {
-                Vframe_NotifyAlter(o);
-            }
+            me.owner.unmountZone(id, 1);
             me.fire('prerender', {
                 id: id
             });

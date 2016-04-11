@@ -44,12 +44,10 @@ define('magix', ['$'], function(require) {
         return html;
     };
     /*#if(modules.style){#*/
-    var GId = 'mxstyle';
-    var StyleAddMap = {};
     var View_ApplyStyle = function(key, css, node, sheet) {
-        if (css && !StyleAddMap[key]) {
-            StyleAddMap[key] = 1;
-            node = $('#' + GId);
+        if (css && !View_ApplyStyle[key]) {
+            View_ApplyStyle[key] = 1;
+            node = $('#' + MxStyleGlobalId);
             if (node.size()) {
                 sheet = node.prop('styleSheet');
                 if (sheet) {
@@ -58,7 +56,7 @@ define('magix', ['$'], function(require) {
                     node.append(css);
                 }
             } else {
-                $('head').append('<style id="' + GId + '">' + css + '</style>');
+                $('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
             }
         }
     };

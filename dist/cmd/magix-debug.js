@@ -43,7 +43,24 @@ define('magix', ['$'], function(require) {
         }
         return html;
     };
-
+    
+    var View_ApplyStyle = function(key, css, node, sheet) {
+        if (css && !View_ApplyStyle[key]) {
+            View_ApplyStyle[key] = 1;
+            node = $('#' + MxStyleGlobalId);
+            if (node.size()) {
+                sheet = node.prop('styleSheet');
+                if (sheet) {
+                    sheet.cssText += css;
+                } else {
+                    node.append(css);
+                }
+            } else {
+                $('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
+            }
+        }
+    };
+    
     /*
     源码级模块定制，更利于取舍功能
     固定的模块有magix,event,body,vframe,view
@@ -62,7 +79,6 @@ var G_DOCBODY; //initilize at vframe_root
 /*
     关于spliter
     出于安全考虑，使用不可见字符\u0000，然而，window手机上ie11有这样的一个问题：'\u0000'+"abc",结果却是一个空字符串，好奇特。
-    那就用一个可见字符好了
  */
 var G_SPLITER = '\u001f';
 var Magix_StrObject = 'object';
@@ -77,6 +93,9 @@ var Magix_IsParam = /(?!^)=|&/;
 var G_Id = function(prefix) {
     return (prefix || 'mx_') + G_COUNTER++;
 };
+
+var MxStyleGlobalId = G_Id();
+
 var Magix_Console = G_WINDOW.console;
 var Magix_Cfg = {
     rootId: G_Id(),
@@ -886,21 +905,19 @@ var Router = G_Mix({
      * @param {String|Object} [params] 参数对象
      * @param {Boolean} [replace] 是否替换当前历史记录
      * @example
-     * Magix.use('magix/router',function(S,R){
-     *      R.to('/list?page=2&rows=20');//改变path和相关的参数，地址栏上的其它参数会进行丢弃，不会保留
-     *      R.to('page=2&rows=20');//只修改参数，地址栏上的其它参数会保留
-     *      R.to({//通过对象修改参数，地址栏上的其它参数会保留
-     *          page:2,
-     *          rows:20
-     *      });
-     *      R.to('/list',{//改变path和相关参数，丢弃地址栏上原有的其它参数
-     *          page:2,
-     *          rows:20
-     *      });
-     *
-     *      //凡是带path的修改地址栏，都会把原来地址栏中的参数丢弃
-     *
+     * var R=Magix.Router;
+     * R.to('/list?page=2&rows=20');//改变path和相关的参数，地址栏上的其它参数会进行丢弃，不会保留
+     * R.to('page=2&rows=20');//只修改参数，地址栏上的其它参数会保留
+     * R.to({//通过对象修改参数，地址栏上的其它参数会保留
+     *     page:2,
+     *     rows:20
      * });
+     * R.to('/list',{//改变path和相关参数，丢弃地址栏上原有的其它参数
+     *     page:2,
+     *     rows:20
+     * });
+     *
+     * //凡是带path的修改地址栏，都会把原来地址栏中的参数丢弃
      */
     to: function(pn, params, replace) {
         if (!params && G_IsObject(pn)) {
@@ -988,7 +1005,7 @@ Magix.Router = Router;
 var Vframe_GlobalAlter;
 
 var Vframe_NotifyCreated = function(vframe, mId, p) {
-    if (vframe.$cc == vframe.$rc) { //childrenCount === readyCount
+    if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
             vframe.$cr = 1; //childrenCreated
             vframe.$ca = 0; //childrenAlter
@@ -1218,7 +1235,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的view路径
      * @param {Object|Null} viewInitParams 调用view的init方法时传递的参数
      */
-    mountView: function(viewPath, viewInitParams) {
+    mountView: function(viewPath, viewInitParams /*,keepPreHTML*/ ) {
         var me = this;
         var node = G_GetById(me.id),
             po, sign, view;
@@ -1227,7 +1244,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             me.$t = G_HTML(node); //.replace(ScriptsReg, ''); template
         }
         //var useTurnaround=me.$vr&&me.useAnimUpdate();
-        me.unmountView();
+        me.unmountView( /*keepPreHTML*/ );
         me.$d = 0; //destroyed 详见unmountView
         if (node && viewPath) {
             me.path = viewPath;
@@ -1250,6 +1267,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     //     }
                     // });
                     View_DelegateEvents(view);
+                    
                     //Vframe_RunInvokes(me);
                     view.render();
                 }
@@ -1259,7 +1277,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
     /**
      * 销毁对应的view
      */
-    unmountView: function() {
+    unmountView: function( /*keepPreHTML*/ ) {
         var me = this;
         var view = me.$v,
             node, reset;
@@ -1280,7 +1298,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             me.$v = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
             View_Oust(view);
             node = G_GetById(me.id);
-            if (node && me.$a) { //如果view本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且view有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即view安装前什么样，销毁后把节点恢复到安装前的情况
+            if (node && me.$a /*&&!keepPreHTML*/ ) { //如果view本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且view有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即view安装前什么样，销毁后把节点恢复到安装前的情况
                 G_HTML(node, me.$t);
             }
 
@@ -1308,11 +1326,10 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * view.owner.mountVframe('magix_vf_defer','app/views/list',{page:2})
      * //注意：动态向某个节点渲染view时，该节点无须是vframe标签
      */
-    mountVframe: function(id, viewPath, viewInitParams /*, cancelTriggerEvent*/ ) {
+    mountVframe: function(id, viewPath, viewInitParams /*, keepPreHTML*/ ) {
         var me = this,
             vf;
-        //me._p = cancelTriggerEvent;
-        if (me.$cr) Vframe_NotifyAlter(me); //如果在就绪的vframe上渲染新的vframe，则通知有变化
+        Vframe_NotifyAlter(me); //如果在就绪的vframe上渲染新的vframe，则通知有变化
         //var vom = me.owner;
         vf = Vframe_Vframes[id];
         if (!vf) {
@@ -1325,8 +1342,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             me.$c[id] = id; //map
             vf = new Vframe(id, me.id);
         }
-        //vf._p = cancelTriggerEvent;
-        vf.mountView(viewPath, viewInitParams);
+        vf.mountView(viewPath, viewInitParams /*,keepPreHTML*/ );
         return vf;
     },
     /**
@@ -1334,7 +1350,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * @param {HTMLElement|String} zoneId 节点对象或id
      * @param {Object} viewInitParams 传递给view init方法的参数
      */
-    mountZone: function(zoneId, viewInitParams) {
+    mountZone: function(zoneId, viewInitParams /*,keepPreHTML*/ ) {
         var me = this;
         //var subs = {};
         var i, vf, id;
@@ -1355,6 +1371,8 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             上述情况一般出现在展现型页面，dom结构已经存在，只是附加上js行为
             不过就展现来讲，一般是不会出现嵌套的情况，出现的话，把里面有层级的vframe都挂到body上也未尝不可，比如brix2.0
          */
+
+        me.$h = 1; //hold fire creted
         me.unmountZone(zoneId, 1);
         for (i = vframes.length - 1; i >= 0; i--) {
             vf = vframes[i];
@@ -1367,13 +1385,14 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             // }
             //}
         }
+        me.$h = 0;
         Vframe_NotifyCreated(me);
     },
     /**
      * 销毁vframe
      * @param  {String} [id]      节点id
      */
-    unmountVframe: function(id, inner) { //inner 标识是否是由内部调用，外部不应该传递该参数
+    unmountVframe: function(id /*,keepPreHTML*/ , inner) { //inner 标识是否是由内部调用，外部不应该传递该参数
         var me = this,
             vf, fcc, pId;
         id = id ? me.$c[id] : me.id;
@@ -1382,7 +1401,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         if (vf) {
             fcc = vf.$cr; //childrenCreated
             pId = vf.pId;
-            vf.unmountView();
+            vf.unmountView( /*keepPreHTML*/ );
             Vframe_RemoveVframe(id, fcc);
             vf.id = vf.pId = G_EMPTY; //清除引用,防止被移除的view内部通过setTimeout之类的异步操作有关的界面，影响真正渲染的view
             vf = Vframe_Vframes[pId];
@@ -1392,9 +1411,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 vf.$cl = G_EMPTY;
                 
                 vf.$cc--; //cildrenCount
-                if (!inner) {
-                    Vframe_NotifyCreated(vf); //移除后通知完成事件
-                }
+                if (!inner) Vframe_NotifyCreated(vf); //移除后通知完成事件
             }
         }
     },
@@ -1402,20 +1419,16 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * 销毁某个区域下面的所有子vframes
      * @param {HTMLElement|String} [zoneId]节点对象或id
      */
-    unmountZone: function(zoneId, inner) {
+    unmountZone: function(zoneId /*,keepPreHTML*/ , inner) {
         var me = this;
-        var hasVframe;
         var p;
         var cm = me.$c;
         for (p in cm) {
-            if (!zoneId || G_NodeIn(p, zoneId)) {
-                me.unmountVframe(p, hasVframe = 1);
+            if (!zoneId || (p != zoneId && G_NodeIn(p, zoneId))) {
+                me.unmountVframe(p /*,keepPreHTML,*/ , 1);
             }
         }
-        if (!inner && !me.$d) {
-            Vframe_NotifyCreated(me);
-        }
-        return hasVframe;
+        if (!inner) Vframe_NotifyCreated(me);
     }  ,
     /**
      * 获取父vframe
@@ -1542,7 +1555,7 @@ var Body_DOMEventProcessor = function(e) {
     var arr = [];
     var vframe, view, vId, begin, tempId, match, name, fn;
 
-    while (current != G_DOCBODY) { //找事件附近有mx-[a-z]+事件的DOM节点
+    while (current != G_DOCBODY && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点,考虑在向上遍历的过程中，节点被删除，所以需要判断nodeType,主要是IE
         if ((info = current.getAttribute(type))) {
             arr = [];
             //ts = info.split(G_SPLITER);
@@ -1625,26 +1638,7 @@ var Body_DOMEventBind = function(type, remove) {
     Body_RootEvents[type] = counter;
 };
     
-    
-    var GId = 'mxstyle';
-    var StyleAddMap = {};
-    var View_ApplyStyle = function(key, css, node, sheet) {
-        if (css && !StyleAddMap[key]) {
-            StyleAddMap[key] = 1;
-            node = $('#' + GId);
-            if (node.size()) {
-                sheet = node.prop('styleSheet');
-                if (sheet) {
-                    sheet.cssText += css;
-                } else {
-                    node.append(css);
-                }
-            } else {
-                $('head').append('<style id="' + GId + '">' + css + '</style>');
-            }
-        }
-    };
-    
+
     var View_EvtMethodReg = /^([^<>]+)<([^<>]+)>$/;
 
 //var View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
@@ -1921,6 +1915,7 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @function
      */
     render: G_NOOP,
+    
     // *
     //  * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^test<prevent>({key:'field})"，以方便识别交由哪个view处理
     //  * @function
@@ -1948,13 +1943,10 @@ G_Mix(G_Mix(ViewProto, Event), {
      * 通知当前view即将开始进行html的更新
      * @param {String} [id] 哪块区域需要更新，默认整个view
      */
-    beginUpdate: function(id, me, o) {
+    beginUpdate: function(id, me) {
         me = this;
         if (me.$s > 0 && me.$p) {
-            o = me.owner;
-            if (!o.unmountZone(id, 0, 1)) {
-                Vframe_NotifyAlter(o);
-            }
+            me.owner.unmountZone(id, 1);
             me.fire('prerender', {
                 id: id
             });
@@ -2129,6 +2121,52 @@ G_Mix(G_Mix(ViewProto, Event), {
     
     
     /**
+     * 向子(孙)view公开数据
+     * @param  {String} key key
+     * @param  {Object} data 数据
+     * @beta
+     * @module share
+     */
+    share: function(key, data) {
+        var me = this;
+        if (!me.$sd) {
+            me.$sd = {};
+        }
+        me.$sd[key] = data;
+    },
+    /**
+     * 获取祖先view上公开的数据
+     * @param  {String} key key
+     * @return {Object}
+     * @beta
+     * @module share
+     * @example
+     * //父view
+     * render:function(){
+     *     this.share('x',{a:20});
+     * }
+     * //子view
+     * render:function(){
+     *     var d=this.getShared('x');
+     * }
+     */
+    getShared: function(key) {
+        var me = this;
+        var sd = me.$sd;
+        var exist;
+        if (sd) {
+            exist = G_Has(sd, key);
+            if (exist) {
+                return sd[key];
+            }
+        }
+        var vf = me.owner.parent();
+        if (vf) {
+            return vf.invoke('getShared', key);
+        }
+    },
+    
+    /**
      * 设置view的html内容
      * @param {String} id 更新节点的id
      * @param {Strig} html html字符串
@@ -2201,7 +2239,7 @@ Magix.View = View;
 
     除此之外，我们还要考虑
         1. 跨请求对象对同一个缓存的接口进行请求，而某一个销毁了。
-            Service.register([{
+            Service.add([{
                 name:'Test',
                 url:'/test',
                 cache:20000
@@ -2222,7 +2260,7 @@ Magix.View = View;
             如上代码，我们在实现时：
             r2在请求Test时，此时Test是可缓存的，并且Test已经处于r1请求中了，我们不应该再次发起新的请求，只需要把回调排队到r1的Test请求中即可。参见代码：Service_Send中的for,Service.cached。
 
-            当r1进行销毁时，并不能贸然销毁r1上的所有请求，如Test请求不能销毁，只能从回调中标识r1的回调不能再被调用。r1的Test还要继续，参考上面讨论的请求应该取消吗。就算能取消，也需要查看Test的请求中，除了r1外是否还有别的请求要用，我们示例中是r2，所以仍然继续请求。参考Service[G_PROTOTYPE].destroy
+            当r1进行销毁时，并不能贸然销毁r1上的所有请求，如Test请求不能销毁，只能从回调中标识r1的回调不能再被调用。r1的Test还要继续，参考上面讨论的请求应该取消吗。就算能取消，也需要查看Test的请求中，除了r1外是否还有别的请求要用，我们示例中是r2，所以仍然继续请求。参考Service#.destroy
 
 
  */
@@ -2325,7 +2363,7 @@ var Service_Task = function(done, host, service, total, flag, bagCache) {
     var errorArgs = G_NULL;
     var currentDoneCount = 0;
 
-    return function(idx, err, data) {
+    return function(idx, err) {
         var bag = this;
         var newBag;
         currentDoneCount++; //当前完成加1
@@ -2346,7 +2384,7 @@ var Service_Task = function(done, host, service, total, flag, bagCache) {
             if (cacheKey) { //需要缓存
                 bagCache.set(cacheKey, bag); //缓存
             }
-            bag.set(data);
+            //bag.set(data);
             mm.t = G_Now(); //记录当前完成的时间
             var after = mm.a;
             if (after) { //有after

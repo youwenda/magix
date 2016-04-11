@@ -2,7 +2,7 @@ var Vframe_RootVframe;
 var Vframe_GlobalAlter;
 
 var Vframe_NotifyCreated = function(vframe, mId, p) {
-    if (vframe.$cc == vframe.$rc) { //childrenCount === readyCount
+    if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
             vframe.$cr = 1; //childrenCreated
             vframe.$ca = 0; //childrenAlter
@@ -328,7 +328,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
     mountVframe: function(id, viewPath, viewInitParams /*, keepPreHTML*/ ) {
         var me = this,
             vf;
-        if (me.$cr) Vframe_NotifyAlter(me); //如果在就绪的vframe上渲染新的vframe，则通知有变化
+        Vframe_NotifyAlter(me); //如果在就绪的vframe上渲染新的vframe，则通知有变化
         //var vom = me.owner;
         vf = Vframe_Vframes[id];
         if (!vf) {
@@ -370,25 +370,28 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             上述情况一般出现在展现型页面，dom结构已经存在，只是附加上js行为
             不过就展现来讲，一般是不会出现嵌套的情况，出现的话，把里面有层级的vframe都挂到body上也未尝不可，比如brix2.0
          */
+
+        me.$h = 1; //hold fire creted
         me.unmountZone(zoneId, 1);
         for (i = vframes.length - 1; i >= 0; i--) {
             vf = vframes[i];
             id = vf.id || (vf.id = G_Id());
             //if (!G_Has(subs, id)) {
-            me.mountVframe(id, vf.getAttribute('mx-view'), viewInitParams /*,keepPreHTML*/ );
+            me.mountVframe(id, vf.getAttribute('mx-view'), viewInitParams);
             // vfs = Vframe_GetVframes(vf);
             // for (j = vfs.length - 1; j >= 0; j--) {
             //     subs[Vframe_IdIt(vfs[j])] = 1;
             // }
             //}
         }
+        me.$h = 0;
         Vframe_NotifyCreated(me);
     },
     /**
      * 销毁vframe
      * @param  {String} [id]      节点id
      */
-    unmountVframe: function(id, /*keepPreHTML,*/ inner) { //inner 标识是否是由内部调用，外部不应该传递该参数
+    unmountVframe: function(id /*,keepPreHTML*/ , inner) { //inner 标识是否是由内部调用，外部不应该传递该参数
         var me = this,
             vf, fcc, pId;
         id = id ? me.$c[id] : me.id;
@@ -407,9 +410,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 vf.$cl = G_EMPTY;
                 /*#}#*/
                 vf.$cc--; //cildrenCount
-                if (!inner) {
-                    Vframe_NotifyCreated(vf); //移除后通知完成事件
-                }
+                if (!inner) Vframe_NotifyCreated(vf); //移除后通知完成事件
             }
         }
     },
@@ -417,20 +418,16 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * 销毁某个区域下面的所有子vframes
      * @param {HTMLElement|String} [zoneId]节点对象或id
      */
-    unmountZone: function(zoneId, /*keepPreHTML,*/ inner) {
+    unmountZone: function(zoneId /*,keepPreHTML*/ , inner) {
         var me = this;
-        var hasVframe;
         var p;
         var cm = me.$c;
         for (p in cm) {
             if (!zoneId || (p != zoneId && G_NodeIn(p, zoneId))) {
-                me.unmountVframe(p, /*keepPreHTML,*/ hasVframe = 1);
+                me.unmountVframe(p /*,keepPreHTML,*/ , 1);
             }
         }
-        if (!inner && !me.$d) {
-            Vframe_NotifyCreated(me);
-        }
-        return hasVframe;
+        if (!inner) Vframe_NotifyCreated(me);
     } /*#if(modules.linkage){#*/ ,
     /**
      * 获取父vframe
