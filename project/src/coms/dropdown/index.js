@@ -99,6 +99,10 @@ tmplData:[{"guid":1,"keys":["titleText","width"],"tmpl":"<span class=\"ellipsis 
                 items.css({
                     marginTop: -(itemsHeight + header.outerHeight())
                 });
+            }else{
+                items.css({
+                    marginTop:0
+                });
             }
             $('#' + me.id).trigger('focusin');
         }

@@ -2,7 +2,7 @@
     <h1 class="title">
         <%=options.title%>
     </h1>
-    <div class="body"<%if(options.view){%> mx-vframe="true"<%}%> id="body_<%=id%>">
+    <div class="body"<%if(options.view){%> mx-view<%}%> id="body_<%=id%>">
         <%=options.content%>
     </div>
     <%if(!options.view){%>

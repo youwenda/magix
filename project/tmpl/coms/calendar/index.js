@@ -308,7 +308,7 @@ module.exports = Magix.View.extend({
         });
         me.updateDays(true);
     },
-    toDaysPanel: function() {
+    toDaysPannel: function() {
         var me = this;
         $('#months_' + me.id).addClass(CSSNames.none);
         $('#days_' + me.id).removeClass(CSSNames.none);

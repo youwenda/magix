@@ -12,20 +12,16 @@ module.exports = Magix.View.extend({
     },
     render: function() {
         var me = this;
-        me.data.digest();
-        me.mountMain();
+        var loc = Router.parse();
+        me.data.set({
+            mainView: 'app/views' + loc.path
+        }).digest();
         me.resize();
     },
     resize: function() {
         $('#inmain').css({
             width: $(window).width() - 200
         });
-    },
-    mountMain: function() {
-        console.log('mountMain');
-        var vf = Magix.Vframe.get('magix_vf_main');
-        var loc = Router.parse();
-        vf.mountView('app/views' + loc.path);
     },
     '$win<resize>': function() {
         this.resize();

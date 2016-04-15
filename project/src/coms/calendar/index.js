@@ -311,7 +311,7 @@ tmplData:[{"guid":1,"keys":["year","month"],"tmpl":"<%=year%>-<%=month<10?'0'+mo
         });
         me.updateDays(true);
     },
-    toDaysPanel: function() {
+    toDaysPannel: function() {
         var me = this;
         $('#months_' + me.id).addClass(CSSNames.none);
         $('#days_' + me.id).removeClass(CSSNames.none);

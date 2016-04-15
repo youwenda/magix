@@ -29,6 +29,12 @@ return Picker.extend({
         };
         vf.invoke('update', [ops]);
         me.show();
+    },
+    hide: function() {
+        var me = this;
+        var vf = Vframe.get('cal_' + me.id);
+        vf.invoke('toDaysPannel');
+        Base.hide.call(me);
     }
 }, {
     show: function(view, ops) {

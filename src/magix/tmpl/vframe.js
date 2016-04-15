@@ -355,7 +355,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         var i, vf, id;
         zoneId = zoneId || me.id;
 
-        var vframes = Vframe_GetVframes('#' + zoneId + ' [mx-vframe]');
+        var vframes = Vframe_GetVframes('#' + zoneId + ' [mx-view]');
         /*
             body(#mx-root)
                 div(mx-vframe=true,mx-view='xx')

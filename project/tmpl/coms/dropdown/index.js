@@ -96,6 +96,10 @@ module.exports = Magix.View.extend({
                 items.css({
                     marginTop: -(itemsHeight + header.outerHeight())
                 });
+            }else{
+                items.css({
+                    marginTop:0
+                });
             }
             $('#' + me.id).trigger('focusin');
         }

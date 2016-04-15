@@ -3,7 +3,7 @@
     <div id="d2_<%=viewId%>" class="dropdown"></div>
     <button mx-click="changeService()" class="btn btn-size25">切换数据源</button>
     <div id="d3_<%=viewId%>" class="dropdown bottom"></div>
-    <div class="dropdown" mx-vframe="true" mx-view="coms/dropdown/index?source=script&selected=<%=d2Id%>" mx-keys="d2Id">
+    <div class="dropdown" mx-view="coms/dropdown/index?source=script&selected=<%=d2Id%>" mx-keys="d2Id">
         <script type="text/magix">
             <%=JSON.stringify(list)%>
         </script>
@@ -11,7 +11,7 @@
     <br />
     <div class="dropdown" id="p_<%=viewId%>">
     </div>
-    <div class="dropdown" mx-vframe="true" mx-view="coms/dropdown/index?source=script&selected=<%=citySelected%>" mx-keys="cities,citySelected">
+    <div class="dropdown" mx-view="coms/dropdown/index?source=script&selected=<%=citySelected%>" mx-keys="cities,citySelected">
         <script type="text/magix">
             <%=JSON.stringify(cities)%>
         </script>

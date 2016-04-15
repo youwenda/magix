@@ -6,10 +6,11 @@ var sep = path.sep;
 var sepRegTmpl = sep.replace(/\\/g, '\\\\');
 var configs = {
     excludeTmplFolders: [],
+    snippets: {},
     generateJSFile: function() {
         return '';
     },
-    atAttrIf: function(name, tmpl) {
+    atAttrProcessor: function(name, tmpl) {
         return tmpl;
     }
 };
@@ -170,7 +171,7 @@ var storeTmplCommands = function(tmpl, store) {
 };
 var tagReg = /<([\w]+)([^>]*?)mx-keys\s*=\s*"([^"]+)"([^>]*?)>/g;
 var holder = '-\u001f';
-var pureTagReg = /<\w+[^>]*>/g;
+var pureTagReg = /<(\w+)[^>]*>/g;
 var addGuid = function(tmpl, key, refGuidToKeys) {
     var g = 0;
     return tmpl.replace(tagReg, function(match, tag, preAttrs, keys, attrs, tKey) {
@@ -215,7 +216,7 @@ var commandAnchorRecover = function(tmpl, refTmplCommands) {
     });
 };
 var addAttrs = function(tag, tmpl, info, keysReg, refTmplCommands) {
-    return tmpl.replace(attrsNameValueReg, function(match, name, quote, content) {
+    tmpl.replace(attrsNameValueReg, function(match, name, quote, content) {
         var hasKey = false,
             aInfo;
         if (tmplCommandAnchorRegTest.test(content)) {
@@ -240,27 +241,40 @@ var addAttrs = function(tag, tmpl, info, keysReg, refTmplCommands) {
                 if (key && fixedAttrPropsTags[tag] == 1) {
                     aInfo.p = true;
                 }
-                if (name.charAt(0) == '@') {
-                    aInfo.v = configs.atAttrIf(name.slice(1), aInfo.v);
+                if (name.charAt(0) == '@') { //添加到tmplData中，对原有的模板不修改
+                    aInfo.v = configs.atAttrProcessor(name.slice(1), aInfo.v, {
+                        tag: tag,
+                        prop: aInfo.p,
+                        partial: true
+                    });
                 }
                 info.attrs.push(aInfo);
             }
         }
-        if (name == 'mx-vframe') {
+        if (name == 'mx-view') {
             info.vf = true;
         }
-        return match;
     });
 };
 var expandAtAttr = function(tmpl, refTmplCommands) {
-    return tmpl.replace(pureTagReg, function(match) {
+    return tmpl.replace(pureTagReg, function(match, tag) {
         return match.replace(attrsNameValueReg, function(match, name, quote, content) {
             if (name.charAt(0) == '@') {
                 content = commandAnchorRecover(content, refTmplCommands);
-                match = configs.atAttrIf(name.slice(1), content);
+                match = configs.atAttrProcessor(name.slice(1), content, {
+                    tag: tag,
+                    prop: attrProps[name] && fixedAttrPropsTags[tag]
+                });
             }
             return match;
         });
+    });
+};
+var snippetReg = /<snippet-(\w+)[^>]+\/?>(?:<\/snippet-\1>)?/g;
+var expandSnippet = function(tmpl) {
+    return tmpl.replace(snippetReg, function(match, name) {
+        var html = configs.snippets[name];
+        return html || '';
     });
 };
 var buildTmpl = function(tmpl, refGuidToKeys, refTmplCommands, cssNamesMap, g, list, parentOwnKeys) {
@@ -296,7 +310,7 @@ var buildTmpl = function(tmpl, refGuidToKeys, refTmplCommands, cssNamesMap, g, l
         list.push(tmplInfo);
         var remain;
         if (tag == 'textarea') {
-            remain = addAttrs(tag, match, tmplInfo, keysReg, refTmplCommands);
+            addAttrs(tag, remain = match, tmplInfo, keysReg, refTmplCommands);
             tmplInfo.attrs.push({
                 n: 'value',
                 v: commandAnchorRecover(tmplInfo.tmpl, refTmplCommands),
@@ -305,17 +319,24 @@ var buildTmpl = function(tmpl, refGuidToKeys, refTmplCommands, cssNamesMap, g, l
             delete tmplInfo.guid;
             delete tmplInfo.tmpl;
         } else {
-            remain = match.replace(content, '@' + g + holder);
-            remain = addAttrs(tag, remain, tmplInfo, keysReg, refTmplCommands);
-            subs.push({
-                tmpl: content,
-                ownKeys: ownKeys,
-                tmplInfo: tmplInfo
-            });
+            if (tmplCommandAnchorRegTest.test(content)) {
+                remain = match.replace(content, '@' + g + holder);
+                subs.push({
+                    tmpl: content,
+                    ownKeys: ownKeys,
+                    tmplInfo: tmplInfo
+                });
+            } else {
+                remain = match;
+                content = '';
+                delete tmplInfo.tmpl;
+                delete tmplInfo.guid;
+            }
+            addAttrs(tag, remain, tmplInfo, keysReg, refTmplCommands);
         }
         return remain;
     });
-    tmpl = tmpl.replace(selfCloseTag, function(match, tag, guid) {
+    tmpl.replace(selfCloseTag, function(match, tag, guid) {
         var tmplInfo = {
             keys: [],
             selector: tag + '[' + guid + ']',
@@ -330,9 +351,10 @@ var buildTmpl = function(tmpl, refGuidToKeys, refTmplCommands, cssNamesMap, g, l
             keysReg.push(new RegExp('\\b' + key + '\\b'));
         }
         list.push(tmplInfo);
-        return addAttrs(tag, match, tmplInfo, keysReg, refTmplCommands);
+        addAttrs(tag, match, tmplInfo, keysReg, refTmplCommands);
     });
     tmpl = expandAtAttr(tmpl, refTmplCommands);
+    tmpl = expandSnippet(tmpl);
     while (subs.length) {
         var sub = subs.shift();
         var i = buildTmpl(sub.tmpl, refGuidToKeys, refTmplCommands, cssNamesMap, g, list, sub.ownKeys);

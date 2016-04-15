@@ -48,6 +48,9 @@ tmplData:[{"guid":1,"keys":["selected"],"tmpl":"<ul>\n        <%for(var i=0;i<se
         me.on('destroy', function() {
             BigImg.destroy();
         });
+        me.data.onchanged = function(e) {
+            console.log(e,me.data.get());
+        };
     },
     render: function() {
         var me = this;

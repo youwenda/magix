@@ -22,9 +22,9 @@
             for(var i=0;i<platforms.length;i++){
         %>
             <li>
-                <div mx-vframe="true" mx-view="@./partials/dropdown?type=platform&selected=<%=platforms[i].platformId%>" mx-change="setValue({path:'platforms.<%=i%>.platformId'})" class="fl ml10" id="p_<%=i%>" mx-focusin="removeError()"></div>
+                <div mx-view="@./partials/dropdown?type=platform&selected=<%=platforms[i].platformId%>" mx-change="setValue({path:'platforms.<%=i%>.platformId'})" class="fl ml10" id="p_<%=i%>" mx-focusin="removeError()"></div>
 
-                <div mx-vframe="true" mx-view="@./partials/dropdown?type=operator&selected=<%=platforms[i].operatorId%>" mx-change="setValue({path:'platforms.<%=i%>.operatorId'})" class="fl ml10" id="o_<%=i%>" mx-focusin="removeError()"></div>
+                <div mx-view="@./partials/dropdown?type=operator&selected=<%=platforms[i].operatorId%>" mx-change="setValue({path:'platforms.<%=i%>.operatorId'})" class="fl ml10" id="o_<%=i%>" mx-focusin="removeError()"></div>
 
                 <input class="input w80 ml10" type="text" mx-change="setValue({path:'platforms.<%=i%>.version'})" value="<%=platforms[i].version%>" placeholder="版本号" id="v_<%=i%>" mx-focusin="removeError()" />
 

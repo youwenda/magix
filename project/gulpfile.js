@@ -40,10 +40,22 @@ buildTool.config({
     onlyAllows: onlyAllows,
     moduleIdRemoved: moduleIdRemovedPath,
     prefix: 'mp-',
+    snippets: {
+        loading: '<div class="loading"><span></span></div>'
+    },
     tmplCommand: /<%[\s\S]+?%>|<%=[\s\S]+?%>|$/g,
-    atAttrIf: function(name, tmpl) {
-        var cond = tmpl.replace(/<%=([\s\S]+?)%>/g, '$1');
-        return '<%if(' + cond + '){%>' + name + '<%}%>';
+    atAttrProcessor: function(name, tmpl, info) {
+        if (name == 'pmap') {
+            return '<%if(!window[\'' + tmpl + '\']){%>pm-hide="true"<%}%>';
+        }
+        if (info.prop) {
+            var cond = tmpl.replace(/<%=([\s\S]+?)%>/g, '$1');
+            return '<%if(' + cond + '){%>' + name + '<%}%>';
+        }
+        if (info.partial) {
+            return tmpl;
+        }
+        return name + '="' + tmpl + '"';
     },
     generateJSFile: function(o) {
         var tmpl = o.requires.length ? wrapTMPL : wrapNoDepsTMPL;

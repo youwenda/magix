@@ -16,26 +16,6 @@ var BuildHTML = function(tmpl, data, id) {
     }
     return fn(data).replace(HolderReg, id);
 };
-var Diff = function(val, json, key) {
-    if (!Magix.has(json, key)) {
-        try {
-            json[key] = JSON.stringify(val);
-        } catch (e) {
-
-        }
-        return true;
-    }
-    try {
-        var str1 = JSON.stringify(val);
-        var str2 = json[key];
-        if (str1 != str2) {
-            json[key] = str1;
-            return true;
-        }
-    } catch (e) { //无法调用stringfy
-        return true;
-    }
-};
 var Data = function() {
     var me = this;
     me.$data = {};
@@ -64,14 +44,28 @@ Magix.mix(fn, {
         var data = me.$data;
         var json = me.$json;
         var keys = {};
-        var changed;
-        for (var p in data) {
-            if (Diff(data[p], json, p)) {
-                keys[p] = 1;
-                changed = 1;
+        var changed, val, key, valJSON, lchange;
+        for (key in data) {
+            val = data[key];
+            lchange = 0;
+            try {
+                valJSON = JSON.stringify(val);
+            } catch (e) {
+                lchange = e;
+            }
+            if (!Magix.has(json, key)) {
+                json[key] = valJSON;
+                lchange = 1;
+            }
+            if (!lchange) {
+                lchange = valJSON != json[key];
+                json[key] = valJSON;
+            }
+            if (lchange) {
+                keys[key] = changed = 1;
             }
         }
-        me.onapply(keys, changed);
+        me.onapply(keys, changed, data);
         if (changed) {
             me.fire('changed', {
                 keys: keys
@@ -106,24 +100,21 @@ Magix.View.merge({
     ctor: function() {
         var me = this;
         me.data = new Data();
-        me.data.onapply = function(keys, changed) {
+        me.data.onapply = function(keys, changed, data) {
             if (changed || !me.$rd) {
-                me.updateHTML(keys);
+                me.updateHTML(keys, data);
             }
         };
     },
     toHTML: function(tmpl, data) {
         return BuildHTML(tmpl, data, this.id);
     },
-    updateHTML: function(updateFlags) {
-        //console.time('update');
-        console.log(updateFlags);
+    updateHTML: function(updateFlags, renderData) {
         var me = this;
-        //console.log(me);
         if (me.$rd && updateFlags) {
             var list = me.tmplData;
             var updatedNodes = {};
-            var one, renderData = me.data.get();
+            var one;
             var updateNode = function(index, node) {
                 var id = node.id;
                 if (!id) node.id = id = Magix.guid('n');
@@ -154,40 +145,34 @@ Magix.View.merge({
                     }
                 }
             };
-            if (!list) {
-                Magix.config().error('this.tmplData is empty', me);
-            }
-            //console.log(list);
-            for (var i = list.length - 1, ignore, q; i >= 0; i--) { //keys
+            for (var i = list.length - 1, update, q; i >= 0; i--) { //keys
                 one = list[i];
-                ignore = 0;
+                update = 1;
                 if (one.pKeys) {
                     q = one.pKeys.length;
                     while (--q >= 0) {
                         if (Magix.has(updateFlags, one.pKeys[q])) {
-                            ignore = 1;
+                            update = 0;
                             break;
                         }
                     }
                 }
-                if (!ignore) {
-                    var update = 0;
-                    for (var y = one.keys.length - 1; y >= 0; y--) {
-                        if (Magix.has(updateFlags, one.keys[y])) {
+                if (update) {
+                    q = one.keys.length;
+                    update = 0;
+                    while (--q >= 0) {
+                        if (Magix.has(updateFlags, one.keys[q])) {
                             update = 1;
                             break;
                         }
                     }
                     if (update) {
-                        //console.time('batchUpdate:' + one.selector);
-                        var nodes = $('#' + me.id + ' ' + one.selector.replace(HolderReg, me.id));
-                        nodes.each(updateNode);
-                        //console.timeEnd('batchUpdate:' + one.selector);
+                        update = '#' + me.id + ' ' + one.selector.replace(HolderReg, me.id);
+                        $(update).each(updateNode);
                     }
                 }
             }
         } else {
-            //console.log(me.tmplData, me);
             var map = {},
                 tmplment = function(m, guid) {
                     return map[guid].tmpl;
@@ -211,10 +196,9 @@ Magix.View.merge({
                 }
             }
             var tmpl = me.tmpl.replace(ContentReg, tmplment);
-            me.$rd = true;
-            me.setHTML(me.id, BuildHTML(tmpl, me.data.get(), me.id));
+            me.$rd = 1;
+            me.setHTML(me.id, BuildHTML(tmpl, renderData, me.id));
         }
-        //console.timeEnd('update');
     }
 });
 });

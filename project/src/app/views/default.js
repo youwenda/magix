@@ -7,27 +7,24 @@ var Magix = require('magix');
 var $ = require('$');
 var Router = Magix.Router;
 return Magix.View.extend({
-    tmpl: "<div mx-vframe=\"true\" mx-view=\"app/views/partials/header\"></div><div class=\"inmain\" id=\"inmain\"><div mx-vframe=\"true\" id=\"magix_vf_main\"><div class=\"loading\"><span></span></div></div></div>",
+    tmpl: "<div mx-view=\"app/views/partials/header\"></div><div class=\"inmain\" id=\"inmain\" <%if(!window['100']){%>pm-hide=\"true\"<%}%>><div mx-guid=\"xd971-\u001f\" mx-view=\"<%=mainView%>\"><div class=\"loading\"><span></span></div></div></div>",
+tmplData:[{"keys":["mainView"],"selector":"div[mx-guid=\"xd971-\u001f\"]","attrs":[{"n":"mx-view","v":"<%=mainView%>"}],"vf":true}],
     ctor: function() {
         var me = this;
         me.observe(null, true);
     },
     render: function() {
         var me = this;
-        me.data.digest();
-        me.mountMain();
+        var loc = Router.parse();
+        me.data.set({
+            mainView: 'app/views' + loc.path
+        }).digest();
         me.resize();
     },
     resize: function() {
         $('#inmain').css({
             width: $(window).width() - 200
         });
-    },
-    mountMain: function() {
-        console.log('mountMain');
-        var vf = Magix.Vframe.get('magix_vf_main');
-        var loc = Router.parse();
-        vf.mountView('app/views' + loc.path);
     },
     '$win<resize>': function() {
         this.resize();

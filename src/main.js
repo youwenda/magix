@@ -627,6 +627,7 @@
                 var ctx = D.getElementById('magix_helper_view_canvas').getContext('2d');
                 ctx.clearRect(0, 0, width, height);
                 var band = (params.radius / 20).toFixed(1);
+                if (params.radius < 2) params.radius = 2;
                 var max = params.radius * 2 - 2 * (band + 1) - 1;
                 if (!g.$tWidth) g.$tWidth = {};
                 var getWidth = function(text) {
@@ -935,6 +936,7 @@
         },
         updateDOMStyle: function(style, id) {
             var node = KISSY.require('node').one('#' + id);
+            if (!node) return;
             var n = node;
             var size = {
                 height: n.outerHeight ? n.outerHeight() : n.height(),
@@ -1056,7 +1058,8 @@
             var vfs = this.getVOM().all();
             for (var p in vfs) {
                 var root = KISSY.one('#' + p);
-                root.addClass('magix-vf-icon');
+                if (root)
+                    root.addClass('magix-vf-icon');
             }
         }
     };

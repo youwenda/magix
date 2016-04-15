@@ -110,7 +110,7 @@ var Menus = [{
 }];
 var MenusMap = Magix.toMap(Menus, 'url');
 return Magix.View.extend({
-    tmpl: "<div class=\"mp-2af-header\"><div class=\"clearfix\"><div class=\"mp-2af-bp-logo\"><h3>Magix Project</h3></div><div class=\"mp-2af-top-nav\"><ul><li><a href=\"#!/home/index\" hidefocus=\"true\">首页</a></li><li><a href=\"#!/coms/index\" hidefocus=\"true\">组件</a></li><li><a href=\"#!/demos/index\" hidefocus=\"true\">经验</a></li></ul></div><div class=\"mp-2af-top-handle\"><a href=\"javascript:;\">行列(xinglie.lkf)</a>,\n        <a href=\"javascript:;\">退出</a></div></div><div class=\"mp-2af-sidebar\" mx-vframe=\"true\" mx-view=\"app/views/partials/header-sidebar\" id=\"sidebar_<%=viewId%>\"></div></div>",
+    tmpl: "<div class=\"mp-2af-header\"><div class=\"clearfix\"><div class=\"mp-2af-bp-logo\"><h3>Magix Project</h3></div><div class=\"mp-2af-top-nav\"><ul><li><a href=\"#!/home/index\" hidefocus=\"true\">首页</a></li><li><a href=\"#!/coms/index\" hidefocus=\"true\">组件</a></li><li><a href=\"#!/demos/index\" hidefocus=\"true\">经验</a></li></ul></div><div class=\"mp-2af-top-handle\"><a href=\"javascript:;\">行列(xinglie.lkf)</a>,\n        <a href=\"javascript:;\">退出</a></div></div><div class=\"mp-2af-sidebar\" mx-view=\"app/views/partials/header-sidebar\" id=\"sidebar_<%=viewId%>\"></div></div>",
     ctor: function() {
         var me = this;
         me.observe(null, true);

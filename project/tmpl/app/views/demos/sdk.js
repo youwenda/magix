@@ -45,6 +45,9 @@ module.exports = Magix.View.extend({
         me.on('destroy', function() {
             BigImg.destroy();
         });
+        me.data.onchanged = function(e) {
+            console.log(e,me.data.get());
+        };
     },
     render: function() {
         var me = this;
