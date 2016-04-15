@@ -627,6 +627,7 @@
                 var ctx = D.getElementById('magix_helper_view_canvas').getContext('2d');
                 ctx.clearRect(0, 0, width, height);
                 var band = (params.radius / 20).toFixed(1);
+                if (params.radius < 2) params.radius = 2;
                 var max = params.radius * 2 - 2 * (band + 1) - 1;
                 if (!g.$tWidth) g.$tWidth = {};
                 var getWidth = function(text) {
@@ -935,6 +936,7 @@
         },
         updateDOMStyle: function(style, id) {
             var node = KISSY.require('node').one('#' + id);
+            if (!node) return;
             var n = node;
             var size = {
                 height: n.outerHeight ? n.outerHeight() : n.height(),
@@ -962,19 +964,6 @@
                             n = nodes.css('bottom');
                             style.bottom = n;
                             var zIndex = parseInt(nodes.css('z-index')) || 1;
-                            style.zIndex = zIndex + 1;
-                        } else {
-                            var offset = nodes.offset();
-                            style.left = offset.left + 'px';
-                            style.top = offset.top + 'px';
-                            style.position = 'absolute';
-                            size.width = Math.max(size.width, nodes.children().width());
-                            var zIndex = -1;
-                            do {
-                                var z = parseInt(nodes.css('z-index')) || 1;
-                                if (z && z > zIndex) zIndex = z;
-                                nodes = nodes.parent();
-                            } while (nodes);
                             style.zIndex = zIndex + 1;
                         }
                         break;
@@ -1045,7 +1034,7 @@
                     type = '函数或构造器';
                 }
             } else {
-                type = KISSY.type(r);
+                type = KISSY.type(type);
             }
             return type;
         },
@@ -1069,7 +1058,8 @@
             var vfs = this.getVOM().all();
             for (var p in vfs) {
                 var root = KISSY.one('#' + p);
-                root.addClass('magix-vf-icon');
+                if (root)
+                    root.addClass('magix-vf-icon');
             }
         }
     };
@@ -1147,19 +1137,6 @@
                             style.bottom = n;
                             var zIndex = parseInt(nodes.css('z-index')) || 1;
                             style.zIndex = zIndex + 1;
-                        } else {
-                            var offset = nodes.offset();
-                            style.left = offset.left + 'px';
-                            style.top = offset.top + 'px';
-                            style.position = 'absolute';
-                            size.width = Math.max(size.width, nodes.children().width());
-                            var zIndex = -1;
-                            do {
-                                var z = parseInt(nodes.css('z-index')) || 1;
-                                if (z && z > zIndex) zIndex = z;
-                                nodes = nodes.parent();
-                            } while (nodes.size() && $.contains(document.body, nodes[0]));
-                            style.zIndex = zIndex + 1;
                         }
                         break;
                     }
@@ -1197,17 +1174,17 @@
             return $(id).off(type, fn);
         },
         getResType: function(r) {
+            var type = '';
             var e = r.res || r.e;
-            var $ = this.getDL();
-            var type = $.type(r);
             if (e) {
                 if (e.fetchAll || (e.all && e.one && e.next && e.then)) {
                     type = 'Model Manager';
                 } else if (e.bricks) {
                     type = 'Pagelet';
-                } else if ($.isFunction(r)) {
-                    type = '函数或构造器';
                 }
+            } else {
+                var $ = this.getDL();
+                type = $.type(type);
             }
             return type;
         },
@@ -1380,17 +1357,8 @@
 
                 cleanedMap = {},
                 total = 0;
-            var temp = {},
-                id = 0;
             for (var i = 0; i < managers.length; i++) {
-                var t = managers[i];
-                var o = t.exports.$mMetas || t.exports.$mm || t.exports.$m;
-                if (!o._$id) o._$id = 't' + id++;
-                if (temp[o._$id]) temp[o._$id].continued = true;
-                temp[o._$id] = t;
-            }
-            for (var j = 0; j < managers.length; j++) {
-                var m = managers[j];
+                var m = managers[i];
                 var r = [];
                 var cleans = {
                     left: [],
@@ -1402,52 +1370,50 @@
                     maxRight = 0,
                     p, info;
                 var metas = m.exports.$mMetas || m.exports.$mm || m.exports.$m;
-                delete metas._$id;
-                if (!m.continued) {
-                    for (p in metas) {
-                        info = metas[p];
-                        if (info.cleans) {
-                            var a = (info.cleans + '').split(',');
-                            for (var x = 0; x < a.length; x++) {
-                                cleanedMap[a[x]] = p;
-                            }
+
+                for (p in metas) {
+                    info = metas[p];
+                    if (info.cleans) {
+                        var a = (info.cleans + '').split(',');
+                        for (var j = 0; j < a.length; j++) {
+                            cleanedMap[a[j]] = p;
                         }
                     }
-                    for (p in metas) {
-                        info = metas[p];
-                        var c = ManagerColors.normal;
-                        var ti = {
-                            id: p,
-                            color: c,
-                            url: info.url || info.uri,
-                            cache: ((info.cache || info.cacheTime | 0) / 1000) + 'sec',
-                            desc: info.desc || '',
-                            cleans: info.cleans || '',
-                            cleaned: cleanedMap[p] || '',
-                            hasAfter: !!info.after
-                        };
-                        if (info.cleans) {
-                            c = ManagerColors.cleans;
+                }
+                for (p in metas) {
+                    info = metas[p];
+                    var c = ManagerColors.normal;
+                    var ti = {
+                        id: p,
+                        color: c,
+                        url: info.url || info.uri,
+                        cache: ((info.cache || info.cacheTime | 0) / 1000) + 'sec',
+                        desc: info.desc || '',
+                        cleans: info.cleans || '',
+                        cleaned: cleanedMap[p] || '',
+                        hasAfter: !!info.after
+                    };
+                    if (info.cleans) {
+                        c = ManagerColors.cleans;
+                        ti.color = c;
+                        cleans.left.push(ti);
+                        maxLeft++;
+                    } else if (cleanedMap[p]) {
+                        c = ManagerColors.cleaned;
+                        ti.color = c;
+                        cleans.right.push(ti);
+                        maxRight++;
+                    } else {
+                        if (info.cache || info.cacheTime) {
+                            c = ManagerColors.cache;
                             ti.color = c;
-                            cleans.left.push(ti);
-                            maxLeft++;
-                        } else if (cleanedMap[p]) {
-                            c = ManagerColors.cleaned;
-                            ti.color = c;
-                            cleans.right.push(ti);
-                            maxRight++;
+                            caches.push(ti);
                         } else {
-                            if (info.cache || info.cacheTime) {
-                                c = ManagerColors.cache;
-                                ti.color = c;
-                                caches.push(ti);
-                            } else {
-                                r.push(ti);
-                                counter++;
-                            }
+                            r.push(ti);
+                            counter++;
                         }
-                        total++;
                     }
+                    total++;
                 }
                 rows += Math.ceil(counter / Consts.managerCols);
                 rows += Math.max(maxLeft, maxRight);
@@ -1521,7 +1487,7 @@
                 var drawTree = function(e) {
                     if (e) {
                         if (e.type == 'remove') {
-                            Tracer.log('销毁vframe:' + e.vframe.id + '(' + (e.vframe.path || e.vframe.view && e.vframe.view.path) + ')', Status.isolated);
+                            Tracer.log('销毁vframe:' + e.vframe.id + '(' + (e.vframe.path || e.vframe.view.path) + ')', Status.isolated);
                         } else if (e.type == 'created') {
                             attachVframes();
                         }
