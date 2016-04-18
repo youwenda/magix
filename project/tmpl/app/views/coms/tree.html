@@ -4,7 +4,7 @@
 
 <textarea mx-keys="a,b,checked" @disabled="<%=checked%>"><%=a%>-<%=b%></textarea>
 <%for(var i=0;i<10;i++){%>
-<div mx-view="coms/dropdown/index?source=script&selected=<%=a%>">
+<div mx-view="coms/dropdown/index?source=script&selected=<%=a%>" mx-keys="a,b">
     <script type="text/magix">
         [{"id":"<%=a%>","text":"a-<%=a%>"},{"id":"<%=b%>","text":"b-<%=b%>"}]
     </script>

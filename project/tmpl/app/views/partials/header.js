@@ -104,6 +104,10 @@ var Menus = [{
         url: '/demos/more-links',
         text: '更多操作',
         icon: '&#xe600;'
+    }, {
+        url: '/demos/animation',
+        text: '动画',
+        icon: '&#xe600;'
     }]
 }];
 var MenusMap = Magix.toMap(Menus, 'url');

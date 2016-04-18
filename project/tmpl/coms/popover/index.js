@@ -4,7 +4,7 @@
 var Magix = require('magix');
 var $ = require('$');
 Magix.applyStyle('@index.css');
-var CSSNames = 'names@index.css';
+var CSSNames = 'names@index.css[left,top,right,bottom]';
 var ArrowBorder = 8;
 var Space = 2;
 var Position = {

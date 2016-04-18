@@ -123,7 +123,7 @@ var Date_Format = function(date, format) {
     return format;
 };
 var DefaultFormatter = 'YYYY-MM-dd';
-var CSSNames = 'names@index.css';
+var CSSNames = 'names@index.css[none,selected]';
 Magix.applyStyle('@index.css');
 module.exports = Magix.View.extend({
     tmpl: '@index.html',

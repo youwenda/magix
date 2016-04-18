@@ -6,6 +6,7 @@ var $ = require('$');
 Magix.applyStyle('global@exports-reset.css');
 Magix.applyStyle('global@exports-table.css');
 Magix.applyStyle('global@exports-form.css');
+Magix.applyStyle('global@exports-animate.css');
 var Vframe = Magix.Vframe;
 var Win = $(window);
 var Doc = $(document);

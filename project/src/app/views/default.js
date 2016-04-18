@@ -8,7 +8,7 @@ var $ = require('$');
 var Router = Magix.Router;
 return Magix.View.extend({
     tmpl: "<div mx-view=\"app/views/partials/header\"></div><div class=\"inmain\" id=\"inmain\" <%if(!window['100']){%>pm-hide=\"true\"<%}%>><div mx-guid=\"xd971-\u001f\" mx-view=\"<%=mainView%>\"><div class=\"loading\"><span></span></div></div></div>",
-tmplData:[{"keys":["mainView"],"selector":"div[mx-guid=\"xd971-\u001f\"]","attrs":[{"n":"mx-view","v":"<%=mainView%>"}],"vf":true}],
+tmplData:[{"keys":["mainView"],"selector":"div[mx-guid=\"xd971-\u001f\"]","view":"<%=mainView%>"}],
     ctor: function() {
         var me = this;
         me.observe(null, true);

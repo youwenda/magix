@@ -81,7 +81,7 @@ var processAts = function(fileContent, cssNamesKey) {
 };
 
 var processCSS = function(nano, content, from, to, moduleId) {
-    var cssTmplReg = /(['"])(global|ref|names)?@([^'"]+)\.css(?:\1);?/g;
+    var cssTmplReg = /(['"])(global|ref|names)?@([^'"]+)\.css(?:\[([^\[\]]+)\])?(?:\1)(;)?/g;
     var cssNamesMap = {};
     var gCSSNamesMap = {};
     var cssNamesKey;
@@ -102,7 +102,7 @@ var processCSS = function(nano, content, from, to, moduleId) {
         };
         if (cssTmplReg.test(content)) {
             var count = 0;
-            content = content.replace(cssTmplReg, function(m, q, prefix, name) {
+            content = content.replace(cssTmplReg, function(m, q, prefix, name, keys, tail) {
                 count++;
                 if (name.indexOf('/') >= 0 && name.charAt(0) != '.') {
                     name = resolveAtPath('"@' + name + '"', moduleId).slice(1, -1);
@@ -124,13 +124,18 @@ var processCSS = function(nano, content, from, to, moduleId) {
                         var substr = holder + md5(m) + holder;
                         var replacement;
                         if (prefix == 'names') {
-                            replacement = JSON.stringify(cssNamesMap);
+                            if (keys) {
+                                replacement = JSON.stringify(cssNamesMap, keys.split(','));
+                            } else {
+                                replacement = JSON.stringify(cssNamesMap);
+                            }
                         } else if (prefix == 'ref') {
                             replacement = '';
                         } else {
                             replacement = '\'' + cssNamesKey + '\',' + JSON.stringify(fileContent);
                         }
-                        content = content.replace(substr, replacement);
+                        tail = tail ? tail : '';
+                        content = content.replace(substr, replacement + tail);
                         count--;
                         if (!count) {
                             data.map = gCSSNamesMap;
@@ -216,6 +221,8 @@ var commandAnchorRecover = function(tmpl, refTmplCommands) {
     });
 };
 var addAttrs = function(tag, tmpl, info, keysReg, refTmplCommands) {
+    var attrsKeys = {},
+        tmplKeys = {};
     tmpl.replace(attrsNameValueReg, function(match, name, quote, content) {
         var hasKey = false,
             aInfo;
@@ -230,6 +237,14 @@ var addAttrs = function(tag, tmpl, info, keysReg, refTmplCommands) {
                         }
                     }
                 }
+                if (hasKey) {
+                    var words = value.match(/\w+/g);
+                    if (words) {
+                        for (var i = words.length - 1; i >= 0; i--) {
+                            attrsKeys[words[i]] = 1;
+                        }
+                    }
+                }
                 return value;
             });
             if (hasKey) {
@@ -238,8 +253,8 @@ var addAttrs = function(tag, tmpl, info, keysReg, refTmplCommands) {
                     n: key || name,
                     v: content
                 };
-                if (key && fixedAttrPropsTags[tag] == 1) {
-                    aInfo.p = true;
+                if (key && fixedAttrPropsTags[tag] == 1 || name == 'class') {
+                    aInfo.p = 1;
                 }
                 if (name.charAt(0) == '@') { //添加到tmplData中，对原有的模板不修改
                     aInfo.v = configs.atAttrProcessor(name.slice(1), aInfo.v, {
@@ -248,13 +263,34 @@ var addAttrs = function(tag, tmpl, info, keysReg, refTmplCommands) {
                         partial: true
                     });
                 }
-                info.attrs.push(aInfo);
+                if (name == 'mx-view') {
+                    info.view = aInfo.v;
+                } else {
+                    info.attrs.push(aInfo);
+                }
             }
         }
-        if (name == 'mx-view') {
-            info.vf = true;
-        }
     });
+    if (info.tmpl && info.attrs.length) {
+        info.tmpl.replace(tmplCommandAnchorReg, function(match) {
+            var value = refTmplCommands[match];
+            var words = value.match(/\w+/g);
+            if (words) {
+                for (var i = words.length - 1; i >= 0; i--) {
+                    tmplKeys[words[i]] = 1;
+                }
+            }
+        });
+        var mask = '';
+        for (var i = 0; i < info.keys.length; i++) {
+            if (tmplKeys[info.keys[i]]) mask += '1';
+            else mask += '0';
+            if (attrsKeys[info.keys[i]]) mask += '1';
+            else mask += '0';
+        }
+        if (mask.indexOf('0') >= 0)
+            info.mask = mask;
+    }
 };
 var expandAtAttr = function(tmpl, refTmplCommands) {
     return tmpl.replace(pureTagReg, function(match, tag) {
@@ -314,10 +350,11 @@ var buildTmpl = function(tmpl, refGuidToKeys, refTmplCommands, cssNamesMap, g, l
             tmplInfo.attrs.push({
                 n: 'value',
                 v: commandAnchorRecover(tmplInfo.tmpl, refTmplCommands),
-                p: true
+                p: 1
             });
             delete tmplInfo.guid;
             delete tmplInfo.tmpl;
+            delete tmplInfo.mask;
         } else {
             if (tmplCommandAnchorRegTest.test(content)) {
                 remain = match.replace(content, '@' + g + holder);
@@ -333,6 +370,9 @@ var buildTmpl = function(tmpl, refGuidToKeys, refTmplCommands, cssNamesMap, g, l
                 delete tmplInfo.guid;
             }
             addAttrs(tag, remain, tmplInfo, keysReg, refTmplCommands);
+            if (!tmplInfo.attrs.length) {
+                delete tmplInfo.attrs;
+            }
         }
         return remain;
     });
@@ -352,6 +392,9 @@ var buildTmpl = function(tmpl, refGuidToKeys, refTmplCommands, cssNamesMap, g, l
         }
         list.push(tmplInfo);
         addAttrs(tag, match, tmplInfo, keysReg, refTmplCommands);
+        if (!tmplInfo.attrs.length) {
+            delete tmplInfo.attrs;
+        }
     });
     tmpl = expandAtAttr(tmpl, refTmplCommands);
     tmpl = expandSnippet(tmpl);
@@ -375,7 +418,7 @@ var buildTmpl = function(tmpl, refGuidToKeys, refTmplCommands, cssNamesMap, g, l
 };
 
 
-var fileTmplReg = /(\btmpl\s*:\s*)?(['"])@([^'"]+)\.html(?:\2)/g;
+var fileTmplReg = /(\btmpl\s*:\s*)?(['"])@([^'"]+)\.html(?:\2)/g; //对于tmpl:特殊分析
 var htmlCommentCelanReg = /<!--[\s\S]*?-->/g;
 var htmlTagCleanReg = />\s+</g;
 var processTmpl = function(result) {

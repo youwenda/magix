@@ -1487,7 +1487,11 @@
                 var drawTree = function(e) {
                     if (e) {
                         if (e.type == 'remove') {
-                            Tracer.log('销毁vframe:' + e.vframe.id + '(' + (e.vframe.path || e.vframe.view.path) + ')', Status.isolated);
+                            var path = e.vframe.path;
+                            if (!path && e.vframe.view) {
+                                path = e.vframe.view.path;
+                            }
+                            Tracer.log('销毁vframe:' + e.vframe.id + '(' + path + ')', Status.isolated);
                         } else if (e.type == 'created') {
                             attachVframes();
                         }

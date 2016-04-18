@@ -111,63 +111,79 @@ Magix.View.merge({
     },
     updateHTML: function(updateFlags, renderData) {
         var me = this;
+        var selfId = me.id;
         if (me.$rd && updateFlags) {
             var list = me.tmplData;
-            var updatedNodes = {};
-            var one;
+            var updatedNodes = {},
+                keys;
+            var one, updateTmpl, updateAttrs;
             var updateNode = function(index, node) {
-                var id = node.id;
-                if (!id) node.id = id = Magix.guid('n');
+                var id = node.id || (node.id = Magix.guid('n'));
                 if (!updatedNodes[id]) {
                     updatedNodes[id] = 1;
-                    var vf = one.vf && Magix.Vframe.get(id);
-                    var view;
-                    for (var i = one.attrs.length - 1; i >= 0; i--) {
-                        var attr = one.attrs[i];
-                        var val = BuildHTML(attr.v, renderData);
-                        if (attr.p) {
-                            node[attr.n] = val;
-                        } else {
-                            node.setAttribute(attr.n, val);
-                        }
-                        if (vf && attr.n == 'mx-view') {
-                            view = val;
+                    var vf = one.view && Magix.Vframe.get(id);
+                    if (updateAttrs) {
+                        for (var i = one.attrs.length - 1; i >= 0; i--) {
+                            var attr = one.attrs[i];
+                            var val = BuildHTML(attr.v, renderData);
+                            if (attr.p) {
+                                node[attr.n] = val;
+                            } else {
+                                node.setAttribute(attr.n, val);
+                            }
                         }
                     }
-                    if (view) {
+                    if (vf) {
                         vf.unmountView();
                     }
-                    if (one.tmpl) {
-                        me.setHTML(id, BuildHTML(one.tmpl, renderData, me.id));
+                    if (one.tmpl && updateTmpl) {
+                        me.setHTML(id, BuildHTML(one.tmpl, renderData, selfId));
                     }
-                    if (view) {
-                        vf.mountView(view);
+                    if (vf) {
+                        vf.mountView(BuildHTML(one.view, renderData, selfId));
                     }
                 }
             };
-            for (var i = list.length - 1, update, q; i >= 0; i--) { //keys
+            for (var i = list.length - 1, update, q, mask; i >= 0; i--) { //keys
+                updateTmpl = 0;
+                updateAttrs = 0;
                 one = list[i];
                 update = 1;
-                if (one.pKeys) {
-                    q = one.pKeys.length;
+                mask = one.mask;
+                keys = one.pKeys;
+                if (keys) {
+                    q = keys.length;
                     while (--q >= 0) {
-                        if (Magix.has(updateFlags, one.pKeys[q])) {
+                        if (Magix.has(updateFlags, keys[q])) {
                             update = 0;
                             break;
                         }
                     }
                 }
                 if (update) {
-                    q = one.keys.length;
+                    keys = one.keys;
+                    q = keys.length;
                     update = 0;
                     while (--q >= 0) {
-                        if (Magix.has(updateFlags, one.keys[q])) {
+                        if (Magix.has(updateFlags, keys[q])) {
                             update = 1;
-                            break;
+                            if (!mask || (updateTmpl && updateAttrs)) {
+                                break;
+                            }
+                            if (!updateTmpl && (mask.charAt(2 * q) & 1)) {
+                                updateTmpl = 1;
+                            }
+                            if (!updateAttrs && (mask.charAt(2 * q + 1) & 1)) {
+                                updateAttrs = 1;
+                            }
                         }
                     }
                     if (update) {
-                        update = '#' + me.id + ' ' + one.selector.replace(HolderReg, me.id);
+                        if (!mask) {
+                            if (one.tmpl) updateTmpl = 1;
+                            if (one.attrs) updateAttrs = 1;
+                        }
+                        update = '#' + selfId + ' ' + one.selector.replace(HolderReg, selfId);
                         $(update).each(updateNode);
                     }
                 }
@@ -197,7 +213,7 @@ Magix.View.merge({
             }
             var tmpl = me.tmpl.replace(ContentReg, tmplment);
             me.$rd = 1;
-            me.setHTML(me.id, BuildHTML(tmpl, renderData, me.id));
+            me.setHTML(selfId, BuildHTML(tmpl, renderData, selfId));
         }
     }
 });

@@ -4,7 +4,7 @@
 var Magix = require('magix');
 var $ = require('$');
 Magix.applyStyle('@index.css');
-var CSSNames = 'names@index.css';
+var CSSNames = 'names@index.css[over,away-left,away-right]';
 var Instance;
 var Menu = Magix.View.extend({
     tmpl: '@index.html',
