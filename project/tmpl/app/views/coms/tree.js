@@ -7,33 +7,18 @@ module.exports = Magix.View.extend({
     render: function() {
         var me = this;
         me.data.set({
-            a: Magix.guid(),
-            b: Magix.guid(),
-            checked: !me.data.get('checked'),
-            pMap: {
-                a: 1,
-                c: 1
-            },
-            height: 10 + me.data.get('height') || 0,
-            permissions: ['a', 'b', 'c', 'd']
+            id: me.id
         }).digest();
-    },
-    'change<click>': function() {
-        this.render();
-    },
-    'changeMap<click>': function() {
-        var data = this.data;
-        var r = function() {
-            return Math.random() < 0.5;
-        };
-        var pMap = {
-            a: r(),
-            b: r(),
-            c: r(),
-            d: r()
-        };
-        data.set({
-            pMap: pMap
-        }).digest();
+        me.request().all(['list', 'code'], function(err, bag, code) {
+            me.tree('tree_' + me.id, {
+                list: bag.get('data', [])
+            });
+            me.tree('code_' + me.id, {
+                list: code.get('data', []),
+                id: 'keyCode',
+                pId: 'parentCode',
+                text: 'keyName'
+            });
+        });
     }
 });

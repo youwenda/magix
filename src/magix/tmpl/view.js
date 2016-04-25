@@ -308,28 +308,29 @@ G_Mix(G_Mix(ViewProto, Event), {
         me = this;
         if (me.$s > 0 && me.$p) {
             me.owner.unmountZone(id, 1);
-            me.fire('prerender', {
-                id: id
-            });
+            // me.fire('prerender', {
+            //     id: id
+            // });
         }
     },
     /**
      * 通知当前view结束html的更新
      * @param {String} [id] 哪块区域结束更新，默认整个view
      */
-    endUpdate: function(id, me, o) {
+    endUpdate: function(id, me, o /*#if(modules.linkage){#*/ , f /*#}#*/ ) {
         me = this;
         if (me.$s > 0) {
-            me.fire('rendered', {
-                id: id
-            });
+            // me.fire('rendered', {
+            //     id: id
+            // });
+            /*#if(modules.linkage){#*/
+            f = me.$p;
+            /*#}#*/
+            me.$p = 1;
             o = me.owner;
             o.mountZone(id);
             /*#if(modules.linkage){#*/
-            if (!me.$p) {
-                me.$p = 1;
-                Vframe_RunInvokes(o);
-            }
+            if (!f) Vframe_RunInvokes(o);
             /*#}#*/
         }
     },

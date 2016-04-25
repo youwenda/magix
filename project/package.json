@@ -8,6 +8,7 @@
         "gulp-watch": "",
         "gulp-uglify": "",
         "gulp-cssnano": "",
-        "cssnano": ""
+        "cssnano": "",
+        "html-minifier":""
     }
 }

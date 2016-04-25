@@ -1,4 +1,4 @@
-define("app/views/demos/partials/dropdown",['../../../../coms/dropdown/index','$'],function(require){
+define('app/views/demos/partials/dropdown',['../../../../coms/dropdown/index','$'],function(require){
 /*View ,$ */
 /*
     author:xinglie.lkf@taobao.com

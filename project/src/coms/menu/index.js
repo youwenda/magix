@@ -1,26 +1,27 @@
-define("coms/menu/index",['magix','$'],function(require){
+define('coms/menu/index',['magix','$'],function(require){
 /*Magix ,$ */
 /*
     author:xinglie.lkf@taobao.com
  */
 var Magix = require('magix');
 var $ = require('$');
-Magix.applyStyle('mp-e65',".mp-e65-items li{height:30px;line-height:30px;padding:0 8px;cursor:default;border-radius:4px}.mp-e65-items li.mp-e65-over{background-color:#197de1;background-image:-webkit-linear-gradient(top,#1b87e3 2%,#166ed5 98%);background-image:linear-gradient(180deg,#1b87e3 2%,#166ed5 98%);color:#ecf2f8;text-shadow:0 -1px 0 rgba(0,0,0,.05)}.mp-e65-container{transition:margin-left .25s;-moz-transition:margin-left .25s;-webkit-transition:margin-left .25s;-o-transition:margin-left .25s}.mp-e65-items li .mp-e65-more{float:right}.mp-e65-items{padding:4px;border-radius:4px;background-color:#fff;color:#474747;box-shadow:0 4px 10px 0 rgba(0,0,0,.1),0 3px 5px 0 rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.09098);-webkit-backface-visibility:hidden;backface-visibility:hidden;user-select:none;-webkit-user-select:none;-moz-user-select:none;cursor:default}.mp-e65-away-right{margin-left:10px}.mp-e65-away-left{margin-left:-10px}");
-var CSSNames = {"over":"mp-e65-over","away-left":"mp-e65-away-left","away-right":"mp-e65-away-right"};
+var Vframe = Magix.Vframe;
+Magix.applyStyle('mp-e65',".mp-e65-items li{height:30px;line-height:30px;padding:0 8px;cursor:default;border-radius:4px}.mp-e65-items li.mp-e65-over{background-color:#197de1;background-image:-webkit-linear-gradient(top,#1b87e3 2%,#166ed5 98%);background-image:linear-gradient(180deg,#1b87e3 2%,#166ed5 98%);color:#ecf2f8;text-shadow:0 -1px 0 rgba(0,0,0,.05)}.mp-e65-container{transition:margin-left .25s;-moz-transition:margin-left .25s;-webkit-transition:margin-left .25s;-o-transition:margin-left .25s}.mp-e65-items li .mp-e65-more{float:right}.mp-e65-items{padding:4px;border-radius:4px;background-color:#fff;color:#474747;box-shadow:0 4px 10px 0 rgba(0,0,0,.1),0 3px 5px 0 rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.09098);-webkit-backface-visibility:hidden;backface-visibility:hidden;user-select:none;-webkit-user-select:none;-moz-user-select:none;cursor:default}.mp-e65-toright{margin-left:10px}.mp-e65-toleft{margin-left:-10px}");
+var CSSNames = {"over":"mp-e65-over","toleft":"mp-e65-toleft","toright":"mp-e65-toright"};
 var Instance;
 var Menu = Magix.View.extend({
     tmpl: "<div style=\"width:<%=width%>px;<%if(isChild){%>position:absolute;left:-1000000px<%}%>\" mx-mouseover=\"over();\" class=\"mp-e65-container<%if(isChild){%> away<%}%>\" mx-contextmenu=\"prevent()\" mx-guid=\"x35f1-\u001f\">@1-\u001f</div>",
-tmplData:[{"guid":1,"keys":["width"],"tmpl":"<ul class=\"mp-e65-items\" mx-guid=\"x35f2-\u001f\">@2-\u001f</ul>","selector":"div[mx-guid=\"x35f1-\u001f\"]","attrs":[{"n":"style","v":"width:<%=width%>px;<%if(isChild){%>position:absolute;left:-1000000px<%}%>"}],"mask":"01"},{"guid":2,"keys":["list","viewId"],"tmpl":"\n        <%for(var i=0,one;i<list.length;i++){%>\n        <%one=list[i]%>\n        <li mx-mouseover=\"hover({id:'<%=one.id%>'})\" mx-mouseout=\"hover({id:'<%=one.id%>'});\"<%if(!one.children){%> mx-click=\"select({id:'<%=one.id%>'})\"<%}%> class=\"ellipsis\" title=\"<%=one.text%>\" id=\"<%=viewId%>_<%=one.id%>\"><i class=\"iconfont\">&#xe64b;</i><%=one.text%>\n            <%if(one.children){%>\n                <span class=\"mp-e65-more\"> ➤</span>\n            <%}%>\n        </li>\n        <%}%>\n    ","selector":"ul[mx-guid=\"x35f2-\u001f\"]","pKeys":["width"]}],
+tmplData:[{"guid":1,"keys":["width"],"tmpl":"<ul class=\"mp-e65-items\" mx-guid=\"x35f2-\u001f\">@2-\u001f</ul>","selector":"div[mx-guid=\"x35f1-\u001f\"]","attrs":[{"n":"style","v":"width:<%=width%>px;<%if(isChild){%>position:absolute;left:-1000000px<%}%>"}],"mask":"2"},{"guid":2,"keys":["list","viewId"],"tmpl":"<%for(var i=0,one;i<list.length;i++){%><%one=list[i]%><li mx-mouseover=\"hover({id:'<%=one.id%>'})\" mx-mouseout=\"hover({id:'<%=one.id%>'});\" <%if(!one.children){%> mx-click=\"select({id:'<%=one.id%>'})\" <%}%> class=\"ellipsis\" title=\"<%=one.text%>\" id=\"<%=viewId%>_<%=one.id%>\"><i class=\"iconfont\">&#xe64b;</i><%=one.text%><%if(one.children){%><span class=\"mp-e65-more\">➤</span><%}%></li><%}%>","selector":"ul[mx-guid=\"x35f2-\u001f\"]","pKeys":["width"]}],
     ctor: function() {
         var me = this;
-        me.data.on('changed', function(e) {
-            if (e.keys.width) {
-                var cnt = $('#' + me.id + '>div');
-                cnt.css({
-                    width: this.get('width')
-                });
-            }
-        });
+        // me.data.on('changed', function(e) {
+        //     if (e.keys.width) {
+        //         var cnt = $('#' + me.id + '>div');
+        //         cnt.css({
+        //             width: this.get('width')
+        //         });
+        //     }
+        // });
         me.on('destroy', function() {
             if (me.data.get('isChild'))
                 $('#' + me.id).remove();
@@ -32,9 +33,11 @@ tmplData:[{"guid":1,"keys":["width"],"tmpl":"<ul class=\"mp-e65-items\" mx-guid=
         if (!inside) {
             var children = me.owner.children();
             for (var i = children.length - 1; i >= 0; i--) {
-                var child = children[i];
-                inside = child.invoke('inside', node);
-                if (inside) break;
+                var child = Vframe.get(children[i]);
+                if (child) {
+                    inside = child.invoke('inside', node);
+                    if (inside) break;
+                }
             }
         }
         return inside;
@@ -43,7 +46,7 @@ tmplData:[{"guid":1,"keys":["width"],"tmpl":"<ul class=\"mp-e65-items\" mx-guid=
         var me = this;
         var info = ops;
         if (!ops.map) {
-            info = Menu.process(ops.list);
+            info = me.listToTree(ops.list);
         }
         me.$map = info.map;
         me.$list = info.list;
@@ -129,7 +132,7 @@ tmplData:[{"guid":1,"keys":["width"],"tmpl":"<ul class=\"mp-e65-items\" mx-guid=
                 node.css({
                     left: left,
                     top: top
-                }).addClass(CSSNames['away-' + dock]);
+                }).addClass(CSSNames['to' + dock]);
             } else {
                 node.css({
                     left: left,
@@ -142,13 +145,13 @@ tmplData:[{"guid":1,"keys":["width"],"tmpl":"<ul class=\"mp-e65-items\" mx-guid=
         var me = this;
         var children = me.owner.children();
         for (var i = children.length - 1; i >= 0; i--) {
-            var child = children[i];
-            child.invoke('hide');
+            var child = Vframe.get(children[i]);
+            if (child) child.invoke('hide');
         }
         if (me.$shown && me.$pNode) {
             me.$shown = false;
             var node = $('#' + me.id + ' div');
-            node.removeClass(CSSNames['away-left']).removeClass(CSSNames['away-right']);
+            node.removeClass(CSSNames.toleft).removeClass(CSSNames.toright);
             node.css({
                 left: -100000
             });
@@ -234,36 +237,6 @@ tmplData:[{"guid":1,"keys":["width"],"tmpl":"<ul class=\"mp-e65-items\" mx-guid=
     },
     'prevent<contextmenu>': function(e) {
         e.preventDefault();
-    }
-}, {
-    process: function(list) {
-        if (!list._processed) {
-            list._processed = 1;
-            var map = {},
-                listMap = {},
-                rootList = [];
-            for (var i = 0, max = list.length; i < max; i++) {
-                var one = list[i];
-                map[one.id] = one;
-                if (listMap[one.id]) {
-                    one.children = listMap[one.id];
-                }
-                if (one.pId) {
-                    if (map[one.pId]) {
-                        var c = map[one.pId].children || (map[one.pId].children = []);
-                        c.push(one);
-                    } else {
-                        if (!listMap[one.pId]) listMap[one.pId] = [one];
-                        else listMap[one.pId].push(one);
-                    }
-                } else {
-                    rootList.push(one);
-                }
-            }
-            list.list = rootList;
-            list.map = map;
-        }
-        return list;
     }
 });
 return Menu;

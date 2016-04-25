@@ -13,16 +13,6 @@ var Router_LParams;
 var Router_TrimHashReg = /(?:^https?:\/\/[^\/]+|#.*$)/gi;
 var Router_TrimQueryReg = /^[^#]*#?!?/;
 
-
-var Router_Keys = Object.keys || function(obj, keys, p) {
-    keys = [];
-    for (p in obj) {
-        if (G_Has(obj, p)) {
-            keys.push(p);
-        }
-    }
-    return keys;
-};
 var Router_IsParam = function(params, r, ps) {
     if (params) {
         ps = this[Router_PARAMS];
@@ -79,7 +69,7 @@ var Router_GetChged = function(oldLocation, newLocation) {
 
         var oldParams = oldLocation[Router_PARAMS],
             newParams = newLocation[Router_PARAMS];
-        var tArr = [Router_PATH, Router_VIEW].concat(Router_Keys(oldParams), Router_Keys(newParams)),
+        var tArr = [Router_PATH, Router_VIEW].concat(G_Keys(oldParams), G_Keys(newParams)),
             idx, key;
         for (idx = tArr.length - 1; idx >= 0; idx--) {
             key = tArr[idx];

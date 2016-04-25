@@ -1,4 +1,4 @@
-define("app/views/demos/partials/sdk-bigimg",['magix','$'],function(require){
+define('app/views/demos/partials/sdk-bigimg',['magix','$'],function(require){
 /*Magix ,$ */
 /*
     author:xinglie.lkf@taobao.com
@@ -9,7 +9,7 @@ var BigImgId = Magix.guid('bigimg');
 Magix.applyStyle('mp-9b8',".mp-9b8-bigimg{position:absolute}.mp-9b8-bigimg div{background:#ddd;padding:10px;width:260px}.mp-9b8-bigimg img{width:100%}");
 var CSSNames = {"bigimg":"mp-9b8-bigimg"};
 var BigImg = Magix.View.extend({
-    tmpl: "<div mx-mouseover=\"hover()\" mx-mouseout=\"hover()\"><img src=\"<%=img%>\" /></div>",
+    tmpl: "<div mx-mouseover=\"hover()\" mx-mouseout=\"hover()\"><img src=\"<%=img%>\"/></div>",
     ctor: function(extra) {
         var me = this;
         me.$img = extra.img;

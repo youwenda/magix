@@ -130,7 +130,7 @@ var Vframe_Update = function(vframe, view) {
             i = 0;
         //console.log(me.id,cs);
         while (i < j) {
-            Vframe_Update(cs[i++]);
+            Vframe_Update(Vframe_Vframes[cs[i++]]);
         }
     }
 };
@@ -444,21 +444,13 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         return vf;
     },
     /**
-     * 获取当前vframe的所有子vframe。返回数组中，vframe在数组中的位置并不固定
-     * @return {Array[Vframe]}
+     * 获取当前vframe的所有子vframe的id。返回数组中，vframe在数组中的位置并不固定
+     * @return {Array[String]}
      * @module linkage
      */
-    children: function(me, p, z, c) {
+    children: function(me) {
         me = this;
-        if (!(z = me.$cl)) {
-            z = me.$cl = [];
-            c = me.$c;
-            for (p in c) {
-                if (G_Has(c, p))
-                    z.push(Vframe_Vframes[p]);
-            }
-        }
-        return z;
+        return me.$cl || (me.$cl = G_Keys(me.$c));
     },
     /**
      * 调用view的方法

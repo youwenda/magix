@@ -4,6 +4,7 @@
 var Magix = require('magix');
 var $ = require('$');
 var Router = Magix.Router;
+var ShrinkCSS = '@./partials/header-sidebar.css:shrink';
 module.exports = Magix.View.extend({
     tmpl: '@default.html',
     ctor: function() {
@@ -16,12 +17,16 @@ module.exports = Magix.View.extend({
         me.data.set({
             mainView: 'app/views' + loc.path
         }).digest();
-        me.resize();
     },
     resize: function() {
-        $('#inmain').css({
-            width: $(window).width() - 200
+        var main = $('#inmain');
+        var left = $('#inmain').hasClass(ShrinkCSS) ? 200 : 0;
+        main.css({
+            width: $(window).width() - left
         });
+    },
+    'resizeMain<toggleSidebar>': function(e) {
+        this.resize();
     },
     '$win<resize>': function() {
         this.resize();

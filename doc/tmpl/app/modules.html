@@ -92,12 +92,24 @@
             <span class="desc">把filename.css文件中的类名映射到新类名的对象，因为编译工具会修改类名，所以通过该对象访问修改后的类名</span>
         </div>
         <div class="item">
+            names@filename.css[s1,s2,s3]
+            <span class="desc">把filename.css文件中的类名映射到新类名的对象，该对象仅包含指定的s1,s2和s3，比names@filename.css更节省资源，但书写略不方便</span>
+        </div>
+        <div class="item">
             global@filename.css
             <span class="desc">把filename.css文件的内容输出在当前位置，但不会对css的类名做任何变动</span>
         </div>
         <div class="item">
             ref@filename.css
             <span class="desc">引用filename.css文件的内容，但不输出在当前位置，仅使用编译后的类名<span class="red">替换掉模板中的类名</span>，如果你需要访问编译后的类名，请参考names@filename.css。</span>
+        </div>
+        <div class="item">
+            @filename.css:className
+            <span class="desc">把filename.css中经工具编译转换后的className字符串输出在当前位置</span>
+        </div>
+        <div class="item">
+            @filename.css:$prfix
+            <span class="desc">获取工具编译filename.css时自动添加的前缀，并输出在当前位置</span>
         </div>
         <div class="item">
             @moduleId

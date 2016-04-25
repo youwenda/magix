@@ -1,4 +1,4 @@
-define("coms/popover/index",['magix','$'],function(require){
+define('coms/popover/index',['magix','$'],function(require){
 /*Magix ,$ */
 /*
     author:xinglie.lkf@taobao.com
@@ -56,7 +56,7 @@ var Position = {
     }
 };
 return Magix.View.extend({
-    tmpl: "<span mx-mouseover=\"over();\" mx-mouseout=\"out()\" class=\"mp-fa3-help\">\n    <%=icon%>\n</span><div class=\"mp-fa3-content <%=cssdock%>\" style=\"width:200px;min-height:50px;display:none\" id=\"content_<%=id%>\" mx-mouseover=\"cover()\" mx-mouseout=\"cout()\">\n    <%=content%>\n</div>",
+    tmpl: "<span mx-mouseover=\"over();\" mx-mouseout=\"out()\" class=\"mp-fa3-help\"><%=icon%></span><div class=\"mp-fa3-content <%=cssdock%>\" style=\"width:200px;min-height:50px;display:none\" id=\"content_<%=id%>\" mx-mouseover=\"cover()\" mx-mouseout=\"cout()\"><%=content%></div>",
     ctor: function(extra) {
         var me = this;
         if (!extra.dock) extra.dock = 'bottom';

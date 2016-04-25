@@ -1,4 +1,4 @@
-define("app/views/default",['magix','$'],function(require){
+define('app/views/default',['magix','$'],function(require){
 /*Magix ,$ */
 /*
     author:xinglie.lkf@taobao.com
@@ -6,9 +6,10 @@ define("app/views/default",['magix','$'],function(require){
 var Magix = require('magix');
 var $ = require('$');
 var Router = Magix.Router;
+var ShrinkCSS = 'mp-286-shrink';
 return Magix.View.extend({
-    tmpl: "<div mx-view=\"app/views/partials/header\"></div><div class=\"inmain\" id=\"inmain\" <%if(!window['100']){%>pm-hide=\"true\"<%}%>><div mx-guid=\"xd971-\u001f\" mx-view=\"<%=mainView%>\"><div class=\"loading\"><span></span></div></div></div>",
-tmplData:[{"keys":["mainView"],"selector":"div[mx-guid=\"xd971-\u001f\"]","view":"<%=mainView%>"}],
+    tmpl: "<div mx-view=\"app/views/partials/header\" mx-togglesidebar=\"resizeMain()\"></div><div class=\"inmain\" id=\"inmain\"><div mx-guid=\"xd971-\u001f\" mx-view=\"<%=mainView%>\" t=\"<%=mainView%>\"><div class=\"loading\"><span></span></div></div></div>",
+tmplData:[{"keys":["mainView"],"selector":"div[mx-guid=\"xd971-\u001f\"]","attrs":[{"n":"t","v":"<%=mainView%>"}],"view":"<%=mainView%>"}],
     ctor: function() {
         var me = this;
         me.observe(null, true);
@@ -19,12 +20,16 @@ tmplData:[{"keys":["mainView"],"selector":"div[mx-guid=\"xd971-\u001f\"]","view"
         me.data.set({
             mainView: 'app/views' + loc.path
         }).digest();
-        me.resize();
     },
     resize: function() {
-        $('#inmain').css({
-            width: $(window).width() - 200
+        var main = $('#inmain');
+        var left = $('#inmain').hasClass(ShrinkCSS) ? 200 : 0;
+        main.css({
+            width: $(window).width() - left
         });
+    },
+    'resizeMain<toggleSidebar>': function(e) {
+        this.resize();
     },
     '$win<resize>': function() {
         this.resize();

@@ -1,4 +1,4 @@
-define("app/services/service",['magix','$'],function(require){
+define('app/services/service',['magix','$'],function(require){
 /*Magix ,$ */
 /*
     author:xinglie.lkf@taobao.com
@@ -34,6 +34,10 @@ Service.add([{
 }, {
     name: 'list404',
     url: Env.cdn + 'apis/list404.json'
+}, {
+    name: 'code',
+    url: Env.cdn + 'apis/code.json',
+    cache: TenMins
 }]);
 return Service;
 });

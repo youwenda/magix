@@ -1,11 +1,11 @@
-define("app/views/coms/pagination",['magix'],function(require){
+define('app/views/coms/pagination',['magix'],function(require){
 /*Magix */
 /*
     author:xinglie.lkf@taobao.com
  */
 var Magix = require('magix');
 return Magix.View.extend({
-    tmpl: "<div id=\"p1_<%=id%>\" style=\"margin:50px;\"></div>",
+    tmpl: "<div id=\"p1_<%=id%>\" style=\"margin:50px\"></div>",
     render: function() {
         var me = this;
         me.data.set({

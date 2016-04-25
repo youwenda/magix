@@ -1487,11 +1487,15 @@
                 var drawTree = function(e) {
                     if (e) {
                         if (e.type == 'remove') {
-                            var path = e.vframe.path;
-                            if (!path && e.vframe.view) {
-                                path = e.vframe.view.path;
+                            if (e.vframe) {
+                                var path = e.vframe.path;
+                                if (!path && e.vframe.view) {
+                                    path = e.vframe.view.path;
+                                }
+                                Tracer.log('销毁vframe:' + e.vframe.id + '(' + path + ')', Status.isolated);
+                            } else {
+                                Tracer.log('remove:', e);
                             }
-                            Tracer.log('销毁vframe:' + e.vframe.id + '(' + path + ')', Status.isolated);
                         } else if (e.type == 'created') {
                             attachVframes();
                         }

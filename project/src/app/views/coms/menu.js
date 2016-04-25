@@ -1,11 +1,11 @@
-define("app/views/coms/menu",['magix'],function(require){
+define('app/views/coms/menu',['magix'],function(require){
 /*Magix */
 /*
     author:xinglie.lkf@taobao.com
  */
 var Magix = require('magix');
 return Magix.View.extend({
-    tmpl: "<div id=\"m1_<%=id%>\" style=\"margin:20px;float:left\"></div><div id=\"m2_<%=id%>\" style=\"margin:20px;float:left\"></div><button mx-click=\"changeService()\" class=\"btn btn-size30\" style=\"margin:20px;\">切换数据源</button><div style=\"width:300px;height:300px;line-height:300px;background:#ccc;margin:200px 200px 0 200px;float:left\" mx-contextmenu=\"showContextMenu()\">context menu</div>",
+    tmpl: "<div id=\"m1_<%=id%>\" style=\"margin:20px;float:left\"></div><div id=\"m2_<%=id%>\" style=\"margin:20px;float:left\"></div><button mx-click=\"changeService()\" class=\"btn btn-size30\" style=\"margin:20px\">切换数据源</button><div style=\"width:300px;height:300px;line-height:300px;background:#ccc;margin:200px 200px 0 200px;float:left\" mx-contextmenu=\"showContextMenu()\">context menu</div>",
     render: function(name) {
         var me = this;
         me.request('render').all(name || 'list', function(err, bag) {

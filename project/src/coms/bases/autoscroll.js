@@ -1,4 +1,4 @@
-define("coms/bases/autoscroll",['magix','$'],function(require){
+define('coms/bases/autoscroll',['magix','$'],function(require){
 /*Magix ,$ */
 /*
     author:xinglie.lkf@taobao.com

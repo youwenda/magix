@@ -64,3 +64,9 @@
     border-radius:10px;
     margin-bottom: 10px;
 }
+.tip{
+    position: absolute;
+    right: 13px;
+    top:10px;
+    color:#999;
+}

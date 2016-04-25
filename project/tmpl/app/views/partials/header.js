@@ -5,7 +5,7 @@ var Magix = require('magix');
 var $ = require('$');
 var Router = Magix.Router;
 Magix.applyStyle('@header.css');
-var CSSNames = 'names@header.css';
+var CSSNames = 'names@header.css[on,top-nav]';
 var Menus = [{
     url: '/home/index',
     text: '首页'
@@ -61,6 +61,14 @@ var Menus = [{
     url: '/demos/index',
     text: '经验',
     subMenus: [{
+        url: '/demos/test',
+        text: '刷新测试',
+        icon: '&#xe600;'
+    }, {
+        url: '/demos/benchmark',
+        text: '性能测试',
+        icon: '&#xe600;'
+    }, {
         url: '/demos/api-cache',
         text: '接口-缓存',
         icon: '&#xe600;'
@@ -122,6 +130,7 @@ module.exports = Magix.View.extend({
         me.data.set({
             viewId: me.id
         }).digest();
+        console.log('mountMenus',this);
         me.mountMenus();
     },
     mountMenus: function() {
@@ -130,6 +139,7 @@ module.exports = Magix.View.extend({
         href += '/index';
         var me = this;
         var vf = Magix.Vframe.get('sidebar_' + this.id);
+        console.log(vf);
         if (href != me.$lastHref) {
             me.$lastHref = href;
             $('.' + CSSNames['top-nav'] + ' a').removeClass(CSSNames.on);
@@ -141,5 +151,8 @@ module.exports = Magix.View.extend({
         } else if (vf) {
             vf.invoke('updateUrl', [loc.path]);
         }
+    },
+    toggleSidebar: function() {
+        $('#' + this.id).trigger('toggleSidebar');
     }
 });

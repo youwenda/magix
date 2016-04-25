@@ -1,4 +1,4 @@
-define("app/views/demos/view-subs",['magix','../../../coms/form/index'],function(require){
+define('app/views/demos/view-subs',['magix','../../../coms/form/index'],function(require){
 /*Magix ,Form */
 /*
     author:xinglie.lkf@taobao.com
@@ -17,7 +17,7 @@ var Types = [{
     text: '浮窗'
 }];
 return Form.extend({
-    tmpl: "<div class=\"mp-514-wrapper\"><div class=\"mp-514-form-item\"><div class=\"mp-514-title\">创意标题</div><div class=\"mp-514-content\"><input class=\"input\" /></div></div><div class=\"mp-514-form-item\"><div class=\"mp-514-title\">创意类型</div><div class=\"mp-514-content\" id=\"types_<%=id%>\"></div></div><div id=\"type_vf_<%=id%>\" mx-view><div class=\"loading\"><span></span></div></div><button class=\"btn\" mx-click=\"save();\">保存</button></div>",
+    tmpl: "<div class=\"mp-514-wrapper\"><div class=\"mp-514-form-item\"><div class=\"mp-514-title\">创意标题</div><div class=\"mp-514-content\"><input class=\"input\"/></div></div><div class=\"mp-514-form-item\"><div class=\"mp-514-title\">创意类型</div><div class=\"mp-514-content\" id=\"types_<%=id%>\"></div></div><div id=\"type_vf_<%=id%>\" mx-view><div class=\"loading\"><span></span></div></div><button class=\"btn\" mx-click=\"save();\">保存</button></div>",
     render: function() {
         var me = this;
         var creative = {

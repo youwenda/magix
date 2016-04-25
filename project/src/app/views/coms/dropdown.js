@@ -1,4 +1,4 @@
-define("app/views/coms/dropdown",['magix'],function(require){
+define('app/views/coms/dropdown',['magix'],function(require){
 /*Magix */
 /*
     author:xinglie.lkf@taobao.com
@@ -6,14 +6,23 @@ define("app/views/coms/dropdown",['magix'],function(require){
 var Magix = require('magix');
 Magix.applyStyle('mp-5bd',".mp-5bd-dropdown{height:36px;float:left;margin:0 8px}.mp-5bd-bottom{position:absolute;bottom:0;left:400px}.mp-5bd-wrapper{margin:50px}");
 return Magix.View.extend({
-    tmpl: "<div class=\"mp-5bd-wrapper\"><div id=\"d1_<%=viewId%>\" class=\"mp-5bd-dropdown\"></div><div id=\"d2_<%=viewId%>\" class=\"mp-5bd-dropdown\"></div><button mx-click=\"changeService()\" class=\"btn btn-size25\">切换数据源</button><div id=\"d3_<%=viewId%>\" class=\"mp-5bd-dropdown mp-5bd-bottom\"></div><div class=\"mp-5bd-dropdown\" mx-view=\"coms/dropdown/index?source=script&selected=<%=d2Id%>\" mx-guid=\"xb411-\u001f\">@1-\u001f</div><br /><div class=\"mp-5bd-dropdown\" id=\"p_<%=viewId%>\"></div><div class=\"mp-5bd-dropdown\" mx-view=\"coms/dropdown/index?source=script&selected=<%=citySelected%>\" mx-guid=\"xb412-\u001f\">@2-\u001f</div></div>",
-tmplData:[{"guid":1,"keys":["d2Id"],"tmpl":"<script type=\"text/magix\">\n            <%=JSON.stringify(list)%>\n        </script>","selector":"div[mx-guid=\"xb411-\u001f\"]","view":"coms/dropdown/index?source=script&selected=<%=d2Id%>"},{"guid":2,"keys":["cities","citySelected"],"tmpl":"<script type=\"text/magix\">\n            <%=JSON.stringify(cities)%>\n        </script>","selector":"div[mx-guid=\"xb412-\u001f\"]","view":"coms/dropdown/index?source=script&selected=<%=citySelected%>"}],
+    tmpl: "<div class=\"mp-5bd-wrapper\"><div id=\"d1_<%=viewId%>\" class=\"mp-5bd-dropdown\"></div><div id=\"d2_<%=viewId%>\" class=\"mp-5bd-dropdown\"></div><button mx-click=\"changeService()\" class=\"btn btn-size25\">切换数据源</button><div id=\"d3_<%=viewId%>\" class=\"mp-5bd-dropdown mp-5bd-bottom\"></div><div id=\"d4_<%=viewId%>\" class=\"mp-5bd-dropdown\"></div><div class=\"mp-5bd-dropdown\" mx-view=\"coms/dropdown/index?source=script&selected=<%=d2Id%>\" mx-guid=\"xb411-\u001f\">@1-\u001f</div><br/><div class=\"mp-5bd-dropdown\" id=\"p_<%=viewId%>\"></div><div class=\"mp-5bd-dropdown\" mx-view=\"coms/dropdown/index?source=script&selected=<%=citySelected%>\" mx-guid=\"xb412-\u001f\">@2-\u001f</div></div>",
+tmplData:[{"guid":1,"keys":["d2Id"],"tmpl":"<script type=\"text/magix\"><%=JSON.stringify(list)%></script>","selector":"div[mx-guid=\"xb411-\u001f\"]","view":"coms/dropdown/index?source=script&selected=<%=d2Id%>"},{"guid":2,"keys":["cities","citySelected"],"tmpl":"<script type=\"text/magix\"><%=JSON.stringify(cities)%></script>","selector":"div[mx-guid=\"xb412-\u001f\"]","view":"coms/dropdown/index?source=script&selected=<%=citySelected%>"}],
     ctor: function() {
         var me = this;
+        var big = [];
+        for (var i = 0; i < 200000; i++) {
+            big.push({
+                id: i,
+                text: i + ':' + Math.random()
+            });
+        }
+        me.$big = big;
         me.data.set({
             viewId: me.id
         });
         me.observe('d2Id', null);
+
         //me.render();
     },
     render: function(name) {
@@ -31,14 +40,14 @@ tmplData:[{"guid":1,"keys":["d2Id"],"tmpl":"<script type=\"text/magix\">\n      
             }).digest();
             me.dropdown('d1_' + me.id, {
                 list: bag.get('data', []),
-                width:name?200:100,
+                width: name ? 200 : 100,
             });
             me.dropdown('d2_' + me.id, {
                 list: bag.get('data', []),
                 selected: loc.params.d2Id || 21,
                 height: 100,
-                width: name?200:300,
-                search:true,
+                width: name ? 200 : 300,
+                search: true,
                 picked: function(e) {
                     console.log(e);
                     Magix.Router.to({
@@ -48,6 +57,11 @@ tmplData:[{"guid":1,"keys":["d2Id"],"tmpl":"<script type=\"text/magix\">\n      
             });
             me.dropdown('d3_' + me.id, {
                 list: bag.get('data', [])
+            });
+            me.dropdown('d4_' + me.id, {
+
+                search: true,
+                list: me.$big
             });
             me.dropdown('p_' + me.id, {
                 list: [{

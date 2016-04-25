@@ -6,7 +6,6 @@ var $ = require('$');
 var Monitor = require('./monitor');
 Magix.applyStyle('@picker.css');
 var ArrowHeight = 8;
-var CSSNames = 'names@picker.css';
 module.exports = Magix.View.extend({
     ctor: function(extra) {
         var me = this;
@@ -17,7 +16,7 @@ module.exports = Magix.View.extend({
         });
         me.$ownerNodeId = extra.ownerNodeId;
         me.$dock = extra.dock || 'left';
-        $('#' + me.id).addClass(CSSNames.picker + ' ' + CSSNames[me.$dock]);
+        $('#' + me.id).addClass('@picker.css:picker' + ' ' + '@picker.css:$prefix' + me.$dock);
     },
     inside: function(node) {
         var me = this;

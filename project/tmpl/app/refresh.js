@@ -107,6 +107,34 @@ Magix.View.merge({
     toHTML: function(tmpl, data) {
         return BuildHTML(tmpl, data, this.id);
     },
+    /*asyncSetHTML: function(id, html) {
+        var me = this;
+        me.beginUpdate(id);
+        var key = '_timer_' + id;
+        if (me[key]) {
+            clearTimeout(key);
+        }
+        var nodes = $(html);
+        var node = $('#' + id);
+        node.html('');
+        var step = 200;
+        var max = nodes.length,
+            index = 0;
+        var go = function() {
+            if (index < max) {
+                var end = Math.min(index + step, max);
+                for (var i = index; i < end; i++) {
+                    node.append(nodes[i]);
+                }
+                index = end;
+                me[key] = setTimeout(go, 0);
+            } else {
+                delete me[key];
+                me.endUpdate(id);
+            }
+        };
+        go();
+    },*/
     updateHTML: function(updateFlags, renderData) {
         var me = this;
         var selfId = me.id;
@@ -118,6 +146,7 @@ Magix.View.merge({
             var updateNode = function(index, node) {
                 var id = node.id || (node.id = Magix.guid('n'));
                 if (!updatedNodes[id]) {
+                    //console.time('update:' + id);
                     updatedNodes[id] = 1;
                     var vf = one.view && Magix.Vframe.get(id);
                     if (updateAttrs) {
@@ -140,9 +169,11 @@ Magix.View.merge({
                     if (vf) {
                         vf.mountView(BuildHTML(one.view, renderData, selfId));
                     }
+                    //console.timeEnd('update:' + id);
                 }
             };
-            for (var i = list.length - 1, update, q, mask; i >= 0; i--) { //keys
+            console.log(updateFlags);
+            for (var i = list.length - 1, update, q, mask, m; i >= 0; i--) { //keys
                 updateTmpl = 0;
                 updateAttrs = 0;
                 one = list[i];
@@ -166,21 +197,16 @@ Magix.View.merge({
                         if (Magix.has(updateFlags, keys[q])) {
                             update = 1;
                             if (!mask || (updateTmpl && updateAttrs)) {
+                                updateTmpl = one.tmpl;
+                                updateAttrs = one.attrs;
                                 break;
                             }
-                            if (!updateTmpl && (mask.charAt(2 * q) & 1)) {
-                                updateTmpl = 1;
-                            }
-                            if (!updateAttrs && (mask.charAt(2 * q + 1) & 1)) {
-                                updateAttrs = 1;
-                            }
+                            m = mask.charAt(q);
+                            updateTmpl = updateTmpl || m & 1;
+                            updateAttrs = updateAttrs || m & 2;
                         }
                     }
                     if (update) {
-                        if (!mask) {
-                            if (one.tmpl) updateTmpl = 1;
-                            if (one.attrs) updateAttrs = 1;
-                        }
                         update = '#' + selfId + ' ' + one.selector.replace(HolderReg, selfId);
                         $(update).each(updateNode);
                     }
@@ -209,8 +235,8 @@ Magix.View.merge({
                     map = tmplData.$;
                 }
             }
-            var tmpl = me.tmpl.replace(ContentReg, tmplment);
             me.$rd = 1;
+            var tmpl = me.tmpl.replace(ContentReg, tmplment);
             me.setHTML(selfId, BuildHTML(tmpl, renderData, selfId));
         }
     }

@@ -1,4 +1,4 @@
-define("app/views/home/abc",['magix'],function(require){
+define('app/views/home/abc',['magix'],function(require){
 /*Magix*/
 /*
     author:xinglie.lkf@taobao.com

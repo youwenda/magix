@@ -1,4 +1,4 @@
-define("app/views/partials/header-sidebar",['magix','$'],function(require){
+define('app/views/partials/header-sidebar',['magix','$'],function(require){
 /*Magix ,$ */
 /*
     author:xinglie.lkf@taobao.com
@@ -6,10 +6,10 @@ define("app/views/partials/header-sidebar",['magix','$'],function(require){
 var Magix = require('magix');
 var $ = require('$');
 Magix.applyStyle('mp-286',".mp-286-expand{margin-left:0}.mp-286-shrink{margin-left:200px}.mp-286-menus{padding-top:45px}.mp-286-menus a{padding-left:30px;border-left:4px solid transparent;color:#fff;opacity:.55;display:block;padding:11px 0 12px 40px}.mp-286-menus a.mp-286-on{opacity:1;border-color:#8a6bbe;background-color:#333}.mp-286-fixed{position:fixed;left:0;top:0}");
-var CSSNames = {"expand":"mp-286-expand","shrink":"mp-286-shrink","menus":"mp-286-menus","on":"mp-286-on","fixed":"mp-286-fixed"};
+var CSSNames = {"fixed":"mp-286-fixed","expand":"mp-286-expand","shrink":"mp-286-shrink"};
 return Magix.View.extend({
     tmpl: "<ul class=\"mp-286-menus\" mx-guid=\"x2d21-\u001f\">@1-\u001f</ul>",
-tmplData:[{"guid":1,"keys":["menus","url"],"tmpl":"\n    <%for(var i=0,menu;i<menus.length;i++){%>\n    <%menu=menus[i]%>\n    <li><a href=\"#!<%=menu.url%>\"<%if(menu.url==url){%> class=\"mp-286-on\"<%}%>>\n        <%if(menu.icon){%>\n            <i class=\"iconfont\"><%=menu.icon%></i>\n        <%}%>\n            <%=menu.text%>\n        </a></li>\n    <%}%>\n","selector":"ul[mx-guid=\"x2d21-\u001f\"]"}],
+tmplData:[{"guid":1,"keys":["menus","url"],"tmpl":"<%for(var i=0,menu;i<menus.length;i++){%><%menu=menus[i]%><li><a href=\"#!<%=menu.url%>\" <%if(menu.url==url){%> class=\"mp-286-on\" <%}%>><%if(menu.icon){%><i class=\"iconfont\"><%=menu.icon%></i><%}%><%=menu.text%></a></li><%}%>","selector":"ul[mx-guid=\"x2d21-\u001f\"]"}],
     ctor: function() {
         var me = this;
         me.data.set({
@@ -22,21 +22,27 @@ tmplData:[{"guid":1,"keys":["menus","url"],"tmpl":"\n    <%for(var i=0,menu;i<me
         me.resize();
     },
     updateMenu: function(subMenus, url) {
+        var main = $('#inmain');
+        var me = this;
         if (subMenus) {
-            var me = this;
             me.data.set({
                 menus: subMenus
             });
             me.updateUrl(url);
-            $('#' + this.id).addClass(CSSNames.expand);
-            $('#inmain').addClass(CSSNames.shrink);
-        } else {
+            if (!main.hasClass(CSSNames.shrink)) {
+                $('#' + this.id).addClass(CSSNames.expand);
+                $('#inmain').addClass(CSSNames.shrink);
+                me.owner.parent().invoke('toggleSidebar');
+            }
+        } else if (main.hasClass(CSSNames.shrink)) {
             $('#' + this.id).removeClass(CSSNames.expand);
             $('#inmain').removeClass(CSSNames.shrink);
+            me.owner.parent().invoke('toggleSidebar');
         }
     },
     updateUrl: function(url) {
         var me = this;
+        console.log(url,me.data.get('url'));
         me.data.set({
             url: url
         }).digest();
@@ -46,7 +52,7 @@ tmplData:[{"guid":1,"keys":["menus","url"],"tmpl":"\n    <%for(var i=0,menu;i<me
         $('#' + this.id).height(height);
     },
     '$win<resize>': function() {
-        this.resize('../default');
+        this.resize();
     },
     '$win<scroll>': function() {
         var me = this;

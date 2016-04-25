@@ -6,129 +6,18 @@ var $ = require('$');
 var Picker = require('../bases/picker');
 Magix.applyStyle('@index.css');
 var GraphicsType = (window.SVGAngle || document.implementation.hasFeature('http://www.w3.org/TR/SVG11/feature#BasicStructure', '1.1') ? 'SVG' : 'VML');
-var $C = function(el, attrs, children) {
-    el = document.createElementNS('http://www.w3.org/2000/svg', el);
-    for (var key in attrs)
-        el.setAttribute(key, attrs[key]);
-    if (!$.isArray(children)) children = [children];
-    var i = 0,
-        len = (children[0] && children.length) || 0;
-    for (; i < len; i++)
-        el.appendChild(children[i]);
-    return el;
-};
 var RenderSVG = function(picker, slide) {
-    slide.append($C('svg', {
-        xmlns: 'http://www.w3.org/2000/svg',
-        version: '1.1',
-        width: '100%',
-        height: '100%'
-    }, [$C('defs', {}, $C('linearGradient', {
-        id: 'gradient-hsv',
-        x1: '0%',
-        y1: '100%',
-        x2: '0%',
-        y2: '0%'
-    }, [$C('stop', {
-        offset: '0%',
-        'stop-color': '#FF0000',
-        'stop-opacity': '1'
-    }), $C('stop', {
-        offset: '13%',
-        'stop-color': '#FF00FF',
-        'stop-opacity': '1'
-    }), $C('stop', {
-        offset: '25%',
-        'stop-color': '#8000FF',
-        'stop-opacity': '1'
-    }), $C('stop', {
-        offset: '38%',
-        'stop-color': '#0040FF',
-        'stop-opacity': '1'
-    }), $C('stop', {
-        offset: '50%',
-        'stop-color': '#00FFFF',
-        'stop-opacity': '1'
-    }), $C('stop', {
-        offset: '63%',
-        'stop-color': '#00FF40',
-        'stop-opacity': '1'
-    }), $C('stop', {
-        offset: '75%',
-        'stop-color': '#0BED00',
-        'stop-opacity': '1'
-    }), $C('stop', {
-        offset: '88%',
-        'stop-color': '#FFFF00',
-        'stop-opacity': '1'
-    }), $C('stop', {
-        offset: '100%',
-        'stop-color': '#FF0000',
-        'stop-opacity': '1'
-    })])), $C('rect', {
-        x: '0',
-        y: '0',
-        width: '100%',
-        height: '100%',
-        fill: 'url(#gradient-hsv)'
-    })]));
-
-    picker.append($C('svg', {
-        xmlns: 'http://www.w3.org/2000/svg',
-        version: '1.1',
-        width: '100%',
-        height: '100%'
-    }, [$C('defs', {}, [
-                $C('linearGradient', {
-            id: 'gradient-black',
-            x1: '0%',
-            y1: '100%',
-            x2: '0%',
-            y2: '0%'
-        }, [$C('stop', {
-            offset: '0%',
-            'stop-color': '#000000',
-            'stop-opacity': '1'
-        }), $C('stop', {
-            offset: '100%',
-            'stop-color': '#CC9A81',
-            'stop-opacity': '0'
-        })]), $C('linearGradient', {
-            id: 'gradient-white',
-            x1: '0%',
-            y1: '100%',
-            x2: '100%',
-            y2: '100%'
-        }, [$C('stop', {
-            offset: '0%',
-            'stop-color': '#FFFFFF',
-            'stop-opacity': '1'
-        }), $C('stop', {
-            offset: '100%',
-            'stop-color': '#CC9A81',
-            'stop-opacity': '0'
-        })])]), $C('rect', {
-        x: '0',
-        y: '0',
-        width: '100%',
-        height: '100%',
-        fill: 'url(#gradient-white)'
-    }), $C('rect', {
-        x: '0',
-        y: '0',
-        width: '100%',
-        height: '100%',
-        fill: 'url(#gradient-black)'
-    })]));
+    slide.append('@index-svg-slide.html');
+    picker.append('@index-svg-picker.html');
 };
 var RenderVML = function(picker, slide) {
-    if (!document.namespaces.v) {
-        document.namespaces.add('v', 'urn:schemas-microsoft-com:vml', '#default#VML');
+    if (!document.namespaces.mxv) {
+        document.namespaces.add('mxv', 'urn:schemas-microsoft-com:vml', '#default#VML');
     }
-    slide.html(['<div style="position: relative; width: 100%; height: 100%">', '<v:rect style="position: absolute; top: 0; left: 0; width: 100%; height: 100%" stroked="f" filled="t">', '<v:fill type="gradient" method="none" angle="0" color="red" color2="red" colors="8519f fuchsia;.25 #8000ff;24903f #0040ff;.5 aqua;41287f #00ff40;.75 #0bed00;57671f yellow"></v:fill>', '</v:rect>', '</div>'].join(''));
-    picker.html(['<div style="position: relative; width: 100%; height: 100%">', '<v:rect style="position: absolute; left: -1px; top: -1px; width: 101%; height: 101%" stroked="f" filled="t">', '<v:fill type="gradient" method="none" angle="270" color="#FFFFFF" opacity="100%" color2="#CC9A81" o:opacity2="0%"></v:fill>', '</v:rect>', '<v:rect style="position: absolute; left: 0px; top: 0px; width: 100%; height: 101%" stroked="f" filled="t">', '<v:fill type="gradient" method="none" angle="0" color="#000000" opacity="100%" color2="#CC9A81" o:opacity2="0%"></v:fill>', '</v:rect>', '</div>'].join(''));
+    slide.html('@index-vml-slide.html');
+    picker.html('@index-vml-picker.html');
 };
-var CSSNames = 'names@index.css';
+var CSSNames = 'names@index.css[selected,cnt]';
 var ShortCuts = ['d81e06', 'f4ea2a', '1afa29', '1296db', '13227a', 'd4237a', 'ffffff', 'e6e6e6', 'dbdbdb', 'cdcdcd', 'bfbfbf', '8a8a8a', '707070', '515151', '2c2c2c', '000000', 'ea986c', 'eeb174', 'f3ca7e', 'f9f28b', 'c8db8c', 'aad08f', '87c38f', '83c6c2', '7dc5eb', '87a7d6', '8992c8', 'a686ba', 'bd8cbb', 'be8dbd', 'e89abe', 'e8989a', 'e16632', 'e98f36', 'efb336', 'f6ef37', 'afcd51', '7cba59', '36ab60', '1baba8', '17ace3', '3f81c1', '4f68b0', '594d9c', '82529d', 'a4579d', 'db649b', 'dd6572', 'd81e06', 'e0620d', 'ea9518', 'f4ea2a', '8cbb1a', '2ba515', '0e932e', '0c9890', '1295db', '0061b2', '0061b0', '004198', '122179', '88147f', 'd3227b', 'd6204b'];
 var HSV2RGB = function(h, s, v) {
     var R, G, B, X, C;

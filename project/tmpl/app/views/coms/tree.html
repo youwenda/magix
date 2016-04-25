@@ -1,29 +1,7 @@
-<div mx-keys="a,b" class="tree <%=a%>-def" title="<%=b%>" mx-view1="a/b?s=<%=b%>">
-    <%=a%>-<%=b%>
-</div>
-
-<textarea mx-keys="a,b,checked" @disabled="<%=checked%>"><%=a%>-<%=b%></textarea>
-<%for(var i=0;i<10;i++){%>
-<div mx-view="coms/dropdown/index?source=script&selected=<%=a%>" mx-keys="a,b">
-    <script type="text/magix">
-        [{"id":"<%=a%>","text":"a-<%=a%>"},{"id":"<%=b%>","text":"b-<%=b%>"}]
-    </script>
-</div>
-<%}%>
-<div mx-keys="a,b,height" style="height:<%=height+20%>px;background: red">
+<div id="tree_<%=id%>">
 
 </div>
-<input mx-keys="a,b" value="<%=a%>-<%=b%>" />
-<input type="checkbox" id="cb_<%=a%>" mx-keys="a" />
-<label for="cb_<%=a%>" mx-keys="a">abcdefg</label>
-<input type="checkbox" mx-keys="checked" @disabled="<%=checked%>" @checked="<%=checked%>" />
-<input type="radio" mx-keys="checked" @checked="<%=checked%>" />
-<div mx-keys="checked,a,b" @checked="<%=checked%>" value="<%=a+'_'+b%>">test value</div>
-<button mx-keys="a,b" mx-click="change({a:'<%=a%>',b:'<%=b%>'})" class="btn" >change a and b</button>
-<div mx-keys="pMap">
-    <%for(var i=0;i<permissions.length;i++){%>
-        <%console.log(pMap[permissions[i]])%>
-        <label><input type="checkbox" @checked="<%=pMap[permissions[i]]%>" /><%=permissions[i]%></label>
-    <%}%>
+
+<div id="code_<%=id%>">
+
 </div>
-<button class="btn" mx-click="changeMap()"> change pmap</button>

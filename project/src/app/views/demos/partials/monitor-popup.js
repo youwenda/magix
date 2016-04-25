@@ -1,4 +1,4 @@
-define("app/views/demos/partials/monitor-popup",['magix','../../../services/service'],function(require){
+define('app/views/demos/partials/monitor-popup',['magix','../../../services/service'],function(require){
 /*Magix ,Service */
 /*
     author:xinglie.lkf@taobao.com
@@ -8,7 +8,7 @@ Magix.applyStyle('mp-287',".mp-287-wrapper{background:#fff;position:fixed;width:
 var Service = require('../../../services/service');
 return Magix.View.extend({
     tmpl: "<div class=\"mp-287-wrapper\"><table class=\"table\"><thead><tr><th>类型</th><th>名称</th><th>url</th><th>缓存</th><th>结果</th></tr></thead><tbody mx-guid=\"xa7a1-\u001f\">@1-\u001f</tbody></table></div>",
-tmplData:[{"guid":1,"keys":["list"],"tmpl":"\n            <%for(var i=0;i<list.length;i++){%>\n            <tr><td><%=list[i].type%></td><td><%=list[i].name%></td><td><%=list[i].url%></td><td><%=list[i].cache%>ms</td><td><%=list[i].result%></td></tr>\n            <%}%>\n        ","selector":"tbody[mx-guid=\"xa7a1-\u001f\"]"}],
+tmplData:[{"guid":1,"keys":["list"],"tmpl":"<%for(var i=0;i<list.length;i++){%><tr><td><%=list[i].type%></td><td><%=list[i].name%></td><td><%=list[i].url%></td><td><%=list[i].cache%>ms</td><td><%=list[i].result%></td></tr><%}%>","selector":"tbody[mx-guid=\"xa7a1-\u001f\"]"}],
     ctor: function() {
         var me = this;
         Service.on('begin', function(e) {

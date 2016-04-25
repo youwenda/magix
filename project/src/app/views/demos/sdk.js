@@ -1,4 +1,4 @@
-define("app/views/demos/sdk",['magix','./partials/sdk-bigimg'],function(require){
+define('app/views/demos/sdk',['magix','./partials/sdk-bigimg'],function(require){
 /*Magix ,BigImg */
 /*
     author:xinglie.lkf@taobao.com
@@ -41,8 +41,8 @@ var Items = [{
 var ItemsMap = Magix.toMap(Items, 'id');
 
 return Magix.View.extend({
-    tmpl: "<table class=\"table mp-d1a-w700 mp-d1a-m50\"><thead><tr><th colspan=\"3\">名称</th></tr></thead><tbody>\n        <%for(var i=0;i<items.length;i++){%>\n        <tr><td class=\"mp-d1a-vm mp-d1a-w100\"><label><input type=\"checkbox\" mx-click=\"store({id:'<%=items[i].id%>'})\" id=\"cb_<%=id%>_<%=items[i].id%>\" /><%=items[i].name%></label></td><td mx-mouseover=\"hoverBig({img:'<%=items[i].bigImg%>'})\" mx-mouseout=\"hoverBig()\"><img src=\"<%=items[i].img%>\" /></td><td class=\"mp-d1a-vm\">\n                <%=items[i].description%>\n            </td></tr>\n        <%}%>\n    </tbody></table><div class=\"mp-d1a-float\" mx-guid=\"x14a1-\u001f\">@1-\u001f</div>",
-tmplData:[{"guid":1,"keys":["selected"],"tmpl":"<ul>\n        <%for(var i=0;i<selected.length;i++){%>\n        <li class=\"mp-d1a-sitem\">\n            <%=selected[i].name%>\n            <a href=\"#!/index\" class=\"mp-d1a-fr\" mx-click=\"remove({index:<%=i%>})\">删除</a></li>\n        <%}%>\n    </ul>","selector":"div[mx-guid=\"x14a1-\u001f\"]"}],
+    tmpl: "<table class=\"table mp-d1a-w700 mp-d1a-m50\"><thead><tr><th colspan=\"3\">名称</th></tr></thead><tbody><%for(var i=0;i<items.length;i++){%><tr><td class=\"mp-d1a-vm mp-d1a-w100\"><label><input type=\"checkbox\" mx-click=\"store({id:'<%=items[i].id%>'})\" id=\"cb_<%=id%>_<%=items[i].id%>\"/><%=items[i].name%></label></td><td mx-mouseover=\"hoverBig({img:'<%=items[i].bigImg%>'})\" mx-mouseout=\"hoverBig()\"><img src=\"<%=items[i].img%>\"/></td><td class=\"mp-d1a-vm\"><%=items[i].description%></td></tr><%}%></tbody></table><div class=\"mp-d1a-float\" mx-guid=\"x14a1-\u001f\">@1-\u001f</div>",
+tmplData:[{"guid":1,"keys":["selected"],"tmpl":"<ul><%for(var i=0;i<selected.length;i++){%><li class=\"mp-d1a-sitem\"><%=selected[i].name%><a href=\"#!/index\" class=\"mp-d1a-fr\" mx-click=\"remove({index:<%=i%>})\">删除</a></li><%}%></ul>","selector":"div[mx-guid=\"x14a1-\u001f\"]"}],
     ctor: function() {
         var me = this;
         me.on('destroy', function() {

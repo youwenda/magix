@@ -38,9 +38,9 @@
     -moz-user-select:none;
     cursor: default;
 }
-.away-right{
+.toright{
   margin-left:10px;
 }
-.away-left{
+.toleft{
   margin-left:-10px;
 }

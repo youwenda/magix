@@ -5,6 +5,8 @@ var path = require('path');
 var sep = path.sep;
 var sepRegTmpl = sep.replace(/\\/g, '\\\\');
 var configs = {
+    nanoOptions: {},
+    htmlminifierOptions: {},
     excludeTmplFolders: [],
     snippets: {},
     generateJSFile: function() {
@@ -57,7 +59,7 @@ var runFileDepend = function(file) {
 };
 var processAts = function(fileContent, cssNamesKey) {
     var cssAtNamesKeyReg = /(^|[\s\}])@([a-z\-]+)\s*([\w\-]+)?\{([^\{\}]*)\}/g;
-    var cssKeyframesReg = /(^|[\s\}])(@(?:-webkit-)?keyframes)\s+([\w\-]+)/g;
+    var cssKeyframesReg = /(^|[\s\}])(@(?:-webkit-|-moz-|-o-|-ms-)?keyframes)\s+([\w\-]+)/g;
     var contents = [];
     fileContent = fileContent.replace(cssKeyframesReg, function(m, head, keyframe, name) {
         contents.push(name);
@@ -81,7 +83,7 @@ var processAts = function(fileContent, cssNamesKey) {
 };
 
 var processCSS = function(nano, content, from, to, moduleId) {
-    var cssTmplReg = /(['"])(global|ref|names)?@([^'"]+)\.css(?:\[([^\[\]]+)\])?(?:\1)(;)?/g;
+    var cssTmplReg = /(['"])(global|ref|names)?@([^'"]+)\.css(?:\[([^\[\]]+)\]|:([^'"]+))?(?:\1)(;)?/g;
     var cssNamesMap = {};
     var gCSSNamesMap = {};
     var cssNamesKey;
@@ -94,6 +96,7 @@ var processCSS = function(nano, content, from, to, moduleId) {
         }
         return result;
     };
+    var cssContentCache = {};
     return new Promise(function(resolve) {
         var data = {
             content: content,
@@ -102,7 +105,46 @@ var processCSS = function(nano, content, from, to, moduleId) {
         };
         if (cssTmplReg.test(content)) {
             var count = 0;
-            content = content.replace(cssTmplReg, function(m, q, prefix, name, keys, tail) {
+            var resume = function() {
+                content = content.replace(cssTmplReg, function(m, q, prefix, name, keys, key, tail) {
+                    if (name.indexOf('/') >= 0 && name.charAt(0) != '.') {
+                        name = resolveAtPath('"@' + name + '"', moduleId).slice(1, -1);
+                    }
+                    var file = path.resolve(path.dirname(from) + sep + name + '.css');
+                    var r = cssContentCache[file];
+                    var fileContent = r.css;
+                    var cssId = extractModuleId(file);
+                    cssNamesKey = configs.prefix + md5(cssId);
+                    if (prefix != 'global') {
+                        addToGlobalCSS = prefix != 'names';
+                        cssNamesMap = {};
+                        fileContent = fileContent.replace(cssNameReg, cssNameProcessor);
+                        fileContent = processAts(fileContent, cssNamesKey);
+                    }
+                    var replacement;
+                    if (prefix == 'names') {
+                        if (keys) {
+                            replacement = JSON.stringify(cssNamesMap, keys.split(','));
+                        } else {
+                            replacement = JSON.stringify(cssNamesMap);
+                        }
+                    } else if (prefix == 'ref') {
+                        replacement = '';
+                        tail = '';
+                    } else if (key) {
+                        var c = key == '$prefix' ? cssNamesKey + '-' : cssNamesMap[key];
+                        replacement = q + c + q;
+                    } else {
+                        replacement = '\'' + cssNamesKey + '\',' + JSON.stringify(fileContent);
+                    }
+                    tail = tail ? tail : '';
+                    return replacement + tail;
+                });
+                data.map = gCSSNamesMap;
+                data.content = content;
+                resolve(data);
+            };
+            content = content.replace(cssTmplReg, function(m, q, prefix, name) {
                 count++;
                 if (name.indexOf('/') >= 0 && name.charAt(0) != '.') {
                     name = resolveAtPath('"@' + name + '"', moduleId).slice(1, -1);
@@ -110,49 +152,33 @@ var processCSS = function(nano, content, from, to, moduleId) {
                 var file = path.resolve(path.dirname(from) + sep + name + '.css');
                 if (fs.existsSync(file)) {
                     addFileDepend(file, from, to);
-                    var fileContent = readFile(file);
-                    nano.process(fileContent).then(function(r) {
-                        fileContent = r.css;
-                        var cssId = extractModuleId(file);
-                        cssNamesKey = configs.prefix + md5(cssId);
-                        if (prefix != 'global') {
-                            addToGlobalCSS = prefix != 'names';
-                            cssNamesMap = {};
-                            fileContent = fileContent.replace(cssNameReg, cssNameProcessor);
-                            fileContent = processAts(fileContent, cssNamesKey);
-                        }
-                        var substr = holder + md5(m) + holder;
-                        var replacement;
-                        if (prefix == 'names') {
-                            if (keys) {
-                                replacement = JSON.stringify(cssNamesMap, keys.split(','));
-                            } else {
-                                replacement = JSON.stringify(cssNamesMap);
+                    if (!cssContentCache[file]) {
+                        var fileContent = readFile(file);
+                        cssContentCache[file] = 1;
+                        nano.process(fileContent, configs.nanoOptions).then(function(r) {
+                            cssContentCache[file] = r;
+                            count--;
+                            if (!count) {
+                                resume();
                             }
-                        } else if (prefix == 'ref') {
-                            replacement = '';
-                        } else {
-                            replacement = '\'' + cssNamesKey + '\',' + JSON.stringify(fileContent);
-                        }
-                        tail = tail ? tail : '';
-                        content = content.replace(substr, replacement + tail);
+                        }, function(error) {
+                            count--;
+                            if (!count) {
+                                resume();
+                            }
+                            console.log(file, error);
+                        });
+                    } else {
                         count--;
-                        if (!count) {
-                            data.map = gCSSNamesMap;
-                            data.content = content;
-                            resolve(data);
-                        }
-                    }, function(error) {
-                        console.log(file, error);
-                    });
-                    return holder + md5(m) + holder;
+                    }
+                    return m;
                 } else {
                     count--;
                     return '\'unfound:' + name + '.css\'';
                 }
             });
             if (!count) {
-                resolve(data);
+                resume();
             }
         } else {
             resolve(data);
@@ -162,6 +188,8 @@ var processCSS = function(nano, content, from, to, moduleId) {
 var anchor = '-\u001e';
 var tmplCommandAnchorReg = /\&\d+\-\u001e/g;
 var tmplCommandAnchorRegTest = /\&\d+\-\u001e/;
+var tmplCommandAnchorCompressReg = /(\&\d+\-\u001e)\s+(?=(?:\&\d+\-\u001e|[<>]))/g;
+var tmplCommandAnchorCompressReg2 = /([<>])\s+(\&\d+\-\u001e)/g;
 
 var storeTmplCommands = function(tmpl, store) {
     var idx = 0;
@@ -282,13 +310,13 @@ var addAttrs = function(tag, tmpl, info, keysReg, refTmplCommands) {
             }
         });
         var mask = '';
-        for (var i = 0; i < info.keys.length; i++) {
-            if (tmplKeys[info.keys[i]]) mask += '1';
-            else mask += '0';
-            if (attrsKeys[info.keys[i]]) mask += '1';
-            else mask += '0';
+        for (var i = 0, m; i < info.keys.length; i++) {
+            m = 0;
+            if (tmplKeys[info.keys[i]]) m = 1;
+            if (attrsKeys[info.keys[i]]) m = m ? m | 2 : 2;
+            mask += m + '';
         }
-        if (mask.indexOf('0') >= 0)
+        if (/[12]/.test(mask))
             info.mask = mask;
     }
 };
@@ -306,10 +334,19 @@ var expandAtAttr = function(tmpl, refTmplCommands) {
         });
     });
 };
-var snippetReg = /<snippet-(\w+)[^>]+\/?>(?:<\/snippet-\1>)?/g;
+var snippetReg = /<snippet-(\w+)([^>]+)\/?>(?:<\/snippet-\1>)?/g;
 var expandSnippet = function(tmpl) {
-    return tmpl.replace(snippetReg, function(match, name) {
-        var html = configs.snippets[name];
+    return tmpl.replace(snippetReg, function(match, name, attrs) {
+        var props = {};
+        attrs.replace(attrsNameValueReg, function(m, name, q, content) {
+            props[name] = content;
+        });
+        var html;
+        if (configs.snippets.apply) {
+            html = configs.snippets(name, props);
+        } else {
+            html = configs.snippets[name];
+        }
         return html || '';
     });
 };
@@ -420,7 +457,6 @@ var buildTmpl = function(tmpl, refGuidToKeys, refTmplCommands, cssNamesMap, g, l
 
 var fileTmplReg = /(\btmpl\s*:\s*)?(['"])@([^'"]+)\.html(?:\2)/g; //对于tmpl:特殊分析
 var htmlCommentCelanReg = /<!--[\s\S]*?-->/g;
-var htmlTagCleanReg = />\s+</g;
 var processTmpl = function(result) {
     return new Promise(function(resolve) {
         var cssNamesMap = result.map,
@@ -441,7 +477,10 @@ var processTmpl = function(result) {
                         refTmplCommands = {};
                     fileContent = storeTmplCommands(fileContent, refTmplCommands); //模板命令移除，防止影响分析
 
-                    fileContent = fileContent.replace(htmlTagCleanReg, '><'); //简单压缩
+                    fileContent = configs.htmlminifier.minify(fileContent, configs.htmlminifierOptions); // fileContent.replace(htmlTagCleanReg, '><'); //简单压缩
+                    fileContent = fileContent.replace(tmplCommandAnchorCompressReg, '$1');
+                    fileContent = fileContent.replace(tmplCommandAnchorCompressReg2, '$1$2');
+                    //console.log(fileContent);
                     fileContent = addGuid(fileContent, guid, refGuidToKeys);
                     var info = buildTmpl(fileContent, refGuidToKeys, refTmplCommands, cssNamesMap);
                     fileContent = JSON.stringify(info.tmpl);

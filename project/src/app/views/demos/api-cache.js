@@ -1,4 +1,4 @@
-define("app/views/demos/api-cache",['magix','../../services/service'],function(require){
+define('app/views/demos/api-cache',['magix','../../services/service'],function(require){
 /*Magix ,Service */
 /*
     author:xinglie.lkf@taobao.com
@@ -7,7 +7,7 @@ var Magix = require('magix');
 var Service = require('../../services/service');
 Magix.applyStyle('mp-0e5',".mp-0e5-wrapper{margin:50px}.mp-0e5-wrapper button{margin-right:20px}");
 return Magix.View.extend({
-    tmpl: "<div class=\"mp-0e5-wrapper\"><button class=\"btn\" mx-click=\"request({type:1})\">API 1</button><button class=\"btn\" mx-click=\"request({type:2})\">API 2</button><button class=\"btn\" mx-click=\"request({type:404})\">API 404</button><button class=\"btn\" mx-click=\"clear({type:1})\">Clear cache 1</button><button class=\"btn\" mx-click=\"clear({type:2})\">Clear cache 2</button></div>",
+    tmpl: "<div class=\"mp-0e5-wrapper\"><button class=\"btn\" mx-click=\"request({type:1})\">API 1</button> <button class=\"btn\" mx-click=\"request({type:2})\">API 2</button> <button class=\"btn\" mx-click=\"request({type:404})\">API 404</button> <button class=\"btn\" mx-click=\"clear({type:1})\">Clear cache 1</button> <button class=\"btn\" mx-click=\"clear({type:2})\">Clear cache 2</button></div>",
     render: function() {
         var me = this;
         me.data.digest();

@@ -390,6 +390,15 @@ var G_ToMap = function(list, key) {
     }
     return map;
 };
+var G_Keys = Object.keys || function(obj, keys, p) {
+    keys = [];
+    for (p in obj) {
+        if (G_Has(obj, p)) {
+            keys.push(p);
+        }
+    }
+    return keys;
+};
 /**
  * Magix对象，提供常用方法
  * @name Magix
@@ -568,6 +577,11 @@ var Magix = {
      * @return {Boolean} 是否拥有prop属性
      */
     has: G_Has,
+    /**
+     * 获取对象的keys
+     * @type {Array}
+     */
+    keys:G_Keys,
     /**
      * 判断一个节点是否在另外一个节点内，如果比较的2个节点是同一个节点，也返回true
      * @function

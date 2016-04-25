@@ -1,4 +1,4 @@
-define("app/views/coms/index",['magix'],function(require){
+define('app/views/coms/index',['magix'],function(require){
 /*Magix*/
 /*
     author:xinglie.lkf@taobao.com

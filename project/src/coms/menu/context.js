@@ -1,4 +1,4 @@
-define("coms/menu/context",['magix','./index','$'],function(require){
+define('coms/menu/context',['magix','./index','$'],function(require){
 /*Magix ,Menu ,$ */
 var Magix = require('magix');
 var Menu = require('./index');

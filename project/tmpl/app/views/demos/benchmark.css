@@ -1,0 +1,8 @@
+.buttons{
+    margin:20px;
+}
+.item{
+    width:50px;
+    float:left;
+    line-height: 20px;
+}

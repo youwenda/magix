@@ -4,7 +4,7 @@
 var Magix = require('magix');
 var $ = require('$');
 Magix.applyStyle('@header-sidebar.css');
-var CSSNames = 'names@header-sidebar.css';
+var CSSNames = 'names@header-sidebar.css[fixed,expand,shrink]';
 module.exports = Magix.View.extend({
     tmpl: '@header-sidebar.html',
     ctor: function() {
@@ -19,21 +19,27 @@ module.exports = Magix.View.extend({
         me.resize();
     },
     updateMenu: function(subMenus, url) {
+        var main = $('#inmain');
+        var me = this;
         if (subMenus) {
-            var me = this;
             me.data.set({
                 menus: subMenus
             });
             me.updateUrl(url);
-            $('#' + this.id).addClass(CSSNames.expand);
-            $('#inmain').addClass(CSSNames.shrink);
-        } else {
+            if (!main.hasClass(CSSNames.shrink)) {
+                $('#' + this.id).addClass(CSSNames.expand);
+                $('#inmain').addClass(CSSNames.shrink);
+                me.owner.parent().invoke('toggleSidebar');
+            }
+        } else if (main.hasClass(CSSNames.shrink)) {
             $('#' + this.id).removeClass(CSSNames.expand);
             $('#inmain').removeClass(CSSNames.shrink);
+            me.owner.parent().invoke('toggleSidebar');
         }
     },
     updateUrl: function(url) {
         var me = this;
+        console.log(url,me.data.get('url'));
         me.data.set({
             url: url
         }).digest();
@@ -43,7 +49,7 @@ module.exports = Magix.View.extend({
         $('#' + this.id).height(height);
     },
     '$win<resize>': function() {
-        this.resize('@app/views/default');
+        this.resize();
     },
     '$win<scroll>': function() {
         var me = this;

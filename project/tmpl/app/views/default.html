@@ -1,8 +1,8 @@
 <!-- header -->
-<div mx-view="@./partials/header"></div>
+<div mx-view="@./partials/header" mx-toggleSidebar="resizeMain()"></div>
 <!-- main -->
-<div class="inmain" id="inmain" @pmap="100">
-    <div mx-keys="mainView" mx-view="<%=mainView%>">
-      <snippet-loading />
+<div class="inmain" id="inmain">
+    <div mx-keys="mainView" mx-view="<%=mainView%>" t="<%=mainView%>">
+      <snippet-loading query="a=b&c=d" />
     </div>
 </div>

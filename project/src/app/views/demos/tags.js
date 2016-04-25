@@ -1,4 +1,4 @@
-define("app/views/demos/tags",['magix','$','../../../coms/bases/monitor'],function(require){
+define('app/views/demos/tags',['magix','$','../../../coms/bases/monitor'],function(require){
 /*Magix ,$ ,Monitor */
 /*
     author:xinglie.lkf@taobao.com
@@ -10,7 +10,7 @@ var $ = require('$');
 var Monitor = require('../../../coms/bases/monitor');
 return Magix.View.extend({
     tmpl: "<div class=\"mp-997-m100\"><div class=\"mp-997-tags clearfix\" id=\"tags_<%=id%>\" mx-click=\"showList()\" mx-guid=\"x3f41-\u001f\">@1-\u001f</div><div class=\"mp-997-list mp-997-none\" id=\"list_<%=id%>\"><ul mx-guid=\"x3f42-\u001f\">@2-\u001f</ul></div></div><button mx-click=\"test()\"></button>",
-tmplData:[{"guid":1,"keys":["selected"],"tmpl":"\n        <%for(var i=0;i<selected.length;i++){%>\n        <div class=\"mp-997-item\" id=\"si_<%=i%>_<%=id%>\" title=\"<%=selected[i]%>\"><div class=\"mp-997-name ellipsis\">\n                <%=selected[i]%>\n            </div><div class=\"mp-997-delete\" mx-click=\"remove({index:<%=i%>})\">\n                x\n            </div></div>\n        <%}%>\n        <div class=\"mp-997-item\" id=\"iptw_<%=id%>\"><input id=\"ipt_<%=id%>\" class=\"mp-997-ipt\" mx-keyup=\"search()\" mx-paste=\"search()\" value=\"<%=iptValue%>\" /></div>","selector":"div[mx-guid=\"x3f41-\u001f\"]"},{"guid":2,"keys":["list"],"tmpl":"\n            <%for(var i=0;i<list.length;i++){%>\n            <li id=\"idx_<%=i%>\" class=\"mp-997-li ellipsis\" mx-mouseout=\"hover()\" mx-mouseover=\"hover()\" mx-click=\"fill({text:'<%=list[i].text%>'})\" data-text=\"<%=list[i].text%>\"><%=list[i].text%></li>\n            <%}%>\n        ","selector":"ul[mx-guid=\"x3f42-\u001f\"]"}],
+tmplData:[{"guid":1,"keys":["selected"],"tmpl":"<%for(var i=0;i<selected.length;i++){%><div class=\"mp-997-item\" id=\"si_<%=i%>_<%=id%>\" title=\"<%=selected[i]%>\"><div class=\"mp-997-name ellipsis\"><%=selected[i]%></div><div class=\"mp-997-delete\" mx-click=\"remove({index:<%=i%>})\">x</div></div><%}%><div class=\"mp-997-item\" id=\"iptw_<%=id%>\"><input id=\"ipt_<%=id%>\" class=\"mp-997-ipt\" mx-keyup=\"search()\" mx-paste=\"search()\" value=\"<%=iptValue%>\"/></div>","selector":"div[mx-guid=\"x3f41-\u001f\"]"},{"guid":2,"keys":["list"],"tmpl":"<%for(var i=0;i<list.length;i++){%><li id=\"idx_<%=i%>\" class=\"mp-997-li ellipsis\" mx-mouseout=\"hover()\" mx-mouseover=\"hover()\" mx-click=\"fill({text:'<%=list[i].text%>'})\" data-text=\"<%=list[i].text%>\"><%=list[i].text%></li><%}%>","selector":"ul[mx-guid=\"x3f42-\u001f\"]"}],
     ctor: function() {
         Monitor.setup();
         var me = this;

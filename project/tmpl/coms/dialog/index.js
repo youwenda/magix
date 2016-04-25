@@ -4,7 +4,6 @@
 var Magix = require('magix');
 var $ = require('$');
 Magix.applyStyle('@index.css');
-var CSSNames = 'names@index.css';
 module.exports = Magix.View.extend({
     tmpl: '@index.html',
     ctor: function(extra) {
@@ -18,7 +17,7 @@ module.exports = Magix.View.extend({
     render: function() {
         var me = this;
         var options = me.$options;
-        options.dockClass = CSSNames[options.dock];
+        options.dockClass = '@index.css:$prefix' + options.dock; //CSSNames[options.dock];
         me.data.set({
             id: me.id,
             options: options
@@ -31,7 +30,7 @@ module.exports = Magix.View.extend({
             }
         }
         if (options.mask) {
-            node.before('<div id="mask_' + me.id + '" class="' + CSSNames.mask + '" />');
+            node.before('<div id="mask_' + me.id + '" class="@index.css:mask" />');
         }
         switch (options.dock) {
             case 'top':
@@ -116,7 +115,7 @@ module.exports = Magix.View.extend({
         };
         Magix.mix(dOptions, ops);
         var id = Magix.guid('dlg_');
-        $('body').append('<div id="' + id + '" class="' + CSSNames.dialog + '" />');
+        $('body').append('<div id="' + id + '" class="@index.css:dialog" />');
         view.owner.mountVframe(id, '@moduleId', dOptions);
     }
 });

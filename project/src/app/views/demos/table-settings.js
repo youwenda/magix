@@ -1,4 +1,4 @@
-define("app/views/demos/table-settings",['magix','./partials/table-settings-fields'],function(require){
+define('app/views/demos/table-settings',['magix','./partials/table-settings-fields'],function(require){
 /*Magix ,FieldsSettings */
 /*
     author:xinglie.lkf@taobao.com
@@ -50,8 +50,8 @@ var Fields = [{
     text: 'IC1'
 }];
 return Magix.View.extend({
-    tmpl: "<div class=\"mp-197-wrapper\"><button class=\"btn\" mx-click=\"showSettings()\">设置</button><button class=\"btn mp-197-fr\" mx-click=\"showSettings({dock:'right'})\">设置</button><table class=\"table\"><thead><tr mx-guid=\"x2411-\u001f\">@1-\u001f</tr></thead><tbody mx-guid=\"x2412-\u001f\">@2-\u001f</tbody><tfoot><tr><td mx-guid=\"x2413-\u001f\" colspan=\"<%=checkedFields.length+1%>\">xxx</td></tr></tfoot></table></div>",
-tmplData:[{"guid":1,"keys":["checkedFields"],"tmpl":"<th>名称</th>\n                <%for(var i=0;i<checkedFields.length;i++){%>\n                <th><%=fieldsMap[checkedFields[i]].text%></th>\n                <%}%>\n            ","selector":"tr[mx-guid=\"x2411-\u001f\"]"},{"guid":2,"keys":["checkedFields"],"tmpl":"\n            <%for(var i=0;i<20;i++){%>\n            <tr><td>测试<%=Math.random()%></td>\n                <%for(var j=0;j<checkedFields.length;j++){%>\n                <td><%=fieldsMap[checkedFields[j]].text+Math.random()%></td>\n                <%}%>\n            </tr>\n            <%}%>\n        ","selector":"tbody[mx-guid=\"x2412-\u001f\"]"},{"keys":["checkedFields"],"selector":"td[mx-guid=\"x2413-\u001f\"]","attrs":[{"n":"colspan","v":"<%=checkedFields.length+1%>"}]}],
+    tmpl: "<div class=\"mp-197-wrapper\"><button class=\"btn\" mx-click=\"showSettings()\">设置</button> <button class=\"btn mp-197-fr\" mx-click=\"showSettings({dock:'right'})\">设置</button><table class=\"table\"><thead><tr mx-guid=\"x2411-\u001f\">@1-\u001f</tr></thead><tbody mx-guid=\"x2412-\u001f\">@2-\u001f</tbody><tfoot><tr><td mx-guid=\"x2413-\u001f\" colspan=\"<%=checkedFields.length+1%>\">xxx</td></tr></tfoot></table></div>",
+tmplData:[{"guid":1,"keys":["checkedFields"],"tmpl":"<th>名称</th><%for(var i=0;i<checkedFields.length;i++){%><th><%=fieldsMap[checkedFields[i]].text%></th><%}%>","selector":"tr[mx-guid=\"x2411-\u001f\"]"},{"guid":2,"keys":["checkedFields"],"tmpl":"<%for(var i=0;i<200;i++){%><tr><td>测试<%=Math.random()%></td><%for(var j=0;j<checkedFields.length;j++){%><td><%=fieldsMap[checkedFields[j]].text+Math.random()%></td><%}%></tr><%}%>","selector":"tbody[mx-guid=\"x2412-\u001f\"]"},{"keys":["checkedFields"],"selector":"td[mx-guid=\"x2413-\u001f\"]","attrs":[{"n":"colspan","v":"<%=checkedFields.length+1%>"}]}],
     ctor: function() {
         var me = this;
         me.$checkedFields = ['ctr', 'uv', 'ic1', 'pv1'];

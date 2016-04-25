@@ -1,4 +1,4 @@
-define("coms/calendar/datepicker",['magix','$','../bases/picker'],function(require){
+define('coms/calendar/datepicker',['magix','$','../bases/picker'],function(require){
 /*Magix ,$ ,Picker */
 /*
     author:xinglie.lkf@taobao.com

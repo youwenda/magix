@@ -3,21 +3,22 @@
  */
 var Magix = require('magix');
 var $ = require('$');
+var Vframe = Magix.Vframe;
 Magix.applyStyle('@index.css');
-var CSSNames = 'names@index.css[over,away-left,away-right]';
+var CSSNames = 'names@index.css[over,toleft,toright]';
 var Instance;
 var Menu = Magix.View.extend({
     tmpl: '@index.html',
     ctor: function() {
         var me = this;
-        me.data.on('changed', function(e) {
-            if (e.keys.width) {
-                var cnt = $('#' + me.id + '>div');
-                cnt.css({
-                    width: this.get('width')
-                });
-            }
-        });
+        // me.data.on('changed', function(e) {
+        //     if (e.keys.width) {
+        //         var cnt = $('#' + me.id + '>div');
+        //         cnt.css({
+        //             width: this.get('width')
+        //         });
+        //     }
+        // });
         me.on('destroy', function() {
             if (me.data.get('isChild'))
                 $('#' + me.id).remove();
@@ -29,9 +30,11 @@ var Menu = Magix.View.extend({
         if (!inside) {
             var children = me.owner.children();
             for (var i = children.length - 1; i >= 0; i--) {
-                var child = children[i];
-                inside = child.invoke('inside', node);
-                if (inside) break;
+                var child = Vframe.get(children[i]);
+                if (child) {
+                    inside = child.invoke('inside', node);
+                    if (inside) break;
+                }
             }
         }
         return inside;
@@ -40,7 +43,7 @@ var Menu = Magix.View.extend({
         var me = this;
         var info = ops;
         if (!ops.map) {
-            info = Menu.process(ops.list);
+            info = me.listToTree(ops.list);
         }
         me.$map = info.map;
         me.$list = info.list;
@@ -126,7 +129,7 @@ var Menu = Magix.View.extend({
                 node.css({
                     left: left,
                     top: top
-                }).addClass(CSSNames['away-' + dock]);
+                }).addClass(CSSNames['to' + dock]);
             } else {
                 node.css({
                     left: left,
@@ -139,13 +142,13 @@ var Menu = Magix.View.extend({
         var me = this;
         var children = me.owner.children();
         for (var i = children.length - 1; i >= 0; i--) {
-            var child = children[i];
-            child.invoke('hide');
+            var child = Vframe.get(children[i]);
+            if (child) child.invoke('hide');
         }
         if (me.$shown && me.$pNode) {
             me.$shown = false;
             var node = $('#' + me.id + ' div');
-            node.removeClass(CSSNames['away-left']).removeClass(CSSNames['away-right']);
+            node.removeClass(CSSNames.toleft).removeClass(CSSNames.toright);
             node.css({
                 left: -100000
             });
@@ -231,36 +234,6 @@ var Menu = Magix.View.extend({
     },
     'prevent<contextmenu>': function(e) {
         e.preventDefault();
-    }
-}, {
-    process: function(list) {
-        if (!list._processed) {
-            list._processed = 1;
-            var map = {},
-                listMap = {},
-                rootList = [];
-            for (var i = 0, max = list.length; i < max; i++) {
-                var one = list[i];
-                map[one.id] = one;
-                if (listMap[one.id]) {
-                    one.children = listMap[one.id];
-                }
-                if (one.pId) {
-                    if (map[one.pId]) {
-                        var c = map[one.pId].children || (map[one.pId].children = []);
-                        c.push(one);
-                    } else {
-                        if (!listMap[one.pId]) listMap[one.pId] = [one];
-                        else listMap[one.pId].push(one);
-                    }
-                } else {
-                    rootList.push(one);
-                }
-            }
-            list.list = rootList;
-            list.map = map;
-        }
-        return list;
     }
 });
 module.exports = Menu;

@@ -1,4 +1,4 @@
-define("app/views/demos/partials/more-links",['magix','../../../../coms/bases/monitor','$'],function(require){
+define('app/views/demos/partials/more-links',['magix','../../../../coms/bases/monitor','$'],function(require){
 /*Magix ,Monitor ,$ */
 /*
     author:xinglie.lkf@taobao.com

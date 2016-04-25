@@ -1,9 +1,9 @@
-define("app/views/demos/partials/view-subs-float",['magix'],function(require){
+define('app/views/demos/partials/view-subs-float',['magix'],function(require){
 /*Magix */
 /*
     author:xinglie.lkf@taobao.com
  */
-;
+
 var Magix = require('magix');
 var Types = [{
     id: 'left',

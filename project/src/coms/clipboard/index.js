@@ -1,4 +1,4 @@
-define("coms/clipboard/index",['magix'],function(require){
+define('coms/clipboard/index',['magix'],function(require){
 /*Magix */
 /*
     author:xinglie.lkf@taobao.com

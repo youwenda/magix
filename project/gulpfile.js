@@ -1,5 +1,5 @@
-var wrapTMPL = 'define("${moduleId}",[${requires}],function(require){\r\n/*${vars}*/\r\n${content}\r\n});';
-var wrapNoDepsTMPL = 'define("${moduleId}",function(){\r\n${content}\r\n});';
+var wrapTMPL = 'define(\'${moduleId}\',[${requires}],function(require){\r\n/*${vars}*/\r\n${content}\r\n});';
+var wrapNoDepsTMPL = 'define(\'${moduleId}\',function(){\r\n${content}\r\n});';
 var wrapNoExports = 'seajs.use([${requires}],function(${vars}){${content}});';
 
 var tmplFolder = 'tmpl'; //template folder
@@ -19,6 +19,7 @@ var gulp = require('gulp');
 var path = require('path');
 var watch = require('gulp-watch');
 var nano = require('cssnano');
+var htmlminifier = require('html-minifier');
 var fs = require('fs');
 var buildTool = require('../src/build');
 
@@ -36,6 +37,14 @@ var buildFolderName = path.basename(buildFolder);
 var moduleIdRemovedPath = path.resolve(tmplFolder);
 buildTool.config({
     nano: nano,
+    htmlminifier: htmlminifier,
+    htmlminifierOptions: {
+        removeComments: true, //注释
+        collapseWhitespace: true, //空白
+        //removeAttributeQuotes: true, //属性引号
+        quoteCharacter: '"',
+        keepClosingSlash: true, //
+    },
     excludeTmplFolders: excludeTmplFolders,
     onlyAllows: onlyAllows,
     moduleIdRemoved: moduleIdRemovedPath,

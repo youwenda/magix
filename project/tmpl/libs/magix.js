@@ -1133,7 +1133,7 @@ var Vframe_Update = function(vframe, view) {
             i = 0;
         //console.log(me.id,cs);
         while (i < j) {
-            Vframe_Update(cs[i++]);
+            Vframe_Update(Vframe_Vframes[cs[i++]]);
         }
     }
 };
@@ -1456,7 +1456,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             c = me.$c;
             for (p in c) {
                 if (G_Has(c, p))
-                    z.push(Vframe_Vframes[p]);
+                    z.push(p);
             }
         }
         return z;
@@ -1956,20 +1956,21 @@ G_Mix(G_Mix(ViewProto, Event), {
      * 通知当前view结束html的更新
      * @param {String} [id] 哪块区域结束更新，默认整个view
      */
-    endUpdate: function(id, me, o) {
+    endUpdate: function(id, me, o,f) {
         me = this;
         if (me.$s > 0) {
-            me.fire('rendered', {
-                id: id
-            });
+            f=me.$p;
+            me.$p=1;
             o = me.owner;
             o.mountZone(id);
-
-            if (!me.$p) {
-                me.$p = 1;
+            if (!f) {
                 Vframe_RunInvokes(o);
             }
 
+
+            // me.fire('rendered', {
+            //     id: id
+            // });
         }
     },
     /**

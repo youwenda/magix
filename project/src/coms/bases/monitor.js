@@ -1,4 +1,4 @@
-define("coms/bases/monitor",['$'],function(require){
+define('coms/bases/monitor',['$'],function(require){
 /*$ */
 /*
     author:xinglie.lkf@taobao.com

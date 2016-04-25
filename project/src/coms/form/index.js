@@ -1,9 +1,10 @@
-define("coms/form/index",['magix','$'],function(require){
+define('coms/form/index',['magix','$'],function(require){
 /*Magix ,$ */
 /*
     author:xinglie.lkf@taobao.com
  */
 var Magix = require('magix');
+var Vframe = Magix.Vframe;
 var $ = require('$');
 var NumReg = /^\d*$/; //允许空字符串
 var Rules = {
@@ -84,10 +85,13 @@ return Magix.View.extend({
     isSubViewValid: function() {
         var me = this;
         var children = me.owner.children();
-        for (var i = 0; i < children.length; i++) {
-            var d = children[i].invoke('isValid');
-            if (d === false) {
-                return false;
+        for (var i = 0, vf, d; i < children.length; i++) {
+            vf = Vframe.get(children[i]);
+            if (vf) {
+                d = vf.invoke('isValid');
+                if (d === false) {
+                    return false;
+                }
             }
         }
         return true;

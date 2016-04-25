@@ -4,8 +4,10 @@
 var Magix = require('magix');
 var $ = require('$');
 Magix.applyStyle('@index.css');
-var CSSNames = 'names@index.css[none,over,header-active]';
 var Monitor = require('../bases/monitor');
+var EnhanceMax = 100;
+var EnhanceItemHeight = 25;
+var EnhanceOffsetItems = 20;
 module.exports = Magix.View.extend({
     tmpl: '@index.html',
     ctor: function(extra) {
@@ -32,6 +34,9 @@ module.exports = Magix.View.extend({
         var list = me.$list;
         var data = me.data;
         data.set({
+            tip: '',
+            before: 0,
+            after: 0,
             search: ops.search,
             width: ops.width || 150,
             height: ops.height || 0,
@@ -42,12 +47,61 @@ module.exports = Magix.View.extend({
         });
         if (val) {
             me.search(val, function(list) {
-                data.set({
-                    list: list
-                }).digest();
+                me.enhance(data, list);
             });
         } else {
+            me.enhance(data, list);
+        }
+    },
+    scroll: function(data) {
+        var me = this;
+        var scroll = Magix.node('scroll_' + me.id);
+        //scroll.scrollTop = 0;
+        var before = data.get('before'),
+            after = data.get('after');
+        scroll.onscroll = function() {
+            var list = me.$rlist;
+            var top = scroll.scrollTop;
+            var to = '';
+            if (after > 0 && top + EnhanceOffsetItems * EnhanceItemHeight > before + EnhanceMax * EnhanceItemHeight) {
+                to = 'b';
+            } else if (before > 0 && top < before + EnhanceOffsetItems * EnhanceItemHeight) {
+                to = 't';
+            }
+            if (to) {
+                var items = to == 't' ? EnhanceMax - EnhanceOffsetItems : EnhanceOffsetItems;
+                before = Math.max(top - items * EnhanceItemHeight, 0);
+                after = Math.max(list.length * EnhanceItemHeight - before - EnhanceMax * EnhanceItemHeight, 0);
+                var start = Math.floor(before / EnhanceItemHeight);
+                data.set({
+                    before: before,
+                    after: after,
+                    list: list.slice(start, start + EnhanceMax)
+                }).digest();
+            }
+        };
+    },
+    enhance: function(data, list) {
+        var max = list.length,
+            me = this;
+        me.$rlist = list;
+        var scroll = Magix.node('scroll_' + me.id);
+        if (scroll) scroll.scrollTop = 0;
+        if (max > EnhanceMax) {
+            var totalHeight = max * EnhanceItemHeight;
+            var before = 0,
+                after = totalHeight - EnhanceMax * EnhanceItemHeight,
+                newList = list.slice(0, EnhanceMax);
             data.set({
+                before: before,
+                after: after,
+                list: newList
+            }).digest();
+            if (!scroll) me.scroll(data);
+        } else {
+            data.set({
+                before: 0,
+                after: 0,
                 list: list
             }).digest();
         }
@@ -71,9 +125,9 @@ module.exports = Magix.View.extend({
             me.$shown = false;
             Monitor.remove(me);
             items = items || $('#list_' + me.id);
-            items.addClass(CSSNames.none);
+            items.addClass('@index.css:none');
             var header = $('#header_' + me.id);
-            header.removeClass(CSSNames['header-active']);
+            header.removeClass('@index.css:header-active'); //'';
             var icon = $('#icon_' + me.id);
             icon.html('⇩');
         }
@@ -86,9 +140,9 @@ module.exports = Magix.View.extend({
             var doc = $(document);
             var docHeight = doc.height();
             items = items || $('#list_' + me.id);
-            items.removeClass(CSSNames.none);
+            items.removeClass('@index.css:none');
             var header = $('#header_' + me.id);
-            header.addClass(CSSNames['header-active']);
+            header.addClass('@index.css:header-active');
             var icon = $('#icon_' + me.id);
             icon.html('⇧');
             var itemsHeight = items.outerHeight();
@@ -96,9 +150,9 @@ module.exports = Magix.View.extend({
                 items.css({
                     marginTop: -(itemsHeight + header.outerHeight())
                 });
-            }else{
+            } else {
                 items.css({
-                    marginTop:0
+                    marginTop: 0
                 });
             }
             $('#' + me.id).trigger('focusin');
@@ -106,22 +160,26 @@ module.exports = Magix.View.extend({
     },
     search: function(val, callback) {
         var me = this;
-        clearTimeout(me.$sTimer);
+        clearTimeout(me.$goTimer);
         var srcList = me.$list;
         var newList = [];
         var index = 0;
         var max = srcList.length;
+        if (!val) {
+            callback(srcList);
+            return;
+        }
         var go = function() {
             if (index < max) {
                 var end = Math.min(index + 400, max);
                 for (var i = index, li; i < end; i++) {
                     li = srcList[i];
-                    if (li.text.indexOf(val) >= 0) {
+                    if ((li.text + '').indexOf(val) >= 0) {
                         newList.push(li);
                     }
                 }
                 index = end;
-                me.$sTimer = setTimeout(go, 20);
+                me.$goTimer = setTimeout(go, 20);
             } else {
                 callback(newList);
             }
@@ -130,12 +188,12 @@ module.exports = Magix.View.extend({
     },
     'hover<mouseout,mouseover>': function(e) {
         var node = $(e.current);
-        node[e.type == 'mouseout' ? 'removeClass' : 'addClass'](CSSNames.over);
+        node[e.type == 'mouseout' ? 'removeClass' : 'addClass']('@index.css:over');
     },
     'toggle<click>': function() {
         var me = this;
         var items = $('#list_' + me.id);
-        if (items.hasClass(CSSNames.none)) {
+        if (items.hasClass('@index.css:none')) {
             me.show(items);
         } else {
             me.hide(items);
@@ -160,18 +218,23 @@ module.exports = Magix.View.extend({
     },
     'search<keyup,paste>': function(e) {
         var me = this;
-        setTimeout(me.wrapAsync(function() {//ie8 paste后并不能立即获取到input value
+        clearTimeout(me.$stimer);
+        me.$stimer = setTimeout(me.wrapAsync(function() { //ie8 paste后并不能立即获取到input value
             var val = e.current.value;
             var data = me.data;
             var lastVal = data.get('iptValue');
             if (val != lastVal) {
+                data.set({
+                    tip: '处理中...'
+                }).digest();
                 me.search(val, function(list) {
                     data.set({
-                        list: list,
+                        tip: '',
                         iptValue: val
-                    }).digest();
+                    });
+                    me.enhance(data, list);
                 });
             }
-        }), 0);
+        }), 150);
     }
 });

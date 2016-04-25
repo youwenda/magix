@@ -1,11 +1,11 @@
-define("app/views/coms/table",['magix'],function(require){
+define('app/views/coms/table',['magix'],function(require){
 /*Magix */
 /*
     author:xinglie.lkf@taobao.com
  */
 var Magix = require('magix');
 return Magix.View.extend({
-    tmpl: "<table class=\"table\"><thead><tr><th>xx</th><th>xx</th><th>xx</td><th>operator</th></tr></thead><tbody><tr><td>xxx</td><td>xxx</td><td>xxx</td><td><div class=\"operation\">\n                    xx\n                </div></td></tr><tr><td>xxx</td><td>xxx</td><td>xxx</td><td><div class=\"operation\">\n                    xx\n                </div></td></tr><tr><td colspan=\"4\" class=\"table-child-td\"><table class=\"table-child\"><thead><tr><th>xx</th><th>xx</th><th>xx</td><th>operator</th></tr></thead><tbody><tr><td>xxx</td><td>xxx</td><td>xxx</td><td><div class=\"operation\">\n                                    xx\n                                </div></td></tr><tr><td>xxx</td><td>xxx</td><td>xxx</td><td><div class=\"operation\">\n                                    xx\n                                </div></td></tr><tr><td>xxx</td><td>xxx</td><td>xxx</td><td><div class=\"operation\">\n                                    xx\n                                </div></td></tr></tbody></table></td></tr><tr><td>xxx</td><td>xxx</td><td>xxx</td><td><div class=\"operation\">\n                    xx\n                </div></td></tr></tbody><tfoot mx-mousedown=\"drag()\"><tr><td colspan=\"4\">xxx</td></tr></tfoot></table>",
+    tmpl: "<table class=\"table\"><thead><tr><th>xx</th><th>xx</th><th>xx</th><th>operator</th></tr></thead><tbody><tr><td>xxx</td><td>xxx</td><td>xxx</td><td><div class=\"operation\">xx</div></td></tr><tr><td>xxx</td><td>xxx</td><td>xxx</td><td><div class=\"operation\">xx</div></td></tr><tr><td colspan=\"4\" class=\"table-child-td\"><table class=\"table-child\"><thead><tr><th>xx</th><th>xx</th><th>xx</th></tr></thead></table></td><th>operator</th></tr><tbody><tr><td>xxx</td><td>xxx</td><td>xxx</td><td><div class=\"operation\">xx</div></td></tr><tr><td>xxx</td><td>xxx</td><td>xxx</td><td><div class=\"operation\">xx</div></td></tr><tr><td>xxx</td><td>xxx</td><td>xxx</td><td><div class=\"operation\">xx</div></td></tr></tbody></tbody></table><tr><td>xxx</td><td>xxx</td><td>xxx</td><td><div class=\"operation\">xx</div></td></tr><tfoot mx-mousedown=\"drag()\"><tr><td colspan=\"4\">xxx</td></tr></tfoot>",
     render: function() {
         var me = this;
         me.data.digest();

@@ -7,10 +7,19 @@ module.exports = Magix.View.extend({
     tmpl: '@dropdown.html',
     ctor: function() {
         var me = this;
+        var big = [];
+        for (var i = 0; i < 200000; i++) {
+            big.push({
+                id: i,
+                text: i + ':' + Math.random()
+            });
+        }
+        me.$big = big;
         me.data.set({
             viewId: me.id
         });
         me.observe('d2Id', null);
+
         //me.render();
     },
     render: function(name) {
@@ -28,14 +37,14 @@ module.exports = Magix.View.extend({
             }).digest();
             me.dropdown('d1_' + me.id, {
                 list: bag.get('data', []),
-                width:name?200:100,
+                width: name ? 200 : 100,
             });
             me.dropdown('d2_' + me.id, {
                 list: bag.get('data', []),
                 selected: loc.params.d2Id || 21,
                 height: 100,
-                width: name?200:300,
-                search:true,
+                width: name ? 200 : 300,
+                search: true,
                 picked: function(e) {
                     console.log(e);
                     Magix.Router.to({
@@ -45,6 +54,11 @@ module.exports = Magix.View.extend({
             });
             me.dropdown('d3_' + me.id, {
                 list: bag.get('data', [])
+            });
+            me.dropdown('d4_' + me.id, {
+
+                search: true,
+                list: me.$big
             });
             me.dropdown('p_' + me.id, {
                 list: [{

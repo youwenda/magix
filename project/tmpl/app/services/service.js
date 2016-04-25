@@ -32,5 +32,9 @@ Service.add([{
 }, {
     name: 'list404',
     url: Env.cdn + 'apis/list404.json'
+}, {
+    name: 'code',
+    url: Env.cdn + 'apis/code.json',
+    cache: TenMins
 }]);
 module.exports = Service;

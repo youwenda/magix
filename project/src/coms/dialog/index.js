@@ -1,4 +1,4 @@
-define("coms/dialog/index",['magix','$'],function(require){
+define('coms/dialog/index',['magix','$'],function(require){
 /*Magix ,$ */
 /*
     author:xinglie.lkf@taobao.com
@@ -6,9 +6,8 @@ define("coms/dialog/index",['magix','$'],function(require){
 var Magix = require('magix');
 var $ = require('$');
 Magix.applyStyle('mp-e2e',".mp-e2e-dialog{position:absolute;top:-99999px}.mp-e2e-mask{width:100%;height:100%;position:fixed;opacity:.3;filter:alpha(opacity=30);background:#000;left:0;top:0}.mp-e2e-content{border-radius:5px;box-shadow:0 0 10px rgba(0,0,0,.1);border:1px solid #ddd;background-color:#fff}.mp-e2e-title{font-size:14px;padding:10px}.mp-e2e-body{padding:20px}.mp-e2e-buttons{padding:10px;border-top:1px solid #eee}.mp-e2e-button{height:22px;width:80px;margin-right:5px}.mp-e2e-right{box-shadow:-5px 0 10px rgba(0,0,0,.1);border-right:none}.mp-e2e-left{box-shadow:5px 0 10px rgba(0,0,0,.1);border-left:none}.mp-e2e-top{box-shadow:0 5px 10px rgba(0,0,0,.1);border-top:none}.mp-e2e-fr{float:right}");
-var CSSNames = {"dialog":"mp-e2e-dialog","mask":"mp-e2e-mask","content":"mp-e2e-content","title":"mp-e2e-title","body":"mp-e2e-body","buttons":"mp-e2e-buttons","button":"mp-e2e-button","right":"mp-e2e-right","left":"mp-e2e-left","top":"mp-e2e-top","fr":"mp-e2e-fr"};
 return Magix.View.extend({
-    tmpl: "<div class=\"mp-e2e-content<%if(options.dockClass){%> <%=options.dockClass%><%}%>\" style=\"width:<%=options.width%>px;\" tabindex=\"-1\" id=\"cnt_<%=id%>\"><h1 class=\"mp-e2e-title\">\n        <%=options.title%>\n    </h1><div class=\"mp-e2e-body\"<%if(options.view){%> mx-view<%}%> id=\"body_<%=id%>\">\n        <%=options.content%>\n    </div>\n    <%if(!options.view){%>\n    <div class=\"mp-e2e-buttons clearfix\">\n        <%var buttons=options.buttons%>\n        <%for(var i=0;i<buttons.length;i++){%>\n            <button class=\"mp-e2e-button btn mp-e2e-fr\" mx-click=\"click({index:<%=i%>})\"><%=buttons[i].text%></button>\n        <%}%>\n    </div>\n    <%}%>\n</div>",
+    tmpl: "<div class=\"mp-e2e-content<%if(options.dockClass){%><%=options.dockClass%><%}%>\" style=\"width:<%=options.width%>px\" tabindex=\"-1\" id=\"cnt_<%=id%>\"><h1 class=\"mp-e2e-title\"><%=options.title%></h1><div class=\"mp-e2e-body\" <%if(options.view){%> mx-view<%}%> id=\"body_<%=id%>\"><%=options.content%></div><%if(!options.view){%><div class=\"mp-e2e-buttons clearfix\"><%var buttons=options.buttons%><%for(var i=0;i<buttons.length;i++){%><button class=\"mp-e2e-button btn mp-e2e-fr\" mx-click=\"click({index:<%=i%>})\"><%=buttons[i].text%></button><%}%></div><%}%></div>",
     ctor: function(extra) {
         var me = this;
         me.$options = extra;
@@ -20,7 +19,7 @@ return Magix.View.extend({
     render: function() {
         var me = this;
         var options = me.$options;
-        options.dockClass = CSSNames[options.dock];
+        options.dockClass = 'mp-e2e-' + options.dock; //CSSNames[options.dock];
         me.data.set({
             id: me.id,
             options: options
@@ -33,7 +32,7 @@ return Magix.View.extend({
             }
         }
         if (options.mask) {
-            node.before('<div id="mask_' + me.id + '" class="' + CSSNames.mask + '" />');
+            node.before('<div id="mask_' + me.id + '" class="mp-e2e-mask" />');
         }
         switch (options.dock) {
             case 'top':
@@ -118,7 +117,7 @@ return Magix.View.extend({
         };
         Magix.mix(dOptions, ops);
         var id = Magix.guid('dlg_');
-        $('body').append('<div id="' + id + '" class="' + CSSNames.dialog + '" />');
+        $('body').append('<div id="' + id + '" class="mp-e2e-dialog" />');
         view.owner.mountVframe(id, 'coms/dialog/index', dOptions);
     }
 });
