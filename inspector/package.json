@@ -9,7 +9,6 @@
         "gulp-uglify": "",
         "gulp-cssnano": "",
         "cssnano": "",
-        "html-minifier":"",
-        "del":""
+        "html-minifier":""
     }
 }

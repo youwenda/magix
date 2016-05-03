@@ -9,7 +9,7 @@ Magix.applyStyle('mp-286',".mp-286-expand{margin-left:0}.mp-286-shrink{margin-le
 var CSSNames = {"fixed":"mp-286-fixed","expand":"mp-286-expand","shrink":"mp-286-shrink"};
 return Magix.View.extend({
     tmpl: "<ul class=\"mp-286-menus\" mx-guid=\"x2d21-\u001f\">@1-\u001f</ul>",
-tmplData:[{"guid":1,"keys":["menus","url"],"tmpl":"<%for(var i=0,menu;i<menus.length;i++){%><%menu=menus[i]%><li><a href=\"#!<%=menu.url%>\" <%if(menu.url==url){%> class=\"mp-286-on\" <%}%>><%if(menu.icon){%><i class=\"iconfont\"><%=menu.icon%></i><%}%><%=menu.text%></a></li><%}%>","selector":"ul[mx-guid=\"x2d21-\u001f\"]"}],
+tmplData:[{"guid":1,"keys":["menus","url"],"tmpl":"<%for(var i=0,menu;i<menus.length;i++){menu=menus[i]%><li><a href=\"#!<%=menu.url%>\" <%if(menu.url==url){%> class=\"mp-286-on\" <%}%>><%if(menu.icon){%><i class=\"iconfont\"><%=menu.icon%></i><%}%><%=menu.text%></a></li><%}%>","selector":"ul[mx-guid=\"x2d21-\u001f\"]"}],
     ctor: function() {
         var me = this;
         me.data.set({
