@@ -1,6 +1,10 @@
 var wrapTMPL = 'define(\'${moduleId}\',[${requires}],function(require){\r\n/*${vars}*/\r\n${content}\r\n});';
 var wrapNoDepsTMPL = 'define(\'${moduleId}\',function(){\r\n${content}\r\n});';
 var wrapNoExports = 'seajs.use([${requires}],function(${vars}){${content}});';
+var config = require('./config.json')
+var $ = require('gulp-load-plugins')()
+var autoPrefixerConfig = {}
+var runSequence = require('run-sequence')
 
 var tmplFolder = 'tmpl'; //template folder
 var srcFolder = 'src'; //source folder
@@ -90,9 +94,29 @@ gulp.task('combine', function() {
         buildTool.processFile(from, to);
     });
 });
+
+
+gulp.task('sass', function () {
+    return gulp.src([tmplFolder + '/**/*.scss'])
+        .pipe($.sass().on('error', $.sass.logError))
+        .pipe($.autoprefixer(autoPrefixerConfig))
+        .pipe(gulp.dest(tmplFolder + ''))
+})
+
 gulp.task('watch', ['combine'], function() {
     watch(tmplFolder + '/**/*', function(e) {
         console.log(e.path);
+        if(path.extname(e.path)=='.scss'){
+            if (config.incrementBuild) {
+                return gulp.src([e.path])
+                    .pipe($.sass().on('error', $.sass.logError))
+                    .pipe($.autoprefixer(autoPrefixerConfig))
+                    .pipe(gulp.dest(path.dirname(e.path)))
+                } else {
+                    runSequence('sass')
+                }
+            return;
+        }
         if (fs.existsSync(e.path)) {
             buildTool.processFile(e.path, e.path.replace(tmplReg, srcHolder), true);
         } else {

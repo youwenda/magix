@@ -13,8 +13,8 @@ if (!Date.now) {
     };
 }
 return FormView.extend({
-    tmpl: "<div class=\"mp-573-buttons\"><button class=\"btn\" mx-click=\"render()\">渲染</button> 行：<input class=\"input\" value=\"<%=rows%>\" mx-change=\"setValue({path:'rows'})\"/> 列：<input class=\"input\" value=\"<%=cols%>\" mx-change=\"setValue({path:'cols'})\"/> 用时:<span id=\"time_<%=id%>\">0</span></div><div id=\"list_<%=id%>\" mx-guid=\"xfed1-\u001f\">@1-\u001f</div>",
-tmplData:[{"guid":1,"keys":["list"],"tmpl":"<%for(var i=0;i<list.length;i++){%><%for(var j=0;j<list[i].length;j++){%><div class=\"mp-573-item\"><%=list[i][j]%></div><div class=\"dropdown\" mx-view=\"coms/dropdown/index?source=script\"><script type=\"text/magix\">[{\"id\":1,\"text\":\"abc\"},{\"id\":2,\"text\":\"def\"}]</script></div><%if(j==list[i].length-1){%><div mx-view=\"app/views/demos/benchmark\"></div><%}%><%}%><%}%>","selector":"div[mx-guid=\"xfed1-\u001f\"]"}],
+    tmpl: "<div class=\"mp-573-buttons\"><button class=\"btn\" mx-click=\"render()\">渲染</button> 行：<input class=\"input\" value=\"<%=rows%>\" mx-change=\"setValue({path:'rows'})\"/> 列：<input class=\"input\" value=\"<%=cols%>\" mx-change=\"setValue({path:'cols'})\"/> 用时:<span id=\"time_<%=id%>\">0</span></div><div id=\"list_<%=id%>\" mx-guid=\"x30d1-\u001f\">@1-\u001f</div>",
+tmplData:[{"guid":1,"keys":["list"],"tmpl":"<%for(var i=0;i<list.length;i++){%><%for(var j=0;j<list[i].length;j++){%><div class=\"mp-573-item\"><%=list[i][j]%></div><div class=\"dropdown\" mx-view=\"coms/dropdown/index?source=script\"><script type=\"text/magix\">[{\"id\":1,\"text\":\"abc\"},{\"id\":2,\"text\":\"def\"}]</script></div><%if(j==list[i].length-1){%><div mx-view=\"app/views/demos/benchmark\"></div><%}%><%}%><%}%>","selector":"div[mx-guid=\"x30d1-\u001f\"]"}],
     render: function() {
         var me = this;
         me.data.set({

@@ -1,0 +1,12 @@
+/**
+ * 常用字号
+ * 从12px到48px, 递增2
+ * .f12 .f14
+ **/
+
+@if $generate-fontsize-class  {
+    @for $i from 6 through 24 {
+        .f#{$i * 2} { font-size: $i * 2px !important; }
+    }
+}
+

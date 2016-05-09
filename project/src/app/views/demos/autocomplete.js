@@ -9,8 +9,8 @@ var $ = require('$');
 Magix.applyStyle('mp-de4',".mp-de4-wrapper{margin:80px}.mp-de4-search{width:300px}.mp-de4-list{width:318px;overflow:auto;position:absolute;background:#eee}.mp-de4-none{display:none}.mp-de4-item{height:21px;line-height:21px;padding:2px 8px;border-radius:2px;user-select:none;-webkit-user-select:none;-moz-user-select:none;cursor:default}.mp-de4-over{background-color:#6363e6;background-image:-webkit-linear-gradient(top,#1b87e3 2%,#6363e6 98%);background-image:linear-gradient(180deg,#1b87e3 2%,#6363e6 98%);color:#ecf2f8;text-shadow:0 -1px 0 rgba(0,0,0,.05)}");
 var CSSNames = {"wrapper":"mp-de4-wrapper","search":"mp-de4-search","list":"mp-de4-list","none":"mp-de4-none","item":"mp-de4-item","over":"mp-de4-over"};
 return Magix.View.extend({
-    tmpl: "<div class=\"mp-de4-wrapper\"><div class=\"autocomplete\"><input class=\"input mp-de4-search\" mx-click=\"showList()\" id=\"ipt_<%=id%>\" mx-keyup=\"search()\" mx-paste=\"search()\" mx-keydown=\"select()\"/></div><div class=\"mp-de4-list mp-de4-none\" id=\"list_<%=id%>\" mx-mouseout=\"leave()\"><ul mx-guid=\"x2251-\u001f\">@1-\u001f</ul></div></div>",
-tmplData:[{"guid":1,"keys":["list"],"tmpl":"<%for(var i=0;i<list.length;i++){%><li id=\"idx_<%=i%>\" class=\"mp-de4-item ellipsis\" mx-mouseover=\"hover({index:<%=i%>})\" mx-click=\"fill()\" data-text=\"<%=list[i].text%>\"><%=list[i].text%></li><%}%>","selector":"ul[mx-guid=\"x2251-\u001f\"]"}],
+    tmpl: "<div class=\"mp-de4-wrapper\"><div class=\"autocomplete\"><input class=\"input mp-de4-search\" mx-click=\"showList()\" id=\"ipt_<%=id%>\" mx-keyup=\"search()\" mx-paste=\"search()\" mx-keydown=\"select()\"/></div><div class=\"mp-de4-list mp-de4-none\" id=\"list_<%=id%>\" mx-mouseout=\"leave()\"><ul mx-guid=\"x8c51-\u001f\">@1-\u001f</ul></div></div>",
+tmplData:[{"guid":1,"keys":["list"],"tmpl":"<%for(var i=0;i<list.length;i++){%><li id=\"idx_<%=i%>\" class=\"mp-de4-item ellipsis\" mx-mouseover=\"hover({index:<%=i%>})\" mx-click=\"fill()\" data-text=\"<%=list[i].text%>\"><%=list[i].text%></li><%}%>","selector":"ul[mx-guid=\"x8c51-\u001f\"]"}],
     ctor: function() {
         Monitor.setup();
         var me = this;
