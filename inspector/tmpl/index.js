@@ -16,8 +16,6 @@ var Consts = {
     moreInfoWidth: 490,
     titleHeight: 34,
     circleMargin: 6,
-    maxDeepView: 4,
-    maxView: 5,
     managerCols: 5,
     managerMargin: 5,
     managerHeight: 40,
@@ -904,7 +902,7 @@ var KISSYEnv = {
             new DD.Draggable({
                 node: node,
                 move: true,
-                handlers: [handle]
+                handlers: [handler]
             });
         });
     },

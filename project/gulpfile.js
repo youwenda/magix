@@ -53,11 +53,29 @@ buildTool.config({
     snippets: {
         loading: '<div class="loading"><span></span></div>'
     },
-    tmplCommand: /<%[\s\S]+?%>|<%=[\s\S]+?%>|$/g,
+    tmplCommand: /<%[\s\S]+?%>/g,
     compressTmplCommand: function(tmpl) {
-        return tmpl.replace(/(?:<%[^=][\s\S]*?%>\s*){2,}/img, function(m) {
+        var stores = {},
+            idx = 1,
+            key = '&\u001e';
+        tmpl = tmpl.replace(/<%[^=][\s\S]*?%>\s*/g, function(m, k) {
+            k = key + idx++;
+            stores[k] = m;
+            return k;
+        });
+        tmpl = tmpl.replace(/(?:&\u001e\d+){2,}/g, function(m) {
+            m = m.replace(/&\u001e\d+/g, function(n) {
+                return stores[n];
+            });
             return m.replace(/%>\s*<%/g, ';').replace(/([\{\}]);/g, '$1');
         });
+        //console.log(tmpl);
+        tmpl= tmpl.replace(/&\u001e\d+/g, function(n) {
+            //console.log(n,stores[n]);
+            return stores[n];
+        });
+        //console.log(tmpl);
+        return tmpl;
     },
     atAttrProcessor: function(name, tmpl, info) {
         if (name == 'pmap') {

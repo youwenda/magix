@@ -65,11 +65,12 @@ li.dragged{
 }
 .h-fields li{
     width:80px;
-    heigth:80px;
+    height:80px;
     padding:5px;
     display: inline-block;
     background: #eee;
     line-height: 80px;
+    margin:0 2px;
 }
 
 .hbar{

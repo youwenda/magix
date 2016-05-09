@@ -20,6 +20,8 @@ module.exports = Magix.View.extend({
             pId: ops.pId || 'pId',
             text: (ops.text || 'text')
         });
+        //aa
+        //bb
     },
     getList: function() {
         return this.$info.list;

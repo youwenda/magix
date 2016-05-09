@@ -201,7 +201,7 @@ var Service_Task = function(done, host, service, total, flag, bagCache) {
 var Service_Send = function(me, attrs, done, flag, save) {
     if (me.$o) return me; //如果已销毁，返回
     if (me.$b) { //繁忙，后续请求入队
-        return me.queue(function() {
+        return me.enqueue(function() {
             Service_Send(this, attrs, done, flag, save);
         });
     }
@@ -348,11 +348,11 @@ G_Mix(Service[G_PROTOTYPE], {
      *  ],function(err,bag1,bag2){
      *      r.dequeue(['args1','args2']);
      *  });
-     *  r.queue(function(args1,args2){
+     *  r.enqueue(function(args1,args2){
      *      alert([args1,args2]);
      *  });
      */
-    queue: function(callback) {
+    enqueue: function(callback) {
         var me = this;
         if (!me.$o) {
             me.$q.push(callback);
@@ -368,18 +368,18 @@ G_Mix(Service[G_PROTOTYPE], {
      * r.all('Name',function(e,bag){
      *     r.dequeue([e,bag]);
      * });
-     * r.queue(function(e,result){//result为m
+     * r.enqueue(function(e,result){//result为m
      *     r.all('NextName',function(e,bag){
      *         r.dequeue([e,bag]);
      *     });
      * });
      *
-     * r.queue(function(e,bag){//m===queue m;
+     * r.enqueue(function(e,bag){//m===queue m;
      *     console.log(e,bag);
      *     r.dequeue([e,bag]);
      * });
      *
-     * r.queue(function(e,bag){
+     * r.enqueue(function(e,bag){
      *     console.log(e,bag);
      * });
      *

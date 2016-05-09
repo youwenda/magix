@@ -11,6 +11,7 @@ var configs = {
     htmlminifierOptions: {},
     excludeTmplFolders: [],
     snippets: {},
+    compressCssNames: false,
     generateJSFile: function() {
         return '';
     },
@@ -169,10 +170,18 @@ Processor.add('css', function() {
         var cssNamesMap = {};
         var gCSSNamesMap = {};
         var cssNamesKey;
-        var cssNameReg = /(\.)([\w\-]+)(?=[^\{\}]*?\{)/g;
+        var cssNameReg = /@?\.([\w\-]+)(?=[^\{\}]*?\{)/g;
         var addToGlobalCSS = true;
-        var cssNameProcessor = function(m, dot, name) {
-            var result = dot + (cssNamesMap[name] = cssNamesKey + '-' + name);
+        var cssNamesCompress = {};
+        var cssNamesCompressIdx = 0;
+        var cssNameProcessor = function(m, name) {
+            if(m.charAt(0)=='@')return m.slice(1);//@.rule
+            var mappedName = name;
+            if (configs.compressCssNames) {
+                if (cssNamesCompress[name]) mappedName = cssNamesCompress[name];
+                else mappedName = cssNamesCompress[name] = (cssNamesCompressIdx++).toString(32);
+            }
+            var result = '.' + (cssNamesMap[name] = cssNamesKey + '-' + mappedName);
             if (addToGlobalCSS) {
                 gCSSNamesMap[name] = cssNamesMap[name];
             }
@@ -263,7 +272,7 @@ Processor.add('css', function() {
 });
 Processor.add('tmpl:cmd', function() {
     var anchor = '-\u001e';
-    var tmplCommandAnchorCompressReg = /(\&\d+\-\u001e)\s+(?=(?:\&\d+\-\u001e|[<>]))/g;
+    var tmplCommandAnchorCompressReg = /(\&\d+\-\u001e)\s+(?=[<>])/g;
     var tmplCommandAnchorCompressReg2 = /([<>])\s+(\&\d+\-\u001e)/g;
     var tmplCommandAnchorReg = /\&\d+\-\u001e/g;
     return {
@@ -671,6 +680,26 @@ Processor.add('require', function() {
         }
     };
 });
+Processor.add('comment', function() {
+    var anchor = '~\u0011';
+    var comment = /(?:\/\/[^\r\n]*|\/\*[\s\S]+?\*\/)/g;
+    var key = /\~\u0011\d+/g;
+    return {
+        remove: function(content, store) {
+            var idx = 0;
+            return content.replace(comment, function(m) {
+                var key = anchor + idx++;
+                store[key] = m;
+                return key;
+            });
+        },
+        restore: function(content, store) {
+            return content.replace(key, function(m) {
+                return store[m];
+            });
+        }
+    };
+});
 Processor.add('file', function() {
     var moduleIdReg = /(['"])(@moduleId)\1/g;
     var extnames = {
@@ -689,6 +718,8 @@ Processor.add('file', function() {
         }
         if (jsReg.test(from)) {
             copyFile(from, to, function(content) {
+                var store = {};
+                content = Processor.run('comment', 'remove', [content, store]);
                 return new Promise(function(resolve) {
                     Processor.run('require', 'process', [{
                         from: from,
@@ -699,6 +730,7 @@ Processor.add('file', function() {
                     }).then(function(e) {
                         return Processor.run('tmpl', 'process', [e]);
                     }).then(function(e) {
+                        e.content = Processor.run('comment', 'restore', [e.content, store]);
                         e.content = e.content.replace(moduleIdReg, '$1' + e.moduleId + '$1');
                         e.content = resolveAtPath(e.content, e.moduleId);
                         var tmpl = configs.generateJSFile(e);

@@ -28,7 +28,7 @@
     font-size:12px;
     line-height:1.5;
 }
-.main ul{list-style:none;}
+.main ul{list-style:none;padding:0;}
 .m5{margin-left:5px;}
 .fl{
     float:left

@@ -17,7 +17,9 @@ module.exports = Magix.View.extend({
     render: function() {
         var me = this;
         var options = me.$options;
-        options.dockClass = '@index.css:$prefix' + options.dock; //CSSNames[options.dock];
+        if (options.dock) {
+            options.dockClass = '@index.css:$prefix' + options.dock; //CSSNames[options.dock];
+        }
         me.data.set({
             id: me.id,
             options: options
