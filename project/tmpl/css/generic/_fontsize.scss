@@ -4,9 +4,7 @@
  * .f12 .f14
  **/
 
-@if $generate-fontsize-class  {
-    @for $i from 6 through 24 {
-        .f#{$i * 2} { font-size: $i * 2px !important; }
-    }
+@for $i from 6 through 24 {
+    .f#{$i * 2} { font-size: $i * 2px !important; }
 }
 
