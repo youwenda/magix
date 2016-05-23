@@ -31,11 +31,13 @@ var isIphone = (window.orientation !== undefined);
 var isAndroid = navigator.userAgent.toLowerCase().indexOf('android') > -1;
 var isIE = window.navigator.appName == 'Microsoft Internet Explorer';
 
+
 // INPUTMASK PUBLIC CLASS DEFINITION
+
 // =================================
 
 var Inputmask = function(element, options) {
-    if (isAndroid) return; // No support because caret positioning doesn't work on Android
+    if (isAndroid) return;  // No support because caret positioning doesn't work on Android
 
     this.$element = $(element);
     this.options = $.extend({}, Inputmask.DEFAULTS, options);
@@ -44,7 +46,7 @@ var Inputmask = function(element, options) {
     this.setup();
     this.listen();
 
-    this.checkVal(); //Perform initial check for existing values
+    this.checkVal();  //Perform initial check for existing values
 };
 
 Inputmask.DEFAULTS = {
@@ -85,11 +87,11 @@ Magix.mix(Inputmask.prototype, {
 
         this.focusText = this.$element.val();
 
-        // this.$element.data('rawMaskFn', $.proxy(function() {
-        //     return $.map(this.buffer, function(c, i) {
-        //         return this.tests[i] && c != this.options.placeholder ? c : null;
-        //     }).join('');
-        // }, this));
+         // this.$element.data('rawMaskFn', $.proxy(function() {
+         //     return $.map(this.buffer, function(c, i) {
+         //         return this.tests[i] && c != this.options.placeholder ? c : null;
+         //     }).join('');
+         // }, this));
     },
     listen: function() {
         if (this.$element.attr('readonly')) return;
@@ -102,7 +104,7 @@ Magix.mix(Inputmask.prototype, {
             .on('keypress.bs.inputmask', $.proxy(this.keypressEvent, this))
             .on(pasteEventName, $.proxy(this.pasteEvent, this));
     },
-    //Helper Function for Caret positioning
+     //Helper Function for Caret positioning
     caret: function(begin, end) {
         if (this.$element.length === 0) return;
         if (typeof begin == 'number') {
@@ -198,12 +200,12 @@ Magix.mix(Inputmask.prototype, {
         this.checkVal();
         if (this.$element.val() !== this.focusText) {
             this.$element.trigger('change');
-            //this.$element.trigger('input');
+             //this.$element.trigger('input');
         }
     },
     keydownEvent: function(e) {
         var k = e.which;
-        //backspace, delete, and escape get special treatment
+         //backspace, delete, and escape get special treatment
         if (k == 8 || k == 46 || (isIphone && k == 127)) {
             var pos = this.caret(),
                 begin = pos.begin,
@@ -215,7 +217,7 @@ Magix.mix(Inputmask.prototype, {
             this.clearBuffer(begin, end);
             this.shiftL(begin, end - 1);
             return false;
-        } else if (k == 27) { //escape
+        } else if (k == 27) {  //escape
             this.$element.val(this.focusText);
             this.caret(0, this.checkVal());
             return false;
@@ -227,7 +229,7 @@ Magix.mix(Inputmask.prototype, {
         var k = e.which,
             pos = this.caret();
 
-        if (e.ctrlKey || e.altKey || e.metaKey || k < 32) { //Ignore
+        if (e.ctrlKey || e.altKey || e.metaKey || k < 32) {  //Ignore
             return true;
         } else if (k) {
             if (pos.end - pos.begin !== 0) {
@@ -267,7 +269,7 @@ Magix.mix(Inputmask.prototype, {
     },
     checkVal: function(allow) {
         var len = this.mask.length;
-        //try to place characters where they belong
+         //try to place characters where they belong
         var test = this.$element.val();
         var lastMatch = -1;
 

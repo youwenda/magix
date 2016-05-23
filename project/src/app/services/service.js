@@ -7,7 +7,7 @@ var Magix = require('magix');
 var $ = require('$');
 var TenMins = 10 * 60 * 1000;
 var Service = Magix.Service.extend(function(bag, callback) {
-    //console.log(bag.get('url'));
+     //console.log(bag.get('url'));
     $.ajax({
         url: bag.get('url'),
         complete: function(xhr, text) {
@@ -16,7 +16,7 @@ var Service = Magix.Service.extend(function(bag, callback) {
                     msg: xhr.statusText
                 });
             } else {
-                //console.log(xhr.responseText);
+                 //console.log(xhr.responseText);
                 bag.set('data', $.parseJSON(xhr.responseText));
                 callback();
             }

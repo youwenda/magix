@@ -25,7 +25,7 @@ var Router_IsParam = function(params, r, ps) {
     return r;
 };
 
-var Router_PNR_Routers, Router_PNR_UnmatchView, Router_PNR_IsFun, Router_PNR_DefaultView, Router_PNR_DefaultPath;
+var Router_PNR_Routers, Router_PNR_UnmatchView, /*Router_PNR_IsFun, */ Router_PNR_DefaultView, Router_PNR_DefaultPath;
 var Router_AttachViewAndPath = function(loc) {
     var result;
     if (!Router_PNR_Routers) {
@@ -33,19 +33,19 @@ var Router_AttachViewAndPath = function(loc) {
         Router_PNR_UnmatchView = Magix_Cfg.unmatchView;
         Router_PNR_DefaultView = Magix_Cfg.defaultView;
         Router_PNR_DefaultPath = Magix_Cfg.defaultPath || Magix_SLASH;
-        Router_PNR_IsFun = G_IsFunction(Router_PNR_Routers);
-        if (!Router_PNR_IsFun && !Router_PNR_Routers[Router_PNR_DefaultPath] && Router_PNR_DefaultView) {
+        //Router_PNR_IsFun = G_IsFunction(Router_PNR_Routers);
+        if ( /*!Router_PNR_IsFun && */ !Router_PNR_Routers[Router_PNR_DefaultPath]) {
             Router_PNR_Routers[Router_PNR_DefaultPath] = Router_PNR_DefaultView;
         }
     }
     if (!loc.view) {
         var path = loc.hash[Router_PATH] || (Router.edge && loc.query[Router_PATH]);
         if (!path) path = Router_PNR_DefaultPath;
-        if (Router_PNR_IsFun) {
-            result = Router_PNR_Routers.call(Magix_Cfg, path, loc);
-        } else {
-            result = Router_PNR_Routers[path]; //简单的在映射表中找
-        }
+        // if (Router_PNR_IsFun) {
+        //     result = Router_PNR_Routers.call(Magix_Cfg, path, loc);
+        // } else {
+        result = Router_PNR_Routers[path]; //简单的在映射表中找
+        //}
         loc.path = path;
         loc.view = result || Router_PNR_UnmatchView || Router_PNR_DefaultView;
     }
@@ -146,23 +146,28 @@ var Router = G_Mix({
             hashObj = G_ParseUri(hash);
             result = {
                 href: href,
-                ref: Router_LLoc.href,
-                srcQuery: query,
-                srcHash: hash,
+                //prev: Router_LLoc.href,
+                //srcQuery: query,
+                //srcHash: hash,
                 query: queryObj,
                 hash: hashObj,
                 params: G_Mix(G_Mix({}, queryObj[Router_PARAMS]), hashObj[Router_PARAMS])
             };
+            Router_AttachViewAndPath(result);
             Router_HrefCache.set(href, result);
         }
         return result;
     },
     /**
-     * 根据location.href路由并派发相应的事件
+     * 根据location.href路由并派发相应的事件,同时返回当前href与上一个href差异对象
+     * @example
+     * var diff=Magix.Router.diff();
+     * if(diff.isParam('page,rows')){
+     *     console.log('page or rows changed');
+     * }
      */
     diff: function() {
         var location = Router.parse();
-        Router_AttachViewAndPath(location);
         var changed = Router_GetChged(Router_LLoc, Router_LLoc = location);
         if (changed.a) {
             Router_LParams = Router_LLoc[Router_PARAMS];
@@ -222,7 +227,6 @@ var Router = G_Mix({
      * @param {Object} e.path  如果path发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Object} e.view 如果view发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Object} e.params 如果参数发生改变时，记录从(from)什么值变成(to)什么值的对象
-     * @param {Object} e.location 地址解析出来的对象，包括query hash 以及 query和hash合并出来的params等
      * @param {Boolean} e.force 标识是否是第一次强制触发的changed，对于首次加载完Magix，会强制触发一次changed
      */
 }, Event);

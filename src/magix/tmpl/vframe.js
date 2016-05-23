@@ -433,6 +433,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * 获取父vframe
      * @param  {Integer} level 层级，默认1,取当前vframe的父级
      * @return {Vframe}
+     * @beta
      * @module linkage
      */
     parent: function(level, vf) {
@@ -446,6 +447,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
     /**
      * 获取当前vframe的所有子vframe的id。返回数组中，vframe在数组中的位置并不固定
      * @return {Array[String]}
+     * @beta
      * @module linkage
      */
     children: function(me) {
@@ -457,6 +459,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * @param  {String} name 方法名
      * @param  {Array} args 参数
      * @return {Object}
+     * @beta
      * @module linkage
      */
     invoke: function(name, args) {

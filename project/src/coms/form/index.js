@@ -6,7 +6,7 @@ define('coms/form/index',['magix','$'],function(require){
 var Magix = require('magix');
 var Vframe = Magix.Vframe;
 var $ = require('$');
-var NumReg = /^\d*$/; //允许空字符串
+var NumReg = /^\d*$/;  //允许空字符串
 var Rules = {
     required: function(val) {
         return $.trim(val);

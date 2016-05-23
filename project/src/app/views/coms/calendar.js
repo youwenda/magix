@@ -22,7 +22,7 @@ return Magix.View.extend({
         });
     },
     'showCal<click>': function(e) {
-        //console.log(e);
+         //console.log(e);
         var ipt = e.current;
         this.datepicker({
             ownerNodeId: ipt.id || (ipt.id = Magix.guid('cal_')),

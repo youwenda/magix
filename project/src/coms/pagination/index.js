@@ -5,10 +5,10 @@ define('coms/pagination/index',['magix'],function(require){
  */
 var Magix = require('magix');
 var Router = Magix.Router;
-Magix.applyStyle('mp-886',".mp-886-page-list{text-align:center;float:left}.mp-886-page-list,.mp-886-page-list a{height:25px;line-height:25px}.mp-886-page-list a{color:#999;font-size:14px;display:inline-block;width:25px;margin-left:2px;vertical-align:text-bottom}a.mp-886-page-active{color:#fff;background:#98aedd;border-radius:3px}.mp-886-page-disabled{cursor:not-allowed}");
+Magix.applyStyle('mp-886',".mp-886-page-list{text-align:center;float:left}.mp-886-page-item,.mp-886-page-list{height:25px;line-height:25px}.mp-886-page-item{color:#999;font-size:14px;display:inline-block;width:25px;margin-left:2px;vertical-align:text-bottom}.mp-886-page-active{color:#fff;background:#98aedd;border-radius:3px}.mp-886-page-disabled{cursor:not-allowed}");
 return Magix.View.extend({
     tmpl: "<div class=\"mp-886-page-list\" mx-guid=\"x4bc1-\u001f\">@1-\u001f</div>",
-tmplData:[{"guid":1,"keys":["start","end","index","path","pages"],"tmpl":"<a href=\"#!<%=path%>\" <%if(index==1){%> class=\"mp-886-page-disabled\" <%}else{%> mx-click=\"toPrev()\" <%}%>>⇦</a><%if(start>1){%><a href=\"#!<%=path%>\" mx-click=\"toPage({page:1})\">1</a><%}if(start>2){%><a class=\"page-others\">...</a><%}for(var i=start;i<=end;i++){%><a class=\"page-item<%if(i==index){%> mp-886-page-active<%}%>\" href=\"#!<%=path%>\" mx-click=\"toPage({page:<%=i%>})\"><%=i%></a><%}if(end+2<=pages){%><a class=\"page-others\">...</a><%}if(end<pages){%><a href=\"#!<%=path%>\" mx-click=\"toPage({page:<%=pages%>})\"><%=pages%></a><%}%><a href=\"#!<%=path%>\" <%if(index==pages){%> class=\"mp-886-page-disabled\" <%}else{%> mx-click=\"toNext()\" <%}%>>⇨</a>","selector":"div[mx-guid=\"x4bc1-\u001f\"]"}],
+tmplData:[{"guid":1,"keys":["start","end","index","path","pages"],"tmpl":"<a href=\"#!<%=path%>\" <%if(index==1){%> class=\"mp-886-page-disabled mp-886-page-item\" <%}else{%> mx-click=\"toPrev()\" class=\"mp-886-page-item\" <%}%>>⇦</a><%if(start>1){%><a class=\"mp-886-page-item\" href=\"#!<%=path%>\" mx-click=\"toPage({page:1})\">1</a><%}if(start>2){%><a class=\"mp-886-page-item\">...</a><%}for(var i=start;i<=end;i++){%><a class=\"mp-886-page-item<%if(i==index){%> mp-886-page-active<%}%>\" href=\"#!<%=path%>\" mx-click=\"toPage({page:<%=i%>})\"><%=i%></a><%}if(end+2<=pages){%><a class=\"mp-886-page-item\">...</a><%}if(end<pages){%><a class=\"mp-886-page-item\" href=\"#!<%=path%>\" mx-click=\"toPage({page:<%=pages%>})\"><%=pages%></a><%}%><a href=\"#!<%=path%>\" <%if(index==pages){%> class=\"mp-886-page-disabled mp-886-page-item\" <%}else{%> mx-click=\"toNext()\" class=\"mp-886-page-item\" <%}%>>⇨</a>","selector":"div[mx-guid=\"x4bc1-\u001f\"]"}],
     render: function() {
         var me = this;
         me.endUpdate();
@@ -32,7 +32,7 @@ tmplData:[{"guid":1,"keys":["start","end","index","path","pages"],"tmpl":"<a hre
         var end = Math.min(pages, start + step - 1);
         start = Math.max(1, end - step + 1);
         var offset;
-        if (start <= 2) { //=2 +1  =1  +2
+        if (start <= 2) {  //=2 +1  =1  +2
             offset = 3 - start;
             if (end + offset < pages) {
                 end += offset;

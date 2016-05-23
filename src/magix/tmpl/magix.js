@@ -581,7 +581,7 @@ var Magix = {
      * 获取对象的keys
      * @type {Array}
      */
-    keys:G_Keys,
+    keys: G_Keys,
     /**
      * 判断一个节点是否在另外一个节点内，如果比较的2个节点是同一个节点，也返回true
      * @function

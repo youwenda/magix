@@ -5,7 +5,7 @@ define('coms/dropdown/index',['magix','$','../bases/monitor'],function(require){
  */
 var Magix = require('magix');
 var $ = require('$');
-Magix.applyStyle('mp-740',".mp-740-li{height:21px;line-height:21px;padding:2px 8px;border-radius:2px;user-select:none;-webkit-user-select:none;-moz-user-select:none;cursor:default}.mp-740-over{background-color:#6363e6;background-image:-webkit-linear-gradient(top,#1b87e3 2%,#6363e6 98%);background-image:linear-gradient(180deg,#1b87e3 2%,#6363e6 98%);color:#ecf2f8;text-shadow:0 -1px 0 rgba(0,0,0,.05)}.mp-740-selected{color:#ccc}.mp-740-header{position:relative;height:18px;line-height:18px;border:1px solid #ccc;border-radius:2px;padding:2px 8px 3px;user-select:none;-webkit-user-select:none;-moz-user-select:none;cursor:default}.mp-740-icon{position:absolute;right:5px;top:2px}.mp-740-ib{display:inline-block}.mp-740-header-active{color:#eee}.mp-740-list{max-height:200px;overflow:auto}.mp-740-items{position:absolute;z-index:1;padding:4px;border-radius:2px;background-color:#fff;color:#474747;box-shadow:0 4px 10px 0 rgba(0,0,0,.1),0 3px 5px 0 rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.09098)}.mp-740-none{display:none}.mp-740-ipt{border-radius:10px;margin-bottom:10px}.mp-740-tip{position:absolute;right:13px;top:10px;color:#999}");
+Magix.applyStyle('mp-740',".mp-740-li{height:21px;line-height:21px;padding:2px 8px;border-radius:2px;user-select:none;-webkit-user-select:none;-moz-user-select:none;cursor:default}.mp-740-over{background-color:#6363e6;background-image:-webkit-linear-gradient(top,#1b87e3 2%,#6363e6 98%);background-image:linear-gradient(180deg,#1b87e3 2%,#6363e6 98%);color:#ecf2f8;text-shadow:0 -1px 0 rgba(0,0,0,.05)}.mp-740-selected{color:#ccc}.mp-740-header{position:relative;height:18px;line-height:18px;border:1px solid #ccc;border-radius:2px;padding:2px 8px 3px;user-select:none;-webkit-user-select:none;-moz-user-select:none;cursor:default}.mp-740-icon{position:absolute;right:5px;top:2px}.mp-740-ib{display:inline-block}.mp-740-header-active{color:#eee}.mp-740-list{max-height:200px;overflow:auto}.mp-740-items{position:absolute;z-index:50;padding:4px;border-radius:2px;background-color:#fff;color:#474747;box-shadow:0 4px 10px 0 rgba(0,0,0,.1),0 3px 5px 0 rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.09098)}.mp-740-none{display:none}.mp-740-ipt{border-radius:10px;margin-bottom:10px}.mp-740-tip{position:absolute;right:13px;top:10px;color:#999}");
 var Monitor = require('../bases/monitor');
 var EnhanceMax = 100;
 var EnhanceItemHeight = 25;
@@ -59,7 +59,7 @@ tmplData:[{"guid":1,"keys":["titleText","width"],"tmpl":"<span class=\"ellipsis 
     scroll: function(data) {
         var me = this;
         var scroll = Magix.node('scroll_' + me.id);
-        //scroll.scrollTop = 0;
+         //scroll.scrollTop = 0;
         var before = data.get('before'),
             after = data.get('after');
         scroll.onscroll = function() {
@@ -130,7 +130,7 @@ tmplData:[{"guid":1,"keys":["titleText","width"],"tmpl":"<span class=\"ellipsis 
             items = items || $('#list_' + me.id);
             items.addClass('mp-740-none');
             var header = $('#header_' + me.id);
-            header.removeClass('mp-740-header-active'); //'';
+            header.removeClass('mp-740-header-active');  //'';
             var icon = $('#icon_' + me.id);
             icon.html('⇩');
         }
@@ -222,7 +222,7 @@ tmplData:[{"guid":1,"keys":["titleText","width"],"tmpl":"<span class=\"ellipsis 
     'search<keyup,paste>': function(e) {
         var me = this;
         clearTimeout(me.$stimer);
-        me.$stimer = setTimeout(me.wrapAsync(function() { //ie8 paste后并不能立即获取到input value
+        me.$stimer = setTimeout(me.wrapAsync(function() {  //ie8 paste后并不能立即获取到input value
             var val = e.current.value;
             var data = me.data;
             var lastVal = data.get('iptValue');

@@ -1,0 +1,53 @@
+/**
+ * 项目的默认设置
+ **/
+
+// $color-brand: #f00;
+$mm-namespace: mm-;
+
+/**---------下面是覆盖bootstrap的变量---------**/
+$font-size-base: 14px;
+$line-height-base: 1.8;
+$text-color: #333;
+$font-family-base: 'helvetica neue',tahoma,'hiragino sans gb',stheiti,'wenquanyi micro hei',\5FAE\8F6F\96C5\9ED1,\5B8B\4F53,sans-serif;
+
+/**---------------下面的变量是默认设置, 不推荐直接修改, 如果需要修改, 在上面声明对应变量覆盖即可------------------------**/
+
+// 颜色
+$color-brand: #6363e6 !default;      // 品牌色
+$color-brand-hover: #f22 !default;   // 品牌hover色
+$color-border: #e6e6e6 !default;     // 边框默认颜色
+$color-text: #333 !default;          // 文本默认颜色
+$color-background: #ddd !default;    // 背景颜色
+
+
+
+
+// 文字
+$font-size: 14px !default;       // 默认字号
+$line-height: 1.8 !default;      // 默认行高
+
+
+
+// 栅格
+$breakpoints: (
+    pc: 1002px,         // 栅格系统pc断点
+    pad: 850px,         // 栅格系统pad断点
+    h5: 768px,          // 栅格系统手机断点
+) !default;
+
+$gutter-width: 15px !default;       // 栅格系统两列之间间距30/2
+$grid-column-count: 12 !default;         // 栅格系统列数
+
+
+$page-gutter-width: 10px !default;           // h5的时候页面距屏幕的边距宽度
+
+
+// 常用工具类生成
+$generate-fontsize-class: true !default;     // 是否自动生成fontsize工具类
+$generate-spacing-class: true !default;      // 是否自动生成内外边距工具类
+$generate-dimension-class: true !default;    // 是否自动生成尺寸工具类
+
+
+// 组件名字空间, 默认为空, 如果引入了其他样式库发生命名冲突, 可以通过设置命名空间解决问题
+$mm-namespace: null !default;

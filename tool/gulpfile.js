@@ -18,9 +18,9 @@ var extModules = {
   linkage: 1,
   base: 1,
   style: 1,
-  //cnum: 1,
-  //ceach:1,
-  //viewInit:1,
+  cnum: 1,
+  ceach:1,
+  viewInit:1,
   service: 1,
   router: 1,
   resource: 1,
@@ -75,7 +75,7 @@ gulp.task('compress', function() {
     .pipe(gulp.dest('../dist/' + type + '/'));
 });
 
-gulp.task('doc', function() {
+gulp.task('doc', ['combine'],function() {
   var content = fs.readFileSync('../dist/' + type + '/magix-debug.js').toString();
   var main = doc(content);
   fs.writeFileSync('../doc/src/data.js', 'define("data",function(){return ' + JSON.stringify(main) + '})');

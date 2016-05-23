@@ -8,7 +8,7 @@ var $ = require('$');
 var Picker = require('../../../../coms/bases/picker');
 var Autoscroll = require('../../../../coms/bases/autoscroll');
 
-Magix.applyStyle('mp-fec',".mp-fec-cnt{padding:10px}.mp-fec-fields-wrapper{width:500px}.mp-fec-buttons{margin-top:10px}.mp-fec-buttons button{margin-right:8px}.mp-fec-fields{width:60%;float:left}.mp-fec-fields label{margin:2px 8px 3px;display:inline-block}.mp-fec-sortable{width:40%;float:left;height:200px;overflow:auto}.mp-fec-ghost li,.mp-fec-sortable li{height:20px;line-height:20px;border:1px solid #ccc;margin-bottom:3px;padding:4px;cursor:move}li.mp-fec-dragged{opacity:.3}.mp-fec-ghost{position:absolute;left:-9999px}.mp-fec-ghost li{background:#fff;width:120px}.mp-fec-bar{width:120px;height:1px;border:5px solid #333;position:absolute;left:-9999px;border-top:5px solid transparent;border-bottom:5px solid transparent}.mp-fec-barh{height:1px;overflow:hidden;background:#000}.mp-fec-h-fields{margin-top:20px;width:500px;height:100px;overflow:auto}.mp-fec-h-fields li{width:80px;heigth:80px;padding:5px;display:inline-block;background:#eee;line-height:80px}.mp-fec-hbar{width:1px;border:5px solid #333;position:absolute;left:-9999px;border-left:5px solid transparent;border-right:5px solid transparent}.mp-fec-hbarh{width:1px;height:100%;overflow:hidden;background:#000}");
+Magix.applyStyle('mp-fec',".mp-fec-cnt{padding:10px}.mp-fec-fields-wrapper{width:500px}.mp-fec-buttons{margin-top:10px}.mp-fec-buttons button{margin-right:8px}.mp-fec-fields{width:60%;float:left}.mp-fec-fields label{margin:2px 8px 3px;display:inline-block}.mp-fec-sortable{width:40%;float:left;height:200px;overflow:auto}.mp-fec-ghost li,.mp-fec-sortable li{height:20px;line-height:20px;border:1px solid #ccc;margin-bottom:3px;padding:4px;cursor:move}li.mp-fec-dragged{opacity:.3}.mp-fec-ghost{position:absolute;left:-9999px}.mp-fec-ghost li{background:#fff;width:120px}.mp-fec-bar{width:120px;height:1px;border:5px solid #333;position:absolute;left:-9999px;border-top:5px solid transparent;border-bottom:5px solid transparent}.mp-fec-barh{height:1px;overflow:hidden;background:#000}.mp-fec-h-fields{margin-top:20px;width:500px;height:100px;overflow:auto}.mp-fec-h-fields li{width:80px;height:80px;padding:5px;display:inline-block;background:#eee;line-height:80px;margin:0 2px}.mp-fec-hbar{width:1px;border:5px solid #333;position:absolute;left:-9999px;border-left:5px solid transparent;border-right:5px solid transparent}.mp-fec-hbarh{width:1px;height:100%;overflow:hidden;background:#000}");
 var CSSNames = {"cnt":"mp-fec-cnt","fields-wrapper":"mp-fec-fields-wrapper","buttons":"mp-fec-buttons","fields":"mp-fec-fields","sortable":"mp-fec-sortable","ghost":"mp-fec-ghost","dragged":"mp-fec-dragged","bar":"mp-fec-bar","barh":"mp-fec-barh","h-fields":"mp-fec-h-fields","hbar":"mp-fec-hbar","hbarh":"mp-fec-hbarh"};
 return Picker.extend({
     tmpl: "<div class=\"mp-fec-cnt\"><div class=\"mp-fec-fields-wrapper clearfix\"><div class=\"mp-fec-fields\" mx-guid=\"xa3f1-\u001f\">@1-\u001f</div><div class=\"mp-fec-sortable\" id=\"sortable_<%=id%>\"><ul mx-guid=\"xa3f2-\u001f\">@2-\u001f</ul></div></div><div class=\"mp-fec-h-fields\" mx-guid=\"xa3f3-\u001f\" id=\"hsortable_<%=id%>\">@3-\u001f</div><div class=\"mp-fec-buttons\"><button class=\"btn\" mx-click=\"enter();\">确定</button> <button class=\"btn\" mx-click=\"cancel();\">取消</button></div></div>",
@@ -86,7 +86,7 @@ tmplData:[{"guid":1,"keys":["fields","checkedMap"],"tmpl":"<%for(var i=0;i<field
         bar.width(width - 4);
 
         var lastNode, offset, dir, lastDir, scrolling;
-        autoscroll.onscroll = function() { //滚动时隐藏相应的元素
+        autoscroll.onscroll = function() {  //滚动时隐藏相应的元素
             bar.css({
                 left: -9999
             });
@@ -177,7 +177,7 @@ tmplData:[{"guid":1,"keys":["fields","checkedMap"],"tmpl":"<%for(var i=0;i<field
         bar.height(height - 4);
 
         var lastNode, offset, dir, lastDir, scrolling;
-        autoscroll.onscroll = function() { //滚动时隐藏相应的元素
+        autoscroll.onscroll = function() {  //滚动时隐藏相应的元素
             bar.css({
                 left: -9999
             });

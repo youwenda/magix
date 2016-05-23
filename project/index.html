@@ -30,6 +30,7 @@
                 defaultView:'app/views/default',
                 exts:['coms/exports','app/refresh','app/exts'],
                 error:function(e){
+                    console.log(e,e.stack);
                     throw e;
                 }
             });

@@ -144,7 +144,7 @@ var G_Has = function(owner, prop) {
     return owner && Magix_HasProp.call(owner, prop); //false 0 G_NULL '' undefined
 };
 var Magix_CacheSort = function(a, b) {
-    return  b.f - a.f || b.t - a.t;
+    return  b.n - a.n ||  b.f - a.f || b.t - a.t;
 };
 /**
  * Magix.Cache 类
@@ -192,6 +192,31 @@ G_Mix(G_Cache[G_PROTOTYPE], {
         return r;
     },
     
+    /**
+     * 获取引用值，仅启动cnum模块时该方法才存在
+     * @param  {String} key 缓存key
+     * @param  {Boolean} increase 是否是增长
+     * @beta
+     * @module cnum
+     */
+    num: function(key, increase) {
+        var me = this,
+            c = me.c,
+            k = G_SPLITER + key;
+        if (increase && !c[k]) {
+            me.set(key, G_NULL);
+        }
+        var o = c[k];
+        if (o) {
+            if (increase) {
+                o.n++;
+            } else if (o.n > 0) {
+                o.n--;
+            }
+            o.f++;
+        }
+    },
+    
     
     /**
      * 循环缓存 需启用ceach或service模块
@@ -226,16 +251,28 @@ G_Mix(G_Cache[G_PROTOTYPE], {
                 c.sort(Magix_CacheSort);
                 while (t--) {
                     
-                    r = c.pop();
+                    r = c[c.length - 1]; //弹出最后一个
+                    if (r.n) { //如果有引用
+                        break; //直接跳出循环
+                    }
+                    c.pop();
                     
                     //为什么要判断r.f>0,考虑这样的情况：用户设置a,b，主动删除了a,重新设置a,数组中的a原来指向的对象残留在列表里，当排序删除时，如果不判断则会把新设置的删除，因为key都是a
                     //
                     if (r.f > 0) me.del(r.o); //如果没有引用，则删除
                     
+                    f = 1; //标记无引用
+                    
+                }
+                
+                if (!f) { //auto increase
+                    me.x += me.b;
                 }
                 
             }
             r = {
+                
+                n: 0,
                 
                 o: okey
             };
@@ -598,7 +635,7 @@ var Magix = {
      * 获取对象的keys
      * @type {Array}
      */
-    keys:G_Keys,
+    keys: G_Keys,
     /**
      * 判断一个节点是否在另外一个节点内，如果比较的2个节点是同一个节点，也返回true
      * @function
@@ -757,7 +794,7 @@ var Router_IsParam = function(params, r, ps) {
     return r;
 };
 
-var Router_PNR_Routers, Router_PNR_UnmatchView, Router_PNR_IsFun, Router_PNR_DefaultView, Router_PNR_DefaultPath;
+var Router_PNR_Routers, Router_PNR_UnmatchView, /*Router_PNR_IsFun, */ Router_PNR_DefaultView, Router_PNR_DefaultPath;
 var Router_AttachViewAndPath = function(loc) {
     var result;
     if (!Router_PNR_Routers) {
@@ -765,19 +802,19 @@ var Router_AttachViewAndPath = function(loc) {
         Router_PNR_UnmatchView = Magix_Cfg.unmatchView;
         Router_PNR_DefaultView = Magix_Cfg.defaultView;
         Router_PNR_DefaultPath = Magix_Cfg.defaultPath || Magix_SLASH;
-        Router_PNR_IsFun = G_IsFunction(Router_PNR_Routers);
-        if (!Router_PNR_IsFun && !Router_PNR_Routers[Router_PNR_DefaultPath] && Router_PNR_DefaultView) {
+        //Router_PNR_IsFun = G_IsFunction(Router_PNR_Routers);
+        if ( /*!Router_PNR_IsFun && */ !Router_PNR_Routers[Router_PNR_DefaultPath]) {
             Router_PNR_Routers[Router_PNR_DefaultPath] = Router_PNR_DefaultView;
         }
     }
     if (!loc.view) {
         var path = loc.hash[Router_PATH] || (Router.edge && loc.query[Router_PATH]);
         if (!path) path = Router_PNR_DefaultPath;
-        if (Router_PNR_IsFun) {
-            result = Router_PNR_Routers.call(Magix_Cfg, path, loc);
-        } else {
-            result = Router_PNR_Routers[path]; //简单的在映射表中找
-        }
+        // if (Router_PNR_IsFun) {
+        //     result = Router_PNR_Routers.call(Magix_Cfg, path, loc);
+        // } else {
+        result = Router_PNR_Routers[path]; //简单的在映射表中找
+        //}
         loc.path = path;
         loc.view = result || Router_PNR_UnmatchView || Router_PNR_DefaultView;
     }
@@ -878,23 +915,28 @@ var Router = G_Mix({
             hashObj = G_ParseUri(hash);
             result = {
                 href: href,
-                ref: Router_LLoc.href,
-                srcQuery: query,
-                srcHash: hash,
+                //prev: Router_LLoc.href,
+                //srcQuery: query,
+                //srcHash: hash,
                 query: queryObj,
                 hash: hashObj,
                 params: G_Mix(G_Mix({}, queryObj[Router_PARAMS]), hashObj[Router_PARAMS])
             };
+            Router_AttachViewAndPath(result);
             Router_HrefCache.set(href, result);
         }
         return result;
     },
     /**
-     * 根据location.href路由并派发相应的事件
+     * 根据location.href路由并派发相应的事件,同时返回当前href与上一个href差异对象
+     * @example
+     * var diff=Magix.Router.diff();
+     * if(diff.isParam('page,rows')){
+     *     console.log('page or rows changed');
+     * }
      */
     diff: function() {
         var location = Router.parse();
-        Router_AttachViewAndPath(location);
         var changed = Router_GetChged(Router_LLoc, Router_LLoc = location);
         if (changed.a) {
             Router_LParams = Router_LLoc[Router_PARAMS];
@@ -954,7 +996,6 @@ var Router = G_Mix({
      * @param {Object} e.path  如果path发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Object} e.view 如果view发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Object} e.params 如果参数发生改变时，记录从(from)什么值变成(to)什么值的对象
-     * @param {Object} e.location 地址解析出来的对象，包括query hash 以及 query和hash合并出来的params等
      * @param {Boolean} e.force 标识是否是第一次强制触发的changed，对于首次加载完Magix，会强制触发一次changed
      */
 }, Event);
@@ -1136,7 +1177,7 @@ var Vframe_Update = function(vframe, view) {
             i = 0;
         //console.log(me.id,cs);
         while (i < j) {
-            Vframe_Update(cs[i++]);
+            Vframe_Update(Vframe_Vframes[cs[i++]]);
         }
     }
 };
@@ -1270,6 +1311,8 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     //     }
                     // });
                     View_DelegateEvents(view);
+                    
+                    view.init(G_Mix(po.params, viewInitParams));
                     
                     //Vframe_RunInvokes(me);
                     view.render();
@@ -1437,6 +1480,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * 获取父vframe
      * @param  {Integer} level 层级，默认1,取当前vframe的父级
      * @return {Vframe}
+     * @beta
      * @module linkage
      */
     parent: function(level, vf) {
@@ -1450,6 +1494,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
     /**
      * 获取当前vframe的所有子vframe的id。返回数组中，vframe在数组中的位置并不固定
      * @return {Array[String]}
+     * @beta
      * @module linkage
      */
     children: function(me) {
@@ -1461,6 +1506,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * @param  {String} name 方法名
      * @param  {Array} args 参数
      * @return {Object}
+     * @beta
      * @module linkage
      */
     invoke: function(name, args) {
@@ -1605,7 +1651,7 @@ var Body_DOMEventProcessor = function(e) {
                     }
                 }
             } else {
-                Magix_Cfg.error('bad:' + info);
+                Magix_Cfg.error(Error('bad:' + info));
             }
         }
         if ((ignore = current.$) && ignore[eventType] /*|| e.isPropagationStopped()*/ ) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
@@ -1910,6 +1956,8 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @function
      */
     render: G_NOOP,
+    
+    init: G_NOOP,
     
     // *
     //  * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^test<prevent>({key:'field})"，以方便识别交由哪个view处理
@@ -2324,6 +2372,7 @@ G_Mix(Bag[G_PROTOTYPE], {
             }
         }
         if (hasDValue && G_Type(dValue) != G_Type(attrs)) {
+            Magix_Cfg.error(Error('type neq:' + key));
             attrs = dValue;
         }
         //DEBUGKEEP if (me.$m.k && (G_IsArray(attrs) || G_IsObject(attrs))) {
@@ -2422,7 +2471,7 @@ var Service_Task = function(done, host, service, total, flag, bagCache) {
 var Service_Send = function(me, attrs, done, flag, save) {
     if (me.$o) return me; //如果已销毁，返回
     if (me.$b) { //繁忙，后续请求入队
-        return me.queue(function() {
+        return me.enqueue(function() {
             Service_Send(this, attrs, done, flag, save);
         });
     }
@@ -2569,11 +2618,11 @@ G_Mix(Service[G_PROTOTYPE], {
      *  ],function(err,bag1,bag2){
      *      r.dequeue(['args1','args2']);
      *  });
-     *  r.queue(function(args1,args2){
+     *  r.enqueue(function(args1,args2){
      *      alert([args1,args2]);
      *  });
      */
-    queue: function(callback) {
+    enqueue: function(callback) {
         var me = this;
         if (!me.$o) {
             me.$q.push(callback);
@@ -2589,18 +2638,18 @@ G_Mix(Service[G_PROTOTYPE], {
      * r.all('Name',function(e,bag){
      *     r.dequeue([e,bag]);
      * });
-     * r.queue(function(e,result){//result为m
+     * r.enqueue(function(e,result){//result为m
      *     r.all('NextName',function(e,bag){
      *         r.dequeue([e,bag]);
      *     });
      * });
      *
-     * r.queue(function(e,bag){//m===queue m;
+     * r.enqueue(function(e,bag){//m===queue m;
      *     console.log(e,bag);
      *     r.dequeue([e,bag]);
      * });
      *
-     * r.queue(function(e,bag){
+     * r.enqueue(function(e,bag){
      *     console.log(e,bag);
      * });
      *

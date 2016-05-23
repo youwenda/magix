@@ -81,7 +81,7 @@ var Body_DOMEventProcessor = function(e) {
                     }
                 }
             } else {
-                Magix_Cfg.error('bad:' + info);
+                Magix_Cfg.error(Error('bad:' + info));
             }
         }
         if ((ignore = current.$) && ignore[eventType] /*|| e.isPropagationStopped()*/ ) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏

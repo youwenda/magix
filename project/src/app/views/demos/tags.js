@@ -85,7 +85,7 @@ tmplData:[{"guid":1,"keys":["selected"],"tmpl":"<%for(var i=0;i<selected.length;
             selected: selected
         }).digest();
         me.updateInputWidth();
-        //me.hide();
+         //me.hide();
         me.focusInput();
     },
     'search<keyup,paste>': function(e) {
@@ -130,7 +130,7 @@ tmplData:[{"guid":1,"keys":["selected"],"tmpl":"<%for(var i=0;i<selected.length;
         me.updateInputWidth();
     },
     'test<click>': function(e) {
-        //$(e.current).remove();
+         //$(e.current).remove();
         e.current.parentNode.removeChild(e.current);
         var start = e.current;
         while (start) {

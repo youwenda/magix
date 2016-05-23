@@ -11,17 +11,17 @@ var CSSNames = {"over":"mp-e65-over","toleft":"mp-e65-toleft","toright":"mp-e65-
 var Instance;
 var Menu = Magix.View.extend({
     tmpl: "<div style=\"width:<%=width%>px;<%if(isChild){%>position:absolute;left:-1000000px<%}%>\" mx-mouseover=\"over();\" class=\"mp-e65-container<%if(isChild){%> away<%}%>\" mx-contextmenu=\"prevent()\" mx-guid=\"x35f1-\u001f\">@1-\u001f</div>",
-tmplData:[{"guid":1,"keys":["width"],"tmpl":"<ul class=\"mp-e65-items\" mx-guid=\"x35f2-\u001f\">@2-\u001f</ul>","selector":"div[mx-guid=\"x35f1-\u001f\"]","attrs":[{"n":"style","v":"width:<%=width%>px;<%if(isChild){%>position:absolute;left:-1000000px<%}%>"}],"mask":"2"},{"guid":2,"keys":["list","viewId"],"tmpl":"<%for(var i=0,one;i<list.length;i++){one=list[i]%><li mx-mouseover=\"hover({id:'<%=one.id%>'})\" mx-mouseout=\"hover({id:'<%=one.id%>'});\" <%if(!one.children){%> mx-click=\"select({id:'<%=one.id%>'})\" <%}%> class=\"ellipsis\" title=\"<%=one.text%>\" id=\"<%=viewId%>_<%=one.id%>\"><i class=\"iconfont\">&#xe64b;</i><%=one.text;if(one.children){%><span class=\"mp-e65-more\">➤</span><%}%></li><%}%>","selector":"ul[mx-guid=\"x35f2-\u001f\"]","pKeys":["width"]}],
+tmplData:[{"guid":1,"keys":["width"],"tmpl":"<ul class=\"mp-e65-items\" mx-guid=\"x35f2-\u001f\">@2-\u001f</ul>","selector":"div[mx-guid=\"x35f1-\u001f\"]","attrs":[{"n":"style","v":"width:<%=width%>px;<%if(isChild){%>position:absolute;left:-1000000px<%}%>"}],"mask":"2"},{"guid":2,"keys":["list","viewId"],"tmpl":"<%for(var i=0,one;i<list.length;i++){one=list[i]%><li mx-mouseover=\"hover({id:'<%=one.id%>'})\" mx-mouseout=\"hover({id:'<%=one.id%>'});\" <%if(!one.children){%> mx-click=\"select({id:'<%=one.id%>'})\" <%}%> class=\"ellipsis\" title=\"<%=one.text%>\" id=\"<%=viewId%>_<%=one.id%>\"><i class=\"iconfont\">&#xe64b;</i><%=one.text%> <%if(one.children){%><span class=\"mp-e65-more\">➤</span><%}%></li><%}%>","selector":"ul[mx-guid=\"x35f2-\u001f\"]","pKeys":["width"]}],
     ctor: function() {
         var me = this;
-        // me.data.on('changed', function(e) {
-        //     if (e.keys.width) {
-        //         var cnt = $('#' + me.id + '>div');
-        //         cnt.css({
-        //             width: this.get('width')
-        //         });
-        //     }
-        // });
+         // me.data.on('changed', function(e) {
+         //     if (e.keys.width) {
+         //         var cnt = $('#' + me.id + '>div');
+         //         cnt.css({
+         //             width: this.get('width')
+         //         });
+         //     }
+         // });
         me.on('destroy', function() {
             if (me.data.get('isChild'))
                 $('#' + me.id).remove();
@@ -218,7 +218,7 @@ tmplData:[{"guid":1,"keys":["width"],"tmpl":"<ul class=\"mp-e65-items\" mx-guid=
         if (flag) {
             if (!me.$pNode && Instance != me) {
                 if (Instance) Instance.hide();
-                //Instance = me;
+                 //Instance = me;
             }
             if (me.$pNode) {
                 $(me.$pNode).addClass(CSSNames.over);

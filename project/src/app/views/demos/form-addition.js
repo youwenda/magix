@@ -14,7 +14,7 @@ tmplData:[{"guid":1,"keys":["list"],"tmpl":"<li><input class=\"input\" type=\"te
         me.leaveTip('表单有改动，您确认离开吗？', function() {
             return me.data.altered();
         });
-        //me.render();
+         //me.render();
     },
     render: function() {
         var me = this;

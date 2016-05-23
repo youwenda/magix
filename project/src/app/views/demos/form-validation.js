@@ -89,10 +89,10 @@ tmplData:[{"guid":1,"keys":["list"],"tmpl":"<li><input class=\"input\" type=\"te
         me.data.digest();
     },
     'clearOnePlatform<click>': function() {
-        //var vf = Magix.Vframe.get('p_0');
+         //var vf = Magix.Vframe.get('p_0');
         var owner = this.owner;
         owner.unmountVframe('p_0');
-        //vf.unmountView();
+         //vf.unmountView();
     },
     'clearPlatform<click>': function() {
         var data = this.data;

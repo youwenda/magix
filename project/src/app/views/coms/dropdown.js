@@ -23,7 +23,7 @@ tmplData:[{"guid":1,"keys":["d2Id"],"tmpl":"<script type=\"text/magix\"><%=JSON.
         });
         me.observe('d2Id', null);
 
-        //me.render();
+         //me.render();
     },
     render: function(name) {
         var me = this;

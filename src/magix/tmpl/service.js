@@ -47,6 +47,7 @@
  * @constructor
  * @property {String} id bag唯一标识
  */
+var JSONStringify = JSON.stringify;
 var Bag = function() {
     this.id = G_Id('b');
     this.$ = {};
@@ -91,7 +92,8 @@ G_Mix(Bag[G_PROTOTYPE], {
             或者key本身就是数组
          */
         var hasDValue = alen >= 2;
-        var attrs = me.$;
+        var $attrs = me.$;
+        var attrs = $attrs;
         if (alen) {
             var tks = G_IsArray(key) ? G_Slice.call(key) : (key + G_EMPTY).split('.'),
                 tk;
@@ -103,11 +105,9 @@ G_Mix(Bag[G_PROTOTYPE], {
             }
         }
         if (hasDValue && G_Type(dValue) != G_Type(attrs)) {
+            Magix_Cfg.error(Error('type neq:' + key + '\n' + JSONStringify($attrs)));
             attrs = dValue;
         }
-        //DEBUGKEEP if (me.$m.k && (G_IsArray(attrs) || G_IsObject(attrs))) {
-        //KEEPCONSOLE.warn('Be careful of bag cache! get by:',key,',expect value:',dValue,',get value:',attrs);
-        //DEBUGKEEP }
         return attrs;
     },
     /**
@@ -441,21 +441,8 @@ G_Mix(Service[G_PROTOTYPE], {
          */
 });
 
-var Manager_WJSON = G_WINDOW.JSON;
-
-//使用JSON.stringify生成唯一的缓存key，当浏览器不支持JSON时，不再缓存
-var Manager_Ser = function(o, f, a) {
-    if (f && G_IsFunction(o)) { //标志f为trusy时，才去判断o是否为fn
-        a = Manager_Ser(G_ToTry(o));
-    } else if (Manager_WJSON) {
-        a = Manager_WJSON.stringify(o);
-    } else {
-        a = G_Now(); //不缓存
-    }
-    return a;
-};
 var Manager_DefaultCacheKey = function(meta, attrs, arr) {
-    arr = [Manager_Ser(attrs), Manager_Ser(meta), Manager_Ser(meta.k, 1)];
+    arr = [JSONStringify(attrs), JSONStringify(meta)];
     return arr.join(G_SPLITER);
 };
 var Manager_ClearCache = function(v, ns, cache, mm) {

@@ -4,6 +4,8 @@
 var Magix = require('magix');
 var $ = require('$');
 var Router = Magix.Router;
+Magix.applyStyle('@../../css/main.css');
+
 var ShrinkCSS = '@./partials/header-sidebar.css:shrink';
 module.exports = Magix.View.extend({
     tmpl: '@default.html',

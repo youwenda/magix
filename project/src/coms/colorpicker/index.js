@@ -44,11 +44,11 @@ var HSV2RGB = function(h, s, v) {
     };
 };
 var RGB2HSV = function(r, g, b) {
-    //if (r > 0 || g > 0 || b > 0) {
+     //if (r > 0 || g > 0 || b > 0) {
     r /= 255;
     g /= 255;
     b /= 255;
-    //}
+     //}
     var H, S, V, C;
     V = Math.max(r, g, b);
     C = V - Math.min(r, g, b);

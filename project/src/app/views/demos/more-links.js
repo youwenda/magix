@@ -5,7 +5,7 @@ define('app/views/demos/more-links',['magix','$','./partials/more-links'],functi
  */
 var Magix = require('magix');
 var $ = require('$');
-Magix.applyStyle('mp-599',".mp-599-wrapper{margin:20px}.mp-599-list{width:150px;position:absolute;z-index:1;padding:4px;background-color:#fff;color:#474747;box-shadow:0 4px 10px 0 rgba(0,0,0,.1),0 3px 5px 0 rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.09098)}.mp-599-list,.mp-599-list li{border-radius:2px}.mp-599-list li{height:21px;line-height:21px;padding:2px 8px;user-select:none;-webkit-user-select:none;-moz-user-select:none;cursor:default}.mp-599-over{background-color:#6363e6;background-image:-webkit-linear-gradient(top,#1b87e3 2%,#6363e6 98%);background-image:linear-gradient(180deg,#1b87e3 2%,#6363e6 98%);color:#ecf2f8;text-shadow:0 -1px 0 rgba(0,0,0,.05)}.mp-599-none{display:none}");
+Magix.applyStyle('mp-599',".mp-599-wrapper{margin:20px}.mp-599-list{width:150px;position:absolute;z-index:50;padding:4px;background-color:#fff;color:#474747;box-shadow:0 4px 10px 0 rgba(0,0,0,.1),0 3px 5px 0 rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.09098)}.mp-599-list,.mp-599-list li{border-radius:2px}.mp-599-list li{height:21px;line-height:21px;padding:2px 8px;user-select:none;-webkit-user-select:none;-moz-user-select:none;cursor:default}.mp-599-over{background-color:#6363e6;background-image:-webkit-linear-gradient(top,#1b87e3 2%,#6363e6 98%);background-image:linear-gradient(180deg,#1b87e3 2%,#6363e6 98%);color:#ecf2f8;text-shadow:0 -1px 0 rgba(0,0,0,.05)}.mp-599-none{display:none}");
 var CSSNames = {"wrapper":"mp-599-wrapper","list":"mp-599-list","over":"mp-599-over","none":"mp-599-none"};
 var MoreLinks = require('./partials/more-links');
 return Magix.View.extend({

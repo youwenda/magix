@@ -175,7 +175,7 @@ Processor.add('css', function() {
         var cssNamesCompress = {};
         var cssNamesCompressIdx = 0;
         var cssNameProcessor = function(m, name) {
-            if(m.charAt(0)=='@')return m.slice(1);//@.rule
+            if (m.charAt(0) == '@') return m.slice(1); //@.rule
             var mappedName = name;
             if (configs.compressCssNames) {
                 if (cssNamesCompress[name]) mappedName = cssNamesCompress[name];
@@ -647,7 +647,7 @@ Processor.add('tmpl', function() {
     };
 });
 Processor.add('require', function() {
-    var depsReg = /(?:var\s+([^=]+)=\s*)?require\(([^\(\)]+)\);?/g;
+    var depsReg = /(?:var\s+([^=]+)=\s*)?(\.)?\brequire\s*\(([^\(\)]+)\);?/g;
     var exportsReg = /module\.exports\s*=\s*/;
     return {
         process: function(e) {
@@ -660,7 +660,8 @@ Processor.add('require', function() {
                 e.content = e.content.replace(exportsReg, 'return ');
                 hasExports = true;
             }
-            e.content = e.content.replace(depsReg, function(match, key, str) {
+            e.content = e.content.replace(depsReg, function(match, key, dot, str) {
+                if (dot) return match;//以.开始的require
                 str = resolveAtPath(str, moduleId);
                 if (key) {
                     vars.push(key);
@@ -682,15 +683,16 @@ Processor.add('require', function() {
 });
 Processor.add('comment', function() {
     var anchor = '~\u0011';
-    var comment = /(?:\/\/[^\r\n]*|\/\*[\s\S]+?\*\/)/g;
+    var comment = /(?:\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$)/mg;
     var key = /\~\u0011\d+/g;
     return {
         remove: function(content, store) {
             var idx = 0;
-            return content.replace(comment, function(m) {
+            return content.replace(comment, function(m, prefix) {
                 var key = anchor + idx++;
                 store[key] = m;
-                return key;
+                prefix = prefix || '';
+                return prefix + key;
             });
         },
         restore: function(content, store) {

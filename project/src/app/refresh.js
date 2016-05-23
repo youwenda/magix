@@ -85,10 +85,10 @@ Magix.mix(fn, {
     },
     altered: function() {
         var me = this;
-        if (me.$ss) { //存在快照
+        if (me.$ss) {  //存在快照
             try {
-                if (!me.$lss) me.$lss = JSON.stringify(me.$json); //不存在比较的快照，生成
-                return me.$ss != me.$lss; //比较2次快照是否一样
+                if (!me.$lss) me.$lss = JSON.stringify(me.$json);  //不存在比较的快照，生成
+                return me.$ss != me.$lss;  //比较2次快照是否一样
             } catch (e) {
                 console.error(e);
             }
@@ -148,7 +148,7 @@ Magix.View.merge({
             var updateNode = function(index, node) {
                 var id = node.id || (node.id = Magix.guid('n'));
                 if (!updatedNodes[id]) {
-                    //console.time('update:' + id);
+                     //console.time('update:' + id);
                     updatedNodes[id] = 1;
                     var vf = one.view && Magix.Vframe.get(id);
                     if (updateAttrs) {
@@ -171,11 +171,11 @@ Magix.View.merge({
                     if (vf) {
                         vf.mountView(BuildHTML(one.view, renderData, selfId));
                     }
-                    //console.timeEnd('update:' + id);
+                     //console.timeEnd('update:' + id);
                 }
             };
             console.log(updateFlags);
-            for (var i = list.length - 1, update, q, mask, m; i >= 0; i--) { //keys
+            for (var i = list.length - 1, update, q, mask, m; i >= 0; i--) {  //keys
                 updateTmpl = 0;
                 updateAttrs = 0;
                 one = list[i];
@@ -222,7 +222,7 @@ Magix.View.merge({
                 tmplData = me.tmplData,
                 x;
             if (tmplData) {
-                if (!tmplData.$) { //process once
+                if (!tmplData.$) {  //process once
                     tmplData.$ = map;
                     x = tmplData.length;
                     while (x > 0) {

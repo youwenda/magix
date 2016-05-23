@@ -121,7 +121,7 @@ tmplData:[{"guid":1,"keys":["list"],"tmpl":"<%for(var i=0;i<list.length;i++){%><
         var me = this;
         var max = me.data.get('list').length - 1;
         if (max < 0) return;
-        if (e.keyCode == 38) { //UP
+        if (e.keyCode == 38) {  //UP
             if (!me.$shown) me['showList<click>']();
             e.preventDefault();
             me.normalPre();
@@ -130,7 +130,7 @@ tmplData:[{"guid":1,"keys":["list"],"tmpl":"<%for(var i=0;i<list.length;i++){%><
                 me.$sIndex = max;
             }
             me.highlight();
-        } else if (e.keyCode == 40) { //DOWN
+        } else if (e.keyCode == 40) {  //DOWN
             if (!me.$shown) me['showList<click>']();
             e.preventDefault();
             me.normalPre();
