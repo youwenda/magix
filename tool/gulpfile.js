@@ -15,17 +15,17 @@ var modulesMap = {
 };
 var type = 'cmd'; //打包kissy则type='kissy'
 var extModules = {
-  linkage: 1,
-  base: 1,
-  style: 1,
-  cnum: 1,
-  ceach:1,
-  viewInit:1,
-  service: 1,
-  router: 1,
-  resource: 1,
-  tiprouter: 1,
-  share: 1
+  // linkage: 1,
+  // base: 1,
+  // style: 1,
+  // cnum: 1,
+  // ceach:1,
+  // viewInit:1,
+  // service: 1,
+  // router: 1,
+  // resource: 1,
+  // tiprouter: 1,
+  // share: 1
 };
 for (var p in extModules) {
   modulesMap[p] = extModules[p];

@@ -1,4 +1,4 @@
-var View_EvtMethodReg = /^([^<>]+)<([^<>]+)>$/;
+var View_EvtMethodReg = /^([^<]+)<([^>]+)>$/;
 
 //var View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 /*#if(modules.resource){#*/

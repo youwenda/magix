@@ -46,11 +46,11 @@ Magix.mix(fn, {
         for (key in data) {
             val = data[key];
             lchange = 0;
-            try {
+            //try {
                 valJSON = JSON.stringify(val);
-            } catch (e) {
-                lchange = e;
-            }
+            //} catch (e) {
+                //lchange = e;
+            //}
             if (!Magix.has(json, key)) {
                 json[key] = valJSON;
                 lchange = 1;

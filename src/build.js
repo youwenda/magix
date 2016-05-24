@@ -598,6 +598,13 @@ Processor.add('tmpl:event', function() {
         }
     };
 });
+Processor.add('tmpl:autokeys', function() {
+    return {
+        run: function(fileContent) {
+            return fileContent;
+        }
+    };
+});
 Processor.add('tmpl', function() {
     var fileTmplReg = /(\btmpl\s*:\s*)?(['"])@([^'"]+)\.html(?:\2)/g; //对于tmpl:特殊分析
     var htmlCommentCelanReg = /<!--[\s\S]*?-->/g;
@@ -617,6 +624,7 @@ Processor.add('tmpl', function() {
                     var refGuidToKeys = {},
                         refTmplCommands = {};
                     fileContent = Processor.run('tmpl:cmd', 'compress', [fileContent]);
+                    fileContent = Processor.run('tmpl:autokeys', 'run', [fileContent]);
                     fileContent = Processor.run('tmpl:snippet', 'expand', [fileContent]);
                     if (key) fileContent = Processor.run('tmpl:cmd', 'store', [fileContent, refTmplCommands]); //模板命令移除，防止影响分析
                     //var refTmplEvents = Processor.run('tmpl:event', 'extract', [fileContent]);
@@ -661,7 +669,7 @@ Processor.add('require', function() {
                 hasExports = true;
             }
             e.content = e.content.replace(depsReg, function(match, key, dot, str) {
-                if (dot) return match;//以.开始的require
+                if (dot) return match; //以.开始的require
                 str = resolveAtPath(str, moduleId);
                 if (key) {
                     vars.push(key);

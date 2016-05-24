@@ -48,11 +48,11 @@ Magix.mix(fn, {
         for (key in data) {
             val = data[key];
             lchange = 0;
-            try {
+             //try {
                 valJSON = JSON.stringify(val);
-            } catch (e) {
-                lchange = e;
-            }
+             //} catch (e) {
+                 //lchange = e;
+             //}
             if (!Magix.has(json, key)) {
                 json[key] = valJSON;
                 lchange = 1;
@@ -76,22 +76,22 @@ Magix.mix(fn, {
     },
     snapshot: function() {
         var me = this;
-        try {
+         //try {
             me.$ss = JSON.stringify(me.$json);
-        } catch (e) {
+         //} catch (e) {
 
-        }
+         //}
         return me;
     },
     altered: function() {
         var me = this;
         if (me.$ss) {  //存在快照
-            try {
+             //try {
                 if (!me.$lss) me.$lss = JSON.stringify(me.$json);  //不存在比较的快照，生成
                 return me.$ss != me.$lss;  //比较2次快照是否一样
-            } catch (e) {
-                console.error(e);
-            }
+             //} catch (e) {
+               //  console.error(e);
+             //}
         }
         return true;
     }
@@ -140,8 +140,8 @@ Magix.View.merge({
     updateHTML: function(updateFlags, renderData) {
         var me = this;
         var selfId = me.id;
-        if (me.$rd && updateFlags) {
-            var list = me.tmplData;
+        var list = me.tmplData;
+        if (me.$rd && updateFlags && list) {
             var updatedNodes = {},
                 keys;
             var one, updateTmpl, updateAttrs;
@@ -215,27 +215,25 @@ Magix.View.merge({
                 }
             }
         } else {
-            var map = {},
+            var map,
                 tmplment = function(m, guid) {
                     return map[guid].tmpl;
                 },
-                tmplData = me.tmplData,
                 x;
-            if (tmplData) {
-                if (!tmplData.$) {  //process once
-                    tmplData.$ = map;
-                    x = tmplData.length;
+            if (list) {
+                if (!list.$) {  //process once
+                    list.$ = map = {};
+                    x = list.length;
                     while (x > 0) {
-                        var s = tmplData[--x];
+                        var s = list[--x];
                         if (s.guid) {
                             map[s.guid] = s;
                             s.tmpl = s.tmpl.replace(ContentReg, tmplment);
                             delete s.guid;
                         }
                     }
-                } else {
-                    map = tmplData.$;
                 }
+                map = list.$;
             }
             me.$rd = 1;
             var tmpl = me.tmpl.replace(ContentReg, tmplment);
