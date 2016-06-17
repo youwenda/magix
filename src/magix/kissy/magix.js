@@ -117,7 +117,7 @@ KISSY.add('magix', function(S, SE) {
     /*#}#*/
     /*#}#*/
     /*#}#*/
-    var Vframe_GetVframes = S.all;
+    var $ = S.all;
     Inc('../tmpl/vframe');
     var Body_DOMGlobalProcessor = function(e, me) {
         me = this;

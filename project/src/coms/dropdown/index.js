@@ -10,6 +10,8 @@ var Monitor = require('../bases/monitor');
 var EnhanceMax = 100;
 var EnhanceItemHeight = 25;
 var EnhanceOffsetItems = 20;
+var TOP = 1,
+    BOTTOM = 2;
 return Magix.View.extend({
     tmpl: "<div mx-click=\"toggle();\" class=\"mp-740-header\" id=\"header_<%=id%>\" style=\"width:<%=width%>px\" mx-guid=\"xf961-\u001f\">@1-\u001f</div><div id=\"list_<%=id%>\" class=\"mp-740-items mp-740-none\"><%if(search){%><input class=\"input mp-740-ipt\" mx-guid=\"xf962-\u001f\" mx-keyup=\"search()\" mx-paste=\"search()\" style=\"width:<%=width-10%>px\"/> <span class=\"mp-740-tip\" mx-guid=\"xf963-\u001f\">@2-\u001f</span><%}%><ul id=\"scroll_<%=id%>\" class=\"mp-740-list\" mx-guid=\"xf964-\u001f\" style=\"width:<%=width+9%>px;<%if(height){%>max-height:<%=height%>px;overflow:auto<%}%>\">@3-\u001f</ul></div>",
 tmplData:[{"guid":1,"keys":["titleText","width"],"tmpl":"<span class=\"ellipsis mp-740-ib\" style=\"width:<%=width-15%>px\" id=\"title_<%=id%>\" title=\"<%=titleText%>\"><%=titleText%></span><span class=\"mp-740-icon\" id=\"icon_<%=id%>\">⇩</span>","selector":"div[mx-guid=\"xf961-\u001f\"]","attrs":[{"n":"style","v":"width:<%=width%>px"}],"mask":"13"},{"guid":2,"keys":["tip"],"tmpl":"<%=tip%>","selector":"span[mx-guid=\"xf963-\u001f\"]"},{"guid":3,"keys":["list","selected","width","height"],"tmpl":"<%if(before){%><li style=\"height:<%=before%>px\"></li><%}for(var i=0,one;i<list.length;i++){one=list[i]%><li mx-mouseover=\"hover()\" mx-mouseout=\"hover();\" mx-click=\"select({id:'<%=one.id%>'})\" class=\"mp-740-li ellipsis<%if(selected==one.id){%> mp-740-selected<%}%>\" title=\"<%=one.text%>\"><%=one.text%></li><%}if(after){%><li style=\"height:<%=after%>px\"></li><%}%>","selector":"ul[mx-guid=\"xf964-\u001f\"]","attrs":[{"n":"style","v":"width:<%=width+9%>px;<%if(height){%>max-height:<%=height%>px;overflow:auto<%}%>"}],"mask":"1122"},{"keys":["width"],"selector":"input[mx-guid=\"xf962-\u001f\"]","attrs":[{"n":"style","v":"width:<%=width-10%>px"}]}],
@@ -67,12 +69,12 @@ tmplData:[{"guid":1,"keys":["titleText","width"],"tmpl":"<span class=\"ellipsis 
             var top = scroll.scrollTop;
             var to = '';
             if (after > 0 && top + EnhanceOffsetItems * EnhanceItemHeight > before + EnhanceMax * EnhanceItemHeight) {
-                to = 'b';
+                to = BOTTOM;
             } else if (before > 0 && top < before + EnhanceOffsetItems * EnhanceItemHeight) {
-                to = 't';
+                to = TOP;
             }
             if (to) {
-                var items = to == 't' ? EnhanceMax - EnhanceOffsetItems : EnhanceOffsetItems;
+                var items = to == TOP ? EnhanceMax - EnhanceOffsetItems : EnhanceOffsetItems;
                 before = Math.max(top - items * EnhanceItemHeight, 0);
                 after = Math.max(list.length * EnhanceItemHeight - before - EnhanceMax * EnhanceItemHeight, 0);
                 var start = Math.floor(before / EnhanceItemHeight);
@@ -182,7 +184,7 @@ tmplData:[{"guid":1,"keys":["titleText","width"],"tmpl":"<span class=\"ellipsis 
                     }
                 }
                 index = end;
-                me.$goTimer = setTimeout(go, 20);
+                me.$goTimer = setTimeout(me.wrapAsync(go), 20);
             } else {
                 callback(newList);
             }

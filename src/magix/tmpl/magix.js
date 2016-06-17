@@ -385,7 +385,7 @@ var G_ToMap = function(list, key) {
     if (list && (l = list.length)) {
         for (i = 0; i < l; i++) {
             e = list[i];
-            map[key ? e[key] : e] = key ? e : (map[e] | 0) + 1; //对于简单数组，采用累加的方式，以方便知道有多少个相同的元素
+            map[(key && e) ? e[key] : e] = key ? e : (map[e] | 0) + 1; //对于简单数组，采用累加的方式，以方便知道有多少个相同的元素
         }
     }
     return map;
@@ -459,10 +459,18 @@ var Magix = {
     /*#if(modules.router){#*/
     boot: function(cfg) {
         G_Mix(Magix_Cfg, cfg); //先放到配置信息中，供ini文件中使用
-        G_Require(Magix_Cfg.exts, function() {
-            Router.on('changed', Vframe_NotifyLocationChange);
-            Router.bind();
+        /*#if(modules.configIni){#*/
+        G_Require(Magix_Cfg.ini, function(I) {
+            G_Mix(Magix_Cfg, I);
+            G_Mix(Magix_Cfg, cfg);
+            /*#}#*/
+            G_Require(Magix_Cfg.exts, function() {
+                Router.on('changed', Vframe_NotifyLocationChange);
+                Router.bind();
+            });
+            /*#if(modules.configIni){#*/
         });
+        /*#}#*/
     },
     /*#}else{#*/
     boot: function(cfg) {

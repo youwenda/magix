@@ -27,6 +27,20 @@ var View_DestroyResource = function(cache, key, callDestroy) {
     return res;
 };
 /*#}#*/
+var View_WrapRender = function(prop, fn, me) {
+    fn = prop.render;
+    prop.render = function() {
+        me = this;
+        if (me.$s > 0) { //signature
+            me.$s++;
+            me.fire('rendercall');
+            /*#if(modules.resource){#*/
+            View_DestroyAllResources(me);
+            /*#}#*/
+            G_ToTry(fn, G_Slice.call(arguments), me);
+        }
+    };
+};
 var View_DelegateEvents = function(me, destroy) {
     var events = me.$eo; //eventsObject
     var p, e;
@@ -59,24 +73,12 @@ var View_DelegateEvents = function(me, destroy) {
 // var View_StyleCallback = function(m, left, key) {
 //     return left + key.replace(View_StyleNameKeyReg, '.' + View_StyleCssKeyTemp + ' $&');
 // };
+/*#if(modules.viewMerge){#*/
 var View_Ctors = [];
+/*#}#*/
 var View_Globals = {
     $win: G_WINDOW,
     $doc: G_DOCUMENT
-};
-var View_WrapRender = function(prop, fn, me) {
-    fn = prop.render;
-    prop.render = function() {
-        me = this;
-        if (me.$s > 0) { //signature
-            me.$s++;
-            me.fire('rendercall');
-            /*#if(modules.resource){#*/
-            View_DestroyAllResources(me);
-            /*#}#*/
-            G_ToTry(fn, G_Slice.call(arguments), me);
-        }
-    };
 };
 /**
  * 预处理view
@@ -209,7 +211,9 @@ var View = function(ops, me) {
     me.$r = {};
     /*#}#*/
     me.$s = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
+    /*#if(modules.viewMerge){#*/
     G_ToTry(View_Ctors, ops, me);
+    /*#}#*/
 };
 var ViewProto = View[G_PROTOTYPE];
 G_Mix(View, {
@@ -243,11 +247,13 @@ G_Mix(View, {
      * //当前上述功能也可以用继承实现，但继承层次太多时，可以考虑使用扩展来消除多层次的继承
      *
      */
+    /*#if(modules.viewMerge){#*/
     merge: function(props, ctor) {
         ctor = props && props.ctor;
         if (ctor) View_Ctors.push(ctor);
         G_Mix(ViewProto, props);
     },
+    /*#}#*/
     /**
      * 继承
      * @param  {Object} [props] 原型链上的方法或属性对象
@@ -276,6 +282,16 @@ G_Mix(G_Mix(ViewProto, Event), {
     render: G_NOOP,
     /*#if(modules.viewInit){#*/
     init: G_NOOP,
+    /*#}#*/
+    /*#if(modules.viewRelate){#*/
+    relate: function(node) {
+        var id = node.id || (node.id = G_Id());
+        var me = this;
+        Body_ViewRelateInfo[id] = me.owner;
+        me.on('destroy', function() {
+            delete Body_ViewRelateInfo[id];
+        });
+    },
     /*#}#*/
     // *
     //  * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^test<prevent>({key:'field})"，以方便识别交由哪个view处理
@@ -317,7 +333,7 @@ G_Mix(G_Mix(ViewProto, Event), {
      * 通知当前view结束html的更新
      * @param {String} [id] 哪块区域结束更新，默认整个view
      */
-    endUpdate: function(id, me, o /*#if(modules.linkage){#*/ , f /*#}#*/ ) {
+    endUpdate: function(id, me /*#if(modules.linkage){#*/ , o, f /*#}#*/ ) {
         me = this;
         if (me.$s > 0) {
             // me.fire('rendered', {
@@ -327,10 +343,12 @@ G_Mix(G_Mix(ViewProto, Event), {
             f = me.$p;
             /*#}#*/
             me.$p = 1;
+            /*#if(modules.linkage){#*/
             o = me.owner;
             o.mountZone(id);
-            /*#if(modules.linkage){#*/
             if (!f) Vframe_RunInvokes(o);
+            /*#}else{#*/
+            me.owner.mountZone(id);
             /*#}#*/
         }
     },

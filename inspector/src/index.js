@@ -1093,6 +1093,8 @@ for (var p in RequireEnv) {
 }
 SeajsEnv.getMod = function(key) {
     var mods = seajs.cache;
+    if(key=='magix')key='app/magix';
+    if(key=='$')key='app/zepto';
     for (var p in mods) {
         var mod = mods[p];
         if (mod.id === key) {
@@ -1315,6 +1317,7 @@ var Helper = {
         env.prepare();
         var poll = function() {
             if (D.body) {
+                console.log(env,env.isReady())
                 if (env.isReady()) {
                     callback();
                 } else {

@@ -269,6 +269,11 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     /*#}#*/
                     //Vframe_RunInvokes(me);
                     view.render();
+                    /*#if(modules.autoEndUpdate){#*/
+                    if (!view.tmpl && !view.$p) {
+                        view.endUpdate();
+                    }
+                    /*#}#*/
                 }
             });
         }
@@ -351,11 +356,14 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      */
     mountZone: function(zoneId, viewInitParams /*,keepPreHTML*/ ) {
         var me = this;
-        //var subs = {};
+        /*#if(modules.layerVframe){#*/
+        var subs = {},
+            vfs, j, subVf;
+        /*#}#*/
         var i, vf, id;
         zoneId = zoneId || me.id;
 
-        var vframes = Vframe_GetVframes('#' + zoneId + ' [mx-view]');
+        var vframes = $('#' + zoneId + ' [mx-view]');
         /*
             body(#mx-root)
                 div(mx-vframe=true,mx-view='xx')
@@ -373,16 +381,30 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
 
         me.$h = 1; //hold fire creted
         me.unmountZone(zoneId, 1);
+        /*#if(modules.collectView){#*/
+        var temp = [];
+        for (i = vframes.length - 1; i >= 0; i--) {
+            vf = vframes[i];
+            temp.push(vf.getAttribute('mx-view'));
+        }
+        G_Require(temp);
+        /*#}#*/
         for (i = vframes.length - 1; i >= 0; i--) {
             vf = vframes[i];
             id = vf.id || (vf.id = G_Id());
-            //if (!G_Has(subs, id)) {
-            me.mountVframe(id, vf.getAttribute('mx-view'), viewInitParams);
-            // vfs = Vframe_GetVframes(vf);
-            // for (j = vfs.length - 1; j >= 0; j--) {
-            //     subs[Vframe_IdIt(vfs[j])] = 1;
-            // }
-            //}
+            /*#if(modules.layerVframe){#*/
+            if (!G_Has(subs, id)) {
+                /*#}#*/
+                me.mountVframe(id, vf.getAttribute('mx-view'), viewInitParams);
+                /*#if(modules.layerVframe){#*/
+                vfs = $('#' + id + ' [mx-view]');
+                for (j = vfs.length - 1; j >= 0; j--) {
+                    subVf = vfs[j];
+                    id = subVf.id || (subVf.id = G_Id());
+                    subs[id] = 1;
+                }
+            }
+            /*#}#*/
         }
         me.$h = 0;
         Vframe_NotifyCreated(me);

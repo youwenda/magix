@@ -22,30 +22,18 @@ var onlyAllows = {
 };
 
 var gulp = require('gulp');
-var path = require('path');
 var watch = require('gulp-watch');
-var nano = require('cssnano');
 var fs = require('fs');
-var buildTool = require('../src/build');
+var combineTool = require('magix-combine');
+var del = require('del');
 
-var sep = path.sep;
-var sepReg = sep.replace(/\\/g, '\\\\');
 
-tmplFolder = path.resolve(tmplFolder);
-srcFolder = path.resolve(srcFolder);
-
-buildFolder = path.resolve(buildFolder);
-
-var tmplFolderName = path.basename(tmplFolder);
-var srcFolderName = path.basename(srcFolder);
-var buildFolderName = path.basename(buildFolder);
-var moduleIdRemovedPath = path.resolve(tmplFolder);
-
-buildTool.config({
-    nano: nano,
+combineTool.config({
+    tmplFolder: tmplFolder,
+    srcFolder: srcFolder,
+    buildFolder: buildFolder,
     excludeTmplFolders: excludeTmplFolders,
     onlyAllows: onlyAllows,
-    moduleIdRemoved: moduleIdRemovedPath,
     generateJSFile: function(o) {
         var tmpl = wrapNoExports;
         tmpl = o.requires.length ? wrapTMPL : wrapNoDepsTMPL;
@@ -57,38 +45,30 @@ buildTool.config({
     }
 });
 
-var tmplReg = new RegExp('(' + sepReg + '?)' + tmplFolderName + sepReg),
-    srcHolder = '$1' + srcFolderName + sep,
-    srcReg = new RegExp('(' + sepReg + '?)' + srcFolderName + sepReg),
-    buildHolder = '$1' + buildFolderName + sep;
-gulp.task('combine', function() {
-    buildTool.walk(tmplFolder, function(filepath) {
-        var from = filepath;
-        var to = from.replace(tmplReg, srcHolder);
-        buildTool.processFile(from, to);
-    });
+gulp.task('cleanSrc', function() {
+    return del(srcFolder);
+});
+gulp.task('combine', ['cleanSrc'], function() {
+    combineTool.combine();
 });
 gulp.task('watch', ['combine'], function() {
     watch(tmplFolder + '/**/*', function(e) {
         console.log(e.path);
         if (fs.existsSync(e.path)) {
-            buildTool.processFile(e.path, e.path.replace(tmplReg, srcHolder), true);
+            combineTool.processFile(e.path);
         } else {
-            var file = e.path.replace(tmplReg, srcHolder);
-            if (fs.existsSync(file)) {
-                fs.unlinkSync(file);
-            }
-            buildTool.removeFile(file);
+            combineTool.removeFile(e.path);
         }
     });
 });
 
 var uglify = require('gulp-uglify');
 var cssnano = require('gulp-cssnano');
-gulp.task('build', function() {
-    buildTool.walk(srcFolder, function(p) {
-        buildTool.copyFile(p, p.replace(srcReg, buildHolder));
-    });
+gulp.task('cleanBuild', function() {
+    return del(buildFolder);
+});
+gulp.task('build', ['cleanBuild'], function() {
+    combineTool.build();
     gulp.src(buildFolder + '/**/*.js')
         .pipe(uglify({
             compress: {

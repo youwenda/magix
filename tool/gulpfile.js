@@ -7,25 +7,32 @@ var tmpl = require('./lib/tmpl');
 var doc = require('./lib/doc');
 var sep = path.sep;
 var modulesMap = {
-  magix: 1,
-  event: 1,
-  vframe: 1,
-  body: 1,
+  magix: 1, //公用方法及入口
+  event: 1, //pubsub
+  vframe: 1, //
+  body: 1, //dom事件处理模块
   view: 1
 };
 var type = 'cmd'; //打包kissy则type='kissy'
 var extModules = {
-  // linkage: 1,
-  // base: 1,
-  // style: 1,
+  linkage: 1, //vframe上是否带父子间调用的方法，通常在移动端并不需要
+  //base: 1, //base模块
+  style: 1, //是否有样式处理
   // cnum: 1,
   // ceach:1,
-  // viewInit:1,
-  // service: 1,
-  // router: 1,
-  // resource: 1,
-  // tiprouter: 1,
-  // share: 1
+  // viewInit:1,//init方法
+  service: 1, //接口服务
+  router: 1, //路由模块
+  resource: 1, //资源管理
+  // tiprouter: 1,//切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
+  // share: 1,//向子或孙view公开数据
+  //collectView: 1,//收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
+  //layerVframe: 1,//父子化同一个view中嵌套存在的vframe
+  autoEndUpdate: 1, //自动识别并结束更新。针对没有tmpl属性的view自动识别并结束更新
+  //viewRelate:1, //view上是否增加relate方法，当一些节点在view范围外面，但需要响应view事件时有用
+  //configIni:1,//是否有ini配置文件
+  viewMerge: 1, //view是否提供merge方法供扩展原型链对象
+  //
 };
 for (var p in extModules) {
   modulesMap[p] = extModules[p];
@@ -63,7 +70,7 @@ gulp.task('combine', function() {
 gulp.task('compress', function() {
   gulp.src('../dist/' + type + '/magix-debug.js')
     .pipe(uglify({
-      banner: '/*Magix Licensed MIT*/',
+      banner: '/*Magix3.0 Licensed MIT*/',
       compress: {
         drop_console: true
       },
@@ -75,7 +82,7 @@ gulp.task('compress', function() {
     .pipe(gulp.dest('../dist/' + type + '/'));
 });
 
-gulp.task('doc', ['combine'],function() {
+gulp.task('doc', ['combine'], function() {
   var content = fs.readFileSync('../dist/' + type + '/magix-debug.js').toString();
   var main = doc(content);
   fs.writeFileSync('../doc/src/data.js', 'define("data",function(){return ' + JSON.stringify(main) + '})');

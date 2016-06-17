@@ -10,8 +10,8 @@ Magix.applyStyle('mp-23b',"html{-webkit-font-smoothing:antialiased;-moz-osx-font
 
 var ShrinkCSS = 'mp-286-shrink';
 return Magix.View.extend({
-    tmpl: "<div mx-view=\"app/views/partials/header\" mx-togglesidebar=\"resizeMain()\"></div><div class=\"inmain\" id=\"inmain\"><div mx-guid=\"xd971-\u001f\" mx-view=\"<%=mainView%>\" t=\"<%=mainView%>\"><div class=\"loading\"><span></span></div></div></div>",
-tmplData:[{"keys":["mainView"],"selector":"div[mx-guid=\"xd971-\u001f\"]","attrs":[{"n":"t","v":"<%=mainView%>"}],"view":"<%=mainView%>"}],
+    tmpl: "<div mx-view=\"app/views/partials/header\" mx-togglesidebar=\"resizeMain()\"></div><div class=\"inmain\" id=\"inmain\"><div mx-guid=\"xd971-\u001f\" mx-view=\"<%=mainView%>\"><div class=\"loading\"><span></span></div></div></div>",
+tmplData:[{"keys":["mainView"],"selector":"div[mx-guid=\"xd971-\u001f\"]","view":"<%=mainView%>"}],
     ctor: function() {
         var me = this;
         me.observe(null, true);

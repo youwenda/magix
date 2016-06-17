@@ -16,6 +16,9 @@ var Body_ParentNode = 'parentNode';
 var Body_EvtInfoCache = new G_Cache(30, 10);
 var Body_EvtInfoReg = /([^\(]+)\(([\s\S]*)?\)/;
 var Body_RootEvents = {};
+/*#if(modules.viewRelate){#*/
+var Body_ViewRelateInfo = {};
+/*#}#*/
 
 var Body_DOMEventProcessor = function(e) {
     var current = e.target;
@@ -49,15 +52,24 @@ var Body_DOMEventProcessor = function(e) {
                         click here
                  */
                 while ((begin = begin[Body_ParentNode])) {
+                    /*#if(modules.viewRelate){#*/
+                    tempId = begin.id;
+                    if (G_Has(Vframe_Vframes, tempId) || G_Has(Body_ViewRelateInfo, tempId)) {
+                        current.$f = vId = tempId;
+                        //current.setAttribute(type, (vId = tempId) + G_SPLITER + info);
+                        break;
+                    }
+                    /*#}else{#*/
                     if (G_Has(Vframe_Vframes, tempId = begin.id)) {
                         current.$f = vId = tempId;
                         //current.setAttribute(type, (vId = tempId) + G_SPLITER + info);
                         break;
                     }
+                    /*#}#*/
                 }
             }
             if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
-                vframe = Vframe_Vframes[vId];
+                vframe = Vframe_Vframes[vId] /*#if(modules.viewRelate){#*/ || Body_ViewRelateInfo[vId] /*#}#*/ ;
                 view = vframe && vframe.$v;
                 if (view && view.$s > 0) {
                     match = Body_EvtInfoCache.get(info);

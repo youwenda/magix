@@ -1,0 +1,86 @@
+.tags{
+    background: #fff;
+    border:solid 1px #ddd;
+    width:330px;
+    cursor: text;
+    padding:2px;
+    position: relative;
+    overflow: hidden;
+}
+.ipt{
+    height:16px;
+    line-height: 16px;
+    border:none;
+    outline:none;
+    width: 100%;
+    font-size:12px;
+}
+.fl{
+    float:left;
+}
+.item{
+    display: inline-block;
+    border-radius:4px;
+    background: #eee;
+    margin:1px 2px;
+    overflow: hidden;
+}
+.name{
+    float:left;
+    border-right: 1px solid #fff;
+    padding:2px 4px;
+    max-width:140px;
+    overflow: hidden;
+}
+.delete{
+    width:20px;
+    float:left;
+    height: 18px;
+    line-height: 18px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.none{
+    display: none;
+}
+
+.tree{
+    width:336px;
+    /*max-height: 200px;*/
+    overflow: auto;
+    position: absolute;
+    background:#eee;
+    z-index: 1
+}
+
+.indent{
+    margin-left:22px;
+    border-left:dotted 1px #ccc;
+}
+.li{
+    line-height:22px;
+    padding:0 4px;
+}
+.icon{
+    width:22px;
+    height:22px;
+    float:left;
+    text-align: center;
+    line-height: 22px;
+    font-weight:800;
+}
+.cp{
+    cursor: pointer;
+}
+.tree-name{
+    padding:4px;
+    border-radius: 5px;
+}
+.over{
+    background-color: #6363e6;
+    background-image: -webkit-linear-gradient(top, #1b87e3 2%, #6363e6 98%);
+    background-image: linear-gradient(to bottom,#1b87e3 2%, #6363e6 98%);
+    color: #ecf2f8;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.05);
+}

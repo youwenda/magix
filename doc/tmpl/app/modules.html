@@ -67,6 +67,14 @@
             viewInit
             <span class="desc">View类上是否有init方法，推荐使用ctor方法：当view间继承时，会自动调用每个层级的ctor方法，而旧版的init并不会。如果认可旧版init的方式：由开发者自己手动调用，请选择该模块</span>
         </div>
+        <div class="item">
+            collectView
+            <span class="desc">收集当前view中所有的mx-view然后统一请求，在combine请求时非常有用</span>
+        </div>
+        <div class="item">
+            layerVframe
+            <span class="desc">层次化同一个view中嵌套的vframe,在把一个页面中所有的内容渲染到页面上，js只负责行为的时候非常有用</span>
+        </div>
     </div>
     <h3>打包</h3>
     <div class="list">

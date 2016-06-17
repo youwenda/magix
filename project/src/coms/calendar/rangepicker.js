@@ -107,8 +107,9 @@ tmplData:[{"guid":1,"keys":["dates"],"tmpl":"<%for(var i=0;i<quickDates.length;i
         if (!inside) {
             var children = me.owner.children();
             for (var i = children.length - 1; i >= 0; i--) {
-                var child = children[i];
-                inside = child.invoke('inside', node);
+                var child = Magix.Vframe.get(children[i]);
+                if (child)
+                    inside = child.invoke('inside', node);
                 if (inside) break;
             }
         }

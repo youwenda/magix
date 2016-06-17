@@ -1,22 +1,14 @@
-
 {
-  "name": "magix-os",
-  "description": "magix os",
-  "version": "0.0.1",
-  "author": "Xinglie <xinglie.lkf@taobao.com>",
+  "name": "magix-project",
+  "description": "magix project",
+  "version": "1.0.0",
+  "author": "xinglie <xinglie.lkf@taobao.com>",
   "dependencies": {
     "gulp": "",
     "gulp-watch": "",
     "gulp-uglify": "",
     "gulp-cssnano": "",
-    "cssnano": "",
-    "html-minifier": "",
-    "del":""
-  },
-  "devDependencies": {
-    "gulp-autoprefixer": "^3.1.0",
-    "gulp-load-plugins": "^1.2.2",
-    "gulp-sass": "^2.3.1",
-    "run-sequence": "^1.1.5"
+    "magix-combine": "",
+    "del": ""
   }
 }

@@ -1,13 +1,14 @@
 {
-    "name": "loader-adapter",
-    "description": "adapt amd or cmd or KISSY",
-    "version": "0.0.1",
-    "author": "Xinglie <xinglie.lkf@taobao.com>",
+    "name": "magix-doc",
+    "description": "magix doc",
+    "version": "1.0.0",
+    "author": "xinglie <xinglie.lkf@taobao.com>",
     "dependencies": {
         "gulp": "",
         "gulp-watch": "",
         "gulp-uglify": "",
         "gulp-cssnano": "",
-        "cssnano":""
+        "del": "",
+        "magix-combine": ""
     }
 }

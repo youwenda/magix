@@ -1,8 +1,10 @@
 <%for(var i=0;i<a.length;i++)%>
     <%=a[i];%>
+    <div>
+    <a></a>
 <%}%>
 
-<div>
+<div keys="list,b"<%if(){%> class="<%=class1%>"<%}%>>
     <%for(var i=0;i<a.length;i++)%>
         <%=a[i];%>
     <%}%>
@@ -16,6 +18,10 @@
 <div>
     <%=a%>
 </div>
+
+
+    <%=list%>
+    <%=list2%>
 
 <%for(var i=0;i<a.length;i++){%>
     <%=b[i]%>

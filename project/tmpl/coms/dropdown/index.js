@@ -8,6 +8,8 @@ var Monitor = require('../bases/monitor');
 var EnhanceMax = 100;
 var EnhanceItemHeight = 25;
 var EnhanceOffsetItems = 20;
+var TOP = 1,
+    BOTTOM = 2;
 module.exports = Magix.View.extend({
     tmpl: '@index.html',
     ctor: function(extra) {
@@ -64,12 +66,12 @@ module.exports = Magix.View.extend({
             var top = scroll.scrollTop;
             var to = '';
             if (after > 0 && top + EnhanceOffsetItems * EnhanceItemHeight > before + EnhanceMax * EnhanceItemHeight) {
-                to = 'b';
+                to = BOTTOM;
             } else if (before > 0 && top < before + EnhanceOffsetItems * EnhanceItemHeight) {
-                to = 't';
+                to = TOP;
             }
             if (to) {
-                var items = to == 't' ? EnhanceMax - EnhanceOffsetItems : EnhanceOffsetItems;
+                var items = to == TOP ? EnhanceMax - EnhanceOffsetItems : EnhanceOffsetItems;
                 before = Math.max(top - items * EnhanceItemHeight, 0);
                 after = Math.max(list.length * EnhanceItemHeight - before - EnhanceMax * EnhanceItemHeight, 0);
                 var start = Math.floor(before / EnhanceItemHeight);
@@ -179,7 +181,7 @@ module.exports = Magix.View.extend({
                     }
                 }
                 index = end;
-                me.$goTimer = setTimeout(go, 20);
+                me.$goTimer = setTimeout(me.wrapAsync(go), 20);
             } else {
                 callback(newList);
             }

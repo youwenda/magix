@@ -118,6 +118,14 @@ var Menus = [{
         url: '/demos/animation',
         text: '动画',
         icon: '&#xe600;'
+    }, {
+        url: '/demos/drag-rotate',
+        text: '拖动旋转',
+        icon: '&#xe600;'
+    }, {
+        url: '/demos/file-uploader',
+        text: '上传及拖动条',
+        icon: '&#xe600;'
     }]
 }];
 var MenusMap = Magix.toMap(Menus, 'url');

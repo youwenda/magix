@@ -15,23 +15,23 @@ define('magix', ['$'], function(require) {
         return ctor;
     };
     var G_Require = function(name, fn) {
-        if (name) {
-            var a = [];
-            if (!G_IsArray(name)) name = [name];
-            for (var i = 0; i < name.length; i++) {
-                a.push(require(name[i]));
-            }
-            if (fn) fn.apply(G_NULL, a);
-        }
+        // if (name) {
+        //     var a = [];
+        //     if (!G_IsArray(name)) name = [name];
+        //     for (var i = 0; i < name.length; i++) {
+        //         a.push(require(name[i]));
+        //     }
+        //     if (fn) fn.apply(G_NULL, a);
+        // }
         /*
             fn回调一定要确保是异步的，原因：所有js都放在页面上，回调是同步的，会导致mountZone中循环时，渲染一个vframe触发一次vframe上的created事件。
             magix单独使用时，由外部在合适的时机boot，不添加虚拟根节点，不自动boot，这样可选择的空间更大
          */
-        // if (name) {
-        //     seajs.use(name, fn);
-        // } else if (fn) {
-        //     setTimeout(fn, 0);
-        // }
+        if (name) {
+            seajs.use(name, fn);
+        } else if (fn) {
+            setTimeout(fn, 0);
+        }
     };
     var G_IsObject = $.isPlainObject;
     var G_IsArray = $.isArray;
@@ -142,7 +142,6 @@ define('magix', ['$'], function(require) {
     /*#}#*/
     /*#}#*/
     /*#}#*/
-    var Vframe_GetVframes = $;
     Inc('../tmpl/vframe');
     var Body_DOMGlobalProcessor = function(e, d) {
         d = e.data;

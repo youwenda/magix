@@ -1,0 +1,19 @@
+<ul>
+    <%for(var i=0,br;i<list.length;i++){%>
+        <%br=list[i]%>
+        <li class="li">
+            <div class="icon<%if(br.children){%> cp<%}%>"<%if(br.children){%> mx-click="toggle({id:'<%=br[dataId]%>'})"<%}%>>
+                <%if(br.children){%>+<%}%>
+            </div>
+            <div class="ellipsis" title="<%=br[textKey]%>">
+                <label mx-click="fill({text:'<%=br[textKey]%>'})" mx-mouseout="hover()" mx-mouseover="hover()" class="tree-name">
+                <!-- <input type="checkbox" mx-change="check()" value="<%=br[dataId]%>" /> -->
+                <%=br[textKey]%>
+                </label>
+            </div>
+            <%if(br.children){%>
+            <div mx-view="@./branch?index=<%=i%>&text=<%=textKey%>&id=<%=dataId%>" id="<%=id%>_<%=br[dataId]%>" class="indent none"></div>
+            <%}%>
+        </li>
+    <%}%>
+</ul>
