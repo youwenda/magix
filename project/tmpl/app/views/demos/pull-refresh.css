@@ -1,0 +1,16 @@
+.page{
+    width:600px;
+    height:400px;
+    background:#eee;
+    margin:0 auto;
+    overflow:auto;
+    position: relative;
+    margin-top:-40px;
+}
+.refresh{
+    height:40px;
+    line-height: 40px;
+    width:600px;
+    margin:0 auto;
+    text-align:center;
+}

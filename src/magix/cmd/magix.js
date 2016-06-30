@@ -25,12 +25,14 @@ define('magix', ['$'], function(require) {
         // }
         /*
             fn回调一定要确保是异步的，原因：所有js都放在页面上，回调是同步的，会导致mountZone中循环时，渲染一个vframe触发一次vframe上的created事件。
+            2016.05.02 该问题已修复，详见mountZone中的hold fire event
+
             magix单独使用时，由外部在合适的时机boot，不添加虚拟根节点，不自动boot，这样可选择的空间更大
          */
         if (name) {
             seajs.use(name, fn);
         } else if (fn) {
-            setTimeout(fn, 0);
+            fn();
         }
     };
     var G_IsObject = $.isPlainObject;

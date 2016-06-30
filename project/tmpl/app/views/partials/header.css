@@ -3,6 +3,7 @@
   height: 50px;
   background-color: #6363e6;
   color: rgba(255, 255, 255, 0.6);
+  z-index:10
 }
 .bp-logo {
   float: left;

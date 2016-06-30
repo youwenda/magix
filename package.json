@@ -1,0 +1,24 @@
+{
+  "name": "magix",
+  "version": "3.0.0",
+  "description": "SPA framewrok",
+  "main": "dist/cmd/magix-debug.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thx/magix.git"
+  },
+  "keywords": [
+    "magix",
+    "view",
+    "opoa",
+    "component",
+    "vom",
+    "router"
+  ],
+  "author": "xinglie <xinglie.lkf@taobao.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/thx/magix/issues"
+  },
+  "homepage": "https://github.com/thx/magix#readme"
+}

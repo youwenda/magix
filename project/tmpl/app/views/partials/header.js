@@ -124,6 +124,10 @@ var Menus = [{
         url: '/demos/file-uploader',
         text: '上传及拖动条',
         icon: '&#xe600;'
+    }, {
+        url: '/demos/pull-refresh',
+        text: '下拉刷新',
+        icon: '&#xe600;'
     }]
 }];
 var MenusMap = Magix.toMap(Menus, 'url');

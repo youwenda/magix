@@ -24,5 +24,12 @@ module.exports = Magix.View.extend({
                 left: newX
             });
         });
+    },
+    'test<click>': function(e) {
+        var vf = this.owner.mountVframe('test');
+        vf.oncreated = function() {
+            console.log('done');
+        };
+        vf.mountView('coms/uploader/index');
     }
 });

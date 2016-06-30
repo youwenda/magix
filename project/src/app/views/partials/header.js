@@ -6,7 +6,7 @@ define('app/views/partials/header',['magix','$'],function(require){
 var Magix = require('magix');
 var $ = require('$');
 var Router = Magix.Router;
-Magix.applyStyle('mp-2af',".mp-2af-header{position:relative;height:50px;background-color:#6363e6;color:hsla(0,0%,100%,.6)}.mp-2af-bp-logo{float:left;color:#fff;width:200px;height:50px;line-height:50px;overflow:hidden;text-align:center;font-size:20px}.mp-2af-top-nav{float:left;font-size:14px}.mp-2af-top-nav a{color:hsla(0,0%,100%,.6)}.mp-2af-top-nav a.mp-2af-on{color:#fff}.mp-2af-top-nav ul{list-style:none;margin:0}.mp-2af-top-nav ul:after,.mp-2af-top-nav ul:before{content:\" \";display:table}.mp-2af-top-nav ul:after{clear:both}.mp-2af-top-nav li{float:left;line-height:50px}.mp-2af-top-nav a{float:left;padding:0 25px}.mp-2af-top-handle{float:right;line-height:50px;opacity:.7;margin:0 40px 0 0}.mp-2af-top-handle a{margin:0 0 0 10px;display:inline-block;height:50px;color:#fff}.mp-2af-sidebar{overflow:auto;display:inline;position:absolute;left:0;top:50px;background-color:#423f48;width:200px;margin-left:-200px;transition:margin-left .5s;-moz-transition:margin-left .5s;-webkit-transition:margin-left .5s;-o-transition:margin-left .5s}");
+Magix.applyStyle('mp-2af',".mp-2af-header{position:relative;height:50px;background-color:#6363e6;color:hsla(0,0%,100%,.6);z-index:10}.mp-2af-bp-logo{float:left;color:#fff;width:200px;height:50px;line-height:50px;overflow:hidden;text-align:center;font-size:20px}.mp-2af-top-nav{float:left;font-size:14px}.mp-2af-top-nav a{color:hsla(0,0%,100%,.6)}.mp-2af-top-nav a.mp-2af-on{color:#fff}.mp-2af-top-nav ul{list-style:none;margin:0}.mp-2af-top-nav ul:after,.mp-2af-top-nav ul:before{content:\" \";display:table}.mp-2af-top-nav ul:after{clear:both}.mp-2af-top-nav li{float:left;line-height:50px}.mp-2af-top-nav a{float:left;padding:0 25px}.mp-2af-top-handle{float:right;line-height:50px;opacity:.7;margin:0 40px 0 0}.mp-2af-top-handle a{margin:0 0 0 10px;display:inline-block;height:50px;color:#fff}.mp-2af-sidebar{overflow:auto;display:inline;position:absolute;left:0;top:50px;background-color:#423f48;width:200px;margin-left:-200px;transition:margin-left .5s;-moz-transition:margin-left .5s;-webkit-transition:margin-left .5s;-o-transition:margin-left .5s}");
 var CSSNames = {"on":"mp-2af-on","top-nav":"mp-2af-top-nav"};
 var Menus = [{
     url: '/home/index',
@@ -125,6 +125,10 @@ var Menus = [{
     }, {
         url: '/demos/file-uploader',
         text: '上传及拖动条',
+        icon: '&#xe600;'
+    }, {
+        url: '/demos/pull-refresh',
+        text: '下拉刷新',
         icon: '&#xe600;'
     }]
 }];

@@ -250,10 +250,13 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             G_Require(po.path, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
                     View_Prepare(TView);
+                    /*#if(modules.viewInit){#*/
+                    var params = G_Mix(po.params, viewInitParams);
+                    /*#}#*/
                     view = new TView({
                         owner: me,
                         id: me.id
-                    }, G_Mix(po.params, viewInitParams));
+                    }, /*#if(modules.viewInit){#*/params/*#}else{#*/G_Mix(po.params, viewInitParams)/*#}#*/);
                     me.$v = view;
                     // view.on('rendered', function(e) {
                     //     me.mountZone(e.id);
@@ -265,7 +268,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     // });
                     View_DelegateEvents(view);
                     /*#if(modules.viewInit){#*/
-                    view.init(G_Mix(po.params, viewInitParams));
+                    view.init(params);
                     /*#}#*/
                     //Vframe_RunInvokes(me);
                     view.render();

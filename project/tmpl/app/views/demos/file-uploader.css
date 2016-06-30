@@ -25,3 +25,10 @@
     cursor: move;
     background: #aaa;
 }
+
+.test{
+    background-color: #eee;
+    width:400px;
+    height: 100px;
+    margin-bottom: 20px;
+}

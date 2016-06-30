@@ -27,7 +27,7 @@ var Router_IsParam = function(params, r, ps) {
 
 var Router_PNR_Routers, Router_PNR_UnmatchView, /*Router_PNR_IsFun, */ Router_PNR_DefaultView, Router_PNR_DefaultPath;
 var Router_AttachViewAndPath = function(loc) {
-    var result;
+    //var result;
     if (!Router_PNR_Routers) {
         Router_PNR_Routers = Magix_Cfg.routes || {};
         Router_PNR_UnmatchView = Magix_Cfg.unmatchView;
@@ -38,16 +38,16 @@ var Router_AttachViewAndPath = function(loc) {
             Router_PNR_Routers[Router_PNR_DefaultPath] = Router_PNR_DefaultView;
         }
     }
-    if (!loc.view) {
-        var path = loc.hash[Router_PATH] || (Router.edge && loc.query[Router_PATH]);
-        if (!path) path = Router_PNR_DefaultPath;
+    if (!loc[Router_VIEW]) {
+        var path = loc.hash[Router_PATH] || (Router.edge && loc.query[Router_PATH]) || Router_PNR_DefaultPath;
+        //if (!path) path = Router_PNR_DefaultPath;
         // if (Router_PNR_IsFun) {
         //     result = Router_PNR_Routers.call(Magix_Cfg, path, loc);
         // } else {
-        result = Router_PNR_Routers[path]; //简单的在映射表中找
+        //result = Router_PNR_Routers[path]; //简单的在映射表中找
         //}
-        loc.path = path;
-        loc.view = result || Router_PNR_UnmatchView || Router_PNR_DefaultView;
+        loc[Router_PATH] = path;
+        loc[Router_VIEW] = Router_PNR_Routers[path] || Router_PNR_UnmatchView || Router_PNR_DefaultView;
     }
 };
 
