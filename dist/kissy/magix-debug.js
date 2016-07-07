@@ -70,12 +70,13 @@ var G_Id = function(prefix) {
 
 var MxStyleGlobalId = G_Id();
 
-var Magix_Console = G_WINDOW.console;
+var MxGlobalView = G_Id();
 var Magix_Cfg = {
     rootId: G_Id(),
-    error: Magix_Console && function(e) {
-        Magix_Console.error(e);
-    } || G_NOOP
+    defaultView: MxGlobalView,
+    error: function(e) {
+        throw e;
+    }
 };
 var Magix_HasProp = Magix_Cfg.hasOwnProperty;
 
@@ -384,11 +385,22 @@ var G_ToMap = function(list, key) {
     if (list && (l = list.length)) {
         for (i = 0; i < l; i++) {
             e = list[i];
-            map[key ? e[key] : e] = key ? e : (map[e] | 0) + 1; //对于简单数组，采用累加的方式，以方便知道有多少个相同的元素
+            map[(key && e) ? e[key] : e] = key ? e : (map[e] | 0) + 1; //对于简单数组，采用累加的方式，以方便知道有多少个相同的元素
         }
     }
     return map;
 };
+
+var G_Keys = Object.keys || function(obj, keys, p) {
+    keys = [];
+    for (p in obj) {
+        if (G_Has(obj, p)) {
+            keys.push(p);
+        }
+    }
+    return keys;
+};
+
 /**
  * Magix对象，提供常用方法
  * @name Magix
@@ -447,10 +459,18 @@ var Magix = {
     
     boot: function(cfg) {
         G_Mix(Magix_Cfg, cfg); //先放到配置信息中，供ini文件中使用
-        G_Require(Magix_Cfg.exts, function() {
-            Router.on('changed', Vframe_NotifyLocationChange);
-            Router.bind();
+        
+        G_Require(Magix_Cfg.ini, function(I) {
+            G_Mix(Magix_Cfg, I);
+            G_Mix(Magix_Cfg, cfg);
+            
+            G_Require(Magix_Cfg.exts, function() {
+                Router.on('changed', Vframe_NotifyLocationChange);
+                Router.bind();
+            });
+            
         });
+        
     },
     
     /**
@@ -560,6 +580,15 @@ var Magix = {
      * @return {Boolean} 是否拥有prop属性
      */
     has: G_Has,
+    
+    /**
+     * 获取对象的keys
+     * @type {Array}
+     * @beta
+     * @module linkage|router
+     */
+    keys: G_Keys,
+    
     /**
      * 判断一个节点是否在另外一个节点内，如果比较的2个节点是同一个节点，也返回true
      * @function
@@ -706,16 +735,6 @@ var Router_LParams;
 var Router_TrimHashReg = /(?:^https?:\/\/[^\/]+|#.*$)/gi;
 var Router_TrimQueryReg = /^[^#]*#?!?/;
 
-
-var Router_Keys = Object.keys || function(obj, keys, p) {
-    keys = [];
-    for (p in obj) {
-        if (G_Has(obj, p)) {
-            keys.push(p);
-        }
-    }
-    return keys;
-};
 var Router_IsParam = function(params, r, ps) {
     if (params) {
         ps = this[Router_PARAMS];
@@ -728,29 +747,29 @@ var Router_IsParam = function(params, r, ps) {
     return r;
 };
 
-var Router_PNR_Routers, Router_PNR_UnmatchView, Router_PNR_IsFun, Router_PNR_DefaultView, Router_PNR_DefaultPath;
+var Router_PNR_Routers, Router_PNR_UnmatchView, /*Router_PNR_IsFun, */ Router_PNR_DefaultView, Router_PNR_DefaultPath;
 var Router_AttachViewAndPath = function(loc) {
-    var result;
+    //var result;
     if (!Router_PNR_Routers) {
         Router_PNR_Routers = Magix_Cfg.routes || {};
         Router_PNR_UnmatchView = Magix_Cfg.unmatchView;
         Router_PNR_DefaultView = Magix_Cfg.defaultView;
         Router_PNR_DefaultPath = Magix_Cfg.defaultPath || Magix_SLASH;
-        Router_PNR_IsFun = G_IsFunction(Router_PNR_Routers);
-        if (!Router_PNR_IsFun && !Router_PNR_Routers[Router_PNR_DefaultPath] && Router_PNR_DefaultView) {
+        //Router_PNR_IsFun = G_IsFunction(Router_PNR_Routers);
+        if ( /*!Router_PNR_IsFun && */ !Router_PNR_Routers[Router_PNR_DefaultPath]) {
             Router_PNR_Routers[Router_PNR_DefaultPath] = Router_PNR_DefaultView;
         }
     }
-    if (!loc.view) {
-        var path = loc.hash[Router_PATH] || (Router.edge && loc.query[Router_PATH]);
-        if (!path) path = Router_PNR_DefaultPath;
-        if (Router_PNR_IsFun) {
-            result = Router_PNR_Routers.call(Magix_Cfg, path, loc);
-        } else {
-            result = Router_PNR_Routers[path]; //简单的在映射表中找
-        }
-        loc.path = path;
-        loc.view = result || Router_PNR_UnmatchView || Router_PNR_DefaultView;
+    if (!loc[Router_VIEW]) {
+        var path = loc.hash[Router_PATH] || (Router.edge && loc.query[Router_PATH]) || Router_PNR_DefaultPath;
+        //if (!path) path = Router_PNR_DefaultPath;
+        // if (Router_PNR_IsFun) {
+        //     result = Router_PNR_Routers.call(Magix_Cfg, path, loc);
+        // } else {
+        //result = Router_PNR_Routers[path]; //简单的在映射表中找
+        //}
+        loc[Router_PATH] = path;
+        loc[Router_VIEW] = Router_PNR_Routers[path] || Router_PNR_UnmatchView || Router_PNR_DefaultView;
     }
 };
 
@@ -772,7 +791,7 @@ var Router_GetChged = function(oldLocation, newLocation) {
 
         var oldParams = oldLocation[Router_PARAMS],
             newParams = newLocation[Router_PARAMS];
-        var tArr = [Router_PATH, Router_VIEW].concat(Router_Keys(oldParams), Router_Keys(newParams)),
+        var tArr = [Router_PATH, Router_VIEW].concat(G_Keys(oldParams), G_Keys(newParams)),
             idx, key;
         for (idx = tArr.length - 1; idx >= 0; idx--) {
             key = tArr[idx];
@@ -849,23 +868,28 @@ var Router = G_Mix({
             hashObj = G_ParseUri(hash);
             result = {
                 href: href,
-                ref: Router_LLoc.href,
-                srcQuery: query,
-                srcHash: hash,
+                //prev: Router_LLoc.href,
+                //srcQuery: query,
+                //srcHash: hash,
                 query: queryObj,
                 hash: hashObj,
                 params: G_Mix(G_Mix({}, queryObj[Router_PARAMS]), hashObj[Router_PARAMS])
             };
+            Router_AttachViewAndPath(result);
             Router_HrefCache.set(href, result);
         }
         return result;
     },
     /**
-     * 根据location.href路由并派发相应的事件
+     * 根据location.href路由并派发相应的事件,同时返回当前href与上一个href差异对象
+     * @example
+     * var diff=Magix.Router.diff();
+     * if(diff.isParam('page,rows')){
+     *     console.log('page or rows changed');
+     * }
      */
     diff: function() {
         var location = Router.parse();
-        Router_AttachViewAndPath(location);
         var changed = Router_GetChged(Router_LLoc, Router_LLoc = location);
         if (changed.a) {
             Router_LParams = Router_LLoc[Router_PARAMS];
@@ -925,7 +949,6 @@ var Router = G_Mix({
      * @param {Object} e.path  如果path发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Object} e.view 如果view发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Object} e.params 如果参数发生改变时，记录从(from)什么值变成(to)什么值的对象
-     * @param {Object} e.location 地址解析出来的对象，包括query hash 以及 query和hash合并出来的params等
      * @param {Boolean} e.force 标识是否是第一次强制触发的changed，对于首次加载完Magix，会强制触发一次changed
      */
 }, Event);
@@ -934,48 +957,13 @@ Magix.Router = Router;
     var Win = S.one(window);
     
     Router.bind = function() {
-        var lastHash = Router.parse().srcHash;
-        var newHash;
-        Win.on('hashchange', function(e, loc) {
-            loc = Router.parse();
-            newHash = loc.srcHash;
-            if (newHash != lastHash) {
-                e = {
-                    backward: function() {
-                        e.p = 1;
-                        location.hash = '#!' + lastHash;
-                    },
-                    forward: function() {
-                        e.p = 1;
-                        lastHash = newHash;
-                        Router.diff();
-                    },
-                    prevent: function() {
-                        e.p = 1;
-                    },
-                    location: loc
-                };
-                Router.fire('change', e);
-                if (!e.p) {
-                    e.forward();
-                }
-            }
-        });
-        window.onbeforeunload = function(e) {
-            e = e || window.event;
-            var te = {};
-            Router.fire('pageunload', te);
-            if (te.msg) {
-                if (e) e.returnValue = te.msg;
-                return te.msg;
-            }
-        };
+        Win.on('hashchange', Router.diff);
         Router.diff();
     };
     
     
     
-    var Vframe_GetVframes = S.all;
+    var $ = S.all;
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
 
@@ -1108,7 +1096,7 @@ var Vframe_Update = function(vframe, view) {
             i = 0;
         //console.log(me.id,cs);
         while (i < j) {
-            Vframe_Update(cs[i++]);
+            Vframe_Update(Vframe_Vframes[cs[i++]]);
         }
     }
 };
@@ -1228,10 +1216,13 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             G_Require(po.path, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
                     View_Prepare(TView);
+                    
+                    var params = G_Mix(po.params, viewInitParams);
+                    
                     view = new TView({
                         owner: me,
                         id: me.id
-                    }, G_Mix(po.params, viewInitParams));
+                    }, params);
                     me.$v = view;
                     // view.on('rendered', function(e) {
                     //     me.mountZone(e.id);
@@ -1243,8 +1234,15 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     // });
                     View_DelegateEvents(view);
                     
+                    view.init(params);
+                    
                     //Vframe_RunInvokes(me);
                     view.render();
+                    
+                    if (!view.tmpl && !view.$p) {
+                        view.endUpdate();
+                    }
+                    
                 }
             });
         }
@@ -1327,11 +1325,11 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      */
     mountZone: function(zoneId, viewInitParams /*,keepPreHTML*/ ) {
         var me = this;
-        //var subs = {};
+        
         var i, vf, id;
         zoneId = zoneId || me.id;
 
-        var vframes = Vframe_GetVframes('#' + zoneId + ' [mx-vframe]');
+        var vframes = $('#' + zoneId + ' [mx-view]');
         /*
             body(#mx-root)
                 div(mx-vframe=true,mx-view='xx')
@@ -1349,16 +1347,13 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
 
         me.$h = 1; //hold fire creted
         me.unmountZone(zoneId, 1);
+        
         for (i = vframes.length - 1; i >= 0; i--) {
             vf = vframes[i];
             id = vf.id || (vf.id = G_Id());
-            //if (!G_Has(subs, id)) {
-            me.mountVframe(id, vf.getAttribute('mx-view'), viewInitParams);
-            // vfs = Vframe_GetVframes(vf);
-            // for (j = vfs.length - 1; j >= 0; j--) {
-            //     subs[Vframe_IdIt(vfs[j])] = 1;
-            // }
-            //}
+            
+                me.mountVframe(id, vf.getAttribute('mx-view'), viewInitParams);
+                
         }
         me.$h = 0;
         Vframe_NotifyCreated(me);
@@ -1409,6 +1404,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * 获取父vframe
      * @param  {Integer} level 层级，默认1,取当前vframe的父级
      * @return {Vframe}
+     * @beta
      * @module linkage
      */
     parent: function(level, vf) {
@@ -1420,27 +1416,21 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         return vf;
     },
     /**
-     * 获取当前vframe的所有子vframe。返回数组中，vframe在数组中的位置并不固定
-     * @return {Array[Vframe]}
+     * 获取当前vframe的所有子vframe的id。返回数组中，vframe在数组中的位置并不固定
+     * @return {Array[String]}
+     * @beta
      * @module linkage
      */
-    children: function(me, p, z, c) {
+    children: function(me) {
         me = this;
-        if (!(z = me.$cl)) {
-            z = me.$cl = [];
-            c = me.$c;
-            for (p in c) {
-                if (G_Has(c, p))
-                    z.push(Vframe_Vframes[p]);
-            }
-        }
-        return z;
+        return me.$cl || (me.$cl = G_Keys(me.$c));
     },
     /**
      * 调用view的方法
      * @param  {String} name 方法名
      * @param  {Array} args 参数
      * @return {Object}
+     * @beta
      * @module linkage
      */
     invoke: function(name, args) {
@@ -1521,6 +1511,9 @@ var Body_EvtInfoCache = new G_Cache(30, 10);
 var Body_EvtInfoReg = /([^\(]+)\(([\s\S]*)?\)/;
 var Body_RootEvents = {};
 
+var Body_ViewRelateInfo = {};
+
+
 var Body_DOMEventProcessor = function(e) {
     var current = e.target;
     var eventType = e.type;
@@ -1553,15 +1546,18 @@ var Body_DOMEventProcessor = function(e) {
                         click here
                  */
                 while ((begin = begin[Body_ParentNode])) {
-                    if (G_Has(Vframe_Vframes, tempId = begin.id)) {
+                    
+                    tempId = begin.id;
+                    if (G_Has(Vframe_Vframes, tempId) || G_Has(Body_ViewRelateInfo, tempId)) {
                         current.$f = vId = tempId;
                         //current.setAttribute(type, (vId = tempId) + G_SPLITER + info);
                         break;
                     }
+                    
                 }
             }
             if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
-                vframe = Vframe_Vframes[vId];
+                vframe = Vframe_Vframes[vId]  || Body_ViewRelateInfo[vId]  ;
                 view = vframe && vframe.$v;
                 if (view && view.$s > 0) {
                     match = Body_EvtInfoCache.get(info);
@@ -1585,7 +1581,7 @@ var Body_DOMEventProcessor = function(e) {
                     }
                 }
             } else {
-                Magix_Cfg.error('bad:' + info);
+                Magix_Cfg.error(Error('bad:' + info));
             }
         }
         if ((ignore = current.$) && ignore[eventType] /*|| e.isPropagationStopped()*/ ) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
@@ -1613,7 +1609,7 @@ var Body_DOMEventBind = function(type, remove) {
     Body_RootEvents[type] = counter;
 };
     
-    var View_EvtMethodReg = /^([^<>]+)<([^<>]+)>$/;
+    var View_EvtMethodReg = /^([^<]+)<([^>]+)>$/;
 
 //var View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 
@@ -1642,6 +1638,20 @@ var View_DestroyResource = function(cache, key, callDestroy) {
     return res;
 };
 
+var View_WrapRender = function(prop, fn, me) {
+    fn = prop.render;
+    prop.render = function() {
+        me = this;
+        if (me.$s > 0) { //signature
+            me.$s++;
+            me.fire('rendercall');
+            
+            View_DestroyAllResources(me);
+            
+            G_ToTry(fn, G_Slice.call(arguments), me);
+        }
+    };
+};
 var View_DelegateEvents = function(me, destroy) {
     var events = me.$eo; //eventsObject
     var p, e;
@@ -1674,24 +1684,12 @@ var View_DelegateEvents = function(me, destroy) {
 // var View_StyleCallback = function(m, left, key) {
 //     return left + key.replace(View_StyleNameKeyReg, '.' + View_StyleCssKeyTemp + ' $&');
 // };
+
 var View_Ctors = [];
+
 var View_Globals = {
     $win: G_WINDOW,
     $doc: G_DOCUMENT
-};
-var View_WrapRender = function(prop, fn, me) {
-    fn = prop.render;
-    prop.render = function() {
-        me = this;
-        if (me.$s > 0) { //signature
-            me.$s++;
-            me.fire('rendercall');
-            
-            View_DestroyAllResources(me);
-            
-            G_ToTry(fn, G_Slice.call(arguments), me);
-        }
-    };
 };
 /**
  * 预处理view
@@ -1824,7 +1822,9 @@ var View = function(ops, me) {
     me.$r = {};
     
     me.$s = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
+    
     G_ToTry(View_Ctors, ops, me);
+    
 };
 var ViewProto = View[G_PROTOTYPE];
 G_Mix(View, {
@@ -1858,11 +1858,13 @@ G_Mix(View, {
      * //当前上述功能也可以用继承实现，但继承层次太多时，可以考虑使用扩展来消除多层次的继承
      *
      */
+    
     merge: function(props, ctor) {
         ctor = props && props.ctor;
         if (ctor) View_Ctors.push(ctor);
         G_Mix(ViewProto, props);
     },
+    
     /**
      * 继承
      * @param  {Object} [props] 原型链上的方法或属性对象
@@ -1889,6 +1891,18 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @function
      */
     render: G_NOOP,
+    
+    init: G_NOOP,
+    
+    
+    relate: function(node) {
+        var id = node.id || (node.id = G_Id());
+        var me = this;
+        Body_ViewRelateInfo[id] = me.owner;
+        me.on('destroy', function() {
+            delete Body_ViewRelateInfo[id];
+        });
+    },
     
     // *
     //  * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^test<prevent>({key:'field})"，以方便识别交由哪个view处理
@@ -1921,28 +1935,29 @@ G_Mix(G_Mix(ViewProto, Event), {
         me = this;
         if (me.$s > 0 && me.$p) {
             me.owner.unmountZone(id, 1);
-            me.fire('prerender', {
-                id: id
-            });
+            // me.fire('prerender', {
+            //     id: id
+            // });
         }
     },
     /**
      * 通知当前view结束html的更新
      * @param {String} [id] 哪块区域结束更新，默认整个view
      */
-    endUpdate: function(id, me, o) {
+    endUpdate: function(id, me  , o, f  ) {
         me = this;
         if (me.$s > 0) {
-            me.fire('rendered', {
-                id: id
-            });
+            // me.fire('rendered', {
+            //     id: id
+            // });
+            
+            f = me.$p;
+            
+            me.$p = 1;
+            
             o = me.owner;
             o.mountZone(id);
-            
-            if (!me.$p) {
-                me.$p = 1;
-                Vframe_RunInvokes(o);
-            }
+            if (!f) Vframe_RunInvokes(o);
             
         }
     },
@@ -2054,91 +2069,6 @@ G_Mix(G_Mix(ViewProto, Event), {
     },
     
     
-    /**
-     * 离开提示
-     * @param  {String} msg 提示消息
-     * @param  {Function} fun 是否提示的回调
-     * @beta
-     * @module tiprouter
-     */
-    leaveTip: function(msg, fun) {
-        var me = this;
-        var changeListener = function(e) {
-            e.prevent();
-            if (!me.$tipped) {
-                if (fun.call(me)) { //firefox的confirm可以同时有多个
-                    me.$tipped = true;
-                    if (window.confirm(msg)) {
-                        me.$tipped = false;
-                        e.forward();
-                    } else {
-                        me.$tipped = false;
-                        e.backward();
-                    }
-                } else {
-                    e.forward();
-                }
-            }
-        };
-        var unloadListener = function(e) {
-            if (fun.call(me)) {
-                e.msg = msg;
-            }
-        };
-        Router.on('change', changeListener);
-        Router.on('pageunload', unloadListener);
-        me.on('destroy', function() {
-            Router.off('change', changeListener);
-            Router.off('pageunload', unloadListener);
-        });
-    },
-    
-    
-    /**
-     * 向子(孙)view公开数据
-     * @param  {String} key key
-     * @param  {Object} data 数据
-     * @beta
-     * @module share
-     */
-    share: function(key, data) {
-        var me = this;
-        if (!me.$sd) {
-            me.$sd = {};
-        }
-        me.$sd[key] = data;
-    },
-    /**
-     * 获取祖先view上公开的数据
-     * @param  {String} key key
-     * @return {Object}
-     * @beta
-     * @module share
-     * @example
-     * //父view
-     * render:function(){
-     *     this.share('x',{a:20});
-     * }
-     * //子view
-     * render:function(){
-     *     var d=this.getShared('x');
-     * }
-     */
-    getShared: function(key) {
-        var me = this;
-        var sd = me.$sd;
-        var exist;
-        if (sd) {
-            exist = G_Has(sd, key);
-            if (exist) {
-                return sd[key];
-            }
-        }
-        var vf = me.owner.parent();
-        if (vf) {
-            return vf.invoke('getShared', key);
-        }
-    },
     
     /**
      * 设置view的html内容
@@ -2249,6 +2179,7 @@ Magix.View = View;
  * @constructor
  * @property {String} id bag唯一标识
  */
+var JSONStringify = JSON.stringify;
 var Bag = function() {
     this.id = G_Id('b');
     this.$ = {};
@@ -2293,7 +2224,8 @@ G_Mix(Bag[G_PROTOTYPE], {
             或者key本身就是数组
          */
         var hasDValue = alen >= 2;
-        var attrs = me.$;
+        var $attrs = me.$;
+        var attrs = $attrs;
         if (alen) {
             var tks = G_IsArray(key) ? G_Slice.call(key) : (key + G_EMPTY).split('.'),
                 tk;
@@ -2305,11 +2237,9 @@ G_Mix(Bag[G_PROTOTYPE], {
             }
         }
         if (hasDValue && G_Type(dValue) != G_Type(attrs)) {
+            Magix_Cfg.error(Error('type neq:' + key + '\n' + JSONStringify($attrs)));
             attrs = dValue;
         }
-        //DEBUGKEEP if (me.$m.k && (G_IsArray(attrs) || G_IsObject(attrs))) {
-        //KEEPCONSOLE.warn('Be careful of bag cache! get by:',key,',expect value:',dValue,',get value:',attrs);
-        //DEBUGKEEP }
         return attrs;
     },
     /**
@@ -2403,7 +2333,7 @@ var Service_Task = function(done, host, service, total, flag, bagCache) {
 var Service_Send = function(me, attrs, done, flag, save) {
     if (me.$o) return me; //如果已销毁，返回
     if (me.$b) { //繁忙，后续请求入队
-        return me.queue(function() {
+        return me.enqueue(function() {
             Service_Send(this, attrs, done, flag, save);
         });
     }
@@ -2550,11 +2480,11 @@ G_Mix(Service[G_PROTOTYPE], {
      *  ],function(err,bag1,bag2){
      *      r.dequeue(['args1','args2']);
      *  });
-     *  r.queue(function(args1,args2){
+     *  r.enqueue(function(args1,args2){
      *      alert([args1,args2]);
      *  });
      */
-    queue: function(callback) {
+    enqueue: function(callback) {
         var me = this;
         if (!me.$o) {
             me.$q.push(callback);
@@ -2570,18 +2500,18 @@ G_Mix(Service[G_PROTOTYPE], {
      * r.all('Name',function(e,bag){
      *     r.dequeue([e,bag]);
      * });
-     * r.queue(function(e,result){//result为m
+     * r.enqueue(function(e,result){//result为m
      *     r.all('NextName',function(e,bag){
      *         r.dequeue([e,bag]);
      *     });
      * });
      *
-     * r.queue(function(e,bag){//m===queue m;
+     * r.enqueue(function(e,bag){//m===queue m;
      *     console.log(e,bag);
      *     r.dequeue([e,bag]);
      * });
      *
-     * r.queue(function(e,bag){
+     * r.enqueue(function(e,bag){
      *     console.log(e,bag);
      * });
      *
@@ -2643,21 +2573,8 @@ G_Mix(Service[G_PROTOTYPE], {
          */
 });
 
-var Manager_WJSON = G_WINDOW.JSON;
-
-//使用JSON.stringify生成唯一的缓存key，当浏览器不支持JSON时，不再缓存
-var Manager_Ser = function(o, f, a) {
-    if (f && G_IsFunction(o)) { //标志f为trusy时，才去判断o是否为fn
-        a = Manager_Ser(G_ToTry(o));
-    } else if (Manager_WJSON) {
-        a = Manager_WJSON.stringify(o);
-    } else {
-        a = G_Now(); //不缓存
-    }
-    return a;
-};
 var Manager_DefaultCacheKey = function(meta, attrs, arr) {
-    arr = [Manager_Ser(attrs), Manager_Ser(meta), Manager_Ser(meta.k, 1)];
+    arr = [JSONStringify(attrs), JSONStringify(meta)];
     return arr.join(G_SPLITER);
 };
 var Manager_ClearCache = function(v, ns, cache, mm) {
@@ -2839,6 +2756,7 @@ Magix.Service = Service;
      * @module base
      */
     Magix.Base = G_NOOP;
+    
     
     return Magix;
 }, {

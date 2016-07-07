@@ -33,8 +33,10 @@ var G_Id = function(prefix) {
 /*#if(modules.style){#*/
 var MxStyleGlobalId = G_Id();
 /*#}#*/
+var MxGlobalView = G_Id();
 var Magix_Cfg = {
     rootId: G_Id(),
+    defaultView: MxGlobalView,
     error: function(e) {
         throw e;
     }

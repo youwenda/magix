@@ -50,7 +50,7 @@ define('magix', ['$'], function(require) {
         if (css && !View_ApplyStyle[key]) {
             View_ApplyStyle[key] = 1;
             node = $('#' + MxStyleGlobalId);
-            if (node.size()) {
+            if (node.length) {
                 sheet = node.prop('styleSheet');
                 if (sheet) {
                     sheet.cssText += css;
@@ -207,6 +207,19 @@ define('magix', ['$'], function(require) {
      * @module base
      */
     Magix.Base = G_NOOP;
+    /*#}#*/
+    /*#if(modules.core){#*/
+    define(MxGlobalView, function() {
+        return View.extend(
+            /*#if(!modules.autoEndUpdate){#*/
+            {
+                render: function() {
+                    this.endUpdate();
+                }
+            }
+            /*#}#*/
+        );
+    });
     /*#}#*/
     return Magix;
 });

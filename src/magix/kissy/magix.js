@@ -184,6 +184,19 @@ KISSY.add('magix', function(S, SE) {
      */
     Magix.Base = G_NOOP;
     /*#}#*/
+    /*#if(modules.core){#*/
+    S.add(MxGlobalView, function() {
+        return View.extend(
+            /*#if(!modules.autoEndUpdate){#*/
+            {
+                render: function() {
+                    this.endUpdate();
+                }
+            }
+            /*#}#*/
+        );
+    });
+    /*#}#*/
     return Magix;
 }, {
     requires: ['event', 'node']
