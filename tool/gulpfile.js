@@ -13,7 +13,7 @@ var modulesMap = {
   body: 1, //dom事件处理模块
   view: 1
 };
-var type = 'kissy'; //打包kissy则type='kissy'
+var type = 'cmd'; //打包kissy则type='kissy'
 
 var extModules = {
   linkage: 1, //vframe上是否带父子间调用的方法，通常在移动端并不需要

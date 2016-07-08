@@ -94,7 +94,7 @@ module.exports = Picker.extend({
         autoscroll.onstop = function() {
             scrolling = false;
         };
-        me.beginDrag(e, e.current, function(event) {
+        me.beginDrag(e.current, function(event) {
             autoscroll.check(event);
             ghost.css({
                 top: event.pageY + 15,
@@ -185,7 +185,7 @@ module.exports = Picker.extend({
         autoscroll.onstop = function() {
             scrolling = false;
         };
-        me.beginDrag(e, e.current, function(event) {
+        me.beginDrag(e.current, function(event) {
             autoscroll.check(event);
             ghost.css({
                 top: event.pageY + 15,

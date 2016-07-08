@@ -49,6 +49,7 @@ li.dragged{
     border:5px solid #333;
     position:absolute;
     left:-9999px;
+    cursor: move;
     border-top:5px solid transparent;
     border-bottom:5px solid transparent;
 }
@@ -78,6 +79,7 @@ li.dragged{
     border:5px solid #333;
     position:absolute;
     left:-9999px;
+    cursor: move;
     border-left:5px solid transparent;
     border-right:5px solid transparent;
 }

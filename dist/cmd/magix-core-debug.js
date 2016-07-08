@@ -3,17 +3,6 @@
  */
 define('magix', ['$'], function(require) {
     var $ = require('$');
-    var T = function() {};
-    var G_Extend = function(ctor, base, props, statics, cProto) {
-        //bProto.constructor = base;
-        T[G_PROTOTYPE] = base[G_PROTOTYPE];
-        cProto = new T();
-        G_Mix(cProto, props);
-        G_Mix(ctor, statics);
-        cProto.constructor = ctor;
-        ctor[G_PROTOTYPE] = cProto;
-        return ctor;
-    };
     var G_Require = function(name, fn) {
         // if (name) {
         //     var a = [];
@@ -34,6 +23,17 @@ define('magix', ['$'], function(require) {
         } else if (fn) {
             fn();
         }
+    };
+    var T = function() {};
+    var G_Extend = function(ctor, base, props, statics, cProto) {
+        //bProto.constructor = base;
+        T[G_PROTOTYPE] = base[G_PROTOTYPE];
+        cProto = new T();
+        G_Mix(cProto, props);
+        G_Mix(ctor, statics);
+        cProto.constructor = ctor;
+        ctor[G_PROTOTYPE] = cProto;
+        return ctor;
     };
     var G_IsObject = $.isPlainObject;
     var G_IsArray = $.isArray;
@@ -1153,14 +1153,14 @@ var Body_DOMEventProcessor = function(e) {
                         e.current = current;
                         e.params = match.p;
                         G_ToTry(fn, e, view);
-                        e.previous = current; //下一个处理函数可检测是否已经处理过
+                        //e.previous = current; //下一个处理函数可检测是否已经处理过
                     }
                 }
             } else {
                 Magix_Cfg.error(Error('bad:' + info));
             }
         }
-        if ((ignore = current.$) && ignore[eventType] /*|| e.isPropagationStopped()*/ ) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
+        if ((ignore = current.$) && ignore[eventType] || e.mxStop || e.isPropagationStopped()) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
             break;
         } else {
             arr.push(current);

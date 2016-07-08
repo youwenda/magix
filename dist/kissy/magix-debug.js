@@ -4,7 +4,6 @@
  * @version edge
  **/
 KISSY.add('magix', function(S, SE) {
-    var G_Extend = S.extend;
     var G_Require = function(name, fn) {
         S.use(name && (name + G_EMPTY), function(S) {
             if (fn) {
@@ -12,6 +11,7 @@ KISSY.add('magix', function(S, SE) {
             }
         });
     };
+    var G_Extend = S.extend;
     var G_IsObject = S.isObject;
     var G_IsArray = S.isArray;
     var G_DOM = S.DOM;
@@ -1577,14 +1577,14 @@ var Body_DOMEventProcessor = function(e) {
                         e.current = current;
                         e.params = match.p;
                         G_ToTry(fn, e, view);
-                        e.previous = current; //下一个处理函数可检测是否已经处理过
+                        //e.previous = current; //下一个处理函数可检测是否已经处理过
                     }
                 }
             } else {
                 Magix_Cfg.error(Error('bad:' + info));
             }
         }
-        if ((ignore = current.$) && ignore[eventType] /*|| e.isPropagationStopped()*/ ) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
+        if ((ignore = current.$) && ignore[eventType] || e.mxStop || e.isPropagationStopped()) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
             break;
         } else {
             arr.push(current);

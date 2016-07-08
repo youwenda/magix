@@ -22,7 +22,7 @@ module.exports = Magix.View.extend({
         var start = Math.atan2(e.pageY - cy, e.pageX - cx);
         console.log(start, ToDegree(start));
         start = ToDegree(start);
-        me.beginDrag(e, node, function(e) {
+        me.beginDrag(node, function(e) {
             var ox = e.pageX - cx,
                 oy = e.pageY - cy;
             var angle = Math.atan2(oy, ox);

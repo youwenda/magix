@@ -4,7 +4,6 @@
  * @version edge
  **/
 KISSY.add('magix', function(S, SE) {
-    var G_Extend = S.extend;
     var G_Require = function(name, fn) {
         S.use(name && (name + G_EMPTY), function(S) {
             if (fn) {
@@ -12,6 +11,7 @@ KISSY.add('magix', function(S, SE) {
             }
         });
     };
+    var G_Extend = S.extend;
     var G_IsObject = S.isObject;
     var G_IsArray = S.isArray;
     var G_DOM = S.DOM;

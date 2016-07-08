@@ -30,8 +30,9 @@ var DragPrevent = function(e) {
     e.preventDefault();
 };
 var DragMove = function(event) {
+    ClearSelection();
     if (DragObject.iMove) {
-        DragObject.move(event, DragObject.pos);
+        DragObject.move(event);
     }
 };
 var DragStop = function(e) {
@@ -142,10 +143,8 @@ return Magix.View.merge({
         }
         return list;
     },
-    beginDrag: function(event, node, moveCallback, endCallback) {
-        node = Magix.node(node);
+    beginDrag: function(node, moveCallback, endCallback) {
         if (node) {
-            event.preventDefault();
             ClearSelection();
             if (node.setCapture) {
                 node.setCapture();
@@ -154,7 +153,6 @@ return Magix.View.merge({
                 move: moveCallback,
                 stop: endCallback,
                 node: node,
-                pos: event,
                 iMove: $.isFunction(moveCallback),
                 iStop: $.isFunction(endCallback)
             };

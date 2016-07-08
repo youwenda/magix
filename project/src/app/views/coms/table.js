@@ -12,8 +12,9 @@ return Magix.View.extend({
     },
     'drag<mousedown>': function(e) {
         var me = this;
-        me.beginDrag(e, e.current, function(event, pos) {
-             console.log(event.pageX - pos.pageX, event.pageY - pos.pageY);
+        var pos = e;
+        me.beginDrag(e.current, function(event) {
+            console.log(event.pageX - pos.pageX, event.pageY - pos.pageY);
             var node = me.nodeFromPoint(event.clientX, event.clientY);
             console.log(node);
             if (node != me.$lastNode) {
