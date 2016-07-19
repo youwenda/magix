@@ -2,53 +2,17 @@
     author: xinglie.lkf@ taobao.com
  */
 var Magix = require('magix');
-var $ = require('$');
 Magix.applyStyle('global@exports-reset.css');
 Magix.applyStyle('global@exports-table.css');
 Magix.applyStyle('global@exports-form.css');
 Magix.applyStyle('global@exports-animate.css');
 var Vframe = Magix.Vframe;
-var Win = $(window);
-var Doc = $(document);
 var LoadView = function(owner, path, callback) {
     seajs.use(path, owner.wrapAsync(function(T) {
         callback(T);
     }));
 };
-var ClearSelection = function(t) {
-    if ((t = window.getSelection)) {
-        t().removeAllRanges();
-    } else if ((t = window.document.selection)) {
-        if (t.empty) t.empty();
-        else t = null;
-    }
-};
-var DragObject;
-var DragPrevent = function(e) {
-    e.preventDefault();
-};
-var DragMove = function(event) {
-    ClearSelection();
-    if (DragObject.iMove) {
-        DragObject.move(event);
-    }
-};
-var DragStop = function(e) {
-    if (DragObject) {
-        Doc.off('mousemove', DragMove)
-            .off('mouseup', DragStop)
-            .off('keydown mousewheel DOMMouseScroll', DragPrevent);
-        Win.off('blur', DragStop);
-        var node = DragObject.node;
-        $(node).off('losecapture', DragStop);
-        if (node.setCapture) node.releaseCapture();
-        if (DragObject.iStop) {
-            DragObject.stop(e);
-        }
-        DragObject = null;
-    }
-};
-var IsW3C = window.getComputedStyle;
+
 module.exports = Magix.View.merge({
     menu: function(id, ops) {
         var me = this;
@@ -140,44 +104,5 @@ module.exports = Magix.View.merge({
             list.map = map;
         }
         return list;
-    },
-    beginDrag: function(node, moveCallback, endCallback) {
-        if (node) {
-            ClearSelection();
-            if (node.setCapture) {
-                node.setCapture();
-            }
-            DragObject = {
-                move: moveCallback,
-                stop: endCallback,
-                node: node,
-                iMove: $.isFunction(moveCallback),
-                iStop: $.isFunction(endCallback)
-            };
-            Doc.on('mousemove', DragMove)
-                .on('mouseup', DragStop)
-                .on('keydown mousewheel DOMMouseScroll', DragPrevent);
-            Win.on('blur', DragStop);
-            $(node).on('losecapture', DragStop);
-        }
-    },
-    clearSelection: ClearSelection,
-    endDrag: DragStop,
-    nodeFromPoint: function(x, y) {
-        var node = null;
-        if (document.elementFromPoint) {
-            if (!DragPrevent.$fixed && IsW3C) {
-                DragPrevent.$fixed = true;
-                DragPrevent.$add = document.elementFromPoint(-1, -1) !== null;
-            }
-            //console.dir(DragPrevent);
-            if (DragPrevent.$add) {
-                x += Win.scrollLeft();
-                y += Win.scrollTop();
-            }
-            node = document.elementFromPoint(x, y);
-            while (node && node.nodeType == 3) node = node.parentNode;
-        }
-        return node;
     }
 });

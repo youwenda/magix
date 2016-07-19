@@ -48,19 +48,22 @@ combineTool.config({
         var stores = {},
             idx = 1,
             key = '&\u001e';
+        tmpl = tmpl.replace(/<%(=)?([\s\S]*?)%>/g, function(m, oper, content) {
+            return '<%' + (oper ? '=' : '') + content.trim() + '%>';
+        });
         tmpl = tmpl.replace(/<%[^=][\s\S]*?%>\s*/g, function(m, k) {
-            k = key + idx++;
+            k = key + (idx++) + key;
             stores[k] = m;
             return k;
         });
-        tmpl = tmpl.replace(/(?:&\u001e\d+){2,}/g, function(m) {
-            m = m.replace(/&\u001e\d+/g, function(n) {
+        tmpl = tmpl.replace(/(?:&\u001e\d+&\u001e){2,}/g, function(m) {
+            m = m.replace(/&\u001e\d+&\u001e/g, function(n) {
                 return stores[n];
             });
             return m.replace(/%>\s*<%/g, ';').replace(/([\{\}]);/g, '$1');
         });
         //console.log(tmpl);
-        tmpl = tmpl.replace(/&\u001e\d+/g, function(n) {
+        tmpl = tmpl.replace(/&\u001e\d+&\u001e/g, function(n) {
             //console.log(n,stores[n]);
             return stores[n];
         });
@@ -82,13 +85,11 @@ combineTool.config({
     },
     generateJSFile: function(o) {
         var tmpl = o.requires.length ? wrapTMPL : wrapNoDepsTMPL;
-        // if (!o.hasExports) {
-        //     tmpl = wrapNoExports;
-        // }
         for (var p in o) {
             var reg = new RegExp('\\$\\{' + p + '\\}', 'g');
             tmpl = tmpl.replace(reg, (o[p] + '').replace(/\$/g, '$$$$'));
         }
+        tmpl = tmpl.replace(/module\.exports\s*=\s*/, 'return ');
         return tmpl;
     }
 });

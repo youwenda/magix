@@ -38,18 +38,13 @@ define('magix', ['$'], function(require) {
     var G_IsObject = $.isPlainObject;
     var G_IsArray = $.isArray;
     var G_HTML = function(node, html) {
-        if (1 in arguments) {
-            $(node).html(html);
-        } else {
-            html = $(node).html();
-        }
-        return html;
+        $(node).html(html);
     };
     /*#if(modules.style){#*/
     var View_ApplyStyle = function(key, css, node, sheet) {
         if (css && !View_ApplyStyle[key]) {
             View_ApplyStyle[key] = 1;
-            node = $('#' + MxStyleGlobalId);
+            node = $(G_HashKey + MxStyleGlobalId);
             if (node.length) {
                 sheet = node.prop('styleSheet');
                 if (sheet) {
@@ -65,23 +60,20 @@ define('magix', ['$'], function(require) {
     /*#}#*/
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
-    /*#if(modules.router||modules.service){#*/
-    var G_IsFunction = $.isFunction;
-    /*#}#*/
     Inc('../tmpl/router');
     /*#if(modules.router){#*/
     /*#if(modules.tiprouter){#*/
     Router.bind = function() {
         var lastHash = Router.parse().srcHash;
         var newHash;
-        $(window).on('hashchange', function(e, loc) {
+        $(G_WINDOW).on('hashchange', function(e, loc) {
             loc = Router.parse();
             newHash = loc.srcHash;
             if (newHash != lastHash) {
                 e = {
                     backward: function() {
                         e.p = 1;
-                        location.hash = '#!' + lastHash;
+                        Router_WinLoc.hash = '#!' + lastHash;
                     },
                     forward: function() {
                         e.p = 1;
@@ -99,8 +91,8 @@ define('magix', ['$'], function(require) {
                 }
             }
         });
-        window.onbeforeunload = function(e) {
-            e = e || window.event;
+        G_WINDOW.onbeforeunload = function(e) {
+            e = e || G_WINDOW.event;
             var te = {};
             Router.fire('pageunload', te);
             if (te.msg) {
@@ -112,27 +104,59 @@ define('magix', ['$'], function(require) {
     };
     /*#}else{#*/
     Router.bind = function() {
-        $(window).on('hashchange', Router.diff);
+        $(G_WINDOW).on('hashchange', Router.diff);
         Router.diff();
     };
     /*#}#*/
     /*#if(modules.edgerouter){#*/
-    /*#if(modules.tiprouter){#*/
-    /*#}else{#*/
-    var WinHistory = window.history;
+    var WinHistory = G_WINDOW.history;
     if (WinHistory.pushState) {
         Router.edge = 1;
         Router.update = function(path, params, loc, replace) {
             path = G_ToUri(path, params);
             if (path != loc.srcQuery) {
-                WinHistory[replace ? 'replaceState' : 'pushState'](null, null, path);
+                WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
                 Router.diff();
                 Router.did = 1;
             }
         };
+        /*#if(modules.tiprouter){#*/
         Router.bind = function() {
             var initialURL = Router_WinLoc.href;
-            $(window).on('popstate', function() {
+            var lastHref = initialURL;
+            var newHref;
+            $(G_WINDOW).on('popstate', function(e) {
+                newHref = Router_WinLoc.href;
+                var equal = newHref == initialURL;
+                if (!Router.did && equal) return;
+                Router.did = 1;
+                if (newHref != lastHref) {
+                    e = {
+                        backward: function() {
+                            e.p = 1;
+                            history.replaceState(G_NULL, G_NULL, lastHref);
+                        },
+                        forward: function() {
+                            e.p = 1;
+                            lastHref = newHref;
+                            Router.diff();
+                        },
+                        prevent: function() {
+                            e.p = 1;
+                        },
+                        location: Router.parse()
+                    };
+                    Router.fire('change', e);
+                    if (!e.p) {
+                        e.forward();
+                    }
+                }
+            });
+        };
+        /*#}else{#*/
+        Router.bind = function() {
+            var initialURL = Router_WinLoc.href;
+            $(G_WINDOW).on('popstate', function() {
                 var equal = Router_WinLoc.href == initialURL;
                 if (!Router.did && equal) return;
                 Router.did = 1;
@@ -140,22 +164,27 @@ define('magix', ['$'], function(require) {
             });
             Router.diff();
         };
+        /*#}#*/
     }
     /*#}#*/
     /*#}#*/
-    /*#}#*/
     Inc('../tmpl/vframe');
-    var Body_DOMGlobalProcessor = function(e, d) {
-        d = e.data;
-        G_ToTry(d.f, e, d.v);
-    };
-    var Body_DOMEventLibBind = function(node, type, cb, remove, scope) {
-        $(node)[remove ? 'off' : Event_ON](type, scope, cb);
+    // var Body_DOMGlobalProcessor = function(e, d) {
+    //     d = e.data;
+    //     G_ToTry(d.f, e, d.v);
+    // };
+    var Body_DOMEventLibBind = function(node, type, cb, remove) {
+        /*if (remove) {
+            $(node).off(type, selector, cb);
+        } else {
+            $(node).on(type, selector, scope, cb);
+        }*/
+        $(node)[remove ? 'off' : Event_ON](type, cb);
     };
     Inc('../tmpl/body');
     /*#if(modules.fullstyle){#*/
     var View_Style_Cache = new G_Cache(15, 5, function(key) {
-        $('#' + key).remove();
+        $(G_HashKey + key).remove();
     });
     var View_ApplyStyle = function(key, css) {
         if (css) {

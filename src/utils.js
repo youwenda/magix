@@ -124,7 +124,7 @@ var Lazyload = {
                     if (!one.items || !one.items.length) {
                         list.splice(i--, 1);
                     } else {
-                        var zoneCenter = me.getCenter('#' + one.zone);
+                        var zoneCenter = me.getCenter(G_HashKey + one.zone);
                         if (me.intersect(vCenter, zoneCenter)) {
                             me.loadItems(one, vCenter);
                         }
@@ -202,7 +202,7 @@ module.exports = Magix.View.merge({
      * @param {Integer} [threshold]
      */
     addLazyImg: function(zoneId, threshold) {
-        var zone = Zepto('#' + zoneId);
+        var zone = Zepto(G_HashKey + zoneId);
         var imgs = zone.find('img[data-src]');
         Lazyload.add(zoneId, imgs, threshold, ProcessImage);
     },

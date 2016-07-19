@@ -238,7 +238,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             po, sign, view;
         if (!me.$a && node) { //alter
             me.$a = 1;
-            me.$t = G_HTML(node); //.replace(ScriptsReg, ''); template
+            me.$t = node.innerHTML; //.replace(ScriptsReg, ''); template
         }
         //var useTurnaround=me.$vr&&me.useAnimUpdate();
         me.unmountView( /*keepPreHTML*/ );
@@ -250,13 +250,20 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             G_Require(po.path, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
                     View_Prepare(TView);
-                    /*#if(modules.viewInit){#*/
                     var params = G_Mix(po.params, viewInitParams);
+                    /*#if(modules.mxOptions){#*/
+                    var mxo = decodeURIComponent(node.getAttribute('mx-options'));
+                    if (mxo) {
+                        mxo = JSON.parse(mxo);
+                        /*#if(modules.viewInit){#*/
+                        G_Mix(params, mxo);
+                        /*#}#*/
+                    }
                     /*#}#*/
                     view = new TView({
                         owner: me,
                         id: me.id
-                    }, /*#if(modules.viewInit){#*/params/*#}else{#*/G_Mix(po.params, viewInitParams)/*#}#*/);
+                    }, params);
                     me.$v = view;
                     // view.on('rendered', function(e) {
                     //     me.mountZone(e.id);
@@ -366,7 +373,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         var i, vf, id;
         zoneId = zoneId || me.id;
 
-        var vframes = $('#' + zoneId + ' [mx-view]');
+        var vframes = $(G_HashKey + zoneId + ' [mx-view]');
         /*
             body(#mx-root)
                 div(mx-vframe=true,mx-view='xx')
@@ -400,7 +407,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 /*#}#*/
                 me.mountVframe(id, vf.getAttribute('mx-view'), viewInitParams);
                 /*#if(modules.layerVframe){#*/
-                vfs = $('#' + id + ' [mx-view]');
+                vfs = $(G_HashKey + id + ' [mx-view]');
                 for (j = vfs.length - 1; j >= 0; j--) {
                     subVf = vfs[j];
                     id = subVf.id || (subVf.id = G_Id());

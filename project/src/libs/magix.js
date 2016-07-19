@@ -968,7 +968,8 @@ Magix.Router = Router;
                 e = {
                     backward: function() {
                         e.p = 1;
-                        location.hash = '#!' + lastHash;
+                        history.back();
+                        //location.hash = '#!' + lastHash;
                     },
                     forward: function() {
                         e.p = 1;

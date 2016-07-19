@@ -5,7 +5,7 @@ var Magix = require('magix');
 var $ = require('$');
 var Picker = require('../../../../coms/bases/picker');
 var Autoscroll = require('../../../../coms/bases/autoscroll');
-
+var DD = require('@coms/bases/dragdrop');
 Magix.applyStyle('@table-settings-fields.css');
 var CSSNames = 'names@table-settings-fields.css';
 module.exports = Picker.extend({
@@ -94,14 +94,14 @@ module.exports = Picker.extend({
         autoscroll.onstop = function() {
             scrolling = false;
         };
-        me.beginDrag(e.current, function(event) {
+        DD.begin(e.current, function(event) {
             autoscroll.check(event);
             ghost.css({
                 top: event.pageY + 15,
                 left: event.pageX + 20
             });
             if (scrolling) return;
-            var node = me.nodeFromPoint(event.clientX, event.clientY);
+            var node = DD.fromPoint(event.clientX, event.clientY);
             if (node && node.getAttribute) {
                 if (node != lastNode && node.getAttribute('dragdrop') == 'v') {
                     lastNode = node;
@@ -185,14 +185,14 @@ module.exports = Picker.extend({
         autoscroll.onstop = function() {
             scrolling = false;
         };
-        me.beginDrag(e.current, function(event) {
+        DD.begin(e.current, function(event) {
             autoscroll.check(event);
             ghost.css({
                 top: event.pageY + 15,
                 left: event.pageX + 20
             });
             if (scrolling) return;
-            var node = me.nodeFromPoint(event.clientX, event.clientY);
+            var node = DD.fromPoint(event.clientX, event.clientY);
             if (node && node.getAttribute) {
                 if (node != lastNode && node.getAttribute('dragdrop') == 'h') {
                     lastNode = node;

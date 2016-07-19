@@ -21,7 +21,7 @@ KISSY.add('magix', function(S, SE) {
     var View_ApplyStyle = function(key, css, node, sheet) {
         if (css && !View_ApplyStyle[key]) {
             View_ApplyStyle[key] = 1;
-            node = S.one('#' + MxStyleGlobalId);
+            node = S.one(G_HashKey + MxStyleGlobalId);
             if (node) {
                 sheet = node.prop('styleSheet');
                 if (sheet) {
@@ -37,12 +37,9 @@ KISSY.add('magix', function(S, SE) {
     /*#}#*/
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
-    /*#if(modules.router||modules.service){#*/
-    var G_IsFunction = S.isFunction;
-    /*#}#*/
     Inc('../tmpl/router');
     /*#if(modules.router){#*/
-    var Win = S.one(window);
+    var Win = S.one(G_WINDOW);
     /*#if(modules.tiprouter){#*/
     Router.bind = function() {
         var lastHash = Router.parse().srcHash;
@@ -89,20 +86,53 @@ KISSY.add('magix', function(S, SE) {
         Router.diff();
     };
     /*#}#*/
+
     /*#if(modules.edgerouter){#*/
-    /*#if(modules.tiprouter){#*/
-    /*#}else{#*/
-    var WinHistory = window.history;
+    var WinHistory = G_WINDOW.history;
     if (WinHistory.pushState) {
         Router.edge = 1;
         Router.update = function(path, params, loc, replace) {
             path = G_ToUri(path, params);
             if (path != loc.srcQuery) {
-                WinHistory[replace ? 'replaceState' : 'pushState'](null, null, path);
+                WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
                 Router.diff();
                 Router.did = 1;
             }
         };
+        /*#if(modules.tiprouter){#*/
+        Router.bind = function() {
+            var initialURL = Router_WinLoc.href;
+            var lastHref = initialURL;
+            var newHref;
+            Win.on('popstate', function(e) {
+                newHref = Router_WinLoc.href;
+                var equal = newHref == initialURL;
+                if (!Router.did && equal) return;
+                Router.did = 1;
+                if (newHref != lastHref) {
+                    e = {
+                        backward: function() {
+                            e.p = 1;
+                            history.replaceState(G_NULL, G_NULL, lastHref);
+                        },
+                        forward: function() {
+                            e.p = 1;
+                            lastHref = newHref;
+                            Router.diff();
+                        },
+                        prevent: function() {
+                            e.p = 1;
+                        },
+                        location: Router.parse()
+                    };
+                    Router.fire('change', e);
+                    if (!e.p) {
+                        e.forward();
+                    }
+                }
+            });
+        };
+        /*#}else{#*/
         Router.bind = function() {
             var initialURL = Router_WinLoc.href;
             Win.on('popstate', function() {
@@ -113,23 +143,23 @@ KISSY.add('magix', function(S, SE) {
             });
             Router.diff();
         };
+        /*#}#*/
     }
-    /*#}#*/
     /*#}#*/
     /*#}#*/
     var $ = S.all;
     Inc('../tmpl/vframe');
-    var Body_DOMGlobalProcessor = function(e, me) {
-        me = this;
-        G_ToTry(me.f, e, me.v);
-    };
-    var Body_DOMEventLibBind = function(node, type, cb, remove, scope) {
-        SE[remove ? 'detach' : Event_ON](node, type, cb, scope);
+    // var Body_DOMGlobalProcessor = function(e, me) {
+    //     me = this;
+    //     G_ToTry(me.f, e, me.v);
+    // };
+    var Body_DOMEventLibBind = function(node, type, cb, remove) {
+        SE[remove ? 'detach' : Event_ON](node, type, cb);
     };
     Inc('../tmpl/body');
     /*#if(modules.fullstyle){#*/
     var View_Style_Cache = new G_Cache(15, 5, function(key) {
-        S.one('#' + key).remove();
+        S.one(G_HashKey + key).remove();
     });
     var View_ApplyStyle = function(key, css) {
         if (css) {

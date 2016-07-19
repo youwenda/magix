@@ -1,4 +1,4 @@
-/**
+/*3.0.3*//**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version edge
@@ -32,6 +32,7 @@ var G_COMMA = ',';
 var G_NULL = null;
 var G_WINDOW = window;
 var G_DOCUMENT = document;
+var G_HashKey = '#';
 var G_DOCBODY; //initilize at vframe_root
 /*
     关于spliter
@@ -651,7 +652,6 @@ var Event = {
 Magix.Event = Event;
     
     
-    
     var $ = S.all;
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
@@ -818,7 +818,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             po, sign, view;
         if (!me.$a && node) { //alter
             me.$a = 1;
-            me.$t = G_HTML(node); //.replace(ScriptsReg, ''); template
+            me.$t = node.innerHTML; //.replace(ScriptsReg, ''); template
         }
         //var useTurnaround=me.$vr&&me.useAnimUpdate();
         me.unmountView( /*keepPreHTML*/ );
@@ -833,10 +833,11 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     
                     var params = G_Mix(po.params, viewInitParams);
                     
+                    
                     view = new TView({
                         owner: me,
                         id: me.id
-                    }, params);
+                    },  params  );
                     me.$v = view;
                     // view.on('rendered', function(e) {
                     //     me.mountZone(e.id);
@@ -939,7 +940,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         var i, vf, id;
         zoneId = zoneId || me.id;
 
-        var vframes = $('#' + zoneId + ' [mx-view]');
+        var vframes = $(G_HashKey + zoneId + ' [mx-view]');
         /*
             body(#mx-root)
                 div(mx-vframe=true,mx-view='xx')
@@ -1037,12 +1038,12 @@ Magix.Vframe = Vframe;
  *
  *      fca firstChildrenAlter  fcc firstChildrenCreated
  */
-    var Body_DOMGlobalProcessor = function(e, me) {
-        me = this;
-        G_ToTry(me.f, e, me.v);
-    };
-    var Body_DOMEventLibBind = function(node, type, cb, remove, scope) {
-        SE[remove ? 'detach' : Event_ON](node, type, cb, scope);
+    // var Body_DOMGlobalProcessor = function(e, me) {
+    //     me = this;
+    //     G_ToTry(me.f, e, me.v);
+    // };
+    var Body_DOMEventLibBind = function(node, type, cb, remove) {
+        SE[remove ? 'detach' : Event_ON](node, type, cb);
     };
     /*
     dom event处理思路
@@ -1159,7 +1160,7 @@ var Body_DOMEventBind = function(type, remove) {
 };
     
     var View_EvtMethodReg = /^([^<]+)<([^>]+)>$/;
-
+//var View_EvtSelectorReg = /\$(.+)/;
 //var View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 
 var View_WrapRender = function(prop, fn, me) {
@@ -1176,19 +1177,19 @@ var View_WrapRender = function(prop, fn, me) {
 };
 var View_DelegateEvents = function(me, destroy) {
     var events = me.$eo; //eventsObject
-    var p, e;
+    var p /*, e*/ ;
     for (p in events) {
         Body_DOMEventBind(p, destroy);
     }
-    events = me.$el; //eventsList
-    p = events.length;
-    while (p--) {
-        e = events[p];
-        Body_DOMEventLibBind(e.h, e.t, Body_DOMGlobalProcessor, destroy, {
-            v: me,
-            f: e.f
-        });
-    }
+    // events = me.$el; //eventsList
+    // p = events.length;
+    // while (p--) {
+    //     e = events[p];
+    //     Body_DOMEventLibBind(e.h, e.t, e.s && G_HashKey + me.id + ' ' + e.s, Body_DOMGlobalProcessor, destroy, {
+    //         v: me,
+    //         f: e.f
+    //     });
+    // }
 };
 
 //
@@ -1200,10 +1201,10 @@ var View_DelegateEvents = function(me, destroy) {
 //     return left + key.replace(View_StyleNameKeyReg, '.' + View_StyleCssKeyTemp + ' $&');
 // };
 
-var View_Globals = {
-    $win: G_WINDOW,
-    $doc: G_DOCUMENT
-};
+// var View_Globals = {
+//     win: G_WINDOW,
+//     doc: G_DOCUMENT
+// };
 /**
  * 预处理view
  * @param  {View} oView view子类
@@ -1215,8 +1216,8 @@ var View_Prepare = function(oView) {
         //oView.extend = me.extend;
         var prop = oView[G_PROTOTYPE],
             old, temp, name, evts, eventsObject = {},
-            eventsList = [],
-            node, p;
+            p;
+        /*,eventsList = [],node, p, selector;*/
         for (p in prop) {
             old = prop[p];
             temp = p.match(View_EvtMethodReg);
@@ -1225,23 +1226,26 @@ var View_Prepare = function(oView) {
                 evts = temp[2];
                 evts = evts.split(G_COMMA);
                 while ((temp = evts.pop())) {
-                    node = View_Globals[name];
-                    if (node) {
-                        eventsList.push({
-                            f: old,
-                            t: temp,
-                            h: node
-                        });
-                    } else {
-                        eventsObject[temp] = 1;
-                        prop[name + G_SPLITER + temp] = old;
-                    }
+                    // selector = name.match(View_EvtSelectorReg);
+                    // if (selector) {
+                    //     name = selector[1];
+                    //     node = View_Globals[name];
+                    //     eventsList.push({
+                    //         f: old,
+                    //         s: node ? G_NULL : name,
+                    //         t: temp,
+                    //         h: node || G_DOCBODY
+                    //     });
+                    // } else {
+                    eventsObject[temp] = 1;
+                    prop[name + G_SPLITER + temp] = old;
+                    //}
                 }
             }
         }
         View_WrapRender(prop);
         prop.$eo = eventsObject;
-        prop.$el = eventsList;
+        //prop.$el = eventsList;
         
     }
 };
@@ -1374,13 +1378,13 @@ G_Mix(G_Mix(ViewProto, Event), {
     //  * @example
     //  * View.extend({
     //  *     'del&lt;click&gt;':function(e){
-    //  *         S.one('#'+e.currentId).remove();
+    //  *         S.one(G_HashKey+e.currentId).remove();
     //  *     },
     //  *     'addNode&lt;click&gt;':function(e){
     //  *         var tmpl='&lt;div mx-click="del"&gt;delete&lt;/div&gt;';
     //  *         //因为tmpl中有mx-click，因此需要下面这行代码进行处理一次
     //  *         tmpl=this.wrapEvent(tmpl);
-    //  *         S.one('#'+e.currentId).append(tmpl);
+    //  *         S.one(G_HashKey+e.currentId).append(tmpl);
     //  *     }
     //  * });
     //  * //注意，只有动态添加的节点才需要处理

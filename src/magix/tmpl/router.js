@@ -61,7 +61,7 @@ var Router_GetChged = function(oldLocation, newLocation) {
         result = {
             isParam: Router_IsParam,
             //location: newLocation,
-            force: !oldLocation.get //是否强制触发的changed，对于首次加载会强制触发一次
+            force: !oldLocation.href //是否强制触发的changed，对于首次加载会强制触发一次
         };
         //result[Router_VIEW] = to;
         //result[Router_PATH] = to;

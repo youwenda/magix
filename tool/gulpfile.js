@@ -5,6 +5,7 @@ var path = require('path');
 var rename = require('gulp-rename');
 var tmpl = require('./lib/tmpl');
 var doc = require('./lib/doc');
+var pkg = require('../package.json');
 var sep = path.sep;
 var modulesMap = {
   magix: 1, //公用方法及入口
@@ -25,13 +26,15 @@ var extModules = {
   service: 1, //接口服务
   router: 1, //路由模块
   resource: 1, //资源管理,不建议使用了,用wrapAsync足够了
-  // tiprouter: 1,//切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
+  //edgerouter: 1, //使用pushState
+  //tiprouter: 1, //切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
   // share: 1,//向子或孙view公开数据
   //collectView: 1,//收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
   //layerVframe: 1,//父子化同一个view中嵌套存在的vframe
   autoEndUpdate: 1, //自动识别并结束更新。针对没有tmpl属性的view自动识别并结束更新
   viewRelate: 1, //view上是否增加relate方法，当一些节点在view范围外面，但需要响应view事件时有用
   configIni: 1, //是否有ini配置文件
+  mxOptions: 1, //支持节点上添加mx-options属性
   viewMerge: 1 //view是否提供merge方法供扩展原型链对象
 };
 var coreModules = { //核心功能取上面的常用扩展模块做到核心中去
@@ -69,7 +72,7 @@ gulp.task('combine', function() {
       }
       return '';
     });
-    return tmpl(content, extModules);
+    return tmpl('/*' + pkg.version + '*/' + content, extModules);
   });
   copyFile('../src/magix/' + type + '/magix.js', '../dist/' + type + '/magix-core-debug.js', function(content) {
     content = content.replace(incReg, function(match, name) {
@@ -78,14 +81,14 @@ gulp.task('combine', function() {
       }
       return '';
     });
-    return tmpl(content, coreModules);
+    return tmpl('/*' + pkg.version + '*/' + content, coreModules);
   });
 });
 
 gulp.task('compress', function() {
   gulp.src('../dist/' + type + '/magix-debug.js')
     .pipe(uglify({
-      banner: '/*Magix3.0 Licensed MIT*/',
+      banner: '/*Magix' + pkg.version + ' Licensed MIT*/',
       compress: {
         drop_console: true
       },
@@ -97,7 +100,7 @@ gulp.task('compress', function() {
     .pipe(gulp.dest('../dist/' + type + '/'));
   gulp.src('../dist/' + type + '/magix-core-debug.js')
     .pipe(uglify({
-      banner: '/*Magix3.0 Licensed MIT*/',
+      banner: '/*Magix' + pkg.version + ' Licensed MIT*/',
       compress: {
         drop_console: true
       },

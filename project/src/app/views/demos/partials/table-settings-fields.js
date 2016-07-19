@@ -1,5 +1,5 @@
-define('app/views/demos/partials/table-settings-fields',['magix','$','../../../../coms/bases/picker','../../../../coms/bases/autoscroll'],function(require){
-/*Magix ,$ ,Picker ,Autoscroll */
+define('app/views/demos/partials/table-settings-fields',['magix','$','../../../../coms/bases/picker','../../../../coms/bases/autoscroll','../../../../coms/bases/dragdrop'],function(require){
+/*Magix ,$ ,Picker ,Autoscroll ,DD */
 /*
     author:xinglie.lkf@taobao.com
  */
@@ -7,7 +7,7 @@ var Magix = require('magix');
 var $ = require('$');
 var Picker = require('../../../../coms/bases/picker');
 var Autoscroll = require('../../../../coms/bases/autoscroll');
-
+var DD = require('../../../../coms/bases/dragdrop');
 Magix.applyStyle('mp-fec',".mp-fec-cnt{padding:10px}.mp-fec-fields-wrapper{width:500px}.mp-fec-buttons{margin-top:10px}.mp-fec-buttons button{margin-right:8px}.mp-fec-fields{width:60%;float:left}.mp-fec-fields label{margin:2px 8px 3px;display:inline-block}.mp-fec-sortable{width:40%;float:left;height:200px;overflow:auto}.mp-fec-ghost li,.mp-fec-sortable li{height:20px;line-height:20px;border:1px solid #ccc;margin-bottom:3px;padding:4px;cursor:move}li.mp-fec-dragged{opacity:.3}.mp-fec-ghost{position:absolute;left:-9999px}.mp-fec-ghost li{background:#fff;width:120px}.mp-fec-bar{width:120px;height:1px;border:5px solid #333;position:absolute;left:-9999px;cursor:move;border-top:5px solid transparent;border-bottom:5px solid transparent}.mp-fec-barh{height:1px;overflow:hidden;background:#000}.mp-fec-h-fields{margin-top:20px;width:500px;height:100px;overflow:auto}.mp-fec-h-fields li{width:80px;height:80px;padding:5px;display:inline-block;background:#eee;line-height:80px;margin:0 2px}.mp-fec-hbar{width:1px;border:5px solid #333;position:absolute;left:-9999px;cursor:move;border-left:5px solid transparent;border-right:5px solid transparent}.mp-fec-hbarh{width:1px;height:100%;overflow:hidden;background:#000}");
 var CSSNames = {"cnt":"mp-fec-cnt","fields-wrapper":"mp-fec-fields-wrapper","buttons":"mp-fec-buttons","fields":"mp-fec-fields","sortable":"mp-fec-sortable","ghost":"mp-fec-ghost","dragged":"mp-fec-dragged","bar":"mp-fec-bar","barh":"mp-fec-barh","h-fields":"mp-fec-h-fields","hbar":"mp-fec-hbar","hbarh":"mp-fec-hbarh"};
 return Picker.extend({
@@ -97,14 +97,14 @@ tmplData:[{"guid":1,"keys":["fields","checkedMap"],"tmpl":"<%for(var i=0;i<field
         autoscroll.onstop = function() {
             scrolling = false;
         };
-        me.beginDrag(e.current, function(event) {
+        DD.begin(e.current, function(event) {
             autoscroll.check(event);
             ghost.css({
                 top: event.pageY + 15,
                 left: event.pageX + 20
             });
             if (scrolling) return;
-            var node = me.nodeFromPoint(event.clientX, event.clientY);
+            var node = DD.fromPoint(event.clientX, event.clientY);
             if (node && node.getAttribute) {
                 if (node != lastNode && node.getAttribute('dragdrop') == 'v') {
                     lastNode = node;
@@ -188,14 +188,14 @@ tmplData:[{"guid":1,"keys":["fields","checkedMap"],"tmpl":"<%for(var i=0;i<field
         autoscroll.onstop = function() {
             scrolling = false;
         };
-        me.beginDrag(e.current, function(event) {
+        DD.begin(e.current, function(event) {
             autoscroll.check(event);
             ghost.css({
                 top: event.pageY + 15,
                 left: event.pageX + 20
             });
             if (scrolling) return;
-            var node = me.nodeFromPoint(event.clientX, event.clientY);
+            var node = DD.fromPoint(event.clientX, event.clientY);
             if (node && node.getAttribute) {
                 if (node != lastNode && node.getAttribute('dragdrop') == 'h') {
                     lastNode = node;
