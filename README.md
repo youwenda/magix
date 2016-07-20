@@ -2,11 +2,13 @@
 
 ##  简介
 
-Magix适合用来构建大型的,Hash驱动的OPOA(One Page One Application)应用.
+Magix适合用来构建大型的、交互复杂的应用.
 
-Magix特有的VOM帮你更快速的拆分、复用、调试你的大型单页应用
+Magix通过特有的Vframe帮你把页面按区块化拆分，同时拆分后的区块仍可以再拆分子区块，无限拆分下去。通过mx-view标签属性快速的引用区块。
 
-Magix配套的编译工具帮你更轻松的处理不同加载器、路径转换、样式处理、模板处理等问题
+通过Vframe快速的拆分与复用区块，可以通过[区块查看器](https://github.com/thx/magix-inspector)调试你的大型应用。应用可以是前后端分离的单页应用，也可以是传统的交互复杂的页面
+
+Magix配套的[离线编译工具](https://github.com/thx/magix-combine)帮你更轻松的处理不同加载器、路径转换、样式处理、模板处理等问题
 
 
 ## 开源协议
