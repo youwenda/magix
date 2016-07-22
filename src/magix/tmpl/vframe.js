@@ -254,7 +254,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     /*#if(modules.mxOptions){#*/
                     var mxo = decodeURIComponent(node.getAttribute('mx-options'));
                     if (mxo) {
-                        mxo = JSON.parse(mxo);
+                        mxo = G_ToTry(JSON.parse, mxo);
                         /*#if(modules.viewInit){#*/
                         G_Mix(params, mxo);
                         /*#}#*/

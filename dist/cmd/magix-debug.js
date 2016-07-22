@@ -1,4 +1,4 @@
-/*3.0.3*//*
+/*3.0.4*//*
     author:xinglie.lkf@taobao.com
  */
 define('magix', ['$'], function(require) {
@@ -1239,7 +1239,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     
                     var mxo = decodeURIComponent(node.getAttribute('mx-options'));
                     if (mxo) {
-                        mxo = JSON.parse(mxo);
+                        mxo = G_ToTry(JSON.parse, mxo);
                         
                         G_Mix(params, mxo);
                         

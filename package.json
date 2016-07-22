@@ -1,7 +1,7 @@
 {
   "name": "magix",
-  "version": "3.0.3",
-  "description": "SPA framewrok",
+  "version": "3.0.4",
+  "description": "view manager framewrok",
   "main": "dist/cmd/magix-debug.js",
   "repository": {
     "type": "git",

@@ -17,5 +17,6 @@ Magix 遵循 MIT 协议。
 ## 文档
 获取源码后在web server中查看 ./doc/index.html
 
-## 项目
-获取源码后在web server中查看 ./project/index.html
+## 示例项目
+建设中...
+[magix-project](https://github.com/thx/magix-project)
