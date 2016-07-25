@@ -1,4 +1,4 @@
-/*3.0.3*//**
+/*3.0.6*//**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version edge
@@ -867,8 +867,8 @@ var Router = G_Mix({
             result = {
                 href: href,
                 //prev: Router_LLoc.href,
-                //srcQuery: query,
-                //srcHash: hash,
+                srcQuery: query,
+                srcHash: hash,
                 query: queryObj,
                 hash: hashObj,
                 params: G_Mix(G_Mix({}, queryObj[Router_PARAMS]), hashObj[Router_PARAMS])
@@ -1215,13 +1215,11 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             G_Require(po.path, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
                     View_Prepare(TView);
-                    
                     var params = G_Mix(po.params, viewInitParams);
-                    
                     
                     var mxo = decodeURIComponent(node.getAttribute('mx-options'));
                     if (mxo) {
-                        mxo = JSON.parse(mxo);
+                        mxo = G_ToTry(JSON.parse, mxo);
                         
                         G_Mix(params, mxo);
                         
@@ -1230,7 +1228,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     view = new TView({
                         owner: me,
                         id: me.id
-                    },  params  );
+                    }, params);
                     me.$v = view;
                     // view.on('rendered', function(e) {
                     //     me.mountZone(e.id);

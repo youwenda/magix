@@ -1,4 +1,4 @@
-/*3.0.3*//**
+/*3.0.6*//**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version edge
@@ -830,14 +830,12 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             G_Require(po.path, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
                     View_Prepare(TView);
-                    
                     var params = G_Mix(po.params, viewInitParams);
-                    
                     
                     view = new TView({
                         owner: me,
                         id: me.id
-                    },  params  );
+                    }, params);
                     me.$v = view;
                     // view.on('rendered', function(e) {
                     //     me.mountZone(e.id);

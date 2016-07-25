@@ -1,4 +1,4 @@
-/*3.0.4*//*
+/*3.0.6*//*
     author:xinglie.lkf@taobao.com
  */
 define('magix', ['$'], function(require) {

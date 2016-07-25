@@ -147,8 +147,8 @@ var Router = G_Mix({
             result = {
                 href: href,
                 //prev: Router_LLoc.href,
-                //srcQuery: query,
-                //srcHash: hash,
+                srcQuery: query,
+                srcHash: hash,
                 query: queryObj,
                 hash: hashObj,
                 params: G_Mix(G_Mix({}, queryObj[Router_PARAMS]), hashObj[Router_PARAMS])
