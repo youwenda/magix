@@ -15,7 +15,7 @@ Magix配套的[离线编译工具](https://github.com/thx/magix-combine)帮你�
 Magix 遵循 MIT 协议。
 
 ## 文档
-获取源码后在web server中查看 ./doc/index.html
+[magix-doc3](https://thx.github.io/magix-doc3)
 
 ## 示例项目
 [magix-project](https://github.com/thx/magix-project) 集成常见组件及开发中的功能，seajs+jquery
