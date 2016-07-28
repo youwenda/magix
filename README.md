@@ -19,5 +19,7 @@ Magix 遵循 MIT 协议。
 
 ## 示例项目
 [magix-project](https://github.com/thx/magix-project) 集成常见组件及开发中的功能，seajs+jquery
+
 [magix-os](https://github.com/thx/magix-os) web桌面系统 KISSY版本
+
 [magix-doc3](https://github.com/thx/magix-doc3) magix文档，seajs独立版本，不使用动态加载
