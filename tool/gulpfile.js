@@ -14,9 +14,9 @@ var modulesMap = {
   body: 1, //dom事件处理模块
   view: 1
 };
-var type = 'amd'; //打包kissy则type='kissy'
+var type = 'cmd'; //打包kissy则type='kissy'
 
-var extModules = {
+var extModules = {//完整功能的magix,对应magix.js
   linkage: 1, //vframe上是否带父子间调用的方法，通常在移动端并不需要
   base: 1, //base模块
   style: 1, //是否有样式处理
@@ -37,7 +37,7 @@ var extModules = {
   mxOptions: 1, //支持节点上添加mx-options属性
   viewMerge: 1 //view是否提供merge方法供扩展原型链对象
 };
-var coreModules = { //核心功能取上面的常用扩展模块做到核心中去
+var coreModules = { //核心模块取上面的常用扩展模块做到核心中去，对应magix-core.js
   core: 1, //打包核心功能
   viewInit: 1,
   autoEndUpdate: 1
@@ -115,5 +115,5 @@ gulp.task('compress', function() {
 gulp.task('doc', ['combine'], function() {
   var content = fs.readFileSync('../dist/' + type + '/magix-debug.js').toString();
   var main = doc(content);
-  fs.writeFileSync('../doc/src/data.js', 'define("data",function(){return ' + JSON.stringify(main) + '})');
+  fs.writeFileSync('../../magix-doc3/tmpl/data.js', 'define("data",function(){return ' + JSON.stringify(main) + '})');
 });

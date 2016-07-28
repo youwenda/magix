@@ -1,4 +1,4 @@
-/*3.0.6*//**
+/*3.0.7*//**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version edge

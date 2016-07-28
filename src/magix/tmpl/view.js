@@ -466,16 +466,16 @@ G_Mix(G_Mix(ViewProto, Event), {
     /**
      * 离开提示
      * @param  {String} msg 提示消息
-     * @param  {Function} fun 是否提示的回调
+     * @param  {Function} fn 是否提示的回调
      * @beta
      * @module tiprouter
      */
-    leaveTip: function(msg, fun) {
+    leaveTip: function(msg, fn) {
         var me = this;
         var changeListener = function(e) {
             e.prevent();
             if (!me.$tipped) {
-                if (fun.call(me)) { //firefox的confirm可以同时有多个
+                if (fn.call(me)) { //firefox的confirm可以同时有多个
                     me.$tipped = true;
                     if (window.confirm(msg)) {
                         me.$tipped = false;
@@ -490,7 +490,7 @@ G_Mix(G_Mix(ViewProto, Event), {
             }
         };
         var unloadListener = function(e) {
-            if (fun.call(me)) {
+            if (fn.call(me)) {
                 e.msg = msg;
             }
         };
