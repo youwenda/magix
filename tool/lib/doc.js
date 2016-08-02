@@ -88,6 +88,7 @@ module.exports = function(content) {
             var line = cs[i];
             line.replace(/\s*\*?([\s\S]*)/, processor);
         }
+        if (o.example) o.example = o.example.trim();
         return o;
     };
     var block = function(str) {
@@ -178,7 +179,8 @@ module.exports = function(content) {
             }
             if (c.lends) { //简单修正最外层的
                 var idx = remain.indexOf(m);
-                var equal = remain.indexOf('=', idx) + 1;
+                var equal = remain.indexOf('*/', idx) + 2;
+                equal = remain.indexOf('=', equal) + 1;
                 ls.push({
                     name: c.lends,
                     sname: c.lends.replace(/(?:#|\.prototype)$/, ''),
@@ -255,7 +257,7 @@ module.exports = function(content) {
     };
     var bs = block(content); //根据大括号分区块
     var rm = remain(bs); //分块后遗留的代码，主入口
-    var main = root(rm);//全局根对象或类
+    var main = root(rm); //全局根对象或类
     attach(main, bs); //处理借给
     borrows(main); //处理借到
     return main;
