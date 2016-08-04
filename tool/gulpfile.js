@@ -25,6 +25,14 @@ var extModules = { //完整功能的magix,对应magix.js
   // viewRelate: 1, //view上是否增加relate方法，当一些节点在view范围外面，但需要响应view事件时有用
 
 
+
+  //edgerouter: 1, //使用pushState
+  //collectView: 1,//收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
+  //layerVframe: 1,//父子化同一个view中嵌套存在的vframe
+  //viewProtoMixins:1,//支持mixins
+
+
+  autoEndUpdate: 1, //自动识别并结束更新。针对没有tmpl属性的view自动识别并结束更新
   linkage: 1, //vframe上是否带父子间调用的方法，通常在移动端并不需要
   base: 1, //base模块
   style: 1, //是否有样式处理
@@ -33,10 +41,6 @@ var extModules = { //完整功能的magix,对应magix.js
   serviceWithoutPromise: 1, //不使用promise接口
   router: 1, //路由模块
   resource: 1, //资源管理,不建议使用了,用wrapAsync足够了
-  //edgerouter: 1, //使用pushState
-  //collectView: 1,//收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
-  //layerVframe: 1,//父子化同一个view中嵌套存在的vframe
-  autoEndUpdate: 1, //自动识别并结束更新。针对没有tmpl属性的view自动识别并结束更新
   configIni: 1, //是否有ini配置文件
   mxOptions: 1, //支持节点上添加mx-options属性
   viewMerge: 1 //view是否提供merge方法供扩展原型链对象

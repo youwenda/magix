@@ -262,16 +262,62 @@ G_Mix(View, {
     /**
      * 继承
      * @param  {Object} [props] 原型链上的方法或属性对象
+     * @param {Function} [props.ctor] 类似constructor，但不是constructor，当我们继承时，你无需显示调用上一层级的ctor方法，magix会自动帮你调用
+     * @param {Array} [props.mixins] mix到当前原型链上的方法对象，该对象可以有一个ctor方法用于初始化
      * @param  {Object} [statics] 静态对象或方法
+     * @example
+     * var Magix = require('magix');
+     * var Sortable = {
+     *     ctor: function() {
+     *         console.log('sortable ctor');
+     *         //this==当前mix Sortable的view对象
+     *         this.on('destroy', function() {
+     *             console.log('dispose')
+     *         });
+     *     },
+     *     sort: function() {
+     *         console.log('sort');
+     *     }
+     * };
+     * module.exports = Magix.View.extend({
+     *     mixins: [Sortable],
+     *     ctor: function() {
+     *         console.log('view ctor');
+     *     },
+     *     render: function() {
+     *         this.sort();
+     *     }
+     * });
      */
     extend: function(props, statics) {
         var me = this;
         props = props || {};
         var ctor = props.ctor;
+        /*#if(modules.viewProtoMixins){#*/
+        var ctors = [];
+        if (ctor) ctors.push(ctor);
+        /*#}#*/
         var NView = function(a, b) {
             me.call(this, a, b);
+            /*#if(modules.viewProtoMixins){#*/
+            G_ToTry(ctors, b, this);
+            /*#}else{#*/
             if (ctor) ctor.call(this, b);
+            /*#}#*/
         };
+        /*#if(modules.viewProtoMixins){#*/
+        var mixins = props.mixins;
+        if (mixins) {
+            var i = mixins.length,
+                o;
+            while (--i >= 0) {
+                o = mixins[i];
+                ctor = o.ctor;
+                if (ctor) ctors.push(ctor);
+                G_Mix(props, ctor);
+            }
+        }
+        /*#}#*/
         NView.extend = me.extend;
         return G_Extend(NView, me, props, statics);
     }
