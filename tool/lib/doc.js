@@ -58,12 +58,19 @@ module.exports = function(content) {
             }
             if (name == 'param') {
                 if (!o.params) o.params = [];
+                var nameReg = /\s*\[([^\[\]]+)\]\s*/;
                 value.replace(/\{([^\}]+)\}\s+([\w\.\[\]]+)\s*([\S\s]*)/, function(m, type, param, desc) {
-                    o.params.push({
+                    var ms = param.match(nameReg);
+                    var item = {
                         type: type,
                         desc: desc,
                         name: param
-                    });
+                    };
+                    if (ms) {
+                        item.isOptional = true;
+                        item.name = ms[1];
+                    }
+                    o.params.push(item);
                 });
             }
             if (name == 'event') {

@@ -161,7 +161,7 @@ var Router = G_Mix({
     /**
      * 根据location.href路由并派发相应的事件,同时返回当前href与上一个href差异对象
      * @example
-     * var diff=Magix.Router.diff();
+     * var diff = Magix.Router.diff();
      * if(diff.isParam('page,rows')){
      *     console.log('page or rows changed');
      * }
@@ -181,7 +181,7 @@ var Router = G_Mix({
      * @param {String|Object} [params] 参数对象
      * @param {Boolean} [replace] 是否替换当前历史记录
      * @example
-     * var R=Magix.Router;
+     * var R = Magix.Router;
      * R.to('/list?page=2&rows=20');//改变path和相关的参数，地址栏上的其它参数会进行丢弃，不会保留
      * R.to('page=2&rows=20');//只修改参数，地址栏上的其它参数会保留
      * R.to({//通过对象修改参数，地址栏上的其它参数会保留

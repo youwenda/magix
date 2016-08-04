@@ -34,10 +34,14 @@ var G_Id = function(prefix) {
 /*#if(modules.style){#*/
 var MxStyleGlobalId = G_Id();
 /*#}#*/
+/*#if(modules.core){#*/
 var MxGlobalView = G_Id();
+/*#}#*/
 var Magix_Cfg = {
     rootId: G_Id(),
+    /*#if(modules.core){#*/
     defaultView: MxGlobalView,
+    /*#}#*/
     error: function(e) {
         throw e;
     }
@@ -90,11 +94,11 @@ var Magix_CacheSort = function(a, b) {
  * Magix.Cache 类
  * @name Cache
  * @constructor
- * @param {Integer} max 最大值
- * @param {Integer} buffer 缓冲区大小
- * @param {Function} remove 当缓存的元素被删除时调用
+ * @param {Integer} [max] 缓存最大值，默认20
+ * @param {Integer} [buffer] 缓冲区大小，默认5
+ * @param {Function} [remove] 当缓存的元素被删除时调用
  * @example
- * var c=Magix.cache(5,2);//创建一个可缓存5个，且缓存区为2个的缓存对象
+ * var c = new Magix.cache(5,2);//创建一个可缓存5个，且缓存区为2个的缓存对象
  * c.set('key1',{});//缓存
  * c.get('key1');//获取
  * c.del('key1');//删除
@@ -161,7 +165,7 @@ G_Mix(G_Cache[G_PROTOTYPE], {
     /**
      * 循环缓存 需启用ceach或service模块
      * @param  {Function} cb 回调
-     * @param  {Object} ops 回调时传递的额外参数
+     * @param  {Object} [ops] 回调时传递的额外参数
      * @beta
      * @module ceach|service
      */
@@ -309,8 +313,8 @@ var Magix_ParamsFn = function(match, name, value) {
  * @param  {String} path 路径字符串
  * @return {Object} 解析后的对象
  * @example
- * var obj=Magix.parseUri('/xxx/?a=b&c=d');
- * //obj={path:'/xxx/',params:{a:'b',c:'d'}}
+ * var obj = Magix.parseUri('/xxx/?a=b&c=d');
+ * // obj = {path:'/xxx/',params:{a:'b',c:'d'}}
  */
 var G_ParseUri = function(path) {
     //把形如 /xxx/?a=b&c=d 转换成对象 {path:'/xxx/',params:{a:'b',c:'d'}}
@@ -353,21 +357,21 @@ var G_ParseUri = function(path) {
  * @param {Object} [keo] 保留空白值的对象
  * @return {String} 字符串路径
  * @example
- * var str=Magix.toUri('/xxx/',{a:'b',c:'d'});
- * //str==/xxx/?a=b&c=d
+ * var str = Magix.toUri('/xxx/',{a:'b',c:'d'});
+ * // str == /xxx/?a=b&c=d
  *
- * var str=Magix.toUri('/xxx/',{a:'',c:2});
+ * var str = Magix.toUri('/xxx/',{a:'',c:2});
  *
- * //str==/xxx/?a=&c=2
+ * // str == /xxx/?a=&c=2
  *
- * var str=Magix.toUri('/xxx/',{a:'',c:2},{c:1});
+ * var str = Magix.toUri('/xxx/',{a:'',c:2},{c:1});
  *
- * //str==/xxx/?c=2
- * var str=Magix.toUri('/xxx/',{a:'',c:2},{a:1,c:1});
+ * // str == /xxx/?c=2
+ * var str = Magix.toUri('/xxx/',{a:'',c:2},{a:1,c:1});
  *
- * //str==/xxx/?a=&c=2
+ * // str == /xxx/?a=&c=2
  */
-var G_ToUri = function(path, params, keo) { //上个方法的逆向
+var G_ToUri = function(path, params, keo) {
     var arr = [];
     var v, p, f;
     for (p in params) {
@@ -415,17 +419,35 @@ var Magix = {
      */
     /**
      * 设置或获取配置信息
-     * @function
-     * @param {Object} [cfg] 配置信息对象,更多信息请参考Magix.boot方法
-     * @return {Object} 配置信息对象
+     * @param  {Object} cfg 初始化配置参数对象
+     * @param {String} cfg.defaultView 默认加载的view
+     * @param {String} cfg.defaultPath 当无法从地址栏取到path时的默认值。比如使用hash保存路由信息，而初始进入时并没有hash,此时defaultPath会起作用
+     * @param {String} cfg.unfoundView 404时加载的view
+     * @param {Object} cfg.routes path与view映射关系表
+     * @param {String} cfg.rootId 根view的id
+     * @param {Array} cfg.exts 需要加载的扩展
+     * @param {Function} cfg.error 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
      * @example
      * Magix.config({
-     *      rootId:'J_app_main'
+     *      rootId:'J_app_main',
+     *      defaultView:'app/views/layouts/default',//默认加载的view
+     *      defaultPath:'/home',
+     *      routes:{
+     *          "/home":"app/views/layouts/default"
+     *      }
      * });
      *
-     * var config=Magix.config();
      *
-     * S.log(config.rootId);
+     * var config = Magix.config();
+     *
+     * console.log(config.rootId);
+     *
+     * // 可以多次调用该方法，除内置的配置项外，您也可以缓存一些数据，如
+     * Magix.config({
+     *     user:'彳刂'
+     * });
+     *
+     * console.log(Magix.config('user'));
      */
     config: function(cfg, r) {
         r = Magix_Cfg;
@@ -438,26 +460,17 @@ var Magix = {
         }
         return r;
     },
+
     /**
      * 应用初始化入口
-     * @param  {Object} cfg 初始化配置参数对象
-     * @param {String} cfg.defaultView 默认加载的view
-     * @param {String} cfg.defaultPath 当无法从地址栏取到path时的默认值。比如使用hash保存路由信息，而初始进入时并没有hash,此时defaultPath会起作用
-     * @param {String} cfg.unfoundView 404时加载的view
-     * @param {Object} cfg.routes pathname与view映射关系表
-     * @param {String} cfg.rootId 根view的id
-     * @param {Array} cfg.exts 需要加载的扩展
-     * @param {Boolean} cfg.coded 是否对地址栏中的参数进行编码或解码，默认true
-     * @param {Function} cfg.error 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
+     * @function
+     * @param {Object} [cfg] 配置信息对象,更多信息请参考Magix.config方法
+     * @return {Object} 配置信息对象
      * @example
      * Magix.boot({
-     *      rootId:'J_app_main',】
-     *      defaultView:'app/views/layouts/default',//默认加载的view
-     *      defaultPath:'/home',
-     *      routes:{
-     *          "/home":"app/views/layouts/default"
-     *      }
+     *      rootId:'J_app_main'
      * });
+     *
      */
     /*#if(modules.router){#*/
     boot: function(cfg) {
@@ -486,23 +499,68 @@ var Magix = {
     /**
      * 把列表转化成hash对象
      * @param  {Array} list 源数组
-     * @param  {String} key  以数组中对象的哪个key的value做为hahs的key
+     * @param  {String} [key]  以数组中对象的哪个key的value做为hash的key
      * @return {Object}
      * @example
-     * var map=Magix.toMap([1,2,3,5,6]);
-     * //=> {1:1,2:1,3:1,4:1,5:1,6:1}
+     * var map = Magix.toMap([1,2,3,5,6]);
+     * // => {1:1,2:1,3:1,4:1,5:1,6:1}
      *
-     * var map=Magix.toMap([{id:20},{id:30},{id:40}],'id');
-     * //=>{20:{id:20},30:{id:30},40:{id:40}}
+     * var map = Magix.toMap([{id:20},{id:30},{id:40}],'id');
+     * // =>{20:{id:20},30:{id:30},40:{id:40}}
+     *
+     * console.log(map['30']);//=> {id:30}
+     * // 转成对象后不需要每次都遍历数组查询
      */
     toMap: G_ToMap,
     /**
      * 以try cache方式执行方法，忽略掉任何异常
      * @function
      * @param  {Array} fns     函数数组
-     * @param  {Array} args    参数数组
-     * @param  {Object} context 在待执行的方法内部，this的指向
+     * @param  {Array} [args]    参数数组
+     * @param  {Object} [context] 在待执行的方法内部，this的指向
      * @return {Object} 返回执行的最后一个方法的返回值
+     * @example
+     * var result = Magix.toTry(function(){
+     *     return true
+     * });
+     *
+     * // result == true
+     *
+     * var result = Magix.toTry(function(){
+     *     throw new Error('test');
+     * });
+     *
+     * // result == undefined
+     *
+     * var result = Magix.toTry([function(){
+     *     throw new Error('test');
+     * },function(){
+     *     return true;
+     * }]);
+     *
+     * // result == true
+     *
+     * //异常的方法执行时，可以通过Magix.config中的error来捕获，如
+     *
+     * Magix.config({
+     *     error:function(e){
+     *         console.log(e);//在这里可以进行错误上报
+     *     }
+     * });
+     *
+     * var result = Magix.toTry(function(a1,a2){
+     *     return a1 + a2;
+     * },[1,2]);
+     *
+     * // result == 3
+     * var o={
+     *     title:'test'
+     * };
+     * var result = Magix.toTry(function(){
+     *     return this.title;
+     * },null,o);
+     *
+     * // result == 'test'
      */
     toTry: G_ToTry,
     /**
@@ -513,19 +571,19 @@ var Magix = {
      * @param {Object} [keo] 保留空白值的对象
      * @return {String} 字符串路径
      * @example
-     * var str=Magix.toUrl('/xxx/',{a:'b',c:'d'});
-     * //str==/xxx/?a=b&c=d
+     * var str = Magix.toUrl('/xxx/',{a:'b',c:'d'});
+     * // str == /xxx/?a=b&c=d
      *
-     * var str=Magix.toUrl('/xxx/',{a:'',c:2});
+     * var str = Magix.toUrl('/xxx/',{a:'',c:2});
      *
-     * //str==/xxx/?a=&c=2
+     * // str==/xxx/?a=&c=2
      *
-     * var str=Magix.toUrl('/xxx/',{a:'',c:2},{c:1});
+     * var str = Magix.toUrl('/xxx/',{a:'',c:2},{c:1});
      *
-     * //str==/xxx/?c=2
-     * var str=Magix.toUrl('/xxx/',{a:'',c:2},{a:1,c:1});
+     * // str == /xxx/?c=2
+     * var str = Magix.toUrl('/xxx/',{a:'',c:2},{a:1,c:1});
      *
-     * //str==/xxx/?a=&c=2
+     * // str == /xxx/?a=&c=2
      */
     toUrl: G_ToUri,
     /**
@@ -534,8 +592,8 @@ var Magix = {
      * @param  {String} path 路径字符串
      * @return {Object} 解析后的对象
      * @example
-     * var obj=Magix.parseUrl('/xxx/?a=b&c=d');
-     * //obj={path:'/xxx/',params:{a:'b',c:'d'}}
+     * var obj = Magix.parseUrl('/xxx/?a=b&c=d');
+     * // obj = {path:'/xxx/',params:{a:'b',c:'d'}}
      */
     parseUrl: G_ParseUri,
     /*
@@ -557,15 +615,15 @@ var Magix = {
      * @param  {Object} aim    要mix的目标对象
      * @param  {Object} src    mix的来源对象
      * @example
-     *   var o1={
-     *       a:10
-     *   };
-     *   var o2={
-     *       b:20,
-     *       c:30
-     *   };
+     * var o1={
+     *     a:10
+     * };
+     * var o2={
+     *     b:20,
+     *     c:30
+     * };
      *
-     *   Magix.mix(o1,o2);//{a:10,b:20,c:30}
+     * Magix.mix(o1,o2);//{a:10,b:20,c:30}
      *
      *
      * @return {Object}
@@ -577,14 +635,14 @@ var Magix = {
      * @param  {Object}  owner 检测对象
      * @param  {String}  prop  属性
      * @example
-     *   var obj={
-     *       key1:undefined,
-     *       key2:0
-     *   }
+     * var obj={
+     *     key1:undefined,
+     *     key2:0
+     * }
      *
-     *   Magix.has(obj,'key1');//true
-     *   Magix.has(obj,'key2');//true
-     *   Magix.has(obj,'key3');//false
+     * Magix.has(obj,'key1');//true
+     * Magix.has(obj,'key2');//true
+     * Magix.has(obj,'key3');//false
      *
      *
      * @return {Boolean} 是否拥有prop属性
@@ -596,6 +654,16 @@ var Magix = {
      * @type {Array}
      * @beta
      * @module linkage|router
+     * @example
+     * var o = {
+     *     a:1,
+     *     b:2,
+     *     test:3
+     * };
+     * var keys = Magix.keys(o);
+     *
+     * // keys == ['a','b','test']
+     * @return {Array[string]}
      */
     keys: G_Keys,
     /*#}#*/
@@ -604,6 +672,22 @@ var Magix = {
      * @function
      * @param {String|HTMLElement} node节点或节点id
      * @param {String|HTMLElement} container 容器
+     * @example
+     * var root = $('html');
+     * var body = $('body');
+     *
+     * var r = Magix.inside(body[0],root[0]);
+     *
+     * // r == true
+     *
+     * var r = Magix.inside(root[0],body[0]);
+     *
+     * // r == false
+     *
+     * var r = Magix.inside(root[0],[0]);
+     *
+     * // r == true
+     *
      * @return {Boolean}
      */
     inside: G_NodeIn,
@@ -611,6 +695,15 @@ var Magix = {
      * document.getElementById的简写
      * @param {String} id
      * @return {HTMLElement|Null}
+     * @example
+     * // html
+     * // &lt;div id="root"&gt;&lt;/div&gt;
+     *
+     * var node = Magix.node('root');
+     *
+     * // node => div[id='root']
+     *
+     * // node是document.getElementById的简写
      */
     node: G_GetById,
     /*#if(modules.style){#*/
@@ -618,6 +711,11 @@ var Magix = {
      * 应用样式
      * @param {String} prefix 样式的名称前缀
      * @param {String} css 样式字符串
+     * @example
+     * // 该方法配合magix-combine工具使用
+     * // 更多信息可参考magix-combine工具：https://github.com/thx/magix-combine
+     * // 样式问题可查阅这里：https://github.com/thx/magix-combine/issues/6
+     *
      */
     applyStyle: View_ApplyStyle,
     /*#}#*/
@@ -626,6 +724,10 @@ var Magix = {
      * @function
      * @param {String} [prefix] 前缀
      * @return {String}
+     * @example
+     *
+     * var id = Magix.guid('mx-');
+     * // id maybe mx-7
      */
     guid: G_Id,
     Cache: G_Cache

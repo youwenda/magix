@@ -230,7 +230,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
     /**
      * 加载对应的view
      * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的view路径
-     * @param {Object|Null} viewInitParams 调用view的init方法时传递的参数
+     * @param {Object|Null} [viewInitParams] 调用view的init方法时传递的参数
      */
     mountView: function(viewPath, viewInitParams /*,keepPreHTML*/ ) {
         var me = this;
@@ -329,11 +329,11 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * 加载vframe
      * @param  {String} id             节点id
      * @param  {String} viewPath       view路径
-     * @param  {Object} viewInitParams 传递给view init方法的参数
+     * @param  {Object} [viewInitParams] 传递给view init方法的参数
      * @return {Vframe} vframe对象
      * @example
-     * //html
-     * &lt;div id="magix_vf_defer"&gt;&lt;/div&gt;
+     * // html
+     * // &lt;div id="magix_vf_defer"&gt;&lt;/div&gt;
      *
      *
      * //js
@@ -360,9 +360,16 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         return vf;
     },
     /**
-     * 加载当前view下面的子view，因为view的持有对象是vframe，所以是加载vframes
+     * 加载某个区域下的view
      * @param {HTMLElement|String} zoneId 节点对象或id
-     * @param {Object} viewInitParams 传递给view init方法的参数
+     * @param {Object} [viewInitParams] 传递给view init方法的参数
+     * @example
+     * // html
+     * // &lt;div id="zone"&gt;
+     * //   &lt;div mx-view="path/to/v1"&gt;&lt;/div&gt;
+     * // &lt;/div&gt;
+     *
+     * view.onwer.mountZone('zone');//即可完成zone节点下的view渲染
      */
     mountZone: function(zoneId, viewInitParams /*,keepPreHTML*/ ) {
         var me = this;
@@ -463,8 +470,8 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
     } /*#if(modules.linkage){#*/ ,
     /**
      * 获取父vframe
-     * @param  {Integer} level 层级，默认1,取当前vframe的父级
-     * @return {Vframe}
+     * @param  {Integer} [level] 向上查找层级，默认1,取当前vframe的父级
+     * @return {Vframe|undefined}
      * @beta
      * @module linkage
      */
@@ -481,6 +488,9 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * @return {Array[String]}
      * @beta
      * @module linkage
+     * @example
+     * var children = view.owner.children();
+     * console.log(children);
      */
     children: function(me) {
         me = this;
@@ -489,10 +499,15 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
     /**
      * 调用view的方法
      * @param  {String} name 方法名
-     * @param  {Array} args 参数
+     * @param  {Array} [args] 参数
      * @return {Object}
      * @beta
      * @module linkage
+     * @example
+     * // html
+     * // &lt;div&gt; mx-view="path/to/v1" id="test"&gt;&lt;/div&gt;
+     * var vf = Magix.Vframe.get('test');
+     * vf.invoke('methodName',['args1','agrs2']);
      */
     invoke: function(name, args) {
             var result;

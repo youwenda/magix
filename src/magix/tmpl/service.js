@@ -126,7 +126,9 @@ G_Mix(Bag[G_PROTOTYPE], {
         G_Mix(me.$, key);
     }
 });
+/*#if(modules.serviceWithoutPromise){#*/
 var Service_FetchFlags_ONE = 1;
+/*#}#*/
 var Service_FetchFlags_ALL = 2;
 var Service_CacheDone = function(cacheKey, err, fns) {
     fns = this[cacheKey]; //取出当前的缓存信息
@@ -180,9 +182,11 @@ var Service_Task = function(done, host, service, total, flag, bagCache) {
                     G_ToTry(done, doneArr, service);
                 }
             }
+            /*#if(modules.serviceWithoutPromise){#*/
             if (flag == Service_FetchFlags_ONE) { //如果是其中一个成功，则每次成功回调一次
                 G_ToTry(done, [err ? err : G_NULL, bag, finish, idx], service);
             }
+            /*#}#*/
         }
         if (newBag) { //不管当前request或回调是否销毁，均派发end事件，就像前面缓存一样，尽量让请求处理完成，该缓存的缓存，该派发事件派发事件。
             host.fire('end', dispach);
@@ -200,12 +204,26 @@ var Service_Task = function(done, host, service, total, flag, bagCache) {
  */
 var Service_Send = function(me, attrs, done, flag, save) {
     if (me.$o) return me; //如果已销毁，返回
+    /*#if(modules.serviceWithoutPromise){#*/
     if (me.$b) { //繁忙，后续请求入队
         return me.enqueue(function() {
             Service_Send(this, attrs, done, flag, save);
         });
     }
     me.$b = 1; //标志繁忙
+    /*#}else{#*/
+    done = function(e) {
+        if (e) {
+            done.reject(e);
+        } else {
+            done.resolve(G_Slice.cll(arguments, 1));
+        }
+    };
+    var p = new Promise(function(resolve, reject) {
+        done.resolve = resolve;
+        done.reject = reject;
+    });
+    /*#}#*/
     var host = me.constructor;
     //var bagCache = host.$c; //存放bag的Cache对象
     var bagCacheKeys = host.$r; //可缓存的bag key
@@ -242,7 +260,7 @@ var Service_Send = function(me, attrs, done, flag, save) {
             }
         }
     }
-    return me;
+    return /*#if(modules.servicePromise){#*/ p /*#}else{#*/ me /*#}#*/ ;
 };
 /**
  * 接口请求服务类
@@ -254,23 +272,25 @@ var Service_Send = function(me, attrs, done, flag, save) {
  * @borrows Event.fire as fire
  * @borrows Event.off as off
  * @example
- * var S=Service.extend(function(bag,callback){
+ * var S = Magix.Service.extend(function(bag,callback){
  *     $.ajax({
  *         url:bag.get('url'),
  *         success:function(data){
- *             callback(null,data);
+ *             bag.set('data',data)//设置数据
+ *             callback();//通知内部完成数据请求
  *         },
  *         error:function(msg){
- *             callback(msg);
+ *             callback(msg);//出错
  *         }
  *     })
  * });
- *
+ * // 添加接口
  * S.add({
  *     name:'test',
- *     url:'/test'
+ *     url:'/test',
+ *     cache:1000*60 //缓存一分钟
  * });
- *
+ * // 使用接口
  * var s=new S();
  * s.all('test',function(err,bag){
  *     console.log(err,bag);
@@ -293,13 +313,13 @@ G_Mix(Service[G_PROTOTYPE], {
      * @param {Function} done   完成时的回调
      * @return {Service}
      * @example
-        new Service().all([{
-            name:'Test1'
-        },{
-            name:'Test2'
-        }],function(err,bag1,bag2){
-            console.log(arguments);
-        });
+     * new Service().all([{
+     *     name:'Test1'
+     * },{
+     *     name:'Test2'
+     * }],function(err,bag1,bag2){
+     *     console.log(arguments);
+     * });
      */
     all: function(attrs, done) {
         return Service_Send(this, attrs, done, Service_FetchFlags_ALL);
@@ -310,29 +330,34 @@ G_Mix(Service[G_PROTOTYPE], {
      * @param {Object|Array} attrs 保存attrs时的描述信息，如:{name:'Home',urlParams:{a:'12'},formParams:{b:2}}
      * @param {Function} done   完成时的回调
      * @return {Service}
+     * @example
+     * // 同all,但与all不同的是，当指定接口缓存时，all方法会优先使用缓存，而save方法则每次都会发送请求到服务器，忽略掉缓存。同时save更语义化
      */
     save: function(attrs, done) {
         return Service_Send(this, attrs, done, Service_FetchFlags_ALL, 1);
     },
+    /*#if(modules.serviceWithoutPromise){#*/
     /**
-     * 获取attrs，其中任意一个成功均立即回调，回调会被调用多次
+     * 获取attrs，其中任意一个成功均立即回调，回调会被调用多次。注：当使用promise时，不存在该方法。
      * @function
      * @param {Object|Array} attrs 获取attrs时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},formParams:{b:2}}
      * @param {Function} callback   完成时的回调
+     * @beta
+     * @module serviceWithoutPromise
      * @return {Service}
      * @example
      *  //代码片断：
-     *  var s=new Service().one([
-     *      {name:'M1'},
-     *      {name:'M2'},
-     *      {name:'M3'}
-     *  ],function(err,bag){//m1,m2,m3，谁快先调用谁，且被调用三次
-     *      if(err){
-     *          alert(err.msg);
-     *      }else{
-     *          alert(bag.get('name'));
-     *      }
-     *  });
+     * var s = new Service().one([
+     *     {name:'M1'},
+     *     {name:'M2'},
+     *     {name:'M3'}
+     * ],function(err,bag){//m1,m2,m3，谁快先调用谁，且被调用三次
+     *     if(err){
+     *         alert(err.msg);
+     *     }else{
+     *         alert(bag.get('name'));
+     *     }
+     * });
      */
     one: function(attrs, done) {
         return Service_Send(this, attrs, done, Service_FetchFlags_ONE);
@@ -341,16 +366,18 @@ G_Mix(Service[G_PROTOTYPE], {
      * 前一个all,one或save任务做完后的下一个任务
      * @param  {Function} callback 当前面的任务完成后调用该回调
      * @return {Service}
+     * @beta
+     * @module serviceWithoutPromise
      * @example
-     *  var r=new Service().all([
-     *      {name:'M1'},
-     *      {name:'M2'}
-     *  ],function(err,bag1,bag2){
-     *      r.dequeue(['args1','args2']);
-     *  });
-     *  r.enqueue(function(args1,args2){
-     *      alert([args1,args2]);
-     *  });
+     * var r = new Service().all([
+     *     {name:'M1'},
+     *     {name:'M2'}
+     * ],function(err,bag1,bag2){
+     *     r.dequeue(['args1','args2']);
+     * });
+     * r.enqueue(function(args1,args2){
+     *     alert([args1,args2]);
+     * });
      */
     enqueue: function(callback) {
         var me = this;
@@ -363,8 +390,10 @@ G_Mix(Service[G_PROTOTYPE], {
     /**
      * 做下一个任务
      * @param {Array} preArgs 传递的参数
+     * @beta
+     * @module serviceWithoutPromise
      * @example
-     * var r=new Service();
+     * var r = new Service();
      * r.all('Name',function(e,bag){
      *     r.dequeue([e,bag]);
      * });
@@ -401,6 +430,7 @@ G_Mix(Service[G_PROTOTYPE], {
             }, 0);
         }
     },
+    /*#}#*/
     /**
      * 销毁当前请求，不可以继续发起新请求，而且不再调用相应的回调
      */
@@ -415,6 +445,14 @@ G_Mix(Service[G_PROTOTYPE], {
          * @event
          * @param {Object} e 事件对象
          * @param {Bag} e.bag bag对象
+         * @example
+         * var S = Magix.Service.extend({
+         *     //codes
+         * });
+         *
+         * S.on('begin',function(e){//监听所有的开始请求事件
+         *     console.log(e);
+         * });
          */
         /**
          * 当Service结束请求时触发(成功或失败均触发)
@@ -422,7 +460,7 @@ G_Mix(Service[G_PROTOTYPE], {
          * @event
          * @param {Object} e 事件对象
          * @param {Bag} e.bag bag对象
-         * @param {String} e.msg 当请求出错时，msg是出错的消息
+         * @param {String} e.error 当请求出错时，error是出错的消息
          */
         /**
          * 当Service发送请求失败时触发
@@ -430,7 +468,7 @@ G_Mix(Service[G_PROTOTYPE], {
          * @event
          * @param {Object} e 事件对象
          * @param {Bag} e.bag bag对象
-         * @param {String} e.msg 当请求出错时，msg是出错的消息
+         * @param {String} e.error 当请求出错时，error是出错的消息
          */
         /**
          * 当Service发送请求成功时触发
@@ -508,7 +546,17 @@ var Service_Manager = G_Mix({
      * 获取bag注册时的元信息
      * @param  {String|Object} attrs 名称
      * @return {Object}
-     * @throws {Error} If unfound:name
+     * @example
+     * var S = Magix.Service.extend({
+     *     //extend code
+     * });
+     *
+     * S.add({
+     *     name:'test',
+     *     url:'/test'
+     * });
+     *
+     * console.log(S.meta('test'),S.meta({name:'test'}));//这2种方式都可以拿到add时的对象信息
      */
     meta: function(attrs) {
         var me = this;
@@ -542,6 +590,22 @@ var Service_Manager = G_Mix({
     /**
      * 根据name清除缓存的attrs
      * @param  {String|Array} names 字符串或数组
+     * @example
+     * var S = Magix.Service.extend({
+     *     //extend code
+     * });
+     *
+     * S.add({
+     *     name:'test',
+     *     url:'/test',
+     *     cache:1000*60
+     * });
+     *
+     * var s = new Service();
+     * s.all('test');
+     * s.all('test');//from cache
+     * S.clear('test');
+     * s.all('test');//fetch from server
      */
     clear: function(names) {
         this.$c.each(Manager_ClearCache, G_ToMap((names + G_EMPTY).split(G_COMMA)));
@@ -550,6 +614,18 @@ var Service_Manager = G_Mix({
      * 从缓存中获取bag对象
      * @param  {Object} attrs
      * @return {Bag}
+     * @example
+     * var S = Magix.Service.extend({
+     *     //extend code
+     * });
+     *
+     * S.add({
+     *     name:'test',
+     *     url:'/test',
+     *     cache:1000*60
+     * });
+     *
+     * S.cached('test');//尝试从缓存中获取bag对象
      */
     cached: function(attrs) {
         var me = this;
@@ -580,11 +656,25 @@ var Service_Manager = G_Mix({
     }
 }, Event);
 /**
+ * 继承
  * @lends Service
  * @param  {Function} sync 接口服务同步数据方法
- * @param  {Integer} cacheMax 最大缓存数
- * @param  {Integer} cacheBuffer 缓存缓冲区大小
+ * @param  {Integer} [cacheMax] 最大缓存数，默认20
+ * @param  {Integer} [cacheBuffer] 缓存缓冲区大小，默认5
  * @return {Function} 返回新的接口类
+ * @example
+ * var S = Magix.Service.extend(function(bag,callback){
+ *     $.ajax({
+ *         url:bag.get('url'),
+ *         success:function(data){
+ *             bag.set('data',data);
+ *             callback();
+ *         },
+ *         error:function(msg){
+ *             callback({message:msg});
+ *         }
+ *     })
+ * },10,2);//最大缓存10个接口数据，缓冲区2个
  */
 Service.extend = function(sync, cacheMax, cacheBuffer) {
     var me = this;

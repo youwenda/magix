@@ -160,6 +160,9 @@ var View_Oust = function(view) {
         View_DestroyAllResources(view, 1);
         /*#}#*/
         View_DelegateEvents(view, 1);
+        /*#if(modules.viewRelate){#*/
+        delete Body_ViewRelateInfo[id];
+        /*#}#*/
     }
     view.$s--;
 };
@@ -175,14 +178,13 @@ var View_Oust = function(view) {
  * @property {String} id 当前view与页面vframe节点对应的id
  * @property {Vframe} owner 拥有当前view的vframe对象
  * @example
- * 关于事件:
- * 示例：
- *   html写法：
+ * // 关于事件:
+ * // html写法：
  *
- *   &lt;input type="button" mx-click="test({id:100,name:'xinglie'})" value="test" /&gt;
- *   &lt;a href="http://etao.com" mx-click="test({com:'etao.com'})"&gt;http://etao.com&lt;/a&gt;
+ * //  &lt;input type="button" mx-click="test({id:100,name:'xinglie'})" value="test" /&gt;
+ * //  &lt;a href="http://etao.com" mx-click="test({com:'etao.com'})"&gt;http://etao.com&lt;/a&gt;
  *
- *   view写法：
+ * // js写法：
  *
  *     'test&lt;click&gt;':function(e){
  *          e.preventDefault();
@@ -228,7 +230,7 @@ G_Mix(View, {
      * @param  {Object} props 扩展到原型上的方法
      * @example
      * define('app/tview',function(require){
-     *     var Magix=require('magix');
+     *     var Magix = require('magix');
      *     Magix.View.merge({
      *         ctor:function(){
      *             this.$attr='test';
@@ -238,9 +240,9 @@ G_Mix(View, {
      *         }
      *     });
      * });
-     * //加入Magix.start的exts中
+     * //加入Magix.config的exts中
      *
-     *  Magix.start({
+     *  Magix.config({
      *      //...
      *      exts:['app/tview']
      *
@@ -287,13 +289,19 @@ G_Mix(G_Mix(ViewProto, Event), {
     init: G_NOOP,
     /*#}#*/
     /*#if(modules.viewRelate){#*/
+    /**
+     * 将当前view与某个节点关联，当dom节点不属于当前view范围内时有用
+     * @param  {HTMLElement} node dom节点对象
+     * @beta
+     * @module viewRelate
+     * @example
+     * // 如果一个view创建出了一段html并把它塞到了body下，而里面的事件等需要这个view处理，则可以这样关联
+     * view.relate(Magix.node('nodeId'));
+     */
     relate: function(node) {
         var id = node.id || (node.id = G_Id());
         var me = this;
         Body_ViewRelateInfo[id] = me.owner;
-        me.on('destroy', function() {
-            delete Body_ViewRelateInfo[id];
-        });
     },
     /*#}#*/
     // *
@@ -383,7 +391,7 @@ G_Mix(G_Mix(ViewProto, Event), {
     /**
      * 监视地址栏中的参数或path，有变动时，才调用当前view的render方法。通常情况下location有变化不会引起当前view的render被调用，所以你需要指定地址栏中哪些参数有变化时才引起render调用，使得view只关注与自已需要刷新有关的参数
      * @param {Array|String} params  数组字符串
-     * @param {Boolean} isObservePath 是否监视path
+     * @param {Boolean} [isObservePath] 是否监视path
      * @beta
      * @module router
      * @example
@@ -424,14 +432,12 @@ G_Mix(G_Mix(ViewProto, Event), {
      * 让view帮你管理资源，强烈建议对组件等进行托管
      * @param {String} key 资源标识key
      * @param {Object} res 要托管的资源
-     * @param {Boolean} destroyWhenCalleRender 调用render方法时是否销毁托管的资源
+     * @param {Boolean} [destroyWhenCalleRender] 调用render方法时是否销毁托管的资源
      * @return {Object} 返回托管的资源
      * @beta
      * @module resource
      * @example
      * View.extend({
-     *     ctor:function(){
-     *     },
      *     render:function(){
      *         var me=this;
      *         var dropdown=new Dropdown();
@@ -453,7 +459,7 @@ G_Mix(G_Mix(ViewProto, Event), {
     /**
      * 释放管理的资源
      * @param  {String} key 托管时的key
-     * @param  {Boolean} destroy 是否销毁资源
+     * @param  {Boolean} [destroy] 是否销毁资源
      * @return {Object} 返回托管的资源，无论是否销毁
      * @beta
      * @module resource
@@ -469,6 +475,15 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @param  {Function} fn 是否提示的回调
      * @beta
      * @module tiprouter
+     * @example
+     * var Magix = require('magix');
+     * module.exports = Magix.View.extend({
+     *     init:function(){
+     *         this.leaveTip('页面数据未保存，确认离开吗？',function(){
+     *             return true;//true提示，false，不提示
+     *         });
+     *     }
+     * });
      */
     leaveTip: function(msg, fn) {
         var me = this;

@@ -30,6 +30,7 @@ var extModules = { //完整功能的magix,对应magix.js
   style: 1, //是否有样式处理
   viewInit: 1, //init方法
   service: 1, //接口服务
+  serviceWithoutPromise: 1, //不使用promise接口
   router: 1, //路由模块
   resource: 1, //资源管理,不建议使用了,用wrapAsync足够了
   //edgerouter: 1, //使用pushState

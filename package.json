@@ -1,6 +1,6 @@
 {
   "name": "magix",
-  "version": "3.0.7",
+  "version": "3.0.8",
   "description": "view manager framewrok",
   "main": "dist/cmd/magix-debug.js",
   "repository": {
@@ -13,7 +13,10 @@
     "opoa",
     "component",
     "vom",
-    "router"
+    "router",
+    "spa",
+    "service",
+    "layout"
   ],
   "author": "xinglie <xinglie.lkf@taobao.com>",
   "license": "MIT",

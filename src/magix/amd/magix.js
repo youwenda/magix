@@ -222,6 +222,17 @@ define('magix', ['$'], function($) {
      * @borrows Event.off as #off
      * @beta
      * @module base
+     * @example
+     * var T = Magix.Base.extend({
+     *     hi:function(){
+     *         this.fire('hi');
+     *     }
+     * });
+     * var t = new T();
+     * t.onhi=function(e){
+     *     console.log(e);
+     * };
+     * t.hi();
      */
     Magix.Base = G_NOOP;
     /*#}#*/

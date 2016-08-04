@@ -12,8 +12,8 @@ var Event = {
      * 触发事件
      * @param {String} name 事件名称
      * @param {Object} data 事件对象
-     * @param {Boolean} remove 事件触发完成后是否移除这个事件的所有监听
-     * @param {Boolean} lastToFirst 是否从后向前触发事件的监听列表
+     * @param {Boolean} [remove] 事件触发完成后是否移除这个事件的所有监听
+     * @param {Boolean} [lastToFirst] 是否从后向前触发事件的监听列表
      */
     fire: function(name, data, remove, lastToFirst) {
         var key = G_SPLITER + name,
@@ -43,21 +43,19 @@ var Event = {
     /**
      * 绑定事件
      * @param {String} name 事件名称
-     * @param {Function} fn 事件回调
+     * @param {Function} fn 事件处理函数
      * @example
-     *  var T=Magix.mix({},Event);
-     *  T.on('done',function(e){
-     *      alert(1);
-     *  });
-     *  T.on('done',function(e){
-     *      alert(2);
-     *      T.off('done',arguments.callee);
-     *  });
+     * var T = Magix.mix({},Event);
+     * T.on('done',function(e){
+     *     alert(1);
+     * });
+     * T.on('done',function(e){
+     *     alert(2);
+     *     T.off('done',arguments.callee);
+     * });
 
-     *  T.fire('done',{data:'test'});
-     *  T.fire('done',{data:'test2'});
-
-     *  //!!不需要insert,场景不大，目前发现的主要在Router的changed事件，比如外部监听这种情况下写在插件里可以提前绑定，因为插件先加载。
+     * T.fire('done',{data:'test'});
+     * T.fire('done',{data:'test2'});
      */
     on: function(name, fn) {
         var me = this;
@@ -70,7 +68,7 @@ var Event = {
     /**
      * 解除事件绑定
      * @param {String} name 事件名称
-     * @param {Function} fn 事件回调
+     * @param {Function} [fn] 事件处理函数
      */
     off: function(name, fn) {
         var key = G_SPLITER + name,
