@@ -1,4 +1,4 @@
-/*3.0.8*//*
+/*3.0.9*//*
     author:xinglie.lkf@taobao.com
  */
 define('magix', ['$'], function(require) {
@@ -763,6 +763,7 @@ Magix.Event = Event;
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
 
+
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
@@ -927,7 +928,6 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             me.$a = 1;
             me.$t = node.innerHTML; //.replace(ScriptsReg, ''); template
         }
-        //var useTurnaround=me.$vr&&me.useAnimUpdate();
         me.unmountView( /*keepPreHTML*/ );
         me.$d = 0; //destroyed 详见unmountView
         if (node && viewPath) {
@@ -936,27 +936,24 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             sign = ++me.$s;
             G_Require(po.path, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
+                    
                     View_Prepare(TView);
+                    
                     var params = G_Mix(po.params, viewInitParams);
+                    
+                    
                     
                     view = new TView({
                         owner: me,
                         id: me.id
                     }, params);
                     me.$v = view;
-                    // view.on('rendered', function(e) {
-                    //     me.mountZone(e.id);
-                    // });
-                    // view.on('prerender', function(e) {
-                    //     if (!me.unmountZone(e.id, 0, 1)) {
-                    //         Vframe_NotifyAlter(me);
-                    //     }
-                    // });
+                    
                     View_DelegateEvents(view);
+                    
                     
                     view.init(params);
                     
-                    //Vframe_RunInvokes(me);
                     view.render();
                     
                     if (!view.tmpl && !view.$p) {
@@ -987,7 +984,9 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             Vframe_NotifyAlter(me, Vframe_GlobalAlter);
 
             me.$v = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
+            
             View_Oust(view);
+            
             node = G_GetById(me.id);
             if (node && me.$a /*&&!keepPreHTML*/ ) { //如果view本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且view有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即view安装前什么样，销毁后把节点恢复到安装前的情况
                 G_HTML(node, me.$t);
@@ -1154,6 +1153,7 @@ Magix.Vframe = Vframe;
     //     d = e.data;
     //     G_ToTry(d.f, e, d.v);
     // };
+    
     var Body_DOMEventLibBind = function(node, type, cb, remove) {
         /*if (remove) {
             $(node).off(type, selector, cb);
@@ -1162,6 +1162,7 @@ Magix.Vframe = Vframe;
         }*/
         $(node)[remove ? 'off' : Event_ON](type, cb);
     };
+    
     /*
     dom event处理思路
 
@@ -1275,6 +1276,7 @@ var Body_DOMEventBind = function(type, remove) {
     }
     Body_RootEvents[type] = counter;
 };
+    
     
 
     var View_EvtMethodReg = /^([^<]+)<([^>]+)>$/;
@@ -1422,6 +1424,7 @@ var View = function(ops, me) {
     
     
     me.$s = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
+    
     
 };
 var ViewProto = View[G_PROTOTYPE];

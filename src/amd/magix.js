@@ -1,28 +1,39 @@
-/**
- * @fileOverview Magix全局对象
- * @author 行列<xinglie.lkf@taobao.com>
- * @version edge
- **/
-KISSY.add('magix', function(S, SE) {
+/*
+    author:xinglie.lkf@taobao.com
+ */
+define('magix', ['$'], function($) {
     var G_Require = function(name, fn) {
-        S.use(name && (name + G_EMPTY), function(S) {
-            if (fn) {
-                fn.apply(S, G_Slice.call(arguments, 1));
+        if (name) {
+            if (!G_IsArray(name)) {
+                name = [name];
             }
-        });
+            require(name, fn);
+        } else if (fn) {
+            fn();
+        }
     };
-    var G_Extend = S.extend;
-    var G_IsObject = S.isObject;
-    var G_IsArray = S.isArray;
-    var G_DOM = S.DOM;
-    var G_HTML = G_DOM.html;
-
+    var T = function() {};
+    var G_Extend = function(ctor, base, props, statics, cProto) {
+        //bProto.constructor = base;
+        T[G_PROTOTYPE] = base[G_PROTOTYPE];
+        cProto = new T();
+        G_Mix(cProto, props);
+        G_Mix(ctor, statics);
+        cProto.constructor = ctor;
+        ctor[G_PROTOTYPE] = cProto;
+        return ctor;
+    };
+    var G_IsObject = $.isPlainObject;
+    var G_IsArray = $.isArray;
+    var G_HTML = function(node, html) {
+        $(node).html(html);
+    };
     /*#if(modules.style){#*/
     var View_ApplyStyle = function(key, css, node, sheet) {
         if (css && !View_ApplyStyle[key]) {
             View_ApplyStyle[key] = 1;
-            node = S.one(G_HashKey + MxStyleGlobalId);
-            if (node) {
+            node = $(G_HashKey + MxStyleGlobalId);
+            if (node.length) {
                 sheet = node.prop('styleSheet');
                 if (sheet) {
                     sheet.cssText += css;
@@ -30,7 +41,7 @@ KISSY.add('magix', function(S, SE) {
                     node.append(css);
                 }
             } else {
-                S.one('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
+                $('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
             }
         }
     };
@@ -39,19 +50,18 @@ KISSY.add('magix', function(S, SE) {
     Inc('../tmpl/event');
     Inc('../tmpl/router');
     /*#if(modules.router){#*/
-    var Win = S.one(G_WINDOW);
     /*#if(modules.tiprouter){#*/
     Router.bind = function() {
         var lastHash = Router.parse().srcHash;
         var newHash;
-        Win.on('hashchange', function(e, loc) {
+        $(G_WINDOW).on('hashchange', function(e, loc) {
             loc = Router.parse();
             newHash = loc.srcHash;
             if (newHash != lastHash) {
                 e = {
                     backward: function() {
                         e.p = 1;
-                        location.hash = '#!' + lastHash;
+                        Router_WinLoc.hash = '#!' + lastHash;
                     },
                     forward: function() {
                         e.p = 1;
@@ -69,8 +79,8 @@ KISSY.add('magix', function(S, SE) {
                 }
             }
         });
-        window.onbeforeunload = function(e) {
-            e = e || window.event;
+        G_WINDOW.onbeforeunload = function(e) {
+            e = e || G_WINDOW.event;
             var te = {};
             Router.fire('pageunload', te);
             if (te.msg) {
@@ -82,11 +92,10 @@ KISSY.add('magix', function(S, SE) {
     };
     /*#}else{#*/
     Router.bind = function() {
-        Win.on('hashchange', Router.diff);
+        $(G_WINDOW).on('hashchange', Router.diff);
         Router.diff();
     };
     /*#}#*/
-
     /*#if(modules.edgerouter){#*/
     var WinHistory = G_WINDOW.history;
     if (WinHistory.pushState) {
@@ -104,7 +113,7 @@ KISSY.add('magix', function(S, SE) {
             var initialURL = Router_WinLoc.href;
             var lastHref = initialURL;
             var newHref;
-            Win.on('popstate', function(e) {
+            $(G_WINDOW).on('popstate', function(e) {
                 newHref = Router_WinLoc.href;
                 var equal = newHref == initialURL;
                 if (!Router.did && equal) return;
@@ -135,7 +144,7 @@ KISSY.add('magix', function(S, SE) {
         /*#}else{#*/
         Router.bind = function() {
             var initialURL = Router_WinLoc.href;
-            Win.on('popstate', function() {
+            $(G_WINDOW).on('popstate', function() {
                 var equal = Router_WinLoc.href == initialURL;
                 if (!Router.did && equal) return;
                 Router.did = 1;
@@ -147,24 +156,30 @@ KISSY.add('magix', function(S, SE) {
     }
     /*#}#*/
     /*#}#*/
-    var $ = S.all;
     Inc('../tmpl/vframe');
-    // var Body_DOMGlobalProcessor = function(e, me) {
-    //     me = this;
-    //     G_ToTry(me.f, e, me.v);
+    // var Body_DOMGlobalProcessor = function(e, d) {
+    //     d = e.data;
+    //     G_ToTry(d.f, e, d.v);
     // };
     var Body_DOMEventLibBind = function(node, type, cb, remove) {
-        SE[remove ? 'detach' : Event_ON](node, type, cb);
+        /*if (remove) {
+            $(node).off(type, selector, cb);
+        } else {
+            $(node).on(type, selector, scope, cb);
+        }*/
+        $(node)[remove ? 'off' : Event_ON](type, cb);
     };
     Inc('../tmpl/body');
+    Inc('../tmpl/tmpl');
+    Inc('../tmpl/updater');
     /*#if(modules.fullstyle){#*/
     var View_Style_Cache = new G_Cache(15, 5, function(key) {
-        S.one(G_HashKey + key).remove();
+        $(G_HashKey + key).remove();
     });
     var View_ApplyStyle = function(key, css) {
         if (css) {
             if (!View_Style_Cache.has(key)) {
-                S.one('head').append('<style id="' + key + '">' + css + '</style>');
+                $('head').append('<style id="' + key + '">' + css + '</style>');
             }
             View_Style_Cache.num(key, 1);
             //$(node).addClass(key);
@@ -177,15 +192,13 @@ KISSY.add('magix', function(S, SE) {
         }
     };
     /*#}#*/
+
     Inc('../tmpl/view');
-
     /*#if(modules.service){#*/
-    var G_Type = S.type;
-    var G_Proxy = S.bind;
-    var G_Now = S.now;
-
+    var G_Type = $.type;
+    var G_Proxy = $.proxy;
+    var G_Now = $.now || Date.now;
     /*#}#*/
-    //!@vars service
     Inc('../tmpl/service');
     /*#if(modules.base){#*/
     var T_Extend = function(props, statics) {
@@ -211,11 +224,22 @@ KISSY.add('magix', function(S, SE) {
      * @borrows Event.off as #off
      * @beta
      * @module base
+     * @example
+     * var T = Magix.Base.extend({
+     *     hi:function(){
+     *         this.fire('hi');
+     *     }
+     * });
+     * var t = new T();
+     * t.onhi=function(e){
+     *     console.log(e);
+     * };
+     * t.hi();
      */
     Magix.Base = G_NOOP;
     /*#}#*/
     /*#if(modules.core){#*/
-    S.add(MxGlobalView, function() {
+    define(MxGlobalView, function() {
         return View.extend(
             /*#if(!modules.autoEndUpdate){#*/
             {
@@ -228,6 +252,4 @@ KISSY.add('magix', function(S, SE) {
     });
     /*#}#*/
     return Magix;
-}, {
-    requires: ['event', 'node']
 });

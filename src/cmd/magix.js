@@ -1,13 +1,25 @@
 /*
     author:xinglie.lkf@taobao.com
  */
-define('magix', ['$'], function($) {
+define('magix', ['$'], function(require) {
+    var $ = require('$');
     var G_Require = function(name, fn) {
+        // if (name) {
+        //     var a = [];
+        //     if (!G_IsArray(name)) name = [name];
+        //     for (var i = 0; i < name.length; i++) {
+        //         a.push(require(name[i]));
+        //     }
+        //     if (fn) fn.apply(G_NULL, a);
+        // }
+        /*
+            fn回调一定要确保是异步的，原因：所有js都放在页面上，回调是同步的，会导致mountZone中循环时，渲染一个vframe触发一次vframe上的created事件。
+            2016.05.02 该问题已修复，详见mountZone中的hold fire event
+
+            magix单独使用时，由外部在合适的时机boot，不添加虚拟根节点，不自动boot，这样可选择的空间更大
+         */
         if (name) {
-            if (!G_IsArray(name)) {
-                name = [name];
-            }
-            require(name, fn);
+            seajs.use(name, fn);
         } else if (fn) {
             fn();
         }
@@ -161,6 +173,7 @@ define('magix', ['$'], function($) {
     //     d = e.data;
     //     G_ToTry(d.f, e, d.v);
     // };
+    /*#if(!modules.loader){#*/
     var Body_DOMEventLibBind = function(node, type, cb, remove) {
         /*if (remove) {
             $(node).off(type, selector, cb);
@@ -169,7 +182,12 @@ define('magix', ['$'], function($) {
         }*/
         $(node)[remove ? 'off' : Event_ON](type, cb);
     };
+    /*#}#*/
     Inc('../tmpl/body');
+    /*#if(modules.updater){#*/
+    Inc('../tmpl/tmpl');
+    Inc('../tmpl/updater');
+    /*#}#*/
     /*#if(modules.fullstyle){#*/
     var View_Style_Cache = new G_Cache(15, 5, function(key) {
         $(G_HashKey + key).remove();

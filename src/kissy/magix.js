@@ -1,51 +1,28 @@
-/*
-    author:xinglie.lkf@taobao.com
- */
-define('magix', ['$'], function(require) {
-    var $ = require('$');
+/**
+ * @fileOverview Magix全局对象
+ * @author 行列<xinglie.lkf@taobao.com>
+ * @version edge
+ **/
+KISSY.add('magix', function(S, SE) {
     var G_Require = function(name, fn) {
-        // if (name) {
-        //     var a = [];
-        //     if (!G_IsArray(name)) name = [name];
-        //     for (var i = 0; i < name.length; i++) {
-        //         a.push(require(name[i]));
-        //     }
-        //     if (fn) fn.apply(G_NULL, a);
-        // }
-        /*
-            fn回调一定要确保是异步的，原因：所有js都放在页面上，回调是同步的，会导致mountZone中循环时，渲染一个vframe触发一次vframe上的created事件。
-            2016.05.02 该问题已修复，详见mountZone中的hold fire event
+        S.use(name && (name + G_EMPTY), function(S) {
+            if (fn) {
+                fn.apply(S, G_Slice.call(arguments, 1));
+            }
+        });
+    };
+    var G_Extend = S.extend;
+    var G_IsObject = S.isObject;
+    var G_IsArray = S.isArray;
+    var G_DOM = S.DOM;
+    var G_HTML = G_DOM.html;
 
-            magix单独使用时，由外部在合适的时机boot，不添加虚拟根节点，不自动boot，这样可选择的空间更大
-         */
-        if (name) {
-            seajs.use(name, fn);
-        } else if (fn) {
-            fn();
-        }
-    };
-    var T = function() {};
-    var G_Extend = function(ctor, base, props, statics, cProto) {
-        //bProto.constructor = base;
-        T[G_PROTOTYPE] = base[G_PROTOTYPE];
-        cProto = new T();
-        G_Mix(cProto, props);
-        G_Mix(ctor, statics);
-        cProto.constructor = ctor;
-        ctor[G_PROTOTYPE] = cProto;
-        return ctor;
-    };
-    var G_IsObject = $.isPlainObject;
-    var G_IsArray = $.isArray;
-    var G_HTML = function(node, html) {
-        $(node).html(html);
-    };
     /*#if(modules.style){#*/
     var View_ApplyStyle = function(key, css, node, sheet) {
         if (css && !View_ApplyStyle[key]) {
             View_ApplyStyle[key] = 1;
-            node = $(G_HashKey + MxStyleGlobalId);
-            if (node.length) {
+            node = S.one(G_HashKey + MxStyleGlobalId);
+            if (node) {
                 sheet = node.prop('styleSheet');
                 if (sheet) {
                     sheet.cssText += css;
@@ -53,7 +30,7 @@ define('magix', ['$'], function(require) {
                     node.append(css);
                 }
             } else {
-                $('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
+                S.one('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
             }
         }
     };
@@ -62,18 +39,19 @@ define('magix', ['$'], function(require) {
     Inc('../tmpl/event');
     Inc('../tmpl/router');
     /*#if(modules.router){#*/
+    var Win = S.one(G_WINDOW);
     /*#if(modules.tiprouter){#*/
     Router.bind = function() {
         var lastHash = Router.parse().srcHash;
         var newHash;
-        $(G_WINDOW).on('hashchange', function(e, loc) {
+        Win.on('hashchange', function(e, loc) {
             loc = Router.parse();
             newHash = loc.srcHash;
             if (newHash != lastHash) {
                 e = {
                     backward: function() {
                         e.p = 1;
-                        Router_WinLoc.hash = '#!' + lastHash;
+                        location.hash = '#!' + lastHash;
                     },
                     forward: function() {
                         e.p = 1;
@@ -91,8 +69,8 @@ define('magix', ['$'], function(require) {
                 }
             }
         });
-        G_WINDOW.onbeforeunload = function(e) {
-            e = e || G_WINDOW.event;
+        window.onbeforeunload = function(e) {
+            e = e || window.event;
             var te = {};
             Router.fire('pageunload', te);
             if (te.msg) {
@@ -104,10 +82,11 @@ define('magix', ['$'], function(require) {
     };
     /*#}else{#*/
     Router.bind = function() {
-        $(G_WINDOW).on('hashchange', Router.diff);
+        Win.on('hashchange', Router.diff);
         Router.diff();
     };
     /*#}#*/
+
     /*#if(modules.edgerouter){#*/
     var WinHistory = G_WINDOW.history;
     if (WinHistory.pushState) {
@@ -125,7 +104,7 @@ define('magix', ['$'], function(require) {
             var initialURL = Router_WinLoc.href;
             var lastHref = initialURL;
             var newHref;
-            $(G_WINDOW).on('popstate', function(e) {
+            Win.on('popstate', function(e) {
                 newHref = Router_WinLoc.href;
                 var equal = newHref == initialURL;
                 if (!Router.did && equal) return;
@@ -156,7 +135,7 @@ define('magix', ['$'], function(require) {
         /*#}else{#*/
         Router.bind = function() {
             var initialURL = Router_WinLoc.href;
-            $(G_WINDOW).on('popstate', function() {
+            Win.on('popstate', function() {
                 var equal = Router_WinLoc.href == initialURL;
                 if (!Router.did && equal) return;
                 Router.did = 1;
@@ -168,28 +147,26 @@ define('magix', ['$'], function(require) {
     }
     /*#}#*/
     /*#}#*/
+    var $ = S.all;
     Inc('../tmpl/vframe');
-    // var Body_DOMGlobalProcessor = function(e, d) {
-    //     d = e.data;
-    //     G_ToTry(d.f, e, d.v);
+    // var Body_DOMGlobalProcessor = function(e, me) {
+    //     me = this;
+    //     G_ToTry(me.f, e, me.v);
     // };
     var Body_DOMEventLibBind = function(node, type, cb, remove) {
-        /*if (remove) {
-            $(node).off(type, selector, cb);
-        } else {
-            $(node).on(type, selector, scope, cb);
-        }*/
-        $(node)[remove ? 'off' : Event_ON](type, cb);
+        SE[remove ? 'detach' : Event_ON](node, type, cb);
     };
     Inc('../tmpl/body');
+    Inc('../tmpl/tmpl');
+    Inc('../tmpl/updater');
     /*#if(modules.fullstyle){#*/
     var View_Style_Cache = new G_Cache(15, 5, function(key) {
-        $(G_HashKey + key).remove();
+        S.one(G_HashKey + key).remove();
     });
     var View_ApplyStyle = function(key, css) {
         if (css) {
             if (!View_Style_Cache.has(key)) {
-                $('head').append('<style id="' + key + '">' + css + '</style>');
+                S.one('head').append('<style id="' + key + '">' + css + '</style>');
             }
             View_Style_Cache.num(key, 1);
             //$(node).addClass(key);
@@ -202,13 +179,15 @@ define('magix', ['$'], function(require) {
         }
     };
     /*#}#*/
-
     Inc('../tmpl/view');
+
     /*#if(modules.service){#*/
-    var G_Type = $.type;
-    var G_Proxy = $.proxy;
-    var G_Now = $.now || Date.now;
+    var G_Type = S.type;
+    var G_Proxy = S.bind;
+    var G_Now = S.now;
+
     /*#}#*/
+    //!@vars service
     Inc('../tmpl/service');
     /*#if(modules.base){#*/
     var T_Extend = function(props, statics) {
@@ -234,22 +213,11 @@ define('magix', ['$'], function(require) {
      * @borrows Event.off as #off
      * @beta
      * @module base
-     * @example
-     * var T = Magix.Base.extend({
-     *     hi:function(){
-     *         this.fire('hi');
-     *     }
-     * });
-     * var t = new T();
-     * t.onhi=function(e){
-     *     console.log(e);
-     * };
-     * t.hi();
      */
     Magix.Base = G_NOOP;
     /*#}#*/
     /*#if(modules.core){#*/
-    define(MxGlobalView, function() {
+    S.add(MxGlobalView, function() {
         return View.extend(
             /*#if(!modules.autoEndUpdate){#*/
             {
@@ -262,4 +230,6 @@ define('magix', ['$'], function(require) {
     });
     /*#}#*/
     return Magix;
+}, {
+    requires: ['event', 'node']
 });

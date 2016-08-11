@@ -1,6 +1,13 @@
 var Vframe_RootVframe;
 var Vframe_GlobalAlter;
-
+/*#if(modules.mxData){#*/
+var Vframe_DataParamsReg = /(\w+):\s*([^,\}]+)\s*/g;
+var Vframe_DataParamsStrReg = /(['"])(.*)\1/;
+var Vframe_DataParamsNumReg = /^[\d\.]+$/;
+/*#}#*/
+/*#if(modules.updater){#*/
+var Vframe_UrlParamsReg = /\{(.+)\}/;
+/*#}#*/
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
@@ -240,7 +247,6 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             me.$a = 1;
             me.$t = node.innerHTML; //.replace(ScriptsReg, ''); template
         }
-        //var useTurnaround=me.$vr&&me.useAnimUpdate();
         me.unmountView( /*keepPreHTML*/ );
         me.$d = 0; //destroyed 详见unmountView
         if (node && viewPath) {
@@ -249,15 +255,68 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             sign = ++me.$s;
             G_Require(po.path, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
+                    /*#if(!modules.loader){#*/
                     View_Prepare(TView);
+                    /*#}#*/
                     var params = G_Mix(po.params, viewInitParams);
                     /*#if(modules.mxOptions){#*/
                     var mxo = decodeURIComponent(node.getAttribute('mx-options'));
                     if (mxo) {
-                        mxo = G_ToTry(JSON.parse, mxo);
-                        /*#if(modules.viewInit){#*/
+                        /*jshint evil: true*/
+                        mxo = G_ToTry(Function('return ' + mxo));
                         G_Mix(params, mxo);
+                    }
+                    /*#}#*/
+                    /*#if(modules.mxData){#*/
+                    var mxd = node.getAttribute('mx-data');
+                    if (mxd) {
+                        var parent = me.parent();
+                        parent = parent && parent.$v;
+                        /*#if(modules.updater){#*/
+                        parent = parent && parent.$updater;
                         /*#}#*/
+                        var mxdo = {};
+                        /*#if(!modules.updater){#*/
+                        var read = function(val) {
+                            var keys = val.split('.');
+                            var start = parent;
+                            while (keys.length && start) {
+                                start = start[keys.shift()];
+                            }
+                            return start;
+                        };
+                        /*#}#*/
+                        mxd.replace(Vframe_DataParamsReg, function(m, name, val) {
+                            m = val.match(Vframe_DataParamsStrReg);
+                            if (m) {
+                                val = m[2];
+                            } else if (Vframe_DataParamsNumReg.test(val)) {
+                                val = parseFloat(val);
+                            } else {
+                                /*#if(modules.updater){#*/
+                                val = parent.get(val);
+                                /*#}else{#*/
+                                val = read(val);
+                                /*#}#*/
+                            }
+                            mxdo[name] = val;
+                        });
+                        G_Mix(params, mxdo);
+                    }
+                    /*#}#*/
+                    /*#if(modules.updater){#*/
+                    var parent = me.parent(),
+                        p, val;
+                    parent = parent && parent.$v;
+                    parent = parent && parent.$updater;
+                    if (parent) {
+                        for (p in params) {
+                            val = params[p];
+                            val = val.match(Vframe_UrlParamsReg);
+                            if (val) {
+                                params[p] = parent.get(val[1]);
+                            }
+                        }
                     }
                     /*#}#*/
                     view = new TView({
@@ -265,21 +324,14 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                         id: me.id
                     }, params);
                     me.$v = view;
-                    // view.on('rendered', function(e) {
-                    //     me.mountZone(e.id);
-                    // });
-                    // view.on('prerender', function(e) {
-                    //     if (!me.unmountZone(e.id, 0, 1)) {
-                    //         Vframe_NotifyAlter(me);
-                    //     }
-                    // });
+                    /*#if(!modules.loader){#*/
                     View_DelegateEvents(view);
+                    /*#}#*/
                     /*#if(modules.viewInit){#*/
                     view.init(params);
                     /*#}#*/
-                    //Vframe_RunInvokes(me);
                     view.render();
-                    /*#if(modules.autoEndUpdate){#*/
+                    /*#if(modules.autoEndUpdate&&!modules.loader){#*/
                     if (!view.tmpl && !view.$p) {
                         view.endUpdate();
                     }
@@ -310,7 +362,9 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             Vframe_NotifyAlter(me, Vframe_GlobalAlter);
 
             me.$v = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
+            /*#if(!modules.loader){#*/
             View_Oust(view);
+            /*#}#*/
             node = G_GetById(me.id);
             if (node && me.$a /*&&!keepPreHTML*/ ) { //如果view本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且view有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即view安装前什么样，销毁后把节点恢复到安装前的情况
                 G_HTML(node, me.$t);

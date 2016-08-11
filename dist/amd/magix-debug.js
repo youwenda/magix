@@ -1,4 +1,4 @@
-/*3.0.8*//*
+/*3.0.9*//*
     author:xinglie.lkf@taobao.com
  */
 define('magix', ['$'], function($) {
@@ -83,8 +83,12 @@ var G_Id = function(prefix) {
 var MxStyleGlobalId = G_Id();
 
 
+var MxGlobalView = G_Id();
+
 var Magix_Cfg = {
     rootId: G_Id(),
+    
+    defaultView: MxGlobalView,
     
     error: function(e) {
         throw e;
@@ -1070,6 +1074,11 @@ Magix.Router = Router;
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
 
+var Vframe_DataParamsReg = /(\w+):\s*([^,\}]+)\s*/g;
+var Vframe_DataParamsStrReg = /(['"])(.*)\1/;
+var Vframe_DataParamsNumReg = /^[\d\.]+$/;
+
+
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
@@ -1309,7 +1318,6 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             me.$a = 1;
             me.$t = node.innerHTML; //.replace(ScriptsReg, ''); template
         }
-        //var useTurnaround=me.$vr&&me.useAnimUpdate();
         me.unmountView( /*keepPreHTML*/ );
         me.$d = 0; //destroyed 详见unmountView
         if (node && viewPath) {
@@ -1318,35 +1326,63 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             sign = ++me.$s;
             G_Require(po.path, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
+                    
                     View_Prepare(TView);
+                    
                     var params = G_Mix(po.params, viewInitParams);
                     
                     var mxo = decodeURIComponent(node.getAttribute('mx-options'));
                     if (mxo) {
-                        mxo = G_ToTry(JSON.parse, mxo);
-                        
+                        /*jshint evil: true*/
+                        mxo = G_ToTry(Function('return ' + mxo));
                         G_Mix(params, mxo);
-                        
                     }
+                    
+                    
+                    var mxd = node.getAttribute('mx-data');
+                    if (mxd) {
+                        var parent = me.parent();
+                        parent = parent && parent.$v;
+                        
+                        var mxdo = {};
+                        
+                        var read = function(val) {
+                            var keys = val.split('.');
+                            var start = parent;
+                            while (keys.length && start) {
+                                start = start[keys.shift()];
+                            }
+                            return start;
+                        };
+                        
+                        mxd.replace(Vframe_DataParamsReg, function(m, name, val) {
+                            m = val.match(Vframe_DataParamsStrReg);
+                            if (m) {
+                                val = m[2];
+                            } else if (Vframe_DataParamsNumReg.test(val)) {
+                                val = parseFloat(val);
+                            } else {
+                                
+                                val = read(val);
+                                
+                            }
+                            mxdo[name] = val;
+                        });
+                        G_Mix(params, mxdo);
+                    }
+                    
                     
                     view = new TView({
                         owner: me,
                         id: me.id
                     }, params);
                     me.$v = view;
-                    // view.on('rendered', function(e) {
-                    //     me.mountZone(e.id);
-                    // });
-                    // view.on('prerender', function(e) {
-                    //     if (!me.unmountZone(e.id, 0, 1)) {
-                    //         Vframe_NotifyAlter(me);
-                    //     }
-                    // });
+                    
                     View_DelegateEvents(view);
+                    
                     
                     view.init(params);
                     
-                    //Vframe_RunInvokes(me);
                     view.render();
                     
                     if (!view.tmpl && !view.$p) {
@@ -1379,7 +1415,9 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             Vframe_NotifyAlter(me, Vframe_GlobalAlter);
 
             me.$v = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
+            
             View_Oust(view);
+            
             node = G_GetById(me.id);
             if (node && me.$a /*&&!keepPreHTML*/ ) { //如果view本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且view有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即view安装前什么样，销毁后把节点恢复到安装前的情况
                 G_HTML(node, me.$t);
@@ -1736,6 +1774,8 @@ var Body_DOMEventBind = function(type, remove) {
     Body_RootEvents[type] = counter;
 };
     
+    
+    
 
     var View_EvtMethodReg = /^([^<]+)<([^>]+)>$/;
 //var View_EvtSelectorReg = /\$(.+)/;
@@ -1956,6 +1996,7 @@ var View = function(ops, me) {
     
     G_ToTry(View_Ctors, ops, me);
     
+    
 };
 var ViewProto = View[G_PROTOTYPE];
 G_Mix(View, {
@@ -1999,16 +2040,60 @@ G_Mix(View, {
     /**
      * 继承
      * @param  {Object} [props] 原型链上的方法或属性对象
+     * @param {Function} [props.ctor] 类似constructor，但不是constructor，当我们继承时，你无需显示调用上一层级的ctor方法，magix会自动帮你调用
+     * @param {Array} [props.mixins] mix到当前原型链上的方法对象，该对象可以有一个ctor方法用于初始化
      * @param  {Object} [statics] 静态对象或方法
+     * @example
+     * var Magix = require('magix');
+     * var Sortable = {
+     *     ctor: function() {
+     *         console.log('sortable ctor');
+     *         //this==当前mix Sortable的view对象
+     *         this.on('destroy', function() {
+     *             console.log('dispose')
+     *         });
+     *     },
+     *     sort: function() {
+     *         console.log('sort');
+     *     }
+     * };
+     * module.exports = Magix.View.extend({
+     *     mixins: [Sortable],
+     *     ctor: function() {
+     *         console.log('view ctor');
+     *     },
+     *     render: function() {
+     *         this.sort();
+     *     }
+     * });
      */
     extend: function(props, statics) {
         var me = this;
         props = props || {};
         var ctor = props.ctor;
+        
+        var ctors = [];
+        if (ctor) ctors.push(ctor);
+        
         var NView = function(a, b) {
             me.call(this, a, b);
-            if (ctor) ctor.call(this, b);
+            
+            G_ToTry(ctors, b, this);
+            
         };
+        
+        var mixins = props.mixins;
+        if (mixins) {
+            var i = mixins.length,
+                o;
+            while (--i >= 0) {
+                o = mixins[i];
+                ctor = o.ctor;
+                if (ctor) ctors.push(ctor);
+                G_Mix(props, ctor);
+            }
+        }
+        
         NView.extend = me.extend;
         return G_Extend(NView, me, props, statics);
     }
@@ -2189,6 +2274,52 @@ G_Mix(G_Mix(ViewProto, Event), {
     },
     
     
+    
+    /**
+     * 向子(孙)view公开数据
+     * @param  {String} key key
+     * @param  {Object} data 数据
+     * @beta
+     * @module share
+     */
+    share: function(key, data) {
+        var me = this;
+        if (!me.$sd) {
+            me.$sd = {};
+        }
+        me.$sd[key] = data;
+    },
+    /**
+     * 获取祖先view上公开的数据
+     * @param  {String} key key
+     * @return {Object}
+     * @beta
+     * @module share
+     * @example
+     * //父view
+     * render:function(){
+     *     this.share('x',{a:20});
+     * }
+     * //子view
+     * render:function(){
+     *     var d=this.getShared('x');
+     * }
+     */
+    getShared: function(key) {
+        var me = this;
+        var sd = me.$sd;
+        var exist;
+        if (sd) {
+            exist = G_Has(sd, key);
+            if (exist) {
+                return sd[key];
+            }
+        }
+        var vf = me.owner.parent();
+        if (vf) {
+            return vf.invoke('getShared', key);
+        }
+    },
     
     /**
      * 设置view的html内容
@@ -2963,6 +3094,12 @@ Magix.Service = Service;
      */
     Magix.Base = G_NOOP;
     
+    
+    define(MxGlobalView, function() {
+        return View.extend(
+            
+        );
+    });
     
     return Magix;
 });

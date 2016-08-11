@@ -219,6 +219,9 @@ var View = function(ops, me) {
     /*#if(modules.viewMerge){#*/
     G_ToTry(View_Ctors, ops, me);
     /*#}#*/
+    /*#if(modules.updater){#*/
+    me.$updater = new Updater(me);
+    /*#}#*/
 };
 var ViewProto = View[G_PROTOTYPE];
 G_Mix(View, {

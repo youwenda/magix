@@ -1,10 +1,12 @@
 ﻿# Magix [![Version Number](https://img.shields.io/npm/v/magix.svg)](https://github.com/thx/magix/ "Version Number") [![THX Team](https://img.shields.io/badge/team-THX-green.svg)](https://thx.github.io/ "THX Team") [![License](https://img.shields.io/badge/license-MIT-orange.svg)](https://opensource.org/licenses/MIT "License")
 
+> npm install magix
+
 ##  简介
 
 Magix适合用来构建大型的、交互复杂的应用。应用可以是前后端分离的单页应用，也可以是传统的交互复杂的页面。
 
-Magix通过特有的Vframe(类似iframe的思路)帮你把页面按区块化拆分(这里有介绍：[magix,区块化管理利器](https://github.com/thx/magix/issues/11))，同时拆分后的区块仍可以再拆分子区块，无限拆分下去。通过mx-view标签属性快速把区块组装起来形成最终的页面，区块可以被任意、多次复用。
+Magix通过特有的vframe(类似iframe的思路)帮你把页面按区块化拆分(这里有介绍：[magix,区块化管理利器](https://github.com/thx/magix/issues/11))，同时拆分后的区块仍可以再拆分子区块，无限拆分下去。通过mx-view标签属性快速把区块组装起来形成最终的页面，区块可以被任意、多次复用。
 
 拆分再组合后的页面，无法直接看出有哪些区块及区块间的关系，可以通过magix配套的[区块查看器](https://github.com/thx/magix-inspector)来查看页面上区块间的关系、区块渲染情况等，便于分析及调试。
 
