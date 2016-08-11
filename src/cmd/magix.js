@@ -184,10 +184,8 @@ define('magix', ['$'], function(require) {
     };
     /*#}#*/
     Inc('../tmpl/body');
-    /*#if(modules.updater){#*/
     Inc('../tmpl/tmpl');
     Inc('../tmpl/updater');
-    /*#}#*/
     /*#if(modules.fullstyle){#*/
     var View_Style_Cache = new G_Cache(15, 5, function(key) {
         $(G_HashKey + key).remove();

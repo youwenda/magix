@@ -942,6 +942,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             });
         }
     },
+    
     /**
      * 销毁对应的view
      */

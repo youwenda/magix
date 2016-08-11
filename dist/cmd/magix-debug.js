@@ -1086,10 +1086,6 @@ Magix.Router = Router;
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
 
-var Vframe_DataParamsReg = /(\w+):\s*([^,\}]+)\s*/g;
-var Vframe_DataParamsStrReg = /(['"])(.*)\1/;
-var Vframe_DataParamsNumReg = /^[\d\.]+$/;
-
 
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
@@ -1351,38 +1347,6 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     }
                     
                     
-                    var mxd = node.getAttribute('mx-data');
-                    if (mxd) {
-                        var parent = me.parent();
-                        parent = parent && parent.$v;
-                        
-                        var mxdo = {};
-                        
-                        var read = function(val) {
-                            var keys = val.split('.');
-                            var start = parent;
-                            while (keys.length && start) {
-                                start = start[keys.shift()];
-                            }
-                            return start;
-                        };
-                        
-                        mxd.replace(Vframe_DataParamsReg, function(m, name, val) {
-                            m = val.match(Vframe_DataParamsStrReg);
-                            if (m) {
-                                val = m[2];
-                            } else if (Vframe_DataParamsNumReg.test(val)) {
-                                val = parseFloat(val);
-                            } else {
-                                
-                                val = read(val);
-                                
-                            }
-                            mxdo[name] = val;
-                        });
-                        G_Mix(params, mxdo);
-                    }
-                    
                     
                     view = new TView({
                         owner: me,
@@ -1405,6 +1369,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             });
         }
     },
+    
     /**
      * 销毁对应的view
      */
@@ -1787,6 +1752,7 @@ var Body_DOMEventBind = function(type, remove) {
     }
     Body_RootEvents[type] = counter;
 };
+    
     
     
 

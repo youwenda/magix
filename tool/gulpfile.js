@@ -14,7 +14,7 @@ var modulesMap = {
   body: 1, //dom事件处理模块
   view: 1
 };
-var type = 'kissy'; //打包kissy则type='kissy'
+var type = 'cmd'; //打包kissy则type='kissy'
 
 var extModules = { //完整功能的magix,对应magix.js
   //
@@ -41,7 +41,7 @@ var extModules = { //完整功能的magix,对应magix.js
   resource: 1, //资源管理,不建议使用了,用wrapAsync足够了
   configIni: 1, //是否有ini配置文件
   mxOptions: 1, //支持节点上添加mx-options属性
-  mxData: 1, //支持直接获取数据
+  //mxData: 1, //支持直接获取数据
   viewMerge: 1 //view是否提供merge方法供扩展原型链对象
 };
 var coreModules = { //核心模块取上面的常用扩展模块做到核心中去，对应magix-core.js

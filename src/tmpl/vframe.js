@@ -272,20 +272,25 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     if (mxd) {
                         var parent = me.parent();
                         parent = parent && parent.$v;
-                        /*#if(modules.updater){#*/
-                        parent = parent && parent.$updater;
-                        /*#}#*/
                         var mxdo = {};
-                        /*#if(!modules.updater){#*/
                         var read = function(val) {
                             var keys = val.split('.');
+                            var last = keys[keys.length - 1];
                             var start = parent;
                             while (keys.length && start) {
                                 start = start[keys.shift()];
                             }
+                            if (parent) {
+                                if (!parent.$dKeys) parent.$dKeys = {};
+                                if (!parent.$dKeys[last]) parent.$dKeys[last] = [];
+                                var list = parent.$dKeys[last];
+                                if (!list[G_SPLITER + me.id]) {
+                                    list[G_SPLITER + me.id] = 1;
+                                    list.push(me.id);
+                                }
+                            }
                             return start;
                         };
-                        /*#}#*/
                         mxd.replace(Vframe_DataParamsReg, function(m, name, val) {
                             m = val.match(Vframe_DataParamsStrReg);
                             if (m) {
@@ -293,11 +298,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                             } else if (Vframe_DataParamsNumReg.test(val)) {
                                 val = parseFloat(val);
                             } else {
-                                /*#if(modules.updater){#*/
-                                val = parent.get(val);
-                                /*#}else{#*/
                                 val = read(val);
-                                /*#}#*/
                             }
                             mxdo[name] = val;
                         });
@@ -340,6 +341,33 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             });
         }
     },
+    /*#if(modules.mxData){#*/
+    updateVframeByDataKey: function(keys) {
+        var me = this;
+        var view = me.$v;
+        if (view) {
+            var list = view.$dKeys;
+            var updateList = [];
+            for (var i = 0; i < keys.length; i++) {
+                var vfIds = list[keys[i]];
+                if (vfIds) {
+                    for (var j = 0; j < vfIds.length; j++) {
+                        if (!updateList[G_SPLITER + vfIds[j]]) {
+                            updateList[G_SPLITER + vfIds[j]] = 1;
+                            updateList.push(vfIds[j]);
+                        }
+                    }
+                }
+            }
+            for (var i = 0; i < updateList.length; i++) {
+                var node = Magix.node(updateList[i]);
+                if (node) {
+                    me.mountVframe(updateList[i], node.getAttribute('mx-view'));
+                }
+            }
+        }
+    },
+    /*#}#*/
     /**
      * 销毁对应的view
      */
