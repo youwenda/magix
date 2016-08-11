@@ -114,6 +114,19 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
         }
     }
 };
+/**
+ * 使用mx-keys进行局部刷新的类
+ * @constructor
+ * @name Updater
+ * @class
+ * @beta
+ * @module updater
+ * @param {View} view Magix.View对象
+ * @borrows Event.on as #on
+ * @borrows Event.fire as #fire
+ * @borrows Event.off as #off
+ * @property {Object} $data 存放数据的对象
+ */
 var Updater = function(view) {
     var me = this;
     me.$v = view;
@@ -123,16 +136,59 @@ var Updater = function(view) {
 var UP = Updater.prototype;
 G_Mix(UP, Event);
 G_Mix(UP, {
+    /**
+     * @lends Updater#
+     */
+    /**
+     * 获取放入的数据
+     * @param  {String} [key] key
+     * @return {Object} 返回对应的数据，当key未传递时，返回整个数据对象
+     * @example
+     * render: function() {
+     *     this.$updater.set({
+     *         a: 10,
+     *         b: 20
+     *     });
+     * },
+     * 'read&lt;click&gt;': function() {
+     *     console.log(this.$updater.get('a'));
+     * }
+     */
     get: function(key) {
         var result = this.$data;
         if (key) result = result[key];
         return result;
     },
+    /**
+     * 获取放入的数据
+     * @param  {Object} obj 待放入的数据
+     * @return {Updater} 返回updater
+     * @example
+     * render: function() {
+     *     this.$updater.set({
+     *         a: 10,
+     *         b: 20
+     *     });
+     * },
+     * 'read&lt;click&gt;': function() {
+     *     console.log(this.$updater.get('a'));
+     * }
+     */
     set: function(obj) {
         var me = this;
         G_Mix(me.$data, obj);
         return me;
     },
+    /**
+     * 检测数据变化，更新界面，放入数据后需要显式调用该方法才可以把数据更新到界面
+     * @example
+     * render: function() {
+     *     this.$updater.set({
+     *         a: 10,
+     *         b: 20
+     *     }).digest();
+     * }
+     */
     digest: function() {
         var me = this;
         var data = me.$data;
@@ -163,11 +219,55 @@ G_Mix(UP, {
         }
         return me;
     },
+    /**
+     * 获取当前数据状态的快照，配合altered方法可获得数据是否有变化
+     * @return {Updater} 返回updater
+     * @example
+     * render: function() {
+     *     this.$updater.set({
+     *         a: 20,
+     *         b: 30
+     *     }).digest().snapshot(); //更新完界面后保存快照
+     * },
+     * 'save&lt;click&gt;': function() {
+     *     //save to server
+     *     console.log(this.$updater.altered()); //false
+     *     this.$updater.set({
+     *         a: 20,
+     *         b: 30
+     *     });
+     *     console.log(this.$updater.altered()); //true
+     *     this.$updater.snapshot(); //再保存一次快照
+     *     console.log(this.$updater.altered()); //false
+     * }
+     */
     snapshot: function() {
         var me = this;
         me.$ss = Updater_Stringify(me.$json);
         return me;
     },
+    /**
+     * 检测数据是否有变动
+     * @return {Boolean} 是否变动
+     * @example
+     * render: function() {
+     *     this.$updater.set({
+     *         a: 20,
+     *         b: 30
+     *     }).digest().snapshot(); //更新完界面后保存快照
+     * },
+     * 'save&lt;click&gt;': function() {
+     *     //save to server
+     *     console.log(this.$updater.altered()); //false
+     *     this.$updater.set({
+     *         a: 20,
+     *         b: 30
+     *     });
+     *     console.log(this.$updater.altered()); //true
+     *     this.$updater.snapshot(); //再保存一次快照
+     *     console.log(this.$updater.altered()); //false
+     * }
+     */
     altered: function() {
         var me = this;
         if (me.$ss) { //存在快照
@@ -176,4 +276,13 @@ G_Mix(UP, {
         }
         return true;
     }
+
+
+    /**
+     * 当数据有变化且调用digest更新时触发
+     * @name Updater#changed
+     * @event
+     * @param {Object} e
+     * @param {String} e.keys 指示哪些key被更新
+     */
 });

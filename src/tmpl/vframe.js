@@ -258,7 +258,23 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     /*#if(!modules.loader){#*/
                     View_Prepare(TView);
                     /*#}#*/
-                    var params = G_Mix(po.params, viewInitParams);
+                    var pParams = po.params;
+                    /*#if(modules.updater){#*/
+                    var parent = me.parent(),
+                        p, val;
+                    parent = parent && parent.$v;
+                    parent = parent && parent.$updater;
+                    if (parent) {
+                        for (p in pParams) {
+                            val = pParams[p];
+                            val = val.match(Vframe_UrlParamsReg);
+                            if (val) {
+                                pParams[p] = parent.get(val[1]);
+                            }
+                        }
+                    }
+                    /*#}#*/
+                    var params = G_Mix(pParams, viewInitParams);
                     /*#if(modules.mxOptions){#*/
                     var mxo = decodeURIComponent(node.getAttribute('mx-options'));
                     if (mxo) {
@@ -268,26 +284,16 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     }
                     /*#}#*/
                     /*#if(modules.mxData){#*/
-                    var mxd = node.getAttribute('mx-data');
+                    var mxd = node.getAttribute('mx-init');
                     if (mxd) {
                         var parent = me.parent();
                         parent = parent && parent.$v;
                         var mxdo = {};
                         var read = function(val) {
                             var keys = val.split('.');
-                            var last = keys[keys.length - 1];
                             var start = parent;
                             while (keys.length && start) {
                                 start = start[keys.shift()];
-                            }
-                            if (parent) {
-                                if (!parent.$dKeys) parent.$dKeys = {};
-                                if (!parent.$dKeys[last]) parent.$dKeys[last] = [];
-                                var list = parent.$dKeys[last];
-                                if (!list[G_SPLITER + me.id]) {
-                                    list[G_SPLITER + me.id] = 1;
-                                    list.push(me.id);
-                                }
                             }
                             return start;
                         };
@@ -303,21 +309,6 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                             mxdo[name] = val;
                         });
                         G_Mix(params, mxdo);
-                    }
-                    /*#}#*/
-                    /*#if(modules.updater){#*/
-                    var parent = me.parent(),
-                        p, val;
-                    parent = parent && parent.$v;
-                    parent = parent && parent.$updater;
-                    if (parent) {
-                        for (p in params) {
-                            val = params[p];
-                            val = val.match(Vframe_UrlParamsReg);
-                            if (val) {
-                                params[p] = parent.get(val[1]);
-                            }
-                        }
                     }
                     /*#}#*/
                     view = new TView({
@@ -341,33 +332,6 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             });
         }
     },
-    /*#if(modules.mxData){#*/
-    updateVframeByDataKey: function(keys) {
-        var me = this;
-        var view = me.$v;
-        if (view) {
-            var list = view.$dKeys;
-            var updateList = [];
-            for (var i = 0; i < keys.length; i++) {
-                var vfIds = list[keys[i]];
-                if (vfIds) {
-                    for (var j = 0; j < vfIds.length; j++) {
-                        if (!updateList[G_SPLITER + vfIds[j]]) {
-                            updateList[G_SPLITER + vfIds[j]] = 1;
-                            updateList.push(vfIds[j]);
-                        }
-                    }
-                }
-            }
-            for (var i = 0; i < updateList.length; i++) {
-                var node = Magix.node(updateList[i]);
-                if (node) {
-                    me.mountVframe(updateList[i], node.getAttribute('mx-view'));
-                }
-            }
-        }
-    },
-    /*#}#*/
     /**
      * 销毁对应的view
      */
@@ -592,34 +556,38 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * vf.invoke('methodName',['args1','agrs2']);
      */
     invoke: function(name, args) {
-            var result;
-            var vf = this,
-                view, fn, o, list, key;
-            if ((view = vf.$v) && view.$p) { //view rendered
-                result = (fn = view[name]) && G_ToTry(fn, args, view);
-            } else {
-                list = vf.$il;
-                o = list[key = G_SPLITER + name];
-                if (o) {
-                    o.r = 1;
-                }
-                o = {
-                    n: name,
-                    a: args,
-                    k: key
-                };
-                list.push(o);
-                list[key] = o;
+        var result;
+        var vf = this,
+            view, fn, o, list, key;
+        if ((view = vf.$v) && view.$p) { //view rendered
+            result = (fn = view[name]) && G_ToTry(fn, args, view);
+        } else {
+            list = vf.$il;
+            o = list[key = G_SPLITER + name];
+            if (o) {
+                o.r = 1;
             }
-            return result;
+            o = {
+                n: name,
+                a: args,
+                k: key
+            };
+            list.push(o);
+            list[key] = o;
         }
-        /*#}#*/
-        /**
-         * 子孙view修改时触发
-         * @name Vframe#alter
-         * @event
-         * @param {Object} e
-         */
+        return result;
+    }
+
+
+    /*#}#*/
+
+
+    /**
+     * 子孙view修改时触发
+     * @name Vframe#alter
+     * @event
+     * @param {Object} e
+     */
 
     /**
      * 子孙view创建完成时触发

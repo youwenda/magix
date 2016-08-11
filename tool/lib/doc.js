@@ -47,7 +47,7 @@ module.exports = function(content) {
             }
             if (name == 'property') {
                 if (!o.properties) o.properties = [];
-                value.replace(/\{([^\}]+)\}\s+([\w\.]+)\s*([\S\s]*)/, function(m, type, param, desc) {
+                value.replace(/\{([^\}]+)\}\s+([\w\.\$]+)\s*([\S\s]*)/, function(m, type, param, desc) {
                     o.properties.push({
                         type: type,
                         desc: desc,

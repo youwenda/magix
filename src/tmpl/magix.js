@@ -709,6 +709,8 @@ var Magix = {
     /*#if(modules.style){#*/
     /**
      * 应用样式
+     * @beta
+     * @module style
      * @param {String} prefix 样式的名称前缀
      * @param {String} css 样式字符串
      * @example

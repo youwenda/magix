@@ -161,7 +161,7 @@ var View_Oust = function(view) {
         /*#}#*/
         View_DelegateEvents(view, 1);
         /*#if(modules.viewRelate){#*/
-        delete Body_ViewRelateInfo[id];
+        delete Body_ViewRelateInfo[view.id];
         /*#}#*/
     }
     view.$s--;
@@ -335,6 +335,12 @@ G_Mix(G_Mix(ViewProto, Event), {
      */
     render: G_NOOP,
     /*#if(modules.viewInit){#*/
+    /**
+     * 初始化调用的方法
+     * @beta
+     * @module viewInit
+     * @param {Object} extra 外部传递的数据对象
+     */
     init: G_NOOP,
     /*#}#*/
     /*#if(modules.viewRelate){#*/

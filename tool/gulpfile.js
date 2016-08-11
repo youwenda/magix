@@ -20,14 +20,14 @@ var extModules = { //完整功能的magix,对应magix.js
   //
   // cnum: 1,
   // ceach: 1,
-  // tiprouter: 1, //切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
-  // viewRelate: 1, //view上是否增加relate方法，当一些节点在view范围外面，但需要响应view事件时有用
+  //tiprouter: 1, //切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
+  //viewRelate: 1, //view上是否增加relate方法，当一些节点在view范围外面，但需要响应view事件时有用
   //edgerouter: 1, //使用pushState
   //collectView: 1,//收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
   //layerVframe: 1,//父子化同一个view中嵌套存在的vframe
-  //tmpl: 1,
-  //updater: 1,
-  viewProtoMixins:1,//支持mixins
+  tmpl: 1,
+  updater: 1,
+  viewProtoMixins: 1, //支持mixins
   share: 1, //向子或孙view公开数据
   core: 1,
   autoEndUpdate: 1, //自动识别并结束更新。针对没有tmpl属性的view自动识别并结束更新
@@ -40,11 +40,13 @@ var extModules = { //完整功能的magix,对应magix.js
   router: 1, //路由模块
   resource: 1, //资源管理,不建议使用了,用wrapAsync足够了
   configIni: 1, //是否有ini配置文件
-  mxOptions: 1, //支持节点上添加mx-options属性
+  //mxOptions: 1, //支持节点上添加mx-options属性
   //mxData: 1, //支持直接获取数据
   viewMerge: 1 //view是否提供merge方法供扩展原型链对象
 };
 var coreModules = { //核心模块取上面的常用扩展模块做到核心中去，对应magix-core.js
+  tmpl: 1,
+  updater: 1,
   core: 1, //打包核心功能
   viewInit: 1,
   autoEndUpdate: 1

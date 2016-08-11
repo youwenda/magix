@@ -1,16 +1,7 @@
 var tmpl = function(text, data) {
   var settings, render, noMatch, matcher, index, source, escaper, escapes, template;
 
-  settings = {
-    evaluate: /\/\*#([\s\S]+?)#\*\//g,
-    interpolate: /\/\*#=([\s\S]+?)#\*\//g
-  };
-  noMatch = /(.)^/;
-
-  matcher = new RegExp([
-    (settings.interpolate || noMatch).source,
-    (settings.evaluate || noMatch).source
-    ].join('|') + '|$', 'g');
+  matcher =/\/\*#=([\s\S]+?)#\*\/|\/\*#([\s\S]+?)#\*\/|$/g;
 
   index = 0;
   source = "__p+='";
