@@ -1,5 +1,4 @@
-var View_EvtMethodReg = /^([^<]+)<([^>]+)>$/;
-//var View_EvtSelectorReg = /\$(.+)/;
+var View_EvtMethodReg = /^(\$?)([^<]+)<([^>]+)>$/;
 //var View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 /*#if(modules.resource){#*/
 var View_DestroyAllResources = function(me, lastly) {
@@ -43,19 +42,19 @@ var View_WrapRender = function(prop, fn, me) {
 };
 var View_DelegateEvents = function(me, destroy) {
     var events = me.$eo; //eventsObject
-    var p /*, e*/ ;
+    var p, e;
     for (p in events) {
         Body_DOMEventBind(p, destroy);
     }
-    // events = me.$el; //eventsList
-    // p = events.length;
-    // while (p--) {
-    //     e = events[p];
-    //     Body_DOMEventLibBind(e.h, e.t, e.s && G_HashKey + me.id + ' ' + e.s, Body_DOMGlobalProcessor, destroy, {
-    //         v: me,
-    //         f: e.f
-    //     });
-    // }
+    events = me.$el; //eventsList
+    p = events.length;
+    while (p--) {
+        e = events[p];
+        Body_DOMEventLibBind(e.e || G_HashKey + me.id, e.n, Body_DOMGlobalProcessor, destroy, e.s, {
+            v: me,
+            f: e.f
+        });
+    }
 };
 /*#if(modules.fullstyle||modules.style){#*/
 // var View_Style_Map;
@@ -76,10 +75,10 @@ var View_DelegateEvents = function(me, destroy) {
 /*#if(modules.viewMerge){#*/
 var View_Ctors = [];
 /*#}#*/
-// var View_Globals = {
-//     win: G_WINDOW,
-//     doc: G_DOCUMENT
-// };
+var View_Globals = {
+    win: G_WINDOW,
+    doc: G_DOCUMENT
+};
 /**
  * 预处理view
  * @param  {View} oView view子类
@@ -88,50 +87,36 @@ var View_Ctors = [];
 var View_Prepare = function(oView) {
     if (!oView[G_SPLITER]) { //只处理一次
         oView[G_SPLITER] = 1;
-        //oView.extend = me.extend;
         var prop = oView[G_PROTOTYPE],
-            old, temp, name, evts, eventsObject = {},
-            p;
-        /*,eventsList = [],node, p, selector;*/
+            oldFun, matches, selectorOrCallback, events, eventsObject = {},
+            eventsList = [],
+            node, isSelector, p, item;
         for (p in prop) {
-            old = prop[p];
-            temp = p.match(View_EvtMethodReg);
-            if (temp) {
-                name = temp[1];
-                evts = temp[2];
-                evts = evts.split(G_COMMA);
-                while ((temp = evts.pop())) {
-                    // selector = name.match(View_EvtSelectorReg);
-                    // if (selector) {
-                    //     name = selector[1];
-                    //     node = View_Globals[name];
-                    //     eventsList.push({
-                    //         f: old,
-                    //         s: node ? G_NULL : name,
-                    //         t: temp,
-                    //         h: node || G_DOCBODY
-                    //     });
-                    // } else {
-                    eventsObject[temp] = 1;
-                    prop[name + G_SPLITER + temp] = old;
-                    //}
+            oldFun = prop[p];
+            matches = p.match(View_EvtMethodReg);
+            if (matches) {
+                isSelector = matches[1];
+                selectorOrCallback = matches[2];
+                events = matches[3].split(G_COMMA);
+                while ((item = events.pop())) {
+                    if (isSelector) {
+                        node = View_Globals[selectorOrCallback];
+                        eventsList.push({
+                            f: oldFun,
+                            s: node ? G_NULL : ' ' + selectorOrCallback,
+                            n: item,
+                            e: node
+                        });
+                    } else {
+                        eventsObject[item] = 1;
+                        prop[selectorOrCallback + G_SPLITER + item] = oldFun;
+                    }
                 }
             }
         }
         View_WrapRender(prop);
         prop.$eo = eventsObject;
-        //prop.$el = eventsList;
-        /*#if(modules.fullstyle||modules.style){#*/
-        //css = prop.css;
-        /*
-            view上添加的style样式字符串，经magix处理后，会变成一个name映射对象，在页面上使用时，使用style.name来获取处理后的class名称
-         */
-        // if (css) {
-        //     prop.cssNames = View_Style_Map = {};
-        //     View_Style_Key = oView.$k;
-        //     oView.$c = css.replace(View_Style_Reg, View_Style_Processor);
-        // }
-        /*#}#*/
+        prop.$el = eventsList;
     }
 };
 /*#if(modules.router){#*/

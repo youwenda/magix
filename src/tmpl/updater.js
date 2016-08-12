@@ -3,13 +3,12 @@ var Updater_ContentReg = /@(\d+)\-\u001f/g;
 var Updater_Stringify = JSON.stringify;
 var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
     var view = host.$v;
-    var tmplData = view.tmpl;
+    var tmpl = view.tmpl;
+    var list = view.tmplData;
     var selfId = view.id;
     var build = function(tmpl, data) {
         return Tmpl(tmpl, data).replace(Updater_HolderReg, selfId);
     };
-    var tmpl = tmplData.html;
-    var list = tmplData.subs;
     if (changed || !host.$rd) {
         if (host.$rd && updateFlags && list) {
             var updatedNodes = {},

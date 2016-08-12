@@ -87,6 +87,7 @@ var Body_DOMEventProcessor = function(e) {
                     fn = view[name];
                     if (fn) {
                         e.current = current;
+                        e.currentTarget = current;
                         e.params = match.p;
                         G_ToTry(fn, e, view);
                         //e.previous = current; //下一个处理函数可检测是否已经处理过

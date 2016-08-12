@@ -149,12 +149,16 @@ KISSY.add('magix', function(S, SE) {
     /*#}#*/
     var $ = S.all;
     Inc('../tmpl/vframe');
-    // var Body_DOMGlobalProcessor = function(e, me) {
-    //     me = this;
-    //     G_ToTry(me.f, e, me.v);
-    // };
-    var Body_DOMEventLibBind = function(node, type, cb, remove) {
-        SE[remove ? 'detach' : Event_ON](node, type, cb);
+    var Body_DOMGlobalProcessor = function(e, me) {
+        me = this;
+        G_ToTry(me.f, e, me.v);
+    };
+    var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {
+        if (scope) {
+            SE[(remove ? 'un' : G_EMPTY) + 'delegate'](node, type, selector, cb, scope);
+        } else {
+            SE[remove ? 'detach' : Event_ON](node, type, cb, scope);
+        }
     };
     Inc('../tmpl/body');
     Inc('../tmpl/tmpl');

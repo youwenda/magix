@@ -1,4 +1,4 @@
-/*3.1.0*//*
+/*3.1.1*//*
     author:xinglie.lkf@taobao.com
  */
 define('magix', ['$'], function(require) {
@@ -1168,18 +1168,17 @@ Magix.Vframe = Vframe;
  *
  *      fca firstChildrenAlter  fcc firstChildrenCreated
  */
-    // var Body_DOMGlobalProcessor = function(e, d) {
-    //     d = e.data;
-    //     G_ToTry(d.f, e, d.v);
-    // };
+    var Body_DOMGlobalProcessor = function(e, d) {
+        d = e.data;
+        G_ToTry(d.f, e, d.v);
+    };
     
-    var Body_DOMEventLibBind = function(node, type, cb, remove) {
-        /*if (remove) {
+    var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {
+        if (remove) {
             $(node).off(type, selector, cb);
         } else {
             $(node).on(type, selector, scope, cb);
-        }*/
-        $(node)[remove ? 'off' : Event_ON](type, cb);
+        }
     };
     
     /*
@@ -1262,6 +1261,7 @@ var Body_DOMEventProcessor = function(e) {
                     fn = view[name];
                     if (fn) {
                         e.current = current;
+                        e.currentTarget = current;
                         e.params = match.p;
                         G_ToTry(fn, e, view);
                         //e.previous = current; //下一个处理函数可检测是否已经处理过
@@ -1375,13 +1375,12 @@ var Updater_ContentReg = /@(\d+)\-\u001f/g;
 var Updater_Stringify = JSON.stringify;
 var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
     var view = host.$v;
-    var tmplData = view.tmpl;
+    var tmpl = view.tmpl;
+    var list = view.tmplData;
     var selfId = view.id;
     var build = function(tmpl, data) {
         return Tmpl(tmpl, data).replace(Updater_HolderReg, selfId);
     };
-    var tmpl = tmplData.html;
-    var list = tmplData.subs;
     if (changed || !host.$rd) {
         if (host.$rd && updateFlags && list) {
             var updatedNodes = {},
@@ -1660,8 +1659,7 @@ G_Mix(UP, {
 });
     
 
-    var View_EvtMethodReg = /^([^<]+)<([^>]+)>$/;
-//var View_EvtSelectorReg = /\$(.+)/;
+    var View_EvtMethodReg = /^(\$?)([^<]+)<([^>]+)>$/;
 //var View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 
 var View_WrapRender = function(prop, fn, me) {
@@ -1678,19 +1676,19 @@ var View_WrapRender = function(prop, fn, me) {
 };
 var View_DelegateEvents = function(me, destroy) {
     var events = me.$eo; //eventsObject
-    var p /*, e*/ ;
+    var p, e;
     for (p in events) {
         Body_DOMEventBind(p, destroy);
     }
-    // events = me.$el; //eventsList
-    // p = events.length;
-    // while (p--) {
-    //     e = events[p];
-    //     Body_DOMEventLibBind(e.h, e.t, e.s && G_HashKey + me.id + ' ' + e.s, Body_DOMGlobalProcessor, destroy, {
-    //         v: me,
-    //         f: e.f
-    //     });
-    // }
+    events = me.$el; //eventsList
+    p = events.length;
+    while (p--) {
+        e = events[p];
+        Body_DOMEventLibBind(e.e || G_HashKey + me.id, e.n, Body_DOMGlobalProcessor, destroy, e.s, {
+            v: me,
+            f: e.f
+        });
+    }
 };
 
 //
@@ -1702,10 +1700,10 @@ var View_DelegateEvents = function(me, destroy) {
 //     return left + key.replace(View_StyleNameKeyReg, '.' + View_StyleCssKeyTemp + ' $&');
 // };
 
-// var View_Globals = {
-//     win: G_WINDOW,
-//     doc: G_DOCUMENT
-// };
+var View_Globals = {
+    win: G_WINDOW,
+    doc: G_DOCUMENT
+};
 /**
  * 预处理view
  * @param  {View} oView view子类
@@ -1714,40 +1712,36 @@ var View_DelegateEvents = function(me, destroy) {
 var View_Prepare = function(oView) {
     if (!oView[G_SPLITER]) { //只处理一次
         oView[G_SPLITER] = 1;
-        //oView.extend = me.extend;
         var prop = oView[G_PROTOTYPE],
-            old, temp, name, evts, eventsObject = {},
-            p;
-        /*,eventsList = [],node, p, selector;*/
+            oldFun, matches, selectorOrCallback, events, eventsObject = {},
+            eventsList = [],
+            node, isSelector, p, item;
         for (p in prop) {
-            old = prop[p];
-            temp = p.match(View_EvtMethodReg);
-            if (temp) {
-                name = temp[1];
-                evts = temp[2];
-                evts = evts.split(G_COMMA);
-                while ((temp = evts.pop())) {
-                    // selector = name.match(View_EvtSelectorReg);
-                    // if (selector) {
-                    //     name = selector[1];
-                    //     node = View_Globals[name];
-                    //     eventsList.push({
-                    //         f: old,
-                    //         s: node ? G_NULL : name,
-                    //         t: temp,
-                    //         h: node || G_DOCBODY
-                    //     });
-                    // } else {
-                    eventsObject[temp] = 1;
-                    prop[name + G_SPLITER + temp] = old;
-                    //}
+            oldFun = prop[p];
+            matches = p.match(View_EvtMethodReg);
+            if (matches) {
+                isSelector = matches[1];
+                selectorOrCallback = matches[2];
+                events = matches[3].split(G_COMMA);
+                while ((item = events.pop())) {
+                    if (isSelector) {
+                        node = View_Globals[selectorOrCallback];
+                        eventsList.push({
+                            f: oldFun,
+                            s: node ? G_NULL : ' ' + selectorOrCallback,
+                            n: item,
+                            e: node
+                        });
+                    } else {
+                        eventsObject[item] = 1;
+                        prop[selectorOrCallback + G_SPLITER + item] = oldFun;
+                    }
                 }
             }
         }
         View_WrapRender(prop);
         prop.$eo = eventsObject;
-        //prop.$el = eventsList;
-        
+        prop.$el = eventsList;
     }
 };
 

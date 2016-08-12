@@ -20,7 +20,7 @@ var extModules = { //完整功能的magix,对应magix.js
   //
   // cnum: 1,
   // ceach: 1,
-  //tiprouter: 1, //切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
+  tiprouter: 1, //切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
   //viewRelate: 1, //view上是否增加relate方法，当一些节点在view范围外面，但需要响应view事件时有用
   //edgerouter: 1, //使用pushState
   //collectView: 1,//收集同一个view中所有的子view并一次性发出请求，在请求combine时有用

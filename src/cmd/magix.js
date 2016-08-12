@@ -169,18 +169,17 @@ define('magix', ['$'], function(require) {
     /*#}#*/
     /*#}#*/
     Inc('../tmpl/vframe');
-    // var Body_DOMGlobalProcessor = function(e, d) {
-    //     d = e.data;
-    //     G_ToTry(d.f, e, d.v);
-    // };
+    var Body_DOMGlobalProcessor = function(e, d) {
+        d = e.data;
+        G_ToTry(d.f, e, d.v);
+    };
     /*#if(!modules.loader){#*/
-    var Body_DOMEventLibBind = function(node, type, cb, remove) {
-        /*if (remove) {
+    var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {
+        if (remove) {
             $(node).off(type, selector, cb);
         } else {
             $(node).on(type, selector, scope, cb);
-        }*/
-        $(node)[remove ? 'off' : Event_ON](type, cb);
+        }
     };
     /*#}#*/
     Inc('../tmpl/body');
