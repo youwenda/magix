@@ -1,4 +1,4 @@
-﻿# Magix [![Version Number](https://img.shields.io/npm/v/magix.svg)](https://github.com/thx/magix/ "Version Number") [![THX Team](https://img.shields.io/badge/team-THX-green.svg)](https://thx.github.io/ "THX Team") [![License](https://img.shields.io/badge/license-MIT-orange.svg)](https://opensource.org/licenses/MIT "License")
+﻿# Magix [![Version Number](https://img.shields.io/npm/v/magix.svg)](https://github.com/thx/magix/ "Version Number") [![THX Team](https://img.shields.io/badge/team-THX-green.svg)](https://thx.github.io/ "THX Team") [![License](https://img.shields.io/badge/license-MIT-orange.svg)](https://opensource.org/licenses/MIT "License") [![download](https://img.shields.io/npm/dm/magix.svg)](https://www.npmjs.com/package/magix "Downloads")
 
 > npm install magix
 
