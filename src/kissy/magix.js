@@ -37,11 +37,23 @@ KISSY.add('magix', function(S, SE) {
     /*#}#*/
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
-    Inc('../tmpl/router');
+    var Router_Edge;
     /*#if(modules.router){#*/
+    /*#if(!modules.forceEdgeRouter){#*/
     var Win = S.one(G_WINDOW);
+    var Router_Update = function(path, params, loc, replace) {
+        path = G_ToUri(path, params, loc.query[Router_PARAMS]);
+        if (path != loc.srcHash) {
+            path = '#!' + path;
+            if (replace) {
+                Router_WinLoc.replace(path);
+            } else {
+                Router_WinLoc.hash = path;
+            }
+        }
+    };
     /*#if(modules.tiprouter){#*/
-    Router.bind = function() {
+    var Router_Bind = function() {
         var lastHash = Router.parse().srcHash;
         var newHash;
         Win.on('hashchange', function(e, loc) {
@@ -81,34 +93,37 @@ KISSY.add('magix', function(S, SE) {
         Router.diff();
     };
     /*#}else{#*/
-    Router.bind = function() {
+    var Router_Bind = function() {
         Win.on('hashchange', Router.diff);
         Router.diff();
     };
     /*#}#*/
-
-    /*#if(modules.edgerouter){#*/
+    /*#}#*/
+    /*#if(modules.edgeRouter||modules.forceEdgeRouter){#*/
     var WinHistory = G_WINDOW.history;
+    /*#if(!modules.forceEdgeRouter){#*/
     if (WinHistory.pushState) {
-        Router.edge = 1;
-        Router.update = function(path, params, loc, replace) {
+        /*#}#*/
+        Router_Edge = 1;
+        var Router_DidUpdate;
+        var Router_Update = function(path, params, loc, replace) {
             path = G_ToUri(path, params);
             if (path != loc.srcQuery) {
                 WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
                 Router.diff();
-                Router.did = 1;
+                Router_DidUpdate = 1;
             }
         };
         /*#if(modules.tiprouter){#*/
-        Router.bind = function() {
+        var Router_Bind = function() {
             var initialURL = Router_WinLoc.href;
             var lastHref = initialURL;
             var newHref;
             Win.on('popstate', function(e) {
                 newHref = Router_WinLoc.href;
                 var equal = newHref == initialURL;
-                if (!Router.did && equal) return;
-                Router.did = 1;
+                if (!Router_DidUpdate && equal) return;
+                Router_DidUpdate = 1;
                 if (newHref != lastHref) {
                     e = {
                         backward: function() {
@@ -133,20 +148,24 @@ KISSY.add('magix', function(S, SE) {
             });
         };
         /*#}else{#*/
-        Router.bind = function() {
+        var Router_Bind = function() {
             var initialURL = Router_WinLoc.href;
             Win.on('popstate', function() {
                 var equal = Router_WinLoc.href == initialURL;
-                if (!Router.did && equal) return;
-                Router.did = 1;
+                if (!Router_DidUpdate && equal) return;
+                Router_DidUpdate = 1;
                 Router.diff();
             });
             Router.diff();
         };
         /*#}#*/
+        /*#if(!modules.forceEdgeRouter){#*/
     }
     /*#}#*/
     /*#}#*/
+    /*#}#*/
+
+    Inc('../tmpl/router');
     var $ = S.all;
     Inc('../tmpl/vframe');
     var Body_DOMGlobalProcessor = function(e, me) {

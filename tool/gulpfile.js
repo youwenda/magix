@@ -14,20 +14,22 @@ var modulesMap = {
   body: 1, //dom事件处理模块
   view: 1
 };
-var type = 'cmd'; //打包kissy则type='kissy'
+var type = 'kissy'; //打包kissy则type='kissy'
 
 var extModules = { //完整功能的magix,对应magix.js
   //
   // cnum: 1,
   // ceach: 1,
-  tiprouter: 1, //切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
+  //tiprouter: 1, //切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
   //viewRelate: 1, //view上是否增加relate方法，当一些节点在view范围外面，但需要响应view事件时有用
-  //edgerouter: 1, //使用pushState
+  //edgeRouter: 1, //使用pushState
   //collectView: 1,//收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
   //layerVframe: 1,//父子化同一个view中嵌套存在的vframe
+  //tmplObject:1,
+  //forceEdgeRouter: 1, //强制使用pushState
   tmpl: 1,
   updater: 1,
-  viewProtoMixins: 1, //支持mixins
+  //viewProtoMixins: 1, //支持mixins
   share: 1, //向子或孙view公开数据
   core: 1,
   autoEndUpdate: 1, //自动识别并结束更新。针对没有tmpl属性的view自动识别并结束更新

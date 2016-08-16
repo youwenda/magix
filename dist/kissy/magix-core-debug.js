@@ -1,4 +1,4 @@
-/*3.1.1*//**
+/*3.1.2*//**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version edge
@@ -21,7 +21,7 @@ KISSY.add('magix', function(S, SE) {
     /*
     源码级模块定制，更利于取舍功能
     固定的模块有magix,event,body,vframe,view
-    可选的模块有router,service,base,fullstyle,style,cnum,ceach,resource,edgerouter,tiprouter,simplerouter
+    可选的模块有router,service,base,fullstyle,style,cnum,ceach,resource,edgeRouter,tiprouter,simplerouter
  */
 var G_COUNTER = 0;
 var G_EMPTY = '';
@@ -735,7 +735,9 @@ var Event = {
     }
 };
 Magix.Event = Event;
+    var Router_Edge;
     
+
     
     var $ = S.all;
     var Vframe_RootVframe;
@@ -1351,8 +1353,10 @@ var Updater_ContentReg = /@(\d+)\-\u001f/g;
 var Updater_Stringify = JSON.stringify;
 var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
     var view = host.$v;
+    
     var tmpl = view.tmpl;
     var list = view.tmplData;
+    
     var selfId = view.id;
     var build = function(tmpl, data) {
         return Tmpl(tmpl, data).replace(Updater_HolderReg, selfId);
@@ -1367,27 +1371,48 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                 if (!updatedNodes[id]) {
                     //console.time('update:' + id);
                     updatedNodes[id] = 1;
-                    var vf = one.view && Vframe_Vframes[id];
                     if (updateAttrs) {
                         for (var i = one.attrs.length - 1; i >= 0; i--) {
                             var attr = one.attrs[i];
                             var val = build(attr.v, renderData);
                             if (attr.p) {
                                 node[attr.n] = val;
+                            } else if (!val && attr.a) {
+                                node.removeAttribute(attr.n);
                             } else {
                                 node.setAttribute(attr.n, val);
                             }
                         }
                     }
-                    if (vf) {
-                        vf.unmountView();
+                    var magixView = one.view,
+                        viewValue, vf;
+                    if (magixView) {
+                        vf = Vframe_Vframes[id];
+                        viewValue = build(magixView, renderData);
+                        if (vf) {
+                            vf[viewValue ? 'unmountView' : 'unmountVframe']();
+                        }
                     }
                     if (one.tmpl && updateTmpl) {
                         view.setHTML(id, build(one.tmpl, renderData));
                     }
-                    if (vf) {
-                        vf.mountView(build(one.view, renderData));
+                    if (magixView && viewValue) {
+                        view.owner.mountVframe(id, viewValue);
                     }
+
+                    //var vf = one.view && Vframe_Vframes[id];
+                    // if (vf) {
+                    // vf.unmountView();
+                    // }
+                    // if (one.tmpl && updateTmpl) {
+                    // view.setHTML(id, build(one.tmpl, renderData));
+                    // }
+                    // if (vf) {
+                    // vf.mountView(build(one.view, renderData));
+                    // }
+                    /*
+
+                     */
                     //console.timeEnd('update:' + id);
                 }
             };
@@ -1425,7 +1450,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         }
                     }
                     if (update) {
-                        update = '#' + selfId + ' ' + one.selector.replace(Updater_HolderReg, selfId);
+                        update = G_HashKey + selfId + ' ' + one.selector.replace(Updater_HolderReg, selfId);
                         var nodes = document.querySelectorAll(update);
                         q = 0;
                         while (q < nodes.length) {
@@ -1703,7 +1728,7 @@ var View_Prepare = function(oView) {
                         node = View_Globals[selectorOrCallback];
                         eventsList.push({
                             f: oldFun,
-                            s: node ? G_NULL : ' ' + selectorOrCallback,
+                            s: node ? G_NULL : selectorOrCallback,
                             n: item,
                             e: node
                         });

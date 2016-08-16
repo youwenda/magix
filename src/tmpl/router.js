@@ -10,7 +10,7 @@ var Router_LLoc = {
     href: G_EMPTY
 };
 var Router_LParams;
-var Router_TrimHashReg = /(?:^https?:\/\/[^\/]+|#.*$)/gi;
+var Router_TrimHashReg = /(?:^.+\/\/[^\/]+|#.*$)/gi;
 var Router_TrimQueryReg = /^[^#]*#?!?/;
 
 var Router_IsParam = function(params, r, ps) {
@@ -39,7 +39,11 @@ var Router_AttachViewAndPath = function(loc) {
         }
     }
     if (!loc[Router_VIEW]) {
-        var path = loc.hash[Router_PATH] || (Router.edge && loc.query[Router_PATH]) || Router_PNR_DefaultPath;
+        /*#if(modules.forceEdgeRouter){#*/
+        var path = loc.query[Router_PATH] || Router_PNR_DefaultPath;
+        /*#}else{#*/
+        var path = loc.hash[Router_PATH] || (Router_Edge && loc.query[Router_PATH]) || Router_PNR_DefaultPath;
+        /*#}#*/
         //if (!path) path = Router_PNR_DefaultPath;
         // if (Router_PNR_IsFun) {
         //     result = Router_PNR_Routers.call(Magix_Cfg, path, loc);
@@ -73,7 +77,6 @@ var Router_GetChged = function(oldLocation, newLocation) {
             idx, key;
         for (idx = tArr.length - 1; idx >= 0; idx--) {
             key = tArr[idx];
-            console.log(key, idx);
             if (idx == 1) {
                 oldParams = oldLocation;
                 newParams = newLocation;
@@ -112,6 +115,7 @@ var Router = G_Mix({
     /**
      * @lends Router
      */
+    bind: Router_Bind, //
     /**
      * 执行url的更新
      * @param  {String} path 路径名
@@ -119,17 +123,7 @@ var Router = G_Mix({
      * @param  {Object} loc 上次的location
      * @param  {Boolean} replace 是否使用replace更新url
      */
-    update: function(path, params, loc, replace) {
-        path = G_ToUri(path, params, loc.query[Router_PARAMS]);
-        if (path != loc.srcHash) {
-            path = '#!' + path;
-            if (replace) {
-                Router_WinLoc.replace(path);
-            } else {
-                Router_WinLoc.hash = path;
-            }
-        }
-    },
+    update: Router_Update,
     /**
      * 解析href的query和hash，默认href为location.href
      * @param {String} [href] href
@@ -208,8 +202,10 @@ var Router = G_Mix({
 
         if (tPath) { //设置路径带参数的形式，如:/abc?q=b&c=e或不带参数 /abc
             //tPath = G_Path(lPath, tPath);
-            for (lPath in Router_LLoc.query[Router_PARAMS]) { //未出现在query中的参数设置为空
-                if (!G_Has(tParams, lPath)) tParams[lPath] = G_EMPTY;
+            if (!Router_Edge) { //pushState不用处理
+                for (lPath in Router_LLoc.query[Router_PARAMS]) { //未出现在query中的参数设置为空
+                    if (!G_Has(tParams, lPath)) tParams[lPath] = G_EMPTY;
+                }
             }
         } else if (Router_LParams) { //只有参数，如:a=b&c=d
             tPath = lPath; //使用历史路径

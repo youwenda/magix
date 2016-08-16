@@ -103,7 +103,7 @@ var View_Prepare = function(oView) {
                         node = View_Globals[selectorOrCallback];
                         eventsList.push({
                             f: oldFun,
-                            s: node ? G_NULL : ' ' + selectorOrCallback,
+                            s: node ? G_NULL : selectorOrCallback,
                             n: item,
                             e: node
                         });

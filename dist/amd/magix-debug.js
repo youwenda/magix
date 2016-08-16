@@ -1,4 +1,4 @@
-/*3.1.1*//*
+/*3.1.2*//*
     author:xinglie.lkf@taobao.com
  */
 define('magix', ['$'], function($) {
@@ -49,7 +49,7 @@ define('magix', ['$'], function($) {
     /*
     源码级模块定制，更利于取舍功能
     固定的模块有magix,event,body,vframe,view
-    可选的模块有router,service,base,fullstyle,style,cnum,ceach,resource,edgerouter,tiprouter,simplerouter
+    可选的模块有router,service,base,fullstyle,style,cnum,ceach,resource,edgeRouter,tiprouter,simplerouter
  */
 var G_COUNTER = 0;
 var G_EMPTY = '';
@@ -831,6 +831,29 @@ var Event = {
     }
 };
 Magix.Event = Event;
+    var Router_Edge;
+    
+    
+    var Router_Update = function(path, params, loc, replace) {
+        path = G_ToUri(path, params, loc.query[Router_PARAMS]);
+        if (path != loc.srcHash) {
+            path = '#!' + path;
+            if (replace) {
+                Router_WinLoc.replace(path);
+            } else {
+                Router_WinLoc.hash = path;
+            }
+        }
+    };
+    
+    var Router_Bind = function() {
+        $(G_WINDOW).on('hashchange', Router.diff);
+        Router.diff();
+    };
+    
+    
+    
+    
     var Router_PATH = 'path';
 var Router_VIEW = 'view';
 var Router_PARAMS = 'params';
@@ -843,7 +866,7 @@ var Router_LLoc = {
     href: G_EMPTY
 };
 var Router_LParams;
-var Router_TrimHashReg = /(?:^https?:\/\/[^\/]+|#.*$)/gi;
+var Router_TrimHashReg = /(?:^.+\/\/[^\/]+|#.*$)/gi;
 var Router_TrimQueryReg = /^[^#]*#?!?/;
 
 var Router_IsParam = function(params, r, ps) {
@@ -872,7 +895,9 @@ var Router_AttachViewAndPath = function(loc) {
         }
     }
     if (!loc[Router_VIEW]) {
-        var path = loc.hash[Router_PATH] || (Router.edge && loc.query[Router_PATH]) || Router_PNR_DefaultPath;
+        
+        var path = loc.hash[Router_PATH] || (Router_Edge && loc.query[Router_PATH]) || Router_PNR_DefaultPath;
+        
         //if (!path) path = Router_PNR_DefaultPath;
         // if (Router_PNR_IsFun) {
         //     result = Router_PNR_Routers.call(Magix_Cfg, path, loc);
@@ -906,7 +931,6 @@ var Router_GetChged = function(oldLocation, newLocation) {
             idx, key;
         for (idx = tArr.length - 1; idx >= 0; idx--) {
             key = tArr[idx];
-            console.log(key, idx);
             if (idx == 1) {
                 oldParams = oldLocation;
                 newParams = newLocation;
@@ -945,6 +969,7 @@ var Router = G_Mix({
     /**
      * @lends Router
      */
+    bind: Router_Bind, //
     /**
      * 执行url的更新
      * @param  {String} path 路径名
@@ -952,17 +977,7 @@ var Router = G_Mix({
      * @param  {Object} loc 上次的location
      * @param  {Boolean} replace 是否使用replace更新url
      */
-    update: function(path, params, loc, replace) {
-        path = G_ToUri(path, params, loc.query[Router_PARAMS]);
-        if (path != loc.srcHash) {
-            path = '#!' + path;
-            if (replace) {
-                Router_WinLoc.replace(path);
-            } else {
-                Router_WinLoc.hash = path;
-            }
-        }
-    },
+    update: Router_Update,
     /**
      * 解析href的query和hash，默认href为location.href
      * @param {String} [href] href
@@ -1041,8 +1056,10 @@ var Router = G_Mix({
 
         if (tPath) { //设置路径带参数的形式，如:/abc?q=b&c=e或不带参数 /abc
             //tPath = G_Path(lPath, tPath);
-            for (lPath in Router_LLoc.query[Router_PARAMS]) { //未出现在query中的参数设置为空
-                if (!G_Has(tParams, lPath)) tParams[lPath] = G_EMPTY;
+            if (!Router_Edge) { //pushState不用处理
+                for (lPath in Router_LLoc.query[Router_PARAMS]) { //未出现在query中的参数设置为空
+                    if (!G_Has(tParams, lPath)) tParams[lPath] = G_EMPTY;
+                }
             }
         } else if (Router_LParams) { //只有参数，如:a=b&c=d
             tPath = lPath; //使用历史路径
@@ -1064,50 +1081,6 @@ var Router = G_Mix({
      */
 }, Event);
 Magix.Router = Router;
-    
-    
-    Router.bind = function() {
-        var lastHash = Router.parse().srcHash;
-        var newHash;
-        $(G_WINDOW).on('hashchange', function(e, loc) {
-            loc = Router.parse();
-            newHash = loc.srcHash;
-            if (newHash != lastHash) {
-                e = {
-                    backward: function() {
-                        e.p = 1;
-                        Router_WinLoc.hash = '#!' + lastHash;
-                    },
-                    forward: function() {
-                        e.p = 1;
-                        lastHash = newHash;
-                        Router.diff();
-                    },
-                    prevent: function() {
-                        e.p = 1;
-                    },
-                    location: loc
-                };
-                Router.fire('change', e);
-                if (!e.p) {
-                    e.forward();
-                }
-            }
-        });
-        G_WINDOW.onbeforeunload = function(e) {
-            e = e || G_WINDOW.event;
-            var te = {};
-            Router.fire('pageunload', te);
-            if (te.msg) {
-                if (e) e.returnValue = te.msg;
-                return te.msg;
-            }
-        };
-        Router.diff();
-    };
-    
-    
-    
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
 
@@ -1868,8 +1841,10 @@ var Updater_ContentReg = /@(\d+)\-\u001f/g;
 var Updater_Stringify = JSON.stringify;
 var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
     var view = host.$v;
+    
     var tmpl = view.tmpl;
     var list = view.tmplData;
+    
     var selfId = view.id;
     var build = function(tmpl, data) {
         return Tmpl(tmpl, data).replace(Updater_HolderReg, selfId);
@@ -1884,27 +1859,48 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                 if (!updatedNodes[id]) {
                     //console.time('update:' + id);
                     updatedNodes[id] = 1;
-                    var vf = one.view && Vframe_Vframes[id];
                     if (updateAttrs) {
                         for (var i = one.attrs.length - 1; i >= 0; i--) {
                             var attr = one.attrs[i];
                             var val = build(attr.v, renderData);
                             if (attr.p) {
                                 node[attr.n] = val;
+                            } else if (!val && attr.a) {
+                                node.removeAttribute(attr.n);
                             } else {
                                 node.setAttribute(attr.n, val);
                             }
                         }
                     }
-                    if (vf) {
-                        vf.unmountView();
+                    var magixView = one.view,
+                        viewValue, vf;
+                    if (magixView) {
+                        vf = Vframe_Vframes[id];
+                        viewValue = build(magixView, renderData);
+                        if (vf) {
+                            vf[viewValue ? 'unmountView' : 'unmountVframe']();
+                        }
                     }
                     if (one.tmpl && updateTmpl) {
                         view.setHTML(id, build(one.tmpl, renderData));
                     }
-                    if (vf) {
-                        vf.mountView(build(one.view, renderData));
+                    if (magixView && viewValue) {
+                        view.owner.mountVframe(id, viewValue);
                     }
+
+                    //var vf = one.view && Vframe_Vframes[id];
+                    // if (vf) {
+                    // vf.unmountView();
+                    // }
+                    // if (one.tmpl && updateTmpl) {
+                    // view.setHTML(id, build(one.tmpl, renderData));
+                    // }
+                    // if (vf) {
+                    // vf.mountView(build(one.view, renderData));
+                    // }
+                    /*
+
+                     */
                     //console.timeEnd('update:' + id);
                 }
             };
@@ -1942,7 +1938,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         }
                     }
                     if (update) {
-                        update = '#' + selfId + ' ' + one.selector.replace(Updater_HolderReg, selfId);
+                        update = G_HashKey + selfId + ' ' + one.selector.replace(Updater_HolderReg, selfId);
                         var nodes = document.querySelectorAll(update);
                         q = 0;
                         while (q < nodes.length) {
@@ -2257,7 +2253,7 @@ var View_Prepare = function(oView) {
                         node = View_Globals[selectorOrCallback];
                         eventsList.push({
                             f: oldFun,
-                            s: node ? G_NULL : ' ' + selectorOrCallback,
+                            s: node ? G_NULL : selectorOrCallback,
                             n: item,
                             e: node
                         });
@@ -2434,27 +2430,12 @@ G_Mix(View, {
         props = props || {};
         var ctor = props.ctor;
         
-        var ctors = [];
-        if (ctor) ctors.push(ctor);
-        
         var NView = function(a, b) {
             me.call(this, a, b);
             
-            G_ToTry(ctors, b, this);
+            if (ctor) ctor.call(this, b);
             
         };
-        
-        var mixins = props.mixins;
-        if (mixins) {
-            var i = mixins.length,
-                o;
-            while (--i >= 0) {
-                o = mixins[i];
-                ctor = o.ctor;
-                if (ctor) ctors.push(ctor);
-                G_Mix(props, ctor);
-            }
-        }
         
         NView.extend = me.extend;
         return G_Extend(NView, me, props, statics);
@@ -2641,54 +2622,6 @@ G_Mix(G_Mix(ViewProto, Event), {
         return View_DestroyResource(this.$r, key, destroy);
     },
     
-    
-    /**
-     * 离开提示
-     * @param  {String} msg 提示消息
-     * @param  {Function} fn 是否提示的回调
-     * @beta
-     * @module tiprouter
-     * @example
-     * var Magix = require('magix');
-     * module.exports = Magix.View.extend({
-     *     init:function(){
-     *         this.leaveTip('页面数据未保存，确认离开吗？',function(){
-     *             return true;//true提示，false，不提示
-     *         });
-     *     }
-     * });
-     */
-    leaveTip: function(msg, fn) {
-        var me = this;
-        var changeListener = function(e) {
-            e.prevent();
-            if (!me.$tipped) {
-                if (fn.call(me)) { //firefox的confirm可以同时有多个
-                    me.$tipped = true;
-                    if (window.confirm(msg)) {
-                        me.$tipped = false;
-                        e.forward();
-                    } else {
-                        me.$tipped = false;
-                        e.backward();
-                    }
-                } else {
-                    e.forward();
-                }
-            }
-        };
-        var unloadListener = function(e) {
-            if (fn.call(me)) {
-                e.msg = msg;
-            }
-        };
-        Router.on('change', changeListener);
-        Router.on('pageunload', unloadListener);
-        me.on('destroy', function() {
-            Router.off('change', changeListener);
-            Router.off('pageunload', unloadListener);
-        });
-    },
     
     
     /**
