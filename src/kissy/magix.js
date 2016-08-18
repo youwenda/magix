@@ -41,8 +41,8 @@ KISSY.add('magix', function(S, SE) {
     /*#if(modules.router){#*/
     /*#if(!modules.forceEdgeRouter){#*/
     var Win = S.one(G_WINDOW);
-    var Router_Update = function(path, params, loc, replace) {
-        path = G_ToUri(path, params, loc.query[Router_PARAMS]);
+    var Router_Update = function(path, params, loc, replace, lQuery) {
+        path = G_ToUri(path, params, lQuery);
         if (path != loc.srcHash) {
             path = '#!' + path;
             if (replace) {
@@ -111,7 +111,6 @@ KISSY.add('magix', function(S, SE) {
             if (path != loc.srcQuery) {
                 WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
                 Router.diff();
-                Router_DidUpdate = 1;
             }
         };
         /*#if(modules.tiprouter){#*/
@@ -121,9 +120,9 @@ KISSY.add('magix', function(S, SE) {
             var newHref;
             Win.on('popstate', function(e) {
                 newHref = Router_WinLoc.href;
-                var equal = newHref == initialURL;
-                if (!Router_DidUpdate && equal) return;
+                var initPop = !Router_DidUpdate && newHref == initialURL;
                 Router_DidUpdate = 1;
+                if (initPop) return;
                 if (newHref != lastHref) {
                     e = {
                         backward: function() {
@@ -151,9 +150,9 @@ KISSY.add('magix', function(S, SE) {
         var Router_Bind = function() {
             var initialURL = Router_WinLoc.href;
             Win.on('popstate', function() {
-                var equal = Router_WinLoc.href == initialURL;
-                if (!Router_DidUpdate && equal) return;
+                var initPop = !Router_DidUpdate && Router_WinLoc.href == initialURL;
                 Router_DidUpdate = 1;
+                if (initPop) return;
                 Router.diff();
             });
             Router.diff();

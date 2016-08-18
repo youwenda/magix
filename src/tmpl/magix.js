@@ -482,7 +482,7 @@ var Magix = {
             /*#}#*/
             G_Require(Magix_Cfg.exts, function() {
                 Router.on('changed', Vframe_NotifyLocationChange);
-                Router.bind();
+                Router_Bind();
             });
             /*#if(modules.configIni){#*/
         });

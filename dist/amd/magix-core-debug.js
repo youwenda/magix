@@ -1,4 +1,6 @@
-/*3.1.2*//*
+/*3.1.2*/
+/*modules:tmpl,updater,core,viewInit,autoEndUpdate,magix,event,vframe,body,view*/
+/*
     author:xinglie.lkf@taobao.com
  */
 define('magix', ['$'], function($) {

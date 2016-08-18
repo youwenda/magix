@@ -1,4 +1,6 @@
-/*3.1.2*//**
+/*3.1.2*/
+/*modules:tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,viewMerge,magix,event,vframe,body,view*/
+/**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version edge
@@ -480,7 +482,7 @@ var Magix = {
             
             G_Require(Magix_Cfg.exts, function() {
                 Router.on('changed', Vframe_NotifyLocationChange);
-                Router.bind();
+                Router_Bind();
             });
             
         });
@@ -824,8 +826,8 @@ Magix.Event = Event;
     
     
     var Win = S.one(G_WINDOW);
-    var Router_Update = function(path, params, loc, replace) {
-        path = G_ToUri(path, params, loc.query[Router_PARAMS]);
+    var Router_Update = function(path, params, loc, replace, lQuery) {
+        path = G_ToUri(path, params, lQuery);
         if (path != loc.srcHash) {
             path = '#!' + path;
             if (replace) {
@@ -857,7 +859,7 @@ var Router_LLoc = {
     href: G_EMPTY
 };
 var Router_LParams;
-var Router_TrimHashReg = /(?:^.+\/\/[^\/]+|#.*$)/gi;
+var Router_TrimHashReg = /(?:^.*\/\/[^\/]+|#.*$)/gi;
 var Router_TrimQueryReg = /^[^#]*#?!?/;
 
 var Router_IsParam = function(params, r, ps) {
@@ -960,15 +962,6 @@ var Router = G_Mix({
     /**
      * @lends Router
      */
-    bind: Router_Bind, //
-    /**
-     * 执行url的更新
-     * @param  {String} path 路径名
-     * @param  {Object} params 参数
-     * @param  {Object} loc 上次的location
-     * @param  {Boolean} replace 是否使用replace更新url
-     */
-    update: Router_Update,
     /**
      * 解析href的query和hash，默认href为location.href
      * @param {String} [href] href
@@ -977,20 +970,23 @@ var Router = G_Mix({
     parse: function(href) {
         href = href || Router_WinLoc.href;
         var result = Router_HrefCache.get(href),
-            query, hash, queryObj, hashObj;
+            query, hash, queryObj, hashObj, params;
         if (!result) {
             query = href.replace(Router_TrimHashReg, G_EMPTY);
             hash = href.replace(Router_TrimQueryReg, G_EMPTY);
             queryObj = G_ParseUri(query);
             hashObj = G_ParseUri(hash);
+            params = G_Mix({}, queryObj[Router_PARAMS]);
+            
+            G_Mix(params, hashObj[Router_PARAMS])
+                
             result = {
                 href: href,
-                //prev: Router_LLoc.href,
                 srcQuery: query,
                 srcHash: hash,
                 query: queryObj,
                 hash: hashObj,
-                params: G_Mix(G_Mix({}, queryObj[Router_PARAMS]), hashObj[Router_PARAMS])
+                params: params
             };
             Router_AttachViewAndPath(result);
             Router_HrefCache.set(href, result);
@@ -1043,12 +1039,13 @@ var Router = G_Mix({
         var tParams = temp[Router_PARAMS];
         var tPath = temp[Router_PATH];
         var lPath = Router_LLoc[Router_PATH]; //历史路径
+        var lQuery = Router_LLoc.query[Router_PARAMS];
         G_Mix(tParams, params); //把路径中解析出来的参数与用户传递的参数进行合并
 
         if (tPath) { //设置路径带参数的形式，如:/abc?q=b&c=e或不带参数 /abc
             //tPath = G_Path(lPath, tPath);
             if (!Router_Edge) { //pushState不用处理
-                for (lPath in Router_LLoc.query[Router_PARAMS]) { //未出现在query中的参数设置为空
+                for (lPath in lQuery) { //未出现在query中的参数设置为空
                     if (!G_Has(tParams, lPath)) tParams[lPath] = G_EMPTY;
                 }
             }
@@ -1056,7 +1053,7 @@ var Router = G_Mix({
             tPath = lPath; //使用历史路径
             tParams = G_Mix(G_Mix({}, Router_LParams), tParams); //复制原来的参数，合并新的参数
         }
-        Router.update(tPath, Router_LParams = tParams, Router_LLoc, replace);
+        Router_Update(tPath, Router_LParams = tParams, Router_LLoc, replace, lQuery);
     }
 
     /**

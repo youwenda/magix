@@ -1,4 +1,6 @@
-/*3.1.2*//**
+/*3.1.2*/
+/*modules:tmpl,updater,core,viewInit,autoEndUpdate,magix,event,vframe,body,view*/
+/**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version edge

@@ -14,7 +14,7 @@ var modulesMap = {
   body: 1, //dom事件处理模块
   view: 1
 };
-var type = 'kissy'; //打包kissy则type='kissy'
+var type = 'cmd'; //打包kissy则type='kissy'
 
 var extModules = { //完整功能的magix,对应magix.js
   //
@@ -91,7 +91,7 @@ gulp.task('combine', function() {
       }
       return '';
     });
-    return tmpl('/*' + pkg.version + '*/' + content, extModules);
+    return tmpl('/*' + pkg.version + '*/\r\n/*modules:' + Object.keys(extModules) + '*/\r\n' + content, extModules);
   });
   copyFile('../src/' + type + '/magix.js', '../dist/' + type + '/magix-core-debug.js', function(content) {
     content = content.replace(incReg, function(match, name) {
@@ -100,7 +100,7 @@ gulp.task('combine', function() {
       }
       return '';
     });
-    return tmpl('/*' + pkg.version + '*/' + content, coreModules);
+    return tmpl('/*' + pkg.version + '*/\r\n/*modules:' + Object.keys(coreModules) + '*/\r\n' + content, coreModules);
   });
   // copyFile('../src/' + type + '/magix.js', '../dist/' + type + '/magix-loader-debug.js', function(content) {
   //   content = content.replace(incReg, function(match, name) {

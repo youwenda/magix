@@ -63,8 +63,8 @@ define('magix', ['$'], function(require) {
     var Router_Edge;
     /*#if(modules.router){#*/
     /*#if(!modules.forceEdgeRouter){#*/
-    var Router_Update = function(path, params, loc, replace) {
-        path = G_ToUri(path, params, loc.query[Router_PARAMS]);
+    var Router_Update = function(path, params, loc, replace, lQuery) {
+        path = G_ToUri(path, params, lQuery);
         if (path != loc.srcHash) {
             path = '#!' + path;
             if (replace) {
@@ -133,7 +133,6 @@ define('magix', ['$'], function(require) {
             if (path != loc.srcQuery) {
                 WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
                 Router.diff();
-                Router_DidUpdate = 1;
             }
         };
         /*#if(modules.tiprouter){#*/
@@ -143,9 +142,9 @@ define('magix', ['$'], function(require) {
             var newHref;
             $(G_WINDOW).on('popstate', function(e) {
                 newHref = Router_WinLoc.href;
-                var equal = newHref == initialURL;
-                if (!Router_DidUpdate && equal) return;
+                var initPop = !Router_DidUpdate && newHref == initialURL;
                 Router_DidUpdate = 1;
+                if (initPop) return;
                 if (newHref != lastHref) {
                     e = {
                         backward: function() {
@@ -173,15 +172,15 @@ define('magix', ['$'], function(require) {
         var Router_Bind = function() {
             var initialURL = Router_WinLoc.href;
             $(G_WINDOW).on('popstate', function() {
-                var equal = Router_WinLoc.href == initialURL;
-                if (!Router_DidUpdate && equal) return;
+                var initPop = !Router_DidUpdate && Router_WinLoc.href == initialURL;
                 Router_DidUpdate = 1;
+                if (initPop) return;
                 Router.diff();
             });
             Router.diff();
         };
         /*#}#*/
-    /*#if(!modules.forceEdgeRouter){#*/
+        /*#if(!modules.forceEdgeRouter){#*/
     }
     /*#}#*/
     /*#}#*/
