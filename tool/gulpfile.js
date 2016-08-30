@@ -27,6 +27,7 @@ var extModules = { //完整功能的magix,对应magix.js
   //layerVframe: 1,//父子化同一个view中嵌套存在的vframe
   //tmplObject:1,
   //forceEdgeRouter: 1, //强制使用pushState
+  //serviceCombine: 1, //接口combine
   tmpl: 1,
   updater: 1,
   //viewProtoMixins: 1, //支持mixins

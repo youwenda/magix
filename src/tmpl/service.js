@@ -132,8 +132,10 @@ var Service_FetchFlags_ONE = 1;
 var Service_FetchFlags_ALL = 2;
 var Service_CacheDone = function(cacheKey, err, fns) {
     fns = this[cacheKey]; //取出当前的缓存信息
-    delete this[cacheKey]; //先删除掉信息
-    G_ToTry(fns, err, fns.e); //执行所有的回调
+    if (fns) {
+        delete this[cacheKey]; //先删除掉信息
+        G_ToTry(fns, err, fns.e); //执行所有的回调
+    }
 };
 var Service_Task = function(done, host, service, total, flag, bagCache) {
     var doneArr = [];
@@ -233,7 +235,10 @@ var Service_Send = function(me, attrs, done, flag, save) {
     }
     var total = attrs.length;
     var remoteComplete = Service_Task(done, host, me, total, flag, host.$c);
-
+    /*#if(modules.serviceCombine){#*/
+    var combineBags = [],
+        combineCbs = [];
+    /*#}#*/
     for (var i = 0, bag; i < total; i++) {
         bag = attrs[i];
         if (bag) {
@@ -254,12 +259,30 @@ var Service_Send = function(me, attrs, done, flag, save) {
                     bagCacheKeys[cacheKey] = cacheList;
                     complete = G_Proxy(Service_CacheDone, bagCacheKeys, cacheKey); //替换回调，详见Service_CacheDone
                 }
+                /*#if(modules.serviceCombine){#*/
+                combineBags.push(bagEntity);
+                combineCbs.push(complete);
+                /*#}else{#*/
                 host.$s(bagEntity, complete);
+                /*#}#*/
             } else { //不需要更新时，直接回调
                 complete();
             }
         }
     }
+    /*#if(modules.serviceCombine){#*/
+    if (combineBags.length) {
+        var tempBag = new Bag();
+        tempBag.set('bags', combineBags);
+        tempBag._cbs = combineCbs;
+        host.$s(tempBag, function() {
+            var list = tempBag._cbs;
+            for (var i = 0; i < list.length; i++) {
+                list[i]();
+            }
+        });
+    }
+    /*#}#*/
     return /*#if(modules.servicePromise){#*/ p /*#}else{#*/ me /*#}#*/ ;
 };
 /**

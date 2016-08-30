@@ -339,9 +339,10 @@ G_Mix(G_Mix(ViewProto, Event), {
      * view.relate(Magix.node('nodeId'));
      */
     relate: function(node) {
-        var id = node.id || (node.id = G_Id());
-        var me = this;
-        Body_ViewRelateInfo[id] = me.owner;
+        node = G_GetById(node);
+        if (node) {
+            Body_ViewRelateInfo[(node.id || (node.id = G_Id()))] = this.owner;
+        }
     },
     /*#}#*/
     // *

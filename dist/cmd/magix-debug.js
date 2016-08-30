@@ -1,4 +1,4 @@
-/*3.1.2*/
+/*3.1.3*/
 /*modules:tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,viewMerge,magix,event,vframe,body,view*/
 /*
     author:xinglie.lkf@taobao.com
@@ -1281,12 +1281,6 @@ G_Mix(Vframe, G_Mix({
      * @lends Vframe
      */
     /**
-     * 获取vframe节点
-     * @type {Vframe}
-     * @return {Vframe} vframe对象
-     */
-    root: Vframe_Root,
-    /**
      * 获取所有的vframe对象
      * @return {Object}
      */
@@ -1340,9 +1334,13 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         if (node && viewPath) {
             me.path = viewPath;
             po = G_ParseUri(viewPath);
+            view = po.path;
             sign = ++me.$s;
-            G_Require(po.path, function(TView) {
+            G_Require(view, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
+                    if (!TView) {
+                        Magix_Cfg.error(Error('cannot load:' + view));
+                    }
                     
                     View_Prepare(TView);
                     
@@ -2872,8 +2870,10 @@ var Service_FetchFlags_ONE = 1;
 var Service_FetchFlags_ALL = 2;
 var Service_CacheDone = function(cacheKey, err, fns) {
     fns = this[cacheKey]; //取出当前的缓存信息
-    delete this[cacheKey]; //先删除掉信息
-    G_ToTry(fns, err, fns.e); //执行所有的回调
+    if (fns) {
+        delete this[cacheKey]; //先删除掉信息
+        G_ToTry(fns, err, fns.e); //执行所有的回调
+    }
 };
 var Service_Task = function(done, host, service, total, flag, bagCache) {
     var doneArr = [];
@@ -2961,7 +2961,7 @@ var Service_Send = function(me, attrs, done, flag, save) {
     }
     var total = attrs.length;
     var remoteComplete = Service_Task(done, host, me, total, flag, host.$c);
-
+    
     for (var i = 0, bag; i < total; i++) {
         bag = attrs[i];
         if (bag) {
@@ -2982,12 +2982,15 @@ var Service_Send = function(me, attrs, done, flag, save) {
                     bagCacheKeys[cacheKey] = cacheList;
                     complete = G_Proxy(Service_CacheDone, bagCacheKeys, cacheKey); //替换回调，详见Service_CacheDone
                 }
+                
                 host.$s(bagEntity, complete);
+                
             } else { //不需要更新时，直接回调
                 complete();
             }
         }
     }
+    
     return  me  ;
 };
 /**
@@ -3432,7 +3435,7 @@ Magix.Service = Service;
     G_Mix(G_NOOP[G_PROTOTYPE], Event);
     G_NOOP.extend = T_Extend;
     /**
-     * 组件基类
+     * mix Magix.Event的基类
      * @name Base
      * @constructor
      * @borrows Event.fire as #fire

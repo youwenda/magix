@@ -193,12 +193,6 @@ G_Mix(Vframe, G_Mix({
      * @lends Vframe
      */
     /**
-     * 获取vframe节点
-     * @type {Vframe}
-     * @return {Vframe} vframe对象
-     */
-    root: Vframe_Root,
-    /**
      * 获取所有的vframe对象
      * @return {Object}
      */
@@ -252,9 +246,13 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         if (node && viewPath) {
             me.path = viewPath;
             po = G_ParseUri(viewPath);
+            view = po.path;
             sign = ++me.$s;
-            G_Require(po.path, function(TView) {
+            G_Require(view, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
+                    if (!TView) {
+                        Magix_Cfg.error(Error('cannot load:' + view));
+                    }
                     /*#if(!modules.loader){#*/
                     View_Prepare(TView);
                     /*#}#*/

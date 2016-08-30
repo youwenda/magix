@@ -247,7 +247,7 @@ define('magix', ['$'], function(require) {
     G_Mix(G_NOOP[G_PROTOTYPE], Event);
     G_NOOP.extend = T_Extend;
     /**
-     * 组件基类
+     * mix Magix.Event的基类
      * @name Base
      * @constructor
      * @borrows Event.fire as #fire
