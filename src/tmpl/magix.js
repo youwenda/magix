@@ -1,8 +1,3 @@
-/*
-    源码级模块定制，更利于取舍功能
-    固定的模块有magix,event,body,vframe,view
-    可选的模块有router,service,base,fullstyle,style,cnum,ceach,resource,edgeRouter,tiprouter,simplerouter
- */
 var G_COUNTER = 0;
 var G_EMPTY = '';
 var G_EMPTY_ARRAY = [];

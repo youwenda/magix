@@ -1,6 +1,6 @@
 var Vframe_RootVframe;
 var Vframe_GlobalAlter;
-/*#if(modules.mxData){#*/
+/*#if(modules.mxInit){#*/
 var Vframe_DataParamsReg = /(\w+):\s*([^,\}]+)\s*/g;
 var Vframe_DataParamsStrReg = /(['"])(.*)\1/;
 var Vframe_DataParamsNumReg = /^[\d\.]+$/;
@@ -70,6 +70,10 @@ var Vframe_AddVframe = function(id, vf) {
         Vframe.fire('add', {
             vframe: vf
         });
+        /*#if(modules.nodeAttachVframe){#*/
+        id = G_GetById(id);
+        if (id) id.vframe = vf;
+        /*#}#*/
     }
 };
 /*#if(modules.linkage){#*/
@@ -92,6 +96,10 @@ var Vframe_RemoveVframe = function(id, fcc, vf) {
             vframe: vf,
             fcc: fcc //fireChildrenCreated
         });
+        /*#if(modules.nodeAttachVframe){#*/
+        id = G_GetById(id);
+        if (id) id.vframe = G_NULL;
+        /*#}#*/
     }
 };
 /*#if(modules.router){#*/
@@ -281,7 +289,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                         G_Mix(params, mxo);
                     }
                     /*#}#*/
-                    /*#if(modules.mxData){#*/
+                    /*#if(modules.mxInit){#*/
                     var mxd = node.getAttribute('mx-init');
                     if (mxd) {
                         var parent = me.parent();

@@ -4,6 +4,20 @@
 define('magix', ['$'], function(require) {
     var $ = require('$');
     var G_Require = function(name, fn) {
+        if (name) {
+            if (window.seajs) {
+                seajs.use(name, fn);
+            } else {
+                var a = [];
+                if (!G_IsArray(name)) name = [name];
+                for (var i = 0; i < name.length; i++) {
+                    a.push(require(name[i]));
+                }
+                if (fn) fn.apply(G_NULL, a);
+            }
+        } else {
+            fn();
+        }
         // if (name) {
         //     var a = [];
         //     if (!G_IsArray(name)) name = [name];
@@ -18,11 +32,11 @@ define('magix', ['$'], function(require) {
 
             magix单独使用时，由外部在合适的时机boot，不添加虚拟根节点，不自动boot，这样可选择的空间更大
          */
-        if (name) {
-            seajs.use(name, fn);
-        } else if (fn) {
-            fn();
-        }
+        // if (name) {
+        //     seajs.use(name, fn);
+        // } else if (fn) {
+        //     fn();
+        // }
     };
     var T = function() {};
     var G_Extend = function(ctor, base, props, statics, cProto) {

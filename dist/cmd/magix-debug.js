@@ -1,11 +1,25 @@
-/*3.1.3*/
-/*modules:tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,viewMerge,magix,event,vframe,body,view*/
+/*3.1.4*/
+/*modules:tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,magix,event,vframe,body,view*/
 /*
     author:xinglie.lkf@taobao.com
  */
 define('magix', ['$'], function(require) {
     var $ = require('$');
     var G_Require = function(name, fn) {
+        if (name) {
+            if (window.seajs) {
+                seajs.use(name, fn);
+            } else {
+                var a = [];
+                if (!G_IsArray(name)) name = [name];
+                for (var i = 0; i < name.length; i++) {
+                    a.push(require(name[i]));
+                }
+                if (fn) fn.apply(G_NULL, a);
+            }
+        } else {
+            fn();
+        }
         // if (name) {
         //     var a = [];
         //     if (!G_IsArray(name)) name = [name];
@@ -20,11 +34,11 @@ define('magix', ['$'], function(require) {
 
             magix单独使用时，由外部在合适的时机boot，不添加虚拟根节点，不自动boot，这样可选择的空间更大
          */
-        if (name) {
-            seajs.use(name, fn);
-        } else if (fn) {
-            fn();
-        }
+        // if (name) {
+        //     seajs.use(name, fn);
+        // } else if (fn) {
+        //     fn();
+        // }
     };
     var T = function() {};
     var G_Extend = function(ctor, base, props, statics, cProto) {
@@ -60,12 +74,7 @@ define('magix', ['$'], function(require) {
         }
     };
     
-    /*
-    源码级模块定制，更利于取舍功能
-    固定的模块有magix,event,body,vframe,view
-    可选的模块有router,service,base,fullstyle,style,cnum,ceach,resource,edgeRouter,tiprouter,simplerouter
- */
-var G_COUNTER = 0;
+    var G_COUNTER = 0;
 var G_EMPTY = '';
 var G_EMPTY_ARRAY = [];
 var G_Slice = G_EMPTY_ARRAY.slice;
@@ -1158,6 +1167,10 @@ var Vframe_AddVframe = function(id, vf) {
         Vframe.fire('add', {
             vframe: vf
         });
+        
+        id = G_GetById(id);
+        if (id) id.vframe = vf;
+        
     }
 };
 
@@ -1180,6 +1193,10 @@ var Vframe_RemoveVframe = function(id, fcc, vf) {
             vframe: vf,
             fcc: fcc //fireChildrenCreated
         });
+        
+        id = G_GetById(id);
+        if (id) id.vframe = G_NULL;
+        
     }
 };
 
@@ -2601,22 +2618,31 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @module resource
      * @example
      * View.extend({
-     *     render:function(){
-     *         var me=this;
-     *         var dropdown=new Dropdown();
+     *     render: function(){
+     *         var me = this;
+     *         var dropdown = new Dropdown();
      *
      *         me.capture('dropdown',dropdown,true);
+     *     },
+     *     getTest: function(){
+     *         var dd = me.capture('dropdown');
+     *         console.log(dd);
      *     }
      * });
      */
     capture: function(key, res, destroyWhenCallRender, cache, wrapObj) {
         cache = this.$r;
-        View_DestroyResource(cache, key, 1);
-        wrapObj = {
-            e: res,
-            x: destroyWhenCallRender
-        };
-        cache[key] = wrapObj;
+        if (res) {
+            View_DestroyResource(cache, key, 1);
+            wrapObj = {
+                e: res,
+                x: destroyWhenCallRender
+            };
+            cache[key] = wrapObj;
+        } else {
+            wrapObj = cache[key];
+            res = wrapObj && wrapObj.e || res;
+        }
         return res;
     },
     /**

@@ -1,5 +1,5 @@
-/*3.1.3*/
-/*modules:tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,viewMerge,magix,event,vframe,body,view*/
+/*3.1.4*/
+/*modules:tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,magix,event,vframe,body,view*/
 /*
     author:xinglie.lkf@taobao.com
  */
@@ -48,12 +48,7 @@ define('magix', ['$'], function($) {
         }
     };
     
-    /*
-    源码级模块定制，更利于取舍功能
-    固定的模块有magix,event,body,vframe,view
-    可选的模块有router,service,base,fullstyle,style,cnum,ceach,resource,edgeRouter,tiprouter,simplerouter
- */
-var G_COUNTER = 0;
+    var G_COUNTER = 0;
 var G_EMPTY = '';
 var G_EMPTY_ARRAY = [];
 var G_Slice = G_EMPTY_ARRAY.slice;
@@ -1146,6 +1141,10 @@ var Vframe_AddVframe = function(id, vf) {
         Vframe.fire('add', {
             vframe: vf
         });
+        
+        id = G_GetById(id);
+        if (id) id.vframe = vf;
+        
     }
 };
 
@@ -1168,6 +1167,10 @@ var Vframe_RemoveVframe = function(id, fcc, vf) {
             vframe: vf,
             fcc: fcc //fireChildrenCreated
         });
+        
+        id = G_GetById(id);
+        if (id) id.vframe = G_NULL;
+        
     }
 };
 
@@ -2587,22 +2590,31 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @module resource
      * @example
      * View.extend({
-     *     render:function(){
-     *         var me=this;
-     *         var dropdown=new Dropdown();
+     *     render: function(){
+     *         var me = this;
+     *         var dropdown = new Dropdown();
      *
      *         me.capture('dropdown',dropdown,true);
+     *     },
+     *     getTest: function(){
+     *         var dd = me.capture('dropdown');
+     *         console.log(dd);
      *     }
      * });
      */
     capture: function(key, res, destroyWhenCallRender, cache, wrapObj) {
         cache = this.$r;
-        View_DestroyResource(cache, key, 1);
-        wrapObj = {
-            e: res,
-            x: destroyWhenCallRender
-        };
-        cache[key] = wrapObj;
+        if (res) {
+            View_DestroyResource(cache, key, 1);
+            wrapObj = {
+                e: res,
+                x: destroyWhenCallRender
+            };
+            cache[key] = wrapObj;
+        } else {
+            wrapObj = cache[key];
+            res = wrapObj && wrapObj.e || res;
+        }
         return res;
     },
     /**

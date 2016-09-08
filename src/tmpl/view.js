@@ -479,22 +479,31 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @module resource
      * @example
      * View.extend({
-     *     render:function(){
-     *         var me=this;
-     *         var dropdown=new Dropdown();
+     *     render: function(){
+     *         var me = this;
+     *         var dropdown = new Dropdown();
      *
      *         me.capture('dropdown',dropdown,true);
+     *     },
+     *     getTest: function(){
+     *         var dd = me.capture('dropdown');
+     *         console.log(dd);
      *     }
      * });
      */
     capture: function(key, res, destroyWhenCallRender, cache, wrapObj) {
         cache = this.$r;
-        View_DestroyResource(cache, key, 1);
-        wrapObj = {
-            e: res,
-            x: destroyWhenCallRender
-        };
-        cache[key] = wrapObj;
+        if (res) {
+            View_DestroyResource(cache, key, 1);
+            wrapObj = {
+                e: res,
+                x: destroyWhenCallRender
+            };
+            cache[key] = wrapObj;
+        } else {
+            wrapObj = cache[key];
+            res = wrapObj && wrapObj.e || res;
+        }
         return res;
     },
     /**
