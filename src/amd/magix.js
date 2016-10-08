@@ -179,7 +179,7 @@ define('magix', ['$'], function($) {
         d = e.data;
         G_ToTry(d.f, e, d.v);
     };
-    var Body_DOMEventLibBind = function(node, type, cb, remove) {
+    var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {
         if (remove) {
             $(node).off(type, selector, cb);
         } else {

@@ -431,7 +431,7 @@ G_Mix(G_Mix(ViewProto, Event), {
     /*#if(modules.router){#*/
     /**
      * 监视地址栏中的参数或path，有变动时，才调用当前view的render方法。通常情况下location有变化不会引起当前view的render被调用，所以你需要指定地址栏中哪些参数有变化时才引起render调用，使得view只关注与自已需要刷新有关的参数
-     * @param {Array|String} params  数组字符串
+     * @param {Array|String|Object} params  数组字符串
      * @param {Boolean} [isObservePath] 是否监视path
      * @beta
      * @module router
@@ -442,6 +442,11 @@ G_Mix(G_Mix(ViewProto, Event), {
      *          this.observe(null,true);//关注path的变化
      *          //也可以写成下面的形式
      *          //this.observe('page,rows',true);
+     *          //也可以是对象的形式
+     *          this.observe({
+     *              path: true,
+     *              params:['page','rows']
+     *          });
      *      },
      *      render:function(){
      *          var loc=Magix.Router.parse();
@@ -451,21 +456,22 @@ G_Mix(G_Mix(ViewProto, Event), {
      *      }
      * });
      */
-    observe: function(params, isObservePath /*, changedCallback*/ ) {
+    observe: function(params, isObservePath) {
         var me = this,
             loc, keys;
         loc = me.$l;
         loc.f = 1;
         keys = loc.k;
-        if (isObservePath) {
-            loc.p = isObservePath;
+        if (G_IsObject(params)) {
+            isObservePath = params.path;
+            params = params.params;
         }
+        //if (isObservePath) {
+        loc.p = isObservePath;
+        //}
         if (params) {
             loc.k = keys.concat((params + G_EMPTY).split(G_COMMA));
         }
-        // if (changedCallback) {
-        //     loc.c = changedCallback;
-        // }
     },
     /*#}#*/
     /*#if(modules.resource){#*/

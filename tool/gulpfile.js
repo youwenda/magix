@@ -14,7 +14,7 @@ var modulesMap = {
   body: 1, //dom事件处理模块
   view: 1
 };
-var type = 'cmd'; //打包kissy则type='kissy'
+var type = 'amd'; //打包kissy则type='kissy'
 
 var extModules = { //完整功能的magix,对应magix.js
   //
@@ -25,7 +25,8 @@ var extModules = { //完整功能的magix,对应magix.js
   //edgeRouter: 1, //使用pushState
   //collectView: 1,//收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
   //layerVframe: 1,//父子化同一个view中嵌套存在的vframe
-  //tmplObject:1,
+  //tmplObject: 1, //模板是否为对象，内置支持子模板，需要对源字符串进行拆分成html和subs
+  //updaterSetState: 1, //updater是否由用户指定更新。即用户指定什么就更新什么，不管值有没有改变
   //forceEdgeRouter: 1, //强制使用pushState
   //serviceCombine: 1, //接口combine
   tmpl: 1,

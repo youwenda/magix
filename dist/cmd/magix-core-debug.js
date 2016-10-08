@@ -1,4 +1,4 @@
-/*3.1.4*/
+/*3.1.5*/
 /*modules:tmpl,updater,core,viewInit,autoEndUpdate,magix,event,vframe,body,view*/
 /*
     author:xinglie.lkf@taobao.com
@@ -776,7 +776,7 @@ Magix.Event = Event;
 var Vframe_GlobalAlter;
 
 
-var Vframe_UrlParamsReg = /\{(.+)\}/;
+var Vframe_ReadDataFlag = '~';
 
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
@@ -955,16 +955,14 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     
                     var pParams = po.params;
                     
-                    var parent = me.parent(),
+                    var parent = Vframe_Vframes[me.pId],
                         p, val;
-                    parent = parent && parent.$v;
-                    parent = parent && parent.$updater;
+                    parent = parent && parent.$v.$updater;
                     if (parent) {
                         for (p in pParams) {
                             val = pParams[p];
-                            val = val.match(Vframe_UrlParamsReg);
-                            if (val) {
-                                pParams[p] = parent.get(val[1]);
+                            if (val.charAt(0) == Vframe_ReadDataFlag) {
+                                pParams[p] = parent.get(val);
                             }
                         }
                     }
@@ -1097,7 +1095,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
          */
 
         me.$h = 1; //hold fire creted
-        me.unmountZone(zoneId, 1);
+        //me.unmountZone(zoneId, 1); 不去清理，详情见：https://github.com/thx/magix/issues/27
         
         for (i = vframes.length - 1; i >= 0; i--) {
             vf = vframes[i];
@@ -1319,16 +1317,18 @@ var Tmpl_EscapeRegExp = /\\|'|\r|\n|\u2028|\u2029/g;
 var Tmpl_EscapeChar = function(match) {
   return "\\" + Tmpl_Escapes[match];
 };
-var Tmpl_Mathcer = /<%=([\s\S]+?)%>|<%!([\s\S]+?)%>|<%([\s\S]+?)%>|$/g;
+var Tmpl_Mathcer = /<%@([\s\S]+?)%>|<%=([\s\S]+?)%>|<%!([\s\S]+?)%>|<%([\s\S]+?)%>|$/g;
 var Tmpl_Compiler = function(text) {
   // Compile the template source, escaping string literals appropriately.
   var index = 0;
   var source = "$p+='";
-  text.replace(Tmpl_Mathcer, function(match, escape, interpolate, evaluate, offset) {
+  text.replace(Tmpl_Mathcer, function(match, ref, escape, interpolate, evaluate, offset) {
     source += text.slice(index, offset).replace(Tmpl_EscapeRegExp, Tmpl_EscapeChar);
     index = offset + match.length;
 
-    if (escape) {
+    if (ref) {
+      source += "'\n$s=$i();\n$p+=$s;\n$mx[$s]=" + ref + ";\n$p+='";
+    } else if (escape) {
       source += "'+\n(($t=(" + escape + "))==null?'':$e($t))+\n'";
     } else if (interpolate) {
       source += "'+\n(($t=(" + interpolate + "))==null?'':$t)+\n'";
@@ -1342,13 +1342,12 @@ var Tmpl_Compiler = function(text) {
 
   // If a variable is not specified, place data values in local scope.
   source = "with($mx){\n" + source + "}\n";
-  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)};\n" +
-    source + "return $p;\n";
+  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)},$i=function(){return '~'+$g++},$s;\n" + source + "return $p;\n";
 
   var render;
   try {
     /*jshint evil: true*/
-    render = Function("$mx", source);
+    render = Function("$g", "$mx", source);
   } catch (e) {
     e.source = source;
     throw e;
@@ -1380,7 +1379,7 @@ var Tmpl = function(text, data) {
     fn = Tmpl_Compiler(text);
     Tmpl_Cache.set(text, fn);
   }
-  return fn(data);
+  return fn(1, data);
 };
     var Updater_HolderReg = /\u001f/g;
 var Updater_ContentReg = /@(\d+)\-\u001f/g;
@@ -1520,6 +1519,27 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
         }
     }
 };
+/*
+function proxy(node,prop) {
+  if (node !== null && (typeof node === 'object' || typeof node === 'function')) {
+  return new Proxy(node, {
+      set:function(target, key, value) {
+        var old=target[key];
+        if(old!=value){
+        var fire=prop||key;
+        console.log(fire+' changed');
+        target[key] = proxy(value,fire)
+      }
+      },
+      get:function(target,key){
+        return target[key];
+      }
+  })
+}else{
+  return node;
+}
+}
+ */
 /**
  * 使用mx-keys进行局部刷新的类
  * @constructor
@@ -1537,7 +1557,9 @@ var Updater = function(view) {
     var me = this;
     me.$v = view;
     me.$data = {};
+    
     me.$json = {};
+    
 };
 var UP = Updater.prototype;
 G_Mix(UP, Event);
@@ -1582,7 +1604,9 @@ G_Mix(UP, {
      */
     set: function(obj) {
         var me = this;
+        
         G_Mix(me.$data, obj);
+        
         return me;
     },
     /**
@@ -1598,9 +1622,11 @@ G_Mix(UP, {
     digest: function() {
         var me = this;
         var data = me.$data;
+        var changed, keys;
+        
+        keys = {};
         var json = me.$json;
-        var keys = {};
-        var changed, val, key, valJSON, lchange;
+        var val, key, valJSON, lchange;
         for (key in data) {
             val = data[key];
             lchange = 0;
@@ -1616,6 +1642,7 @@ G_Mix(UP, {
                 keys[key] = changed = 1;
             }
         }
+        
         Updater_UpdateDOM(me, changed, keys, data);
         if (changed) {
             me.fire('changed', {
@@ -1623,6 +1650,7 @@ G_Mix(UP, {
             });
             delete me.$lss;
         }
+        
         return me;
     },
     /**
@@ -1648,8 +1676,12 @@ G_Mix(UP, {
      * }
      */
     snapshot: function() {
-        var me = this;
-        me.$ss = Updater_Stringify(me.$json);
+        var me = this,
+            d;
+        
+        d = me.$json;
+        
+        me.$ss = Updater_Stringify(d);
         return me;
     },
     /**
@@ -1675,9 +1707,13 @@ G_Mix(UP, {
      * }
      */
     altered: function() {
-        var me = this;
+        var me = this,
+            d;
+        
+        d = me.$json;
+        
         if (me.$ss) { //存在快照
-            if (!me.$lss) me.$lss = JSON.stringify(me.$json); //不存在比较的快照，生成
+            if (!me.$lss) me.$lss = JSON.stringify(d); //不存在比较的快照，生成
             return me.$ss != me.$lss; //比较2次快照是否一样
         }
         return true;

@@ -6,7 +6,7 @@ var Vframe_DataParamsStrReg = /(['"])(.*)\1/;
 var Vframe_DataParamsNumReg = /^[\d\.]+$/;
 /*#}#*/
 /*#if(modules.updater){#*/
-var Vframe_UrlParamsReg = /\{(.+)\}/;
+var Vframe_ReadDataFlag = '~';
 /*#}#*/
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
@@ -266,16 +266,14 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     /*#}#*/
                     var pParams = po.params;
                     /*#if(modules.updater){#*/
-                    var parent = me.parent(),
+                    var parent = Vframe_Vframes[me.pId],
                         p, val;
-                    parent = parent && parent.$v;
-                    parent = parent && parent.$updater;
+                    parent = parent && parent.$v.$updater;
                     if (parent) {
                         for (p in pParams) {
                             val = pParams[p];
-                            val = val.match(Vframe_UrlParamsReg);
-                            if (val) {
-                                pParams[p] = parent.get(val[1]);
+                            if (val.charAt(0) == Vframe_ReadDataFlag) {
+                                pParams[p] = parent.get(val);
                             }
                         }
                     }
@@ -449,7 +447,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
          */
 
         me.$h = 1; //hold fire creted
-        me.unmountZone(zoneId, 1);
+        //me.unmountZone(zoneId, 1); 不去清理，详情见：https://github.com/thx/magix/issues/27
         /*#if(modules.collectView){#*/
         var temp = [];
         for (i = vframes.length - 1; i >= 0; i--) {

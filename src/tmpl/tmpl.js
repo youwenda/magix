@@ -10,16 +10,18 @@ var Tmpl_EscapeRegExp = /\\|'|\r|\n|\u2028|\u2029/g;
 var Tmpl_EscapeChar = function(match) {
   return "\\" + Tmpl_Escapes[match];
 };
-var Tmpl_Mathcer = /<%=([\s\S]+?)%>|<%!([\s\S]+?)%>|<%([\s\S]+?)%>|$/g;
+var Tmpl_Mathcer = /<%@([\s\S]+?)%>|<%=([\s\S]+?)%>|<%!([\s\S]+?)%>|<%([\s\S]+?)%>|$/g;
 var Tmpl_Compiler = function(text) {
   // Compile the template source, escaping string literals appropriately.
   var index = 0;
   var source = "$p+='";
-  text.replace(Tmpl_Mathcer, function(match, escape, interpolate, evaluate, offset) {
+  text.replace(Tmpl_Mathcer, function(match, ref, escape, interpolate, evaluate, offset) {
     source += text.slice(index, offset).replace(Tmpl_EscapeRegExp, Tmpl_EscapeChar);
     index = offset + match.length;
 
-    if (escape) {
+    if (ref) {
+      source += "'\n$s=$i();\n$p+=$s;\n$mx[$s]=" + ref + ";\n$p+='";
+    } else if (escape) {
       source += "'+\n(($t=(" + escape + "))==null?'':$e($t))+\n'";
     } else if (interpolate) {
       source += "'+\n(($t=(" + interpolate + "))==null?'':$t)+\n'";
@@ -33,13 +35,12 @@ var Tmpl_Compiler = function(text) {
 
   // If a variable is not specified, place data values in local scope.
   source = "with($mx){\n" + source + "}\n";
-  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)};\n" +
-    source + "return $p;\n";
+  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)},$i=function(){return '~'+$g++},$s;\n" + source + "return $p;\n";
 
   var render;
   try {
     /*jshint evil: true*/
-    render = Function("$mx", source);
+    render = Function("$g", "$mx", source);
   } catch (e) {
     e.source = source;
     throw e;
@@ -71,5 +72,5 @@ var Tmpl = function(text, data) {
     fn = Tmpl_Compiler(text);
     Tmpl_Cache.set(text, fn);
   }
-  return fn(data);
+  return fn(1, data);
 };

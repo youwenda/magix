@@ -140,6 +140,27 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
         }
     }
 };
+/*
+function proxy(node,prop) {
+  if (node !== null && (typeof node === 'object' || typeof node === 'function')) {
+  return new Proxy(node, {
+      set:function(target, key, value) {
+        var old=target[key];
+        if(old!=value){
+        var fire=prop||key;
+        console.log(fire+' changed');
+        target[key] = proxy(value,fire)
+      }
+      },
+      get:function(target,key){
+        return target[key];
+      }
+  })
+}else{
+  return node;
+}
+}
+ */
 /**
  * 使用mx-keys进行局部刷新的类
  * @constructor
@@ -157,7 +178,11 @@ var Updater = function(view) {
     var me = this;
     me.$v = view;
     me.$data = {};
+    /*#if(modules.updaterSetState){#*/
+    me.$keys = {};
+    /*#}else{#*/
     me.$json = {};
+    /*#}#*/
 };
 var UP = Updater.prototype;
 G_Mix(UP, Event);
@@ -202,7 +227,15 @@ G_Mix(UP, {
      */
     set: function(obj) {
         var me = this;
+        /*#if(modules.updaterSetState){#*/
+        for (var p in obj) {
+            me.$u = 1;
+            me.$keys[p] = 1;
+            me.$data[p] = obj[p];
+        }
+        /*#}else{#*/
         G_Mix(me.$data, obj);
+        /*#}#*/
         return me;
     },
     /**
@@ -218,9 +251,14 @@ G_Mix(UP, {
     digest: function() {
         var me = this;
         var data = me.$data;
+        var changed, keys;
+        /*#if(modules.updaterSetState){#*/
+        changed = me.$u;
+        keys = me.$keys;
+        /*#}else{#*/
+        keys = {};
         var json = me.$json;
-        var keys = {};
-        var changed, val, key, valJSON, lchange;
+        var val, key, valJSON, lchange;
         for (key in data) {
             val = data[key];
             lchange = 0;
@@ -236,6 +274,7 @@ G_Mix(UP, {
                 keys[key] = changed = 1;
             }
         }
+        /*#}#*/
         Updater_UpdateDOM(me, changed, keys, data);
         if (changed) {
             me.fire('changed', {
@@ -243,6 +282,10 @@ G_Mix(UP, {
             });
             delete me.$lss;
         }
+        /*#if(modules.updaterSetState){#*/
+        me.$u = 0;
+        me.$keys = {};
+        /*#}#*/
         return me;
     },
     /**
@@ -268,8 +311,14 @@ G_Mix(UP, {
      * }
      */
     snapshot: function() {
-        var me = this;
-        me.$ss = Updater_Stringify(me.$json);
+        var me = this,
+            d;
+        /*#if(modules.updaterSetState){#*/
+        d = me.$data;
+        /*#}else{#*/
+        d = me.$json;
+        /*#}#*/
+        me.$ss = Updater_Stringify(d);
         return me;
     },
     /**
@@ -295,9 +344,15 @@ G_Mix(UP, {
      * }
      */
     altered: function() {
-        var me = this;
+        var me = this,
+            d;
+        /*#if(modules.updaterSetState){#*/
+        d = me.$data;
+        /*#}else{#*/
+        d = me.$json;
+        /*#}#*/
         if (me.$ss) { //存在快照
-            if (!me.$lss) me.$lss = JSON.stringify(me.$json); //不存在比较的快照，生成
+            if (!me.$lss) me.$lss = JSON.stringify(d); //不存在比较的快照，生成
             return me.$ss != me.$lss; //比较2次快照是否一样
         }
         return true;
