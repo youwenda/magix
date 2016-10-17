@@ -1,1 +1,0 @@
-/*visit https://github.com/thx/magix-inspector to update*/(function(d,s){s=d.createElement('script');s.src='//thx.github.io/magix-inspector/index.js';s.charset='utf-8';d.body.appendChild(s);console.warn('magix区块查看工具换到了单独的地址和仓库进行维护，提供多种使用方式。您当前使用的地址不再更新，为了便于后续的使用，请更新您的使用方式，详情请访问：https://github.com/thx/magix-inspector');}(document))

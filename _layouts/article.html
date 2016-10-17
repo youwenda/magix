@@ -15,18 +15,12 @@
     {% include header.html %}
 
     <div class="main-wrapper clearfix">
-        {% include sidebar.html %}
-
-        <div class="page-content">
-            <div class="tutorial-content">
-                <div class="markdown-body">
-                转载请注明出处: <a href="{{site.url}}{{page.url}}">{{site.hostname}}{{site.baseurl}}{{page.url}}</a>
-                    {{ content }}
-                </div>
+        <div class="container">
+            <div class="markdown-body">
+                {{ content }}
             </div>
 
             {% include duoshuo.html %}
-
         </div>
     </div>
 
