@@ -106,6 +106,8 @@ list.destroy();
 
 在Magix中，简化了开发，提供了托管的概念，即所有的资源都应该托管到view对象上，并实现destroy方法，当view有变化并需要对这些资源销毁处理时，会自动调用它们的destroy方法。
 
+[Magix.View.prorotype.capture api](https://thx.github.io/magix-doc3/?to=capture)
+
 比如：
 
 ```js
@@ -116,7 +118,7 @@ define('app/views/default',['magix'],function(require){
             var timer=setTimeout(function(){
                 alert('xl');
             },5000);
-            this.manage({
+            this.capture('timer',{//让view捕获需要管理的资源
                 destroy:function(){
                     clearTimeout(timer);
                 }

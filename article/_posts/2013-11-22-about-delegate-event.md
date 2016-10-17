@@ -19,7 +19,7 @@ Event.delegate(document.body,'click','p',function(e){
 再来看`Magix1.0`之前的事件代理方案
 当前`view`使用的事件都统一绑定到`vframe`标签上，而`vframe`又可以嵌套，比如嵌套后的结构如下：
 
-![Delegate Event]({{ site.baseurl }}/assets/img/article-de-0.png)
+![Delegate Event](https://raw.githubusercontent.com/thx/magix/gh-pages-backup/assets/img/article-de-0.png)
 
 我们的事件是绑定在`vframe`上的，当`vframe2`与`vframe1`绑定相同类型的事件时，比如`click`，而`vframe2`的`view`与`vframe1`的`view`具有相同的事件处理函数时，比如`selectAll`，那么问题就来了：鼠标点击在`vframe2`的SelectAll checkbox上时，`vframe2`先处理，而同时事件冒泡，冒泡到`vframe1`上时，`vframe1`的`selectAll`方法同样会被触发。
 
@@ -35,7 +35,7 @@ Event.delegate(document.body,'click','p',function(e){
 
 方案1虽然有点性能损耗，但把问题解决了。可是方案1无法处理下面这个经常使用的场景：
 
-![Delegate Event]({{ site.baseurl }}/assets/img/article-de-1.png)
+![Delegate Event](https://raw.githubusercontent.com/thx/magix/gh-pages-backup/assets/img/article-de-1.png)
 
 当点击`vframe1`中的Popup按钮时，右下角弹出一个对话框，对话框中有一个不再提醒按钮，因对话框是`vframe1`弹出来的，所以对话框里带`mx-eventType`节点的事件处理也应该由`vframe1`来完成，通常对话框是在`body`下的，整个`HTML`内容都不在`vframe1`中，所以点击在对话框中的事件是不会被`vframe1`监听到的
 
@@ -70,7 +70,7 @@ Magix1.0处理完成后是这样的：
 
 回到开头我们的那个问题(jQuery live)：事件是绑定在`body`上的，每当事件发生时，我们都要从发生事件的节点向上查找带有`mx-eventType`标识的节点，直到`body`。那我们来看一种情况：
 
-![Delegate Event]({{ site.baseurl }}/assets/img/article-de-2.png)
+![Delegate Event](https://raw.githubusercontent.com/thx/magix/gh-pages-backup/assets/img/article-de-2.png)
 
 假设html结构是这样的：
 

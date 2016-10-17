@@ -3,6 +3,7 @@ layout: article
 title: 为什么合并view的render与locationChange方法
 ---
 
+**注：原1.2版本之前渲染流程和url改变流程是分开的，从1.2版本开始，把这2个流程合并，即不管哪种情况均走渲染流程，原因参考以下说明**
 
 考虑原来以下代码
 
