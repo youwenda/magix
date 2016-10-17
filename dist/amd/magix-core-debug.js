@@ -384,8 +384,8 @@ var Magix = {
      * @param  {Object} cfg 初始化配置参数对象
      * @param {String} cfg.defaultView 默认加载的view
      * @param {String} cfg.defaultPath 当无法从地址栏取到path时的默认值。比如使用hash保存路由信息，而初始进入时并没有hash,此时defaultPath会起作用
-     * @param {String} cfg.unfoundView 404时加载的view
      * @param {Object} cfg.routes path与view映射关系表
+     * @param {String} cfg.unmatchView 在routes里找不到匹配时使用的view，比如显示404
      * @param {String} cfg.rootId 根view的id
      * @param {Array} cfg.exts 需要加载的扩展
      * @param {Function} cfg.error 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
@@ -612,7 +612,7 @@ var Magix = {
      *
      * // r == false
      *
-     * var r = Magix.inside(root[0],[0]);
+     * var r = Magix.inside(root[0],root[0]);
      *
      * // r == true
      *
@@ -695,7 +695,7 @@ var Event = {
      * @param {String} name 事件名称
      * @param {Function} fn 事件处理函数
      * @example
-     * var T = Magix.mix({},Event);
+     * var T = Magix.mix({},Magix.Event);
      * T.on('done',function(e){
      *     alert(1);
      * });
@@ -1328,7 +1328,7 @@ var Tmpl_Compiler = function(text) {
 };
 var Tmpl_Cache = new G_Cache();
 /**
- * Tmpl模板编译方法，语法参考underscore.template。该方法主要配合Updater存在
+ * Tmpl模板编译方法，该方法主要配合Updater存在
  * @name Tmpl
  * @beta
  * @module updater
@@ -1344,6 +1344,14 @@ var Tmpl_Cache = new G_Cache();
  *     a:1
  *   }).digest();
  * }
+ * // 语法
+ * // <% 语句块 %> <%= 转义输出 %> <%! 原始输出 %> <%@ view参数%>
+ * // 示例
+ * // <%for(var i=0;i<10;i++){%>
+ * //   index:<%=i%>&lt;br /&gt;
+ * //   &lt;div mx-view="path/to/view?index=<%@i%>"&gt;&lt;/div&gt;
+ * // <%}%>
+ *
  */
 var Tmpl = function(text, data) {
   var fn = Tmpl_Cache.get(text);
@@ -1640,7 +1648,7 @@ G_Mix(UP, {
      *     console.log(this.$updater.altered()); //false
      *     this.$updater.set({
      *         a: 20,
-     *         b: 30
+     *         b: 40
      *     });
      *     console.log(this.$updater.altered()); //true
      *     this.$updater.snapshot(); //再保存一次快照
@@ -1671,7 +1679,7 @@ G_Mix(UP, {
      *     console.log(this.$updater.altered()); //false
      *     this.$updater.set({
      *         a: 20,
-     *         b: 30
+     *         b: 40
      *     });
      *     console.log(this.$updater.altered()); //true
      *     this.$updater.snapshot(); //再保存一次快照
@@ -1876,7 +1884,9 @@ G_Mix(View, {
      *  });
      *
      * //这样完成后，所有的view对象都会有一个$attr属性和test方法
-     * //当前上述功能也可以用继承实现，但继承层次太多时，可以考虑使用扩展来消除多层次的继承
+     * //当然上述功能也可以用继承实现，但继承层次太多时，可以考虑使用扩展来消除多层次的继承
+     * //同时当项目进行中发现所有view要实现某个功能时，该方式比继承更快捷有效
+     *
      *
      */
     
@@ -2008,10 +2018,12 @@ G_Mix(G_Mix(ViewProto, Event), {
      *         //codes
      *     }),50000);
      * }
-     * //为什么要包装一次？
-     * //Magix是单页应用，有可能异步回调执行时，当前view已经被销毁。比如上例中的setTimeout，50s后执行回调，如果你的回调中去操作了DOM，则会出错，为了避免这种情况的出现，可以调用view的wrapAsync包装一次。(该示例中最好的做法是在view销毁时清除setTimeout，但有时候你很难控制回调的执行，所以最好包装一次)
-     * //
-     * //
+     * // 为什么要包装一次？
+     * // 在单页应用的情况下，可能异步回调执行时，当前view已经被销毁。
+     * // 比如上例中的setTimeout，50s后执行回调，如果你的回调中去操作了DOM，
+     * // 则会出错，为了避免这种情况的出现，可以调用view的wrapAsync包装一次。
+     * // (该示例中最好的做法是在view销毁时清除setTimeout，
+     * // 但有时候你很难控制回调的执行，比如JSONP，所以最好包装一次)
      */
     wrapAsync: function(fn, context) {
         var me = this;

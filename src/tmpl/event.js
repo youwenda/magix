@@ -45,7 +45,7 @@ var Event = {
      * @param {String} name 事件名称
      * @param {Function} fn 事件处理函数
      * @example
-     * var T = Magix.mix({},Event);
+     * var T = Magix.mix({},Magix.Event);
      * T.on('done',function(e){
      *     alert(1);
      * });

@@ -237,7 +237,9 @@ G_Mix(View, {
      *  });
      *
      * //这样完成后，所有的view对象都会有一个$attr属性和test方法
-     * //当前上述功能也可以用继承实现，但继承层次太多时，可以考虑使用扩展来消除多层次的继承
+     * //当然上述功能也可以用继承实现，但继承层次太多时，可以考虑使用扩展来消除多层次的继承
+     * //同时当项目进行中发现所有view要实现某个功能时，该方式比继承更快捷有效
+     *
      *
      */
     /*#if(modules.viewMerge){#*/
@@ -336,7 +338,7 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @module viewRelate
      * @example
      * // 如果一个view创建出了一段html并把它塞到了body下，而里面的事件等需要这个view处理，则可以这样关联
-     * view.relate(Magix.node('nodeId'));
+     * view.relate('nodeId');
      */
     relate: function(node) {
         node = G_GetById(node);
@@ -414,10 +416,12 @@ G_Mix(G_Mix(ViewProto, Event), {
      *         //codes
      *     }),50000);
      * }
-     * //为什么要包装一次？
-     * //Magix是单页应用，有可能异步回调执行时，当前view已经被销毁。比如上例中的setTimeout，50s后执行回调，如果你的回调中去操作了DOM，则会出错，为了避免这种情况的出现，可以调用view的wrapAsync包装一次。(该示例中最好的做法是在view销毁时清除setTimeout，但有时候你很难控制回调的执行，所以最好包装一次)
-     * //
-     * //
+     * // 为什么要包装一次？
+     * // 在单页应用的情况下，可能异步回调执行时，当前view已经被销毁。
+     * // 比如上例中的setTimeout，50s后执行回调，如果你的回调中去操作了DOM，
+     * // 则会出错，为了避免这种情况的出现，可以调用view的wrapAsync包装一次。
+     * // (该示例中最好的做法是在view销毁时清除setTimeout，
+     * // 但有时候你很难控制回调的执行，比如JSONP，所以最好包装一次)
      */
     wrapAsync: function(fn, context) {
         var me = this;

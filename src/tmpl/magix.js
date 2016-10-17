@@ -417,8 +417,8 @@ var Magix = {
      * @param  {Object} cfg 初始化配置参数对象
      * @param {String} cfg.defaultView 默认加载的view
      * @param {String} cfg.defaultPath 当无法从地址栏取到path时的默认值。比如使用hash保存路由信息，而初始进入时并没有hash,此时defaultPath会起作用
-     * @param {String} cfg.unfoundView 404时加载的view
      * @param {Object} cfg.routes path与view映射关系表
+     * @param {String} cfg.unmatchView 在routes里找不到匹配时使用的view，比如显示404
      * @param {String} cfg.rootId 根view的id
      * @param {Array} cfg.exts 需要加载的扩展
      * @param {Function} cfg.error 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
@@ -679,7 +679,7 @@ var Magix = {
      *
      * // r == false
      *
-     * var r = Magix.inside(root[0],[0]);
+     * var r = Magix.inside(root[0],root[0]);
      *
      * // r == true
      *

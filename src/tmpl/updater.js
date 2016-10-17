@@ -303,7 +303,7 @@ G_Mix(UP, {
      *     console.log(this.$updater.altered()); //false
      *     this.$updater.set({
      *         a: 20,
-     *         b: 30
+     *         b: 40
      *     });
      *     console.log(this.$updater.altered()); //true
      *     this.$updater.snapshot(); //再保存一次快照
@@ -336,7 +336,7 @@ G_Mix(UP, {
      *     console.log(this.$updater.altered()); //false
      *     this.$updater.set({
      *         a: 20,
-     *         b: 30
+     *         b: 40
      *     });
      *     console.log(this.$updater.altered()); //true
      *     this.$updater.snapshot(); //再保存一次快照

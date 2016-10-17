@@ -49,7 +49,7 @@ var Tmpl_Compiler = function(text) {
 };
 var Tmpl_Cache = new G_Cache();
 /**
- * Tmpl模板编译方法，语法参考underscore.template。该方法主要配合Updater存在
+ * Tmpl模板编译方法，该方法主要配合Updater存在
  * @name Tmpl
  * @beta
  * @module updater
@@ -65,6 +65,14 @@ var Tmpl_Cache = new G_Cache();
  *     a:1
  *   }).digest();
  * }
+ * // 语法
+ * // <% 语句块 %> <%= 转义输出 %> <%! 原始输出 %> <%@ view参数%>
+ * // 示例
+ * // <%for(var i=0;i<10;i++){%>
+ * //   index:<%=i%>&lt;br /&gt;
+ * //   &lt;div mx-view="path/to/view?index=<%@i%>"&gt;&lt;/div&gt;
+ * // <%}%>
+ *
  */
 var Tmpl = function(text, data) {
   var fn = Tmpl_Cache.get(text);
