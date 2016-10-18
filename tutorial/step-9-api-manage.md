@@ -159,4 +159,4 @@ Magix提供了Service用于接口管理, 统一处理参数格式, 异步维护,
 
 
 
-[1]: http://thx.github.io/magix/articles/about-model-and-manager
+[1]: http://thx.github.io/magix//article/2014/06/16/about-model-and-manager.html
