@@ -24,7 +24,6 @@ body {
 ul {
     margin: 0;
     padding: 0;
-    list-style: none;
 }
 
 /**
@@ -72,7 +71,6 @@ body,
   height: 100%;
   overflow: auto;
 }
-
 .sidebar {
   float: left;
   width: 280px;
@@ -205,6 +203,7 @@ body,
  **/
 .article-list {
     overflow: hidden;
+    list-style: none;
 }
 .article-list li {
     float: left;
@@ -288,6 +287,7 @@ footer {
 }
 .nav-list {
     float: right;
+    list-style: none;
 }
 .nav-item {
     float: left;
