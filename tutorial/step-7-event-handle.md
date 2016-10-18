@@ -26,6 +26,7 @@ Magix在模板中DOM节点上通过`mx- + eventName = eventHandler(argObj)`的�
         tmpl: '@add.html',
         render: function() {
             this.setVueHTML(this.data)
+        },
         'hello<click>': function (e) {
             console.log('hello ' + e.params.name)        // 输出hello magix
         }
