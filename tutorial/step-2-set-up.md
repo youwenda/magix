@@ -6,7 +6,7 @@ layout: tutorial
 # 2. 环境搭建
 
 首先需要为项目搭建好环境, 可以按照手动搭建一步步完成, 也可以直接克隆脚手架到本地。
-项目使用的核心库:
+项目使用的核心库：
 
 - jquery-1.11: 兼容IE6+。 可以根据需要使用zepto, KISSY
 - requirejs: 模块加载器。 可以根据需要选择seajs, KISSY
@@ -14,15 +14,15 @@ layout: tutorial
 
 ## 手动搭建
 
-1. 命令行进入到要保存项目的目录, 新建并进入项目目录: `mkdir magix-todo-app && cd magix-todo-app`
-2. 初始化npm: `npm init`, 全部回车填默认信息
+1. 命令行进入到要保存项目的目录，新建并进入项目目录：`mkdir magix-todo-app && cd magix-todo-app`
+2. 初始化npm：`npm init`，全部回车填默认信息
 3. 安装所需npm包:
 
         cnpm install del gulp gulp-cssnano gulp-load-plugins gulp-uglify gulp-watch gulp-webserver magix-combine run-sequence --save-dev
 
-    项目使用gulp管理常用的任务, 如编译、监听文件修改等
+    项目使用gulp管理常用的任务，如编译、监听文件修改等。
 
-4. 创建环境配置文件: `touch config.json`:
+4. 创建环境配置文件：`touch config.json`：
 
         {
             "tmplFolder": "./tmpl",
@@ -32,13 +32,13 @@ layout: tutorial
         }
 
     其中每个字段的用途如下:
-    - tmplFolder: 项目源文件目录, 我们编辑的文件都放在这里。如视图的js代码和html代码, 源文件需要通过编译之后才能正常运行
-    - srcFolder: 源文件编译后的文件目录, 能被模块加载器识别的模块, html代码被注入到js文件中。 没有经过压缩, 方便调试
-    - buildFoler: srcFolder下的文件压缩后保存的目录, 用于上线
-5. 执行`mkdir -p tmpl/vendor`创建vendor目录用于保存第三方js库, 如jquery
+    - tmplFolder：项目源文件目录，我们编辑的文件都放在这里。如视图的js代码和html代码，源文件需要通过编译之后才能正常运行。
+    - srcFolder：源文件编译后的文件目录，能被模块加载器识别的模块。html代码被注入到js文件中，没有经过压缩, 方便调试。
+    - buildFoler：srcFolder下的文件压缩后保存的目录，用于上线；
+5. 执行`mkdir -p tmpl/vendor`创建vendor目录用于保存第三方js库，如jquery
 6. 执行`mkdir -p tmpl/app`创建app目录用于保存项目文件
-7. 下载[jquery.js][1], [requirejs][2], [Magix.js][3]保存到`tmpl/vendor`目录下, 下载[bootstrap.css][5]到`tmpl/app/asset/`目录下
-8. 新建gulpfile.js配置开发所需task: `touch gulpfile.js`
+7. 下载[jquery.js][1]、[requirejs][2]、[Magix.js][3]保存到`tmpl/vendor`目录下，下载[bootstrap.css][5]到`tmpl/app/asset/`目录下
+8. 新建gulpfile.js配置开发所需task：`touch gulpfile.js`
 
         var gulp = require('gulp')
         var $ = require('gulp-load-plugins')()
@@ -122,12 +122,12 @@ layout: tutorial
             )
         })
 
-    这里的`magix-combine`是magix所需的编译工具, 主要函数功能如下:
+    这里的`magix-combine`是magix所需的编译工具，主要函数功能如下：
 
-    - combineTool.config(): 配置源码目录、编译目标目录、加载器类型、源码目录中不需要编译的目录
-    - combineTool.combine(): 将`tmplFolder`下面的视图html文件打包到js文件中, 并按照需要将js文件包装成加载器所需规范的组件, 如AMD, CMD
-    - combineTool.processFile(): 调用编译工具处理单个文件
-    - combineTool.removeFile(): 当文件被删除后，通知编译工具移除相关的缓存等资源
+    - combineTool.config()：配置源码目录、编译目标目录、加载器类型、源码目录中不需要编译的目录
+    - combineTool.combine()：将`tmplFolder`下面的视图html文件打包到js文件中, 并按照需要将js文件包装成加载器所需规范的组件, 如AMD, CMD
+    - combineTool.processFile()：调用编译工具处理单个文件
+    - combineTool.removeFile()：当文件被删除后，通知编译工具移除相关的缓存等资源
 
 
 9. 新建index.html文件作为项目入口`touch index.html`
@@ -168,11 +168,11 @@ layout: tutorial
         </body>
         </html>
 
-    注意我们的变量`pathBase`，开发阶段我们配置jquery和magix路径到`src`目录, 上线时修改为`build`目录即可
+    注意我们的变量`pathBase`，开发阶段我们配置jquery和magix路径到`src`目录，上线时修改为`build`目录即可
 
-10. 项目主要关注Magix部分, 所以样式使用了目前流行的bootstrap.css
+10. 项目主要关注Magix部分，所以样式使用了目前流行的bootstrap.css。
 
-11. 命令行运行`gulp dev`, 浏览器访问`http://localhost:5555/`, 控制台输出下面类似的代码表示安装成功
+11. 命令行运行`gulp dev`，浏览器访问`http://localhost:5555/`，控制台输出下面类似的代码表示安装成功
 
         jquery ( selector, context ) {
                 // The jQuery object is actually just the init constructor 'enhanced'

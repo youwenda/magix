@@ -31,7 +31,7 @@ Magix不限制模板引擎的使用，如Mustache，Handlebars，underscore, vue
 ## 实现setViewHTML方法管理underscore模板渲染页面
 
 
-我们现在需要为所有区块(view)提供一个自定义的模板渲染方法, 在里面使用自己的模板引擎
+我们现在需要为所有区块(view)提供一个自定义的模板渲染方法, 在里面使用自己的模板引擎。
 Magix提供了非常便捷的扩展机制，我们只需要按要求写好自己的扩展并启用即可。
 
 

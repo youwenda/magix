@@ -5,12 +5,12 @@ layout: tutorial
 
 # 3. Hello world: APP核心工作流程
 
-通过`Magix.boot({})`启动Magix项目, Magix根据boot方法传入的配置初始化系统, 加载模块渲染页面.
+通过`Magix.boot({})`启动Magix项目， Magix根据boot方法传入的配置初始化系统，加载模块渲染页面。
 
 
 ## 配置requirejs
 
-之前搭建环境步骤新建的`tmpl/app`目录是用来存放项目相关文件的, 所有项目相关模块都是`app`开头的, 所以我们在`index.html`中添加app配置:
+之前搭建环境步骤新建的`tmpl/app`目录是用来存放项目相关文件的，所有项目相关模块都是`app`开头，所以我们在`index.html`中添加app配置：
 
     var pathBase = './src/'
 
