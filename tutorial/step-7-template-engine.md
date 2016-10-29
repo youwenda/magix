@@ -24,7 +24,7 @@ Magix不限制模板引擎的使用，如Mustache，Handlebars，underscore, vue
         app: pathBase + 'app',
         jquery: pathBase + 'vendor/jquery',
         magix: pathBase + 'vendor/magix',
-        _: pathBase + 'vendor/underscore'
+        underscore: pathBase + 'vendor/underscore'
      }
     })
 
