@@ -6,5 +6,15 @@ magix入门教程
 * require怎么配$ = jquery.
 
 
-首页参考
-http://purplebamboo.github.io/pat/doc/views/index.html
+vue作为增加放到后面
+
+参数从dom获取, 降低用户的学习难度
+
+先用普通html完成add功能
+
+到list页面再引入模板引擎, 任意模板引擎都可以, 以vue为例
+
+
+- 事件
+- 模板: 分别以_.template和vue作为介绍, 实现todo list
+- url参数: 重点讲参数放到地址栏. 从地址栏获取参数, url保存状态

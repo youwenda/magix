@@ -3,7 +3,7 @@ title: Router路由视图切换
 layout: tutorial
 ---
 
-# 6. Router路由视图切换
+# 5. Router路由视图切换
 
 项目通常包含几十或者上百个页面, 和传统页面使用`/todo/list.html`路径切换页面类似, Magix在hash上定义了path和参数两部分, 使用Router解析hash获取path和参数, 然后将path映射到模块.
 
@@ -38,7 +38,8 @@ path和文件结构一一对应
 
 
     /**
-     * js文件使用CommonJS组件编写, Magix打包工具会根据combineTool.config配置将模块包装成所需的组件
+     * js文件使用CommonJS模块语法编写,
+     * Magix打包工具会根据combineTool.config配置将模块包装成所需的组件
      **/
 
     var Magix = require('magix')
@@ -46,37 +47,27 @@ path和文件结构一一对应
     module.exports = Magix.View.extend({
 
         // 模板字段命名为tmpl(也可以起是其他有效标识符), 配置模板文件
-        // Magix打包工具会读取模板文件内容作为字符串作为tmpl值
+        // Magix打包工具会读取html文件内容放在这里
+        // 更多@规则可参考Magix打包工具：https://github.com/thx/magix-combine
         tmpl: '@default.html',
 
-        // Magix组件生命周期中的render函数, 系统自动调用, 重写并实现业务逻辑
+        // Magix组件生命周期中的render函数, 系统自动调用, 通常在这里重写并实现业务逻辑
         render: function() {
 
-            // 需要渲染到页面的数据
-            var data = {}
-            var that = this
 
-            // Magix.Router处理
+            this.setHTML(this.id, this.tmpl)    // 将模板注入到模块容器元素内
+
             var loc = Magix.Router.parse()
-
-            this.setVueHTML(data)
-                .then(function () {
-                    that.owner.mountVframe('magix_vf_main', 'app/view' + loc.path);
-                })
-
+            this.owner.mountVframe('magix_vf_main', 'app/view' + loc.path)
         }
     })
 
 
 新添加的核心代码如下:
 
-    // Magix.Router处理
+    // 解析url为对象放回
     var loc = Magix.Router.parse()
-
-    this.setVueHTML(data)
-        .then(function () {
-            that.owner.mountVframe('magix_vf_main', 'app/view' + loc.path);
-        })
+    this.owner.mountVframe('magix_vf_main', 'app/view' + loc.path)
 
 
 Magix.Router是Magix路由的核心模块, 主要功能有
@@ -143,9 +134,10 @@ Magix.Router是Magix路由的核心模块, 主要功能有
     module.exports = Magix.View.extend({
         tmpl: '@list.html',
         render: function() {
-            this.setVueHTML()
+            this.setHTML(this.id, this.tmpl)
         }
     })
+
 
 `touch tmpl/app/view/todo/list.html`新建list模块的模板文件. 内容如下:
 
@@ -170,14 +162,6 @@ Magix.Router是Magix路由的核心模块, 主要功能有
 
 
 `Magix.Router.parse()`会解析url将`#!`后面的路径设置为返回对象的path字段. default.js中将这个字段组装成模块名进行加载:
-
-    // Magix.Router处理
-    var loc = Magix.Router.parse()
-
-    this.setVueHTML(data)
-        .then(function () {
-            that.owner.mountVframe('magix_vf_main', 'app/view' + loc.path);
-        })
 
 
 # 设置default视图监听path变化
@@ -207,18 +191,23 @@ Magix将hash分为path和参数两部分.
 - params对应`location.search`: Magix解析参数并保存, 方便用户使用
 
 
-
 default需要在path变化时加载对应的视图, 所以需要向Magix注册path变化, 这个任务通常在init方法内
 
 
     /**
-     * js文件使用CommonJS组件编写, Magix打包工具会根据combineTool.config配置将模块包装成所需的组件
+     * js文件使用CommonJS模块语法编写,
+     * Magix打包工具会根据combineTool.config配置将模块包装成所需的组件
      **/
 
     var Magix = require('magix')
 
     module.exports = Magix.View.extend({
+
+        // 模板字段命名为tmpl(也可以起是其他有效标识符), 配置模板文件
+        // Magix打包工具会读取html文件内容放在这里
+        // 更多@规则可参考Magix打包工具：https://github.com/thx/magix-combine
         tmpl: '@default.html',
+
 
         // 视图生命周期, Magix初始化时调用, 只调用一次, 适合资源准备,事件监听等操作
         init: function () {
@@ -233,21 +222,15 @@ default需要在path变化时加载对应的视图, 所以需要向Magix注册pa
             //this.observe({path:true});
         },
 
-        // Magix组件生命周期中的render函数, 系统自动调用, 重写并实现业务逻辑
+        // Magix组件生命周期中的render函数, 系统自动调用, 通常在这里重写并实现业务逻辑
         render: function() {
 
-            // 需要渲染到页面的数据
-            var data = {}
-            var that = this
 
-            // Magix.Router处理
+            this.setHTML(this.id, this.tmpl)    // 将模板注入到模块容器元素内
+
+            // 解析url为对象
             var loc = Magix.Router.parse()
-
-            this.setVueHTML(data)
-                .then(function () {
-                    that.owner.mountVframe('magix_vf_main', 'app/view' + loc.path);
-                })
-
+            this.owner.mountVframe('magix_vf_main', 'app/view' + loc.path)
         }
     })
 
@@ -265,9 +248,11 @@ default需要在path变化时加载对应的视图, 所以需要向Magix注册pa
     module.exports = Magix.View.extend({
         tmpl: '@add.html',
         render: function() {
-            this.setVueHTML()
+            this.setHTML(this.id, this.tmpl)
         }
     })
+
+
 
 `touch tmpl/app/view/todo/add.html`新建模块的模板文件. 内容如下:
 

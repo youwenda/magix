@@ -3,7 +3,7 @@ title: 事件处理
 layout: tutorial
 ---
 
-# 7 事件处理
+# 6. 事件处理
 
 本节通过新建todo模块的实现展示Magix事件处理. 绑定事件监听器传递参数功能在下一章介绍.
 
@@ -21,16 +21,18 @@ Magix在模板中DOM节点上通过`mx- + eventName = eventHandler(argObj)`的�
 
 事件处理函数通常是定义在模块对应的js文件上:
 
+    var Magix = require('magix')
 
     module.exports = Magix.View.extend({
         tmpl: '@add.html',
         render: function() {
-            this.setVueHTML(this.data)
+            this.setHTML(this.id, this.tmpl)
         },
         'hello<click>': function (e) {
             console.log('hello ' + e.params.name)        // 输出hello magix
         }
     })
+
 
 
 - 事件处理函数名后面的尖括号内需要指明函数所关心的事件类型，当绑定的事件和处理函数指定的名称不一致时，处理函数将无法被调用。事件处理函数后通过尖括号指名事件名称方便在阅读代码时知道当前view绑定了哪些事件及对应的处理函数
@@ -69,6 +71,27 @@ Magix在模板中DOM节点上通过`mx- + eventName = eventHandler(argObj)`的�
 
 # 修改`app/view/todo/add`模块实现功能
 
+
+
+修改`app/view/todo/add.html`:
+
+
+    <div>
+        <h2>新建Todo</h2>
+
+        <form  mx-submit="saveTodo()">
+            <div class="form-group">
+                <label >Name:</label>
+                <input type="text" class="form-control" name="name">
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-default">提交</button>
+            </div>
+        </form>
+
+    </div>
+
+
 修改`app/view/todo/add.js`:
 
     var Magix = require('magix')
@@ -77,12 +100,7 @@ Magix在模板中DOM节点上通过`mx- + eventName = eventHandler(argObj)`的�
     module.exports = Magix.View.extend({
         tmpl: '@add.html',
         render: function() {
-            this.data = {
-                todo: {
-                    name: ''
-                }
-            }
-            this.setVueHTML(this.data)
+            this.setHTML(this.id, this.tmpl)
         },
 
         /**
@@ -92,10 +110,14 @@ Magix在模板中DOM节点上通过`mx- + eventName = eventHandler(argObj)`的�
         'saveTodo<submit>': function (e) {
             e.preventDefault()
 
+            // 通过id查找模块容器DOM节点
+            var $main = $('#' + this.id)
+            var $name = $main.find('[name=name]')
+
             $.ajax({
                 url: '/api/todo/add.json',
                 data: {
-                    name: this.data.todo.name
+                    name: $name.val()
                 }
             }).then(function (resp) {
                 if (resp.info.ok) {
@@ -111,9 +133,7 @@ Magix在模板中DOM节点上通过`mx- + eventName = eventHandler(argObj)`的�
 
 
 
-`todo.js`设置了`this.data.todo`对象用于保存todo值, 借助`vue.js`的双向绑定可以实时获取用户输入值.
-
-`saveTodo<click>`处理用户点击事件, 通过`this.data.todo.name`将用户输入值作为参数发送到后端.获取结果
+`saveTodo<click>`处理用户点击事件, 将用户输入值作为参数发送到后端.获取结果
 后检查状态, 如果保存成功则在主界面显示todo列表.
 
 
@@ -143,25 +163,6 @@ Magix在模板中DOM节点上通过`mx- + eventName = eventHandler(argObj)`的�
     to: function(pn, params, replace) {}
 
 
-修改`app/view/todo/add.html`:
-
-    <div>
-        <h2>新建Todo</h2>
-
-        <form  mx-submit="saveTodo()">
-            <div class="form-group">
-                <label >Name:</label>
-                <input type="text" class="form-control" v-model="todo.name">
-            </div>
-            <div class="form-group">
-                <button type="submit" class="btn btn-default">提交</button>
-            </div>
-        </form>
-
-    </div>
-
-
-前面设置了模块使用vuejs作为模板引擎, `add.html`语法符合vuejs语法即可, 这里的`mx-click="saveTodo()"`是Magix事件处理函数绑定语法, 表示点击时执行`saveTodo`操作.
 
 [1]: https://github.com/thx/magix/issues/14
 

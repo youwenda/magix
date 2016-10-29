@@ -3,7 +3,7 @@ title: App模块拆分
 layout: tutorial
 ---
 
-# 5. App模块拆分
+# 4. App模块拆分
 
 ## Magix使用树形view嵌套组装页面
 
@@ -24,15 +24,17 @@ Magix通过view组装页面, 将页面拆分为多个view有如下好处:
 - 多个页面需要复用同一个区块时可以快速使用
 - 单个页面非常复杂, 分治法将页面拆分为多个独立子区块, 方便管理
 
-根据前面的设计稿, todo app分为两个主要模块:
+根据前面的设计稿, todo app分为三个主要模块:
 
 - 所有页面共享的header部分
 - 不同功能所在的中间部分
+- 所有页面共享的footer
 
-所以我们根据页面布局对页面进行初步拆分为以下视图
+所以我们根据页面布局对页面进行初步拆分为以下部分
 
 - `app/view/common/header`: 通用header
 - `magix_vf_main`: 这是内容视图容器, 根据hash加载对应视图
+- `app/view/common/footer`: 通用footer
 
 ### 拆分步骤
 
@@ -54,6 +56,10 @@ Magix通过view组装页面, 将页面拆分为多个view有如下好处:
 
     此时`app/view/default`由三个子view组成: header, footer, main, 其中header, footer内容固定, main根据hash解析加载(后续会实现)
 
+    模块渲染完成后Maigx会检查包含`mx-view="xxx"`属性的节点，获取并加载指定的模块。当指定模块渲染完成后继续执行查找，直到没有嵌套模块。
+
+    上面的`default.html`中指定了header和footer两个模块。Magix会自动加载并渲染。所以需要添加这两个模块。
+
 2. 新建header.html: `mkdir -p tmpl/app/view/common && touch tmpl/app/view/common/header.html`
 
         <header>
@@ -67,7 +73,7 @@ Magix通过view组装页面, 将页面拆分为多个view有如下好处:
         module.exports = Magix.View.extend({
             tmpl: '@header.html',
             render: function() {
-                this.setVueHTML()
+                this.setHTML(this.id, this.tmpl)
             }
         })
 

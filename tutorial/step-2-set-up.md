@@ -18,7 +18,7 @@ layout: tutorial
 2. 初始化npm: `npm init`, 全部回车填默认信息
 3. 安装所需npm包:
 
-        npm install del gulp gulp-cssnano gulp-load-plugins gulp-uglify gulp-watch gulp-webserver magix-combine run-sequence --save-dev
+        cnpm install del gulp gulp-cssnano gulp-load-plugins gulp-uglify gulp-watch gulp-webserver magix-combine run-sequence --save-dev
 
     项目使用gulp管理常用的任务, 如编译、监听文件修改等
 
@@ -138,7 +138,7 @@ layout: tutorial
             <meta charset="UTF-8">
             <meta name="viewport" content="initial-scale=1.0, width=device-width, user-scalable=no">
             <title>Document</title>
-            <link rel="stylesheet" href="./src/app/asset/bootstrap.min.css">
+            <link rel="stylesheet" href="./src/app/asset/bootstrap.css">
             <script src="./src/vendor/require.js"></script>
         </head>
         <body>
