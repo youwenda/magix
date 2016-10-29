@@ -71,6 +71,7 @@ path和文件结构一一对应
 
 
 Magix.Router是Magix路由的核心模块, 主要功能有
+
 - 更新地址栏地址
 - 将hash解析为path和参数对象
 
