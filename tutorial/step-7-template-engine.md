@@ -7,9 +7,9 @@ layout: tutorial
 
 前面我们使用setHTML方法输出简单html文件，不能满足复杂页面需求，所以需要引入模板引擎。
 
-如果通过模板引擎来更新节点的html，则需要手动调用子区块(view)渲染的代码，接下来就会介绍～
+Magix不限制模板引擎的使用，如Mustache，Handlebars，underscore, vue.js都可以。Magix本身也内置了模板引擎。
 
-Magix不限制模板引擎的使用，如Mustache，Handlebars，underscore, vue.js都可以。下面我们分别以underscore和vue.js展示如何在Magix中使用模板引擎。
+下面我们分别以underscore，magix内置模板引擎和vue.js展示如何在Magix中使用模板引擎。
 
 # 使用underscore模板引擎
 
@@ -119,6 +119,51 @@ Magix提供了非常便捷的扩展机制，我们只需要按要求写好自己
         </div>
 
 刷新页面可以看到页面显示了默认值magix， 所有的控制器都可以使用`setViewHTML`执行页面渲染。
+
+# 使用Magix内置的模板引擎
+
+** 使用magix内置的模板引擎不需要做任何配置 **
+
+Magix内置的模板引擎就是underscore的模板引擎，所以在html里语法与underscore的保持一致。
+
+不同点如下：
+
+* <%= vars %> 这个语法在underscore中会不转义HTML，如果要转义需要使用 <%- vars %>。Magix在此处有修改：<%= vars %> 会转议HTML，而要输出不转义的HTML则使用<%! vars %>
+
+为了方便更新界面，magix提供了[Updater对象](https://thx.github.io/magix-doc3/?to=Updater)
+
+使用示例如下：
+
+
+    `app/view/todo/add.js`修改render如下:
+
+        render: function() {
+            var todo = {
+                name: 'magix'
+            }
+
+            this.$updater.set(todo);
+        }
+
+    `app/view/todo/add.html`修改如下：
+
+
+        <div>
+            <h2>新建Todo</h2>
+
+            <form  mx-submit="saveTodo()">
+                <div class="form-group">
+                    <label >Name:</label>
+                    <input type="text" class="form-control" name="name" value="<%= name %>">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-default">提交</button>
+                </div>
+            </form>
+
+        </div>
+
+
 
 # 使用Vue.js模板引擎
 
