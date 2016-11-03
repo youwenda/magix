@@ -120,15 +120,22 @@ var View_Prepare = function(oView) {
     }
 };
 /*#if(modules.router){#*/
+var View_IsParamsChanged = function(params, ps, r) {
+    for (var i = 0; i < params.length; i++) {
+        r = G_Has(ps, params[i]);
+        if (r) break;
+    }
+    return r;
+};
 var View_IsObsveChanged = function(view) {
     var loc = view.$l;
     var res;
     if (loc.f) {
         if (loc.p) {
-            res = Router_LastChanged.path;
+            res = Router_LastChanged[Router_PATH];
         }
         if (!res) {
-            res = Router_LastChanged.isParam(loc.k);
+            res = View_IsParamsChanged(loc.k, Router_LastChanged[Router_PARAMS]);
         }
         // if (res && loc.c) {
         //     loc.c.call(view);

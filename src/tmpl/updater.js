@@ -1,4 +1,4 @@
-var Updater_HolderReg = /\u001f/g;
+//var Updater_HolderReg = /\u001f/g;
 var Updater_ContentReg = /@(\d+)\-\u001f/g;
 var Updater_Stringify = JSON.stringify;
 var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
@@ -12,9 +12,6 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
     var list = view.tmplData;
     /*#}#*/
     var selfId = view.id;
-    var build = function(tmpl, data) {
-        return Tmpl(tmpl, data).replace(Updater_HolderReg, selfId);
-    };
     if (changed || !host.$rd) {
         if (host.$rd && updateFlags && list) {
             var updatedNodes = {},
@@ -28,7 +25,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                     if (updateAttrs) {
                         for (var i = one.attrs.length - 1; i >= 0; i--) {
                             var attr = one.attrs[i];
-                            var val = build(attr.v, renderData);
+                            var val = Tmpl(attr.v, renderData);
                             if (attr.p) {
                                 node[attr.n] = val;
                             } else if (!val && attr.a) {
@@ -42,13 +39,13 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         viewValue, vf;
                     if (magixView) {
                         vf = Vframe_Vframes[id];
-                        viewValue = build(magixView, renderData);
+                        viewValue = Tmpl(magixView, renderData);
                         if (vf) {
                             vf[viewValue ? 'unmountView' : 'unmountVframe']();
                         }
                     }
                     if (one.tmpl && updateTmpl) {
-                        view.setHTML(id, build(one.tmpl, renderData));
+                        view.setHTML(id, Tmpl(one.tmpl, renderData));
                     }
                     if (magixView && viewValue) {
                         view.owner.mountVframe(id, viewValue);
@@ -104,7 +101,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         }
                     }
                     if (update) {
-                        update = G_HashKey + selfId + ' ' + one.selector.replace(Updater_HolderReg, selfId);
+                        update = G_HashKey + selfId + ' ' + one.selector;
                         var nodes = document.querySelectorAll(update);
                         q = 0;
                         while (q < nodes.length) {
@@ -136,30 +133,37 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
             }
             host.$rd = 1;
             var str = tmpl.replace(Updater_ContentReg, tmplment);
-            view.setHTML(selfId, build(str, renderData));
+            view.setHTML(selfId, Tmpl(str, renderData));
         }
     }
 };
 /*
-function proxy(node,prop) {
-  if (node !== null && (typeof node === 'object' || typeof node === 'function')) {
-  return new Proxy(node, {
-      set:function(target, key, value) {
-        var old=target[key];
-        if(old!=value){
-        var fire=prop||key;
-        console.log(fire+' changed');
-        target[key] = proxy(value,fire)
-      }
+function observe(o, fn) {
+  function buildProxy(prefix, o) {
+    return new Proxy(o, {
+      set(target, property, value) {
+        // same as before, but add prefix
+        fn(prefix + property, value);
+        target[property] = value;
       },
-      get:function(target,key){
-        return target[key];
-      }
-  })
-}else{
-  return node;
+      get(target, property) {
+        // return a new proxy if possible, add to prefix
+        let out = target[property];
+        if (out instanceof Object) {
+          return buildProxy(prefix + property + '.', out);
+        }
+        return out;  // primitive, ignore
+      },
+    });
+  }
+
+  return buildProxy('', o);
 }
-}
+
+let x = {'model': {name: 'Falcon'}};
+let p = observe(x, function(property, value) { console.info(property, value) });
+p.model.name = 'Commodore';
+
  */
 /**
  * 使用mx-keys进行局部刷新的类

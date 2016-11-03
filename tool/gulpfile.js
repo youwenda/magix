@@ -7,31 +7,26 @@ var tmpl = require('./lib/tmpl');
 var doc = require('./lib/doc');
 var pkg = require('../package.json');
 var sep = path.sep;
-var modulesMap = {
+var modules = {
   magix: 1, //公用方法及入口
   event: 1, //pubsub
-  vframe: 1, //
+  vframe: 1, //vframe
   body: 1, //dom事件处理模块
-  view: 1
-};
-var type = 'amd'; //打包kissy则type='kissy'
-
-var extModules = { //完整功能的magix,对应magix.js
-  //
-  // cnum: 1,
-  // ceach: 1,
-  //tiprouter: 1, //切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
-  //viewRelate: 1, //view上是否增加relate方法，当一些节点在view范围外面，但需要响应view事件时有用
-  //edgeRouter: 1, //使用pushState
-  //collectView: 1,//收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
-  //layerVframe: 1,//父子化同一个view中嵌套存在的vframe
-  //tmplObject: 1, //模板是否为对象，内置支持子模板，需要对源字符串进行拆分成html和subs
-  //updaterSetState: 1, //updater是否由用户指定更新。即用户指定什么就更新什么，不管值有没有改变
-  //forceEdgeRouter: 1, //强制使用pushState
-  //serviceCombine: 1, //接口combine
+  view: 1, //view
+  cnum: 1, //Cache num
+  ceach: 1, //Cache each
+  tiprouter: 1, //切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
+  viewRelate: 1, //view上是否增加relate方法，当一些节点在view范围外面，但需要响应view事件时有用
+  edgeRouter: 1, //使用pushState
+  collectView: 1, //收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
+  layerVframe: 1, //父子化同一个view中嵌套存在的vframe
+  tmplObject: 1, //模板是否为对象，内置支持子模板，需要对源字符串进行拆分成html和subs
+  updaterSetState: 1, //updater是否由用户指定更新。即用户指定什么就更新什么，不管值有没有改变
+  forceEdgeRouter: 1, //强制使用pushState
+  serviceCombine: 1, //接口combine
   tmpl: 1,
   updater: 1,
-  //viewProtoMixins: 1, //支持mixins
+  viewProtoMixins: 1, //支持mixins
   share: 1, //向子或孙view公开数据
   core: 1,
   autoEndUpdate: 1, //自动识别并结束更新。针对没有tmpl属性的view自动识别并结束更新
@@ -44,30 +39,15 @@ var extModules = { //完整功能的magix,对应magix.js
   router: 1, //路由模块
   resource: 1, //资源管理,不建议使用了,用wrapAsync足够了
   configIni: 1, //是否有ini配置文件
-  //mxOptions: 1, //支持节点上添加mx-options属性
+  mxOptions: 1, //支持节点上添加mx-options属性
   nodeAttachVframe: 1, //节点上挂vframe对象
-  //mxInit: 1, //支持直接获取数据
+  mxInit: 1, //支持直接获取数据
   viewMerge: 1 //view是否提供merge方法供扩展原型链对象
 };
-var coreModules = { //核心模块取上面的常用扩展模块做到核心中去，对应magix-core.js
-  tmpl: 1,
-  updater: 1,
-  core: 1, //打包核心功能
-  viewInit: 1,
-  autoEndUpdate: 1
-};
-
-var loaderModules = {
-  loader: 1
-};
-
-for (var p in modulesMap) {
-  extModules[p] = modulesMap[p];
-  coreModules[p] = modulesMap[p];
-  loaderModules[p] = modulesMap[p];
-}
-delete loaderModules.body;
-delete loaderModules.view;
+var type = 'cmd'; //打包kissy则type='kissy'
+var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge';
+//coreModules='magix,event,vframe,body,view,tmpl,updater,core,viewInit,autoEndUpdate';
+//loaderModules='loader,magix,event,vframe';
 
 var copyFile = function(from, to, callback) {
   var folders = path.dirname(to).split(sep);
@@ -86,25 +66,40 @@ var copyFile = function(from, to, callback) {
 };
 
 gulp.task('combine', function() {
+  var map = {};
+  var others = [];
+  enableModules.split(',').forEach(function(m) {
+    map[m.trim()] = 1;
+  });
+  for (var p in modules) {
+    if (!map[p]) {
+      others.push(p);
+    }
+  }
   var incReg = new RegExp('Inc\\(\'.+?\\/tmpl\\/(.+)\'\\);?', 'g');
   copyFile('../src/' + type + '/magix.js', '../dist/' + type + '/magix-debug.js', function(content) {
     content = content.replace(incReg, function(match, name) {
-      if (extModules[name]) {
+      if (map[name]) {
         return fs.readFileSync('../src/tmpl/' + name + '.js') + '';
       }
       return '';
     });
-    return tmpl('/*' + pkg.version + '*/\r\n/*modules:' + Object.keys(extModules) + '*/\r\n' + content, extModules);
+    var header = '/*\r\nversion:' + pkg.version;
+    header += '\r\nloader:' + type;
+    header += '\r\nmodules:' + enableModules;
+    header += '\r\nothers:' + others;
+    header += '\r\n*/\r\n';
+    return tmpl(header + content, map);
   });
-  copyFile('../src/' + type + '/magix.js', '../dist/' + type + '/magix-core-debug.js', function(content) {
-    content = content.replace(incReg, function(match, name) {
-      if (coreModules[name]) {
-        return fs.readFileSync('../src/tmpl/' + name + '.js') + '';
-      }
-      return '';
-    });
-    return tmpl('/*' + pkg.version + '*/\r\n/*modules:' + Object.keys(coreModules) + '*/\r\n' + content, coreModules);
-  });
+  // copyFile('../src/' + type + '/magix.js', '../dist/' + type + '/magix-core-debug.js', function(content) {
+  //   content = content.replace(incReg, function(match, name) {
+  //     if (coreModules[name]) {
+  //       return fs.readFileSync('../src/tmpl/' + name + '.js') + '';
+  //     }
+  //     return '';
+  //   });
+  //   return tmpl('/*' + pkg.version + '*/\r\n/*modules:' + Object.keys(coreModules) + '*/\r\n' + content, coreModules);
+  // });
   // copyFile('../src/' + type + '/magix.js', '../dist/' + type + '/magix-loader-debug.js', function(content) {
   //   content = content.replace(incReg, function(match, name) {
   //     if (loaderModules[name]) {
@@ -119,7 +114,7 @@ gulp.task('combine', function() {
 gulp.task('compress', function() {
   gulp.src('../dist/' + type + '/magix-debug.js')
     .pipe(uglify({
-      banner: '/*Magix' + pkg.version + ' Licensed MIT*/',
+      banner: '/*' + pkg.version + ' Licensed MIT*/',
       compress: {
         drop_console: true
       },
@@ -129,21 +124,21 @@ gulp.task('compress', function() {
     }))
     .pipe(rename('magix.js'))
     .pipe(gulp.dest('../dist/' + type + '/'));
-  gulp.src('../dist/' + type + '/magix-core-debug.js')
-    .pipe(uglify({
-      banner: '/*Magix' + pkg.version + ' Licensed MIT*/',
-      compress: {
-        drop_console: true
-      },
-      output: {
-        ascii_only: true
-      }
-    }))
-    .pipe(rename('magix-core.js'))
-    .pipe(gulp.dest('../dist/' + type + '/'));
+  // gulp.src('../dist/' + type + '/magix-core-debug.js')
+  //   .pipe(uglify({
+  //     banner: '/*' + pkg.version + ' Licensed MIT*/',
+  //     compress: {
+  //       drop_console: true
+  //     },
+  //     output: {
+  //       ascii_only: true
+  //     }
+  //   }))
+  //   .pipe(rename('magix-core.js'))
+  //   .pipe(gulp.dest('../dist/' + type + '/'));
   // gulp.src('../dist/' + type + '/magix-loader-debug.js')
   // .pipe(uglify({
-  //   banner: '/*Magix' + pkg.version + ' Licensed MIT*/',
+  //   banner: '/*' + pkg.version + ' Licensed MIT*/',
   //   compress: {
   //     drop_console: true
   //   },

@@ -13,17 +13,17 @@ var Router_LParams;
 var Router_TrimHashReg = /(?:^.*\/\/[^\/]+|#.*$)/gi;
 var Router_TrimQueryReg = /^[^#]*#?!?/;
 
-var Router_IsParam = function(params, r, ps) {
-    if (params) {
-        ps = this[Router_PARAMS];
-        params = (params + G_EMPTY).split(G_COMMA);
-        for (var i = 0; i < params.length; i++) {
-            r = G_Has(ps, params[i]);
-            if (r) break;
-        }
-    }
-    return r;
-};
+// var Router_IsParam = function(params, r, ps) {
+//     if (params) {
+//         ps = this[Router_PARAMS];
+//         params = (params + G_EMPTY).split(G_COMMA);
+//         for (var i = 0; i < params.length; i++) {
+//             r = G_Has(ps, params[i]);
+//             if (r) break;
+//         }
+//     }
+//     return r;
+// };
 
 var Router_PNR_Routers, Router_PNR_UnmatchView, /*Router_PNR_IsFun, */ Router_PNR_DefaultView, Router_PNR_DefaultPath;
 var Router_AttachViewAndPath = function(loc) {
@@ -63,7 +63,7 @@ var Router_GetChged = function(oldLocation, newLocation) {
     if (!result) {
         var hasChanged, from, to, rps;
         result = {
-            isParam: Router_IsParam,
+            //isParam: Router_IsParam,
             //location: newLocation,
             force: !oldLocation.href //是否强制触发的changed，对于首次加载会强制触发一次
         };
@@ -150,7 +150,7 @@ var Router = G_Mix({
      * 根据location.href路由并派发相应的事件,同时返回当前href与上一个href差异对象
      * @example
      * var diff = Magix.Router.diff();
-     * if(diff.isParam('page,rows')){
+     * if(diff.params.page || diff.params.rows){
      *     console.log('page or rows changed');
      * }
      */
@@ -214,7 +214,6 @@ var Router = G_Mix({
      * @name Router.changed
      * @event
      * @param {Object} e 事件对象
-     * @param {Function} e.isParam 检测是否是某个参数发生的改变
      * @param {Object} e.path  如果path发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Object} e.view 如果view发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Object} e.params 如果参数发生改变时，记录从(from)什么值变成(to)什么值的对象

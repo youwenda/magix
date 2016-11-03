@@ -1,5 +1,9 @@
-/*3.1.5*/
-/*modules:tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,magix,event,vframe,body,view*/
+/*
+version:3.1.5
+loader:amd
+modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge
+others:cnum,ceach,tiprouter,viewRelate,edgeRouter,collectView,layerVframe,tmplObject,updaterSetState,forceEdgeRouter,serviceCombine,viewProtoMixins,mxOptions,mxInit
+*/
 /*
     author:xinglie.lkf@taobao.com
  */
@@ -63,7 +67,7 @@ var G_DOCBODY; //initilize at vframe_root
     关于spliter
     出于安全考虑，使用不可见字符\u0000，然而，window手机上ie11有这样的一个问题：'\u0000'+"abc",结果却是一个空字符串，好奇特。
  */
-var G_SPLITER = '\u001f';
+var G_SPLITER = '\u001e';
 var Magix_StrObject = 'object';
 var G_PROTOTYPE = 'prototype';
 // var Magix_PathRelativeReg = /\/\.(?:\/|$)|\/[^\/]+?\/\.{2}(?:\/|$)|\/\/+|\.{2}\//; // ./|/x/../|(b)///
@@ -866,17 +870,17 @@ var Router_LParams;
 var Router_TrimHashReg = /(?:^.*\/\/[^\/]+|#.*$)/gi;
 var Router_TrimQueryReg = /^[^#]*#?!?/;
 
-var Router_IsParam = function(params, r, ps) {
-    if (params) {
-        ps = this[Router_PARAMS];
-        params = (params + G_EMPTY).split(G_COMMA);
-        for (var i = 0; i < params.length; i++) {
-            r = G_Has(ps, params[i]);
-            if (r) break;
-        }
-    }
-    return r;
-};
+// var Router_IsParam = function(params, r, ps) {
+//     if (params) {
+//         ps = this[Router_PARAMS];
+//         params = (params + G_EMPTY).split(G_COMMA);
+//         for (var i = 0; i < params.length; i++) {
+//             r = G_Has(ps, params[i]);
+//             if (r) break;
+//         }
+//     }
+//     return r;
+// };
 
 var Router_PNR_Routers, Router_PNR_UnmatchView, /*Router_PNR_IsFun, */ Router_PNR_DefaultView, Router_PNR_DefaultPath;
 var Router_AttachViewAndPath = function(loc) {
@@ -914,7 +918,7 @@ var Router_GetChged = function(oldLocation, newLocation) {
     if (!result) {
         var hasChanged, from, to, rps;
         result = {
-            isParam: Router_IsParam,
+            //isParam: Router_IsParam,
             //location: newLocation,
             force: !oldLocation.href //是否强制触发的changed，对于首次加载会强制触发一次
         };
@@ -1001,7 +1005,7 @@ var Router = G_Mix({
      * 根据location.href路由并派发相应的事件,同时返回当前href与上一个href差异对象
      * @example
      * var diff = Magix.Router.diff();
-     * if(diff.isParam('page,rows')){
+     * if(diff.params.page || diff.params.rows){
      *     console.log('page or rows changed');
      * }
      */
@@ -1065,7 +1069,6 @@ var Router = G_Mix({
      * @name Router.changed
      * @event
      * @param {Object} e 事件对象
-     * @param {Function} e.isParam 检测是否是某个参数发生的改变
      * @param {Object} e.path  如果path发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Object} e.view 如果view发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Object} e.params 如果参数发生改变时，记录从(from)什么值变成(to)什么值的对象
@@ -1340,10 +1343,10 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     var parent = Vframe_Vframes[me.pId],
                         p, val;
                     parent = parent && parent.$v.$updater;
-                    if (parent) {
+                    if (parent && viewPath.indexOf(G_SPLITER) > 0) {
                         for (p in pParams) {
                             val = pParams[p];
-                            if (val.charAt(0) == Vframe_ReadDataFlag) {
+                            if (val.charAt(0) == G_SPLITER) {
                                 pParams[p] = parent.get(val);
                             }
                         }
@@ -1757,35 +1760,25 @@ var Body_DOMEventBind = function(type, remove) {
     }
     Body_RootEvents[type] = counter;
 };
-    var Tmpl_Escapes = {
-  "'": "'",
-  "\\": "\\",
-  "\r": "r",
-  "\n": "n",
-  "\u2028": "u2028",
-  "\u2029": "u2029"
-};
-var Tmpl_EscapeRegExp = /\\|'|\r|\n|\u2028|\u2029/g;
-var Tmpl_EscapeChar = function(match) {
-  return "\\" + Tmpl_Escapes[match];
-};
-var Tmpl_Mathcer = /<%@([\s\S]+?)%>|<%=([\s\S]+?)%>|<%!([\s\S]+?)%>|<%([\s\S]+?)%>|$/g;
+    var Tmpl_EscapeSlashRegExp = /\\|'/g;
+var Tmpl_EscapeBreakReturnRegExp = /\r|\n/g;
+var Tmpl_Mathcer = /<%([@=!])?([\s\S]+?)%>|$/g;
 var Tmpl_Compiler = function(text) {
   // Compile the template source, escaping string literals appropriately.
   var index = 0;
   var source = "$p+='";
-  text.replace(Tmpl_Mathcer, function(match, ref, escape, interpolate, evaluate, offset) {
-    source += text.slice(index, offset).replace(Tmpl_EscapeRegExp, Tmpl_EscapeChar);
+  text.replace(Tmpl_Mathcer, function(match, operate, content, offset) {
+    source += text.slice(index, offset).replace(Tmpl_EscapeSlashRegExp, "\\$&").replace(Tmpl_EscapeBreakReturnRegExp, "\\n");
     index = offset + match.length;
 
-    if (ref) {
-      source += "'\n$s=$i();\n$p+=$s;\n$mx[$s]=" + ref + ";\n$p+='";
-    } else if (escape) {
-      source += "'+\n(($t=(" + escape + "))==null?'':$e($t))+\n'";
-    } else if (interpolate) {
-      source += "'+\n(($t=(" + interpolate + "))==null?'':$t)+\n'";
-    } else if (evaluate) {
-      source += "';\n" + evaluate + "\n$p+='";
+    if (operate == "@") {
+      source += "'\n$s=$i();\n$p+=$s;\n$mx[$s]=" + content + ";\n$p+='";
+    } else if (operate == "=") {
+      source += "'+\n(($t=(" + content + "))==null?'':$e($t))+\n'";
+    } else if (operate == "!") {
+      source += "'+\n(($t=(" + content + "))==null?'':$t)+\n'";
+    } else if (content) {
+      source += "';\n" + content + "\n$p+='";
     }
     // Adobe VMs need the match returned to produce the correct offset.
     return match;
@@ -1794,7 +1787,7 @@ var Tmpl_Compiler = function(text) {
 
   // If a variable is not specified, place data values in local scope.
   source = "with($mx){\n" + source + "}\n";
-  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)},$i=function(){return '~'+$g++},$s;\n" + source + "return $p;\n";
+  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s;\n" + source + "return $p;\n";
 
   var render;
   try {
@@ -1841,7 +1834,7 @@ var Tmpl = function(text, data) {
   }
   return fn(1, data);
 };
-    var Updater_HolderReg = /\u001f/g;
+    //var Updater_HolderReg = /\u001f/g;
 var Updater_ContentReg = /@(\d+)\-\u001f/g;
 var Updater_Stringify = JSON.stringify;
 var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
@@ -1851,9 +1844,6 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
     var list = view.tmplData;
     
     var selfId = view.id;
-    var build = function(tmpl, data) {
-        return Tmpl(tmpl, data).replace(Updater_HolderReg, selfId);
-    };
     if (changed || !host.$rd) {
         if (host.$rd && updateFlags && list) {
             var updatedNodes = {},
@@ -1867,7 +1857,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                     if (updateAttrs) {
                         for (var i = one.attrs.length - 1; i >= 0; i--) {
                             var attr = one.attrs[i];
-                            var val = build(attr.v, renderData);
+                            var val = Tmpl(attr.v, renderData);
                             if (attr.p) {
                                 node[attr.n] = val;
                             } else if (!val && attr.a) {
@@ -1881,13 +1871,13 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         viewValue, vf;
                     if (magixView) {
                         vf = Vframe_Vframes[id];
-                        viewValue = build(magixView, renderData);
+                        viewValue = Tmpl(magixView, renderData);
                         if (vf) {
                             vf[viewValue ? 'unmountView' : 'unmountVframe']();
                         }
                     }
                     if (one.tmpl && updateTmpl) {
-                        view.setHTML(id, build(one.tmpl, renderData));
+                        view.setHTML(id, Tmpl(one.tmpl, renderData));
                     }
                     if (magixView && viewValue) {
                         view.owner.mountVframe(id, viewValue);
@@ -1943,7 +1933,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         }
                     }
                     if (update) {
-                        update = G_HashKey + selfId + ' ' + one.selector.replace(Updater_HolderReg, selfId);
+                        update = G_HashKey + selfId + ' ' + one.selector;
                         var nodes = document.querySelectorAll(update);
                         q = 0;
                         while (q < nodes.length) {
@@ -1975,30 +1965,37 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
             }
             host.$rd = 1;
             var str = tmpl.replace(Updater_ContentReg, tmplment);
-            view.setHTML(selfId, build(str, renderData));
+            view.setHTML(selfId, Tmpl(str, renderData));
         }
     }
 };
 /*
-function proxy(node,prop) {
-  if (node !== null && (typeof node === 'object' || typeof node === 'function')) {
-  return new Proxy(node, {
-      set:function(target, key, value) {
-        var old=target[key];
-        if(old!=value){
-        var fire=prop||key;
-        console.log(fire+' changed');
-        target[key] = proxy(value,fire)
-      }
+function observe(o, fn) {
+  function buildProxy(prefix, o) {
+    return new Proxy(o, {
+      set(target, property, value) {
+        // same as before, but add prefix
+        fn(prefix + property, value);
+        target[property] = value;
       },
-      get:function(target,key){
-        return target[key];
-      }
-  })
-}else{
-  return node;
+      get(target, property) {
+        // return a new proxy if possible, add to prefix
+        let out = target[property];
+        if (out instanceof Object) {
+          return buildProxy(prefix + property + '.', out);
+        }
+        return out;  // primitive, ignore
+      },
+    });
+  }
+
+  return buildProxy('', o);
 }
-}
+
+let x = {'model': {name: 'Falcon'}};
+let p = observe(x, function(property, value) { console.info(property, value) });
+p.model.name = 'Commodore';
+
  */
 /**
  * 使用mx-keys进行局部刷新的类
@@ -2312,15 +2309,22 @@ var View_Prepare = function(oView) {
     }
 };
 
+var View_IsParamsChanged = function(params, ps, r) {
+    for (var i = 0; i < params.length; i++) {
+        r = G_Has(ps, params[i]);
+        if (r) break;
+    }
+    return r;
+};
 var View_IsObsveChanged = function(view) {
     var loc = view.$l;
     var res;
     if (loc.f) {
         if (loc.p) {
-            res = Router_LastChanged.path;
+            res = Router_LastChanged[Router_PATH];
         }
         if (!res) {
-            res = Router_LastChanged.isParam(loc.k);
+            res = View_IsParamsChanged(loc.k, Router_LastChanged[Router_PARAMS]);
         }
         // if (res && loc.c) {
         //     loc.c.call(view);

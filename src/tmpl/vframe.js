@@ -269,10 +269,10 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     var parent = Vframe_Vframes[me.pId],
                         p, val;
                     parent = parent && parent.$v.$updater;
-                    if (parent) {
+                    if (parent && viewPath.indexOf(G_SPLITER) > 0) {
                         for (p in pParams) {
                             val = pParams[p];
-                            if (val.charAt(0) == Vframe_ReadDataFlag) {
+                            if (val.charAt(0) == G_SPLITER) {
                                 pParams[p] = parent.get(val);
                             }
                         }

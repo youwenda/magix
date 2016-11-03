@@ -1,5 +1,9 @@
-/*3.1.4*/
-/*modules:tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,magix,event,vframe,body,view*/
+/*
+version:3.1.5
+loader:kissy
+modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge
+others:cnum,ceach,tiprouter,viewRelate,edgeRouter,collectView,layerVframe,tmplObject,updaterSetState,forceEdgeRouter,serviceCombine,viewProtoMixins,mxOptions,mxInit
+*/
 /**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
@@ -52,7 +56,7 @@ var G_DOCBODY; //initilize at vframe_root
     关于spliter
     出于安全考虑，使用不可见字符\u0000，然而，window手机上ie11有这样的一个问题：'\u0000'+"abc",结果却是一个空字符串，好奇特。
  */
-var G_SPLITER = '\u001f';
+var G_SPLITER = '\u001e';
 var Magix_StrObject = 'object';
 var G_PROTOTYPE = 'prototype';
 // var Magix_PathRelativeReg = /\/\.(?:\/|$)|\/[^\/]+?\/\.{2}(?:\/|$)|\/\/+|\.{2}\//; // ./|/x/../|(b)///
@@ -417,8 +421,8 @@ var Magix = {
      * @param  {Object} cfg 初始化配置参数对象
      * @param {String} cfg.defaultView 默认加载的view
      * @param {String} cfg.defaultPath 当无法从地址栏取到path时的默认值。比如使用hash保存路由信息，而初始进入时并没有hash,此时defaultPath会起作用
-     * @param {String} cfg.unfoundView 404时加载的view
      * @param {Object} cfg.routes path与view映射关系表
+     * @param {String} cfg.unmatchView 在routes里找不到匹配时使用的view，比如显示404
      * @param {String} cfg.rootId 根view的id
      * @param {Array} cfg.exts 需要加载的扩展
      * @param {Function} cfg.error 发布版以try catch执行一些用户重写的核心流程，当出错时，允许开发者通过该配置项进行捕获。注意：您不应该在该方法内再次抛出任何错误！
@@ -672,7 +676,7 @@ var Magix = {
      *
      * // r == false
      *
-     * var r = Magix.inside(root[0],[0]);
+     * var r = Magix.inside(root[0],root[0]);
      *
      * // r == true
      *
@@ -769,7 +773,7 @@ var Event = {
      * @param {String} name 事件名称
      * @param {Function} fn 事件处理函数
      * @example
-     * var T = Magix.mix({},Event);
+     * var T = Magix.mix({},Magix.Event);
      * T.on('done',function(e){
      *     alert(1);
      * });
@@ -857,17 +861,17 @@ var Router_LParams;
 var Router_TrimHashReg = /(?:^.*\/\/[^\/]+|#.*$)/gi;
 var Router_TrimQueryReg = /^[^#]*#?!?/;
 
-var Router_IsParam = function(params, r, ps) {
-    if (params) {
-        ps = this[Router_PARAMS];
-        params = (params + G_EMPTY).split(G_COMMA);
-        for (var i = 0; i < params.length; i++) {
-            r = G_Has(ps, params[i]);
-            if (r) break;
-        }
-    }
-    return r;
-};
+// var Router_IsParam = function(params, r, ps) {
+//     if (params) {
+//         ps = this[Router_PARAMS];
+//         params = (params + G_EMPTY).split(G_COMMA);
+//         for (var i = 0; i < params.length; i++) {
+//             r = G_Has(ps, params[i]);
+//             if (r) break;
+//         }
+//     }
+//     return r;
+// };
 
 var Router_PNR_Routers, Router_PNR_UnmatchView, /*Router_PNR_IsFun, */ Router_PNR_DefaultView, Router_PNR_DefaultPath;
 var Router_AttachViewAndPath = function(loc) {
@@ -905,7 +909,7 @@ var Router_GetChged = function(oldLocation, newLocation) {
     if (!result) {
         var hasChanged, from, to, rps;
         result = {
-            isParam: Router_IsParam,
+            //isParam: Router_IsParam,
             //location: newLocation,
             force: !oldLocation.href //是否强制触发的changed，对于首次加载会强制触发一次
         };
@@ -992,7 +996,7 @@ var Router = G_Mix({
      * 根据location.href路由并派发相应的事件,同时返回当前href与上一个href差异对象
      * @example
      * var diff = Magix.Router.diff();
-     * if(diff.isParam('page,rows')){
+     * if(diff.params.page || diff.params.rows){
      *     console.log('page or rows changed');
      * }
      */
@@ -1056,7 +1060,6 @@ var Router = G_Mix({
      * @name Router.changed
      * @event
      * @param {Object} e 事件对象
-     * @param {Function} e.isParam 检测是否是某个参数发生的改变
      * @param {Object} e.path  如果path发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Object} e.view 如果view发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Object} e.params 如果参数发生改变时，记录从(from)什么值变成(to)什么值的对象
@@ -1069,7 +1072,7 @@ Magix.Router = Router;
 var Vframe_GlobalAlter;
 
 
-var Vframe_UrlParamsReg = /\{(.+)\}/;
+var Vframe_ReadDataFlag = '~';
 
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
@@ -1329,16 +1332,14 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     
                     var pParams = po.params;
                     
-                    var parent = me.parent(),
+                    var parent = Vframe_Vframes[me.pId],
                         p, val;
-                    parent = parent && parent.$v;
-                    parent = parent && parent.$updater;
-                    if (parent) {
+                    parent = parent && parent.$v.$updater;
+                    if (parent && viewPath.indexOf(G_SPLITER) > 0) {
                         for (p in pParams) {
                             val = pParams[p];
-                            val = val.match(Vframe_UrlParamsReg);
-                            if (val) {
-                                pParams[p] = parent.get(val[1]);
+                            if (val.charAt(0) == G_SPLITER) {
+                                pParams[p] = parent.get(val);
                             }
                         }
                     }
@@ -1475,7 +1476,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
          */
 
         me.$h = 1; //hold fire creted
-        me.unmountZone(zoneId, 1);
+        //me.unmountZone(zoneId, 1); 不去清理，详情见：https://github.com/thx/magix/issues/27
         
         for (i = vframes.length - 1; i >= 0; i--) {
             vf = vframes[i];
@@ -1751,33 +1752,25 @@ var Body_DOMEventBind = function(type, remove) {
     }
     Body_RootEvents[type] = counter;
 };
-    var Tmpl_Escapes = {
-  "'": "'",
-  "\\": "\\",
-  "\r": "r",
-  "\n": "n",
-  "\u2028": "u2028",
-  "\u2029": "u2029"
-};
-var Tmpl_EscapeRegExp = /\\|'|\r|\n|\u2028|\u2029/g;
-var Tmpl_EscapeChar = function(match) {
-  return "\\" + Tmpl_Escapes[match];
-};
-var Tmpl_Mathcer = /<%=([\s\S]+?)%>|<%!([\s\S]+?)%>|<%([\s\S]+?)%>|$/g;
+    var Tmpl_EscapeSlashRegExp = /\\|'/g;
+var Tmpl_EscapeBreakReturnRegExp = /\r|\n/g;
+var Tmpl_Mathcer = /<%([@=!])?([\s\S]+?)%>|$/g;
 var Tmpl_Compiler = function(text) {
   // Compile the template source, escaping string literals appropriately.
   var index = 0;
   var source = "$p+='";
-  text.replace(Tmpl_Mathcer, function(match, escape, interpolate, evaluate, offset) {
-    source += text.slice(index, offset).replace(Tmpl_EscapeRegExp, Tmpl_EscapeChar);
+  text.replace(Tmpl_Mathcer, function(match, operate, content, offset) {
+    source += text.slice(index, offset).replace(Tmpl_EscapeSlashRegExp, "\\$&").replace(Tmpl_EscapeBreakReturnRegExp, "\\n");
     index = offset + match.length;
 
-    if (escape) {
-      source += "'+\n(($t=(" + escape + "))==null?'':$e($t))+\n'";
-    } else if (interpolate) {
-      source += "'+\n(($t=(" + interpolate + "))==null?'':$t)+\n'";
-    } else if (evaluate) {
-      source += "';\n" + evaluate + "\n$p+='";
+    if (operate == "@") {
+      source += "'\n$s=$i();\n$p+=$s;\n$mx[$s]=" + content + ";\n$p+='";
+    } else if (operate == "=") {
+      source += "'+\n(($t=(" + content + "))==null?'':$e($t))+\n'";
+    } else if (operate == "!") {
+      source += "'+\n(($t=(" + content + "))==null?'':$t)+\n'";
+    } else if (content) {
+      source += "';\n" + content + "\n$p+='";
     }
     // Adobe VMs need the match returned to produce the correct offset.
     return match;
@@ -1786,13 +1779,12 @@ var Tmpl_Compiler = function(text) {
 
   // If a variable is not specified, place data values in local scope.
   source = "with($mx){\n" + source + "}\n";
-  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)};\n" +
-    source + "return $p;\n";
+  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s;\n" + source + "return $p;\n";
 
   var render;
   try {
     /*jshint evil: true*/
-    render = Function("$mx", source);
+    render = Function("$g", "$mx", source);
   } catch (e) {
     e.source = source;
     throw e;
@@ -1801,7 +1793,7 @@ var Tmpl_Compiler = function(text) {
 };
 var Tmpl_Cache = new G_Cache();
 /**
- * Tmpl模板编译方法，语法参考underscore.template。该方法主要配合Updater存在
+ * Tmpl模板编译方法，该方法主要配合Updater存在
  * @name Tmpl
  * @beta
  * @module updater
@@ -1817,6 +1809,14 @@ var Tmpl_Cache = new G_Cache();
  *     a:1
  *   }).digest();
  * }
+ * // 语法
+ * // <% 语句块 %> <%= 转义输出 %> <%! 原始输出 %> <%@ view参数%>
+ * // 示例
+ * // <%for(var i=0;i<10;i++){%>
+ * //   index:<%=i%>&lt;br /&gt;
+ * //   &lt;div mx-view="path/to/view?index=<%@i%>"&gt;&lt;/div&gt;
+ * // <%}%>
+ *
  */
 var Tmpl = function(text, data) {
   var fn = Tmpl_Cache.get(text);
@@ -1824,9 +1824,9 @@ var Tmpl = function(text, data) {
     fn = Tmpl_Compiler(text);
     Tmpl_Cache.set(text, fn);
   }
-  return fn(data);
+  return fn(1, data);
 };
-    var Updater_HolderReg = /\u001f/g;
+    //var Updater_HolderReg = /\u001f/g;
 var Updater_ContentReg = /@(\d+)\-\u001f/g;
 var Updater_Stringify = JSON.stringify;
 var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
@@ -1836,9 +1836,6 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
     var list = view.tmplData;
     
     var selfId = view.id;
-    var build = function(tmpl, data) {
-        return Tmpl(tmpl, data).replace(Updater_HolderReg, selfId);
-    };
     if (changed || !host.$rd) {
         if (host.$rd && updateFlags && list) {
             var updatedNodes = {},
@@ -1852,7 +1849,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                     if (updateAttrs) {
                         for (var i = one.attrs.length - 1; i >= 0; i--) {
                             var attr = one.attrs[i];
-                            var val = build(attr.v, renderData);
+                            var val = Tmpl(attr.v, renderData);
                             if (attr.p) {
                                 node[attr.n] = val;
                             } else if (!val && attr.a) {
@@ -1866,13 +1863,13 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         viewValue, vf;
                     if (magixView) {
                         vf = Vframe_Vframes[id];
-                        viewValue = build(magixView, renderData);
+                        viewValue = Tmpl(magixView, renderData);
                         if (vf) {
                             vf[viewValue ? 'unmountView' : 'unmountVframe']();
                         }
                     }
                     if (one.tmpl && updateTmpl) {
-                        view.setHTML(id, build(one.tmpl, renderData));
+                        view.setHTML(id, Tmpl(one.tmpl, renderData));
                     }
                     if (magixView && viewValue) {
                         view.owner.mountVframe(id, viewValue);
@@ -1928,7 +1925,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         }
                     }
                     if (update) {
-                        update = G_HashKey + selfId + ' ' + one.selector.replace(Updater_HolderReg, selfId);
+                        update = G_HashKey + selfId + ' ' + one.selector;
                         var nodes = document.querySelectorAll(update);
                         q = 0;
                         while (q < nodes.length) {
@@ -1960,10 +1957,38 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
             }
             host.$rd = 1;
             var str = tmpl.replace(Updater_ContentReg, tmplment);
-            view.setHTML(selfId, build(str, renderData));
+            view.setHTML(selfId, Tmpl(str, renderData));
         }
     }
 };
+/*
+function observe(o, fn) {
+  function buildProxy(prefix, o) {
+    return new Proxy(o, {
+      set(target, property, value) {
+        // same as before, but add prefix
+        fn(prefix + property, value);
+        target[property] = value;
+      },
+      get(target, property) {
+        // return a new proxy if possible, add to prefix
+        let out = target[property];
+        if (out instanceof Object) {
+          return buildProxy(prefix + property + '.', out);
+        }
+        return out;  // primitive, ignore
+      },
+    });
+  }
+
+  return buildProxy('', o);
+}
+
+let x = {'model': {name: 'Falcon'}};
+let p = observe(x, function(property, value) { console.info(property, value) });
+p.model.name = 'Commodore';
+
+ */
 /**
  * 使用mx-keys进行局部刷新的类
  * @constructor
@@ -1981,7 +2006,9 @@ var Updater = function(view) {
     var me = this;
     me.$v = view;
     me.$data = {};
+    
     me.$json = {};
+    
 };
 var UP = Updater.prototype;
 G_Mix(UP, Event);
@@ -2026,7 +2053,9 @@ G_Mix(UP, {
      */
     set: function(obj) {
         var me = this;
+        
         G_Mix(me.$data, obj);
+        
         return me;
     },
     /**
@@ -2042,9 +2071,11 @@ G_Mix(UP, {
     digest: function() {
         var me = this;
         var data = me.$data;
+        var changed, keys;
+        
+        keys = {};
         var json = me.$json;
-        var keys = {};
-        var changed, val, key, valJSON, lchange;
+        var val, key, valJSON, lchange;
         for (key in data) {
             val = data[key];
             lchange = 0;
@@ -2060,6 +2091,7 @@ G_Mix(UP, {
                 keys[key] = changed = 1;
             }
         }
+        
         Updater_UpdateDOM(me, changed, keys, data);
         if (changed) {
             me.fire('changed', {
@@ -2067,6 +2099,7 @@ G_Mix(UP, {
             });
             delete me.$lss;
         }
+        
         return me;
     },
     /**
@@ -2084,7 +2117,7 @@ G_Mix(UP, {
      *     console.log(this.$updater.altered()); //false
      *     this.$updater.set({
      *         a: 20,
-     *         b: 30
+     *         b: 40
      *     });
      *     console.log(this.$updater.altered()); //true
      *     this.$updater.snapshot(); //再保存一次快照
@@ -2092,8 +2125,12 @@ G_Mix(UP, {
      * }
      */
     snapshot: function() {
-        var me = this;
-        me.$ss = Updater_Stringify(me.$json);
+        var me = this,
+            d;
+        
+        d = me.$json;
+        
+        me.$ss = Updater_Stringify(d);
         return me;
     },
     /**
@@ -2111,7 +2148,7 @@ G_Mix(UP, {
      *     console.log(this.$updater.altered()); //false
      *     this.$updater.set({
      *         a: 20,
-     *         b: 30
+     *         b: 40
      *     });
      *     console.log(this.$updater.altered()); //true
      *     this.$updater.snapshot(); //再保存一次快照
@@ -2119,9 +2156,13 @@ G_Mix(UP, {
      * }
      */
     altered: function() {
-        var me = this;
+        var me = this,
+            d;
+        
+        d = me.$json;
+        
         if (me.$ss) { //存在快照
-            if (!me.$lss) me.$lss = JSON.stringify(me.$json); //不存在比较的快照，生成
+            if (!me.$lss) me.$lss = JSON.stringify(d); //不存在比较的快照，生成
             return me.$ss != me.$lss; //比较2次快照是否一样
         }
         return true;
@@ -2259,15 +2300,22 @@ var View_Prepare = function(oView) {
     }
 };
 
+var View_IsParamsChanged = function(params, ps, r) {
+    for (var i = 0; i < params.length; i++) {
+        r = G_Has(ps, params[i]);
+        if (r) break;
+    }
+    return r;
+};
 var View_IsObsveChanged = function(view) {
     var loc = view.$l;
     var res;
     if (loc.f) {
         if (loc.p) {
-            res = Router_LastChanged.path;
+            res = Router_LastChanged[Router_PATH];
         }
         if (!res) {
-            res = Router_LastChanged.isParam(loc.k);
+            res = View_IsParamsChanged(loc.k, Router_LastChanged[Router_PARAMS]);
         }
         // if (res && loc.c) {
         //     loc.c.call(view);
@@ -2374,7 +2422,9 @@ G_Mix(View, {
      *  });
      *
      * //这样完成后，所有的view对象都会有一个$attr属性和test方法
-     * //当前上述功能也可以用继承实现，但继承层次太多时，可以考虑使用扩展来消除多层次的继承
+     * //当然上述功能也可以用继承实现，但继承层次太多时，可以考虑使用扩展来消除多层次的继承
+     * //同时当项目进行中发现所有view要实现某个功能时，该方式比继承更快捷有效
+     *
      *
      */
     
@@ -2516,10 +2566,12 @@ G_Mix(G_Mix(ViewProto, Event), {
      *         //codes
      *     }),50000);
      * }
-     * //为什么要包装一次？
-     * //Magix是单页应用，有可能异步回调执行时，当前view已经被销毁。比如上例中的setTimeout，50s后执行回调，如果你的回调中去操作了DOM，则会出错，为了避免这种情况的出现，可以调用view的wrapAsync包装一次。(该示例中最好的做法是在view销毁时清除setTimeout，但有时候你很难控制回调的执行，所以最好包装一次)
-     * //
-     * //
+     * // 为什么要包装一次？
+     * // 在单页应用的情况下，可能异步回调执行时，当前view已经被销毁。
+     * // 比如上例中的setTimeout，50s后执行回调，如果你的回调中去操作了DOM，
+     * // 则会出错，为了避免这种情况的出现，可以调用view的wrapAsync包装一次。
+     * // (该示例中最好的做法是在view销毁时清除setTimeout，
+     * // 但有时候你很难控制回调的执行，比如JSONP，所以最好包装一次)
      */
     wrapAsync: function(fn, context) {
         var me = this;
@@ -2533,7 +2585,7 @@ G_Mix(G_Mix(ViewProto, Event), {
     
     /**
      * 监视地址栏中的参数或path，有变动时，才调用当前view的render方法。通常情况下location有变化不会引起当前view的render被调用，所以你需要指定地址栏中哪些参数有变化时才引起render调用，使得view只关注与自已需要刷新有关的参数
-     * @param {Array|String} params  数组字符串
+     * @param {Array|String|Object} params  数组字符串
      * @param {Boolean} [isObservePath] 是否监视path
      * @beta
      * @module router
@@ -2544,6 +2596,11 @@ G_Mix(G_Mix(ViewProto, Event), {
      *          this.observe(null,true);//关注path的变化
      *          //也可以写成下面的形式
      *          //this.observe('page,rows',true);
+     *          //也可以是对象的形式
+     *          this.observe({
+     *              path: true,
+     *              params:['page','rows']
+     *          });
      *      },
      *      render:function(){
      *          var loc=Magix.Router.parse();
@@ -2553,21 +2610,22 @@ G_Mix(G_Mix(ViewProto, Event), {
      *      }
      * });
      */
-    observe: function(params, isObservePath /*, changedCallback*/ ) {
+    observe: function(params, isObservePath) {
         var me = this,
             loc, keys;
         loc = me.$l;
         loc.f = 1;
         keys = loc.k;
-        if (isObservePath) {
-            loc.p = isObservePath;
+        if (G_IsObject(params)) {
+            isObservePath = params.path;
+            params = params.params;
         }
+        //if (isObservePath) {
+        loc.p = isObservePath;
+        //}
         if (params) {
             loc.k = keys.concat((params + G_EMPTY).split(G_COMMA));
         }
-        // if (changedCallback) {
-        //     loc.c = changedCallback;
-        // }
     },
     
     

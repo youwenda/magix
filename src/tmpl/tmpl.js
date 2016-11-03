@@ -1,32 +1,22 @@
-var Tmpl_Escapes = {
-  "'": "'",
-  "\\": "\\",
-  "\r": "r",
-  "\n": "n",
-  "\u2028": "u2028",
-  "\u2029": "u2029"
-};
-var Tmpl_EscapeRegExp = /\\|'|\r|\n|\u2028|\u2029/g;
-var Tmpl_EscapeChar = function(match) {
-  return "\\" + Tmpl_Escapes[match];
-};
-var Tmpl_Mathcer = /<%@([\s\S]+?)%>|<%=([\s\S]+?)%>|<%!([\s\S]+?)%>|<%([\s\S]+?)%>|$/g;
+var Tmpl_EscapeSlashRegExp = /\\|'/g;
+var Tmpl_EscapeBreakReturnRegExp = /\r|\n/g;
+var Tmpl_Mathcer = /<%([@=!])?([\s\S]+?)%>|$/g;
 var Tmpl_Compiler = function(text) {
   // Compile the template source, escaping string literals appropriately.
   var index = 0;
   var source = "$p+='";
-  text.replace(Tmpl_Mathcer, function(match, ref, escape, interpolate, evaluate, offset) {
-    source += text.slice(index, offset).replace(Tmpl_EscapeRegExp, Tmpl_EscapeChar);
+  text.replace(Tmpl_Mathcer, function(match, operate, content, offset) {
+    source += text.slice(index, offset).replace(Tmpl_EscapeSlashRegExp, "\\$&").replace(Tmpl_EscapeBreakReturnRegExp, "\\n");
     index = offset + match.length;
 
-    if (ref) {
-      source += "'\n$s=$i();\n$p+=$s;\n$mx[$s]=" + ref + ";\n$p+='";
-    } else if (escape) {
-      source += "'+\n(($t=(" + escape + "))==null?'':$e($t))+\n'";
-    } else if (interpolate) {
-      source += "'+\n(($t=(" + interpolate + "))==null?'':$t)+\n'";
-    } else if (evaluate) {
-      source += "';\n" + evaluate + "\n$p+='";
+    if (operate == "@") {
+      source += "'\n$s=$i();\n$p+=$s;\n$mx[$s]=" + content + ";\n$p+='";
+    } else if (operate == "=") {
+      source += "'+\n(($t=(" + content + "))==null?'':$e($t))+\n'";
+    } else if (operate == "!") {
+      source += "'+\n(($t=(" + content + "))==null?'':$t)+\n'";
+    } else if (content) {
+      source += "';\n" + content + "\n$p+='";
     }
     // Adobe VMs need the match returned to produce the correct offset.
     return match;
@@ -35,7 +25,7 @@ var Tmpl_Compiler = function(text) {
 
   // If a variable is not specified, place data values in local scope.
   source = "with($mx){\n" + source + "}\n";
-  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)},$i=function(){return '~'+$g++},$s;\n" + source + "return $p;\n";
+  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s;\n" + source + "return $p;\n";
 
   var render;
   try {
