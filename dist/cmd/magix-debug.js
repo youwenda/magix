@@ -1,5 +1,5 @@
 /*
-version:3.1.5
+version:3.1.6
 loader:cmd
 modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge
 others:cnum,ceach,tiprouter,viewRelate,edgeRouter,collectView,layerVframe,tmplObject,updaterSetState,forceEdgeRouter,serviceCombine,viewProtoMixins,mxOptions,mxInit
@@ -88,6 +88,7 @@ var G_NULL = null;
 var G_WINDOW = window;
 var G_DOCUMENT = document;
 var G_HashKey = '#';
+var JSONStringify = JSON.stringify;
 var G_DOCBODY; //initilize at vframe_root
 /*
     关于spliter
@@ -1753,7 +1754,7 @@ var Body_DOMEventProcessor = function(e) {
                     name = match.n + G_SPLITER + eventType;
                     fn = view[name];
                     if (fn) {
-                        e.current = current;
+                        //e.current = current;
                         e.currentTarget = current;
                         e.params = match.p;
                         G_ToTry(fn, e, view);
@@ -1800,7 +1801,7 @@ var Tmpl_Compiler = function(text) {
     index = offset + match.length;
 
     if (operate == "@") {
-      source += "'\n$s=$i();\n$p+=$s;\n$mx[$s]=" + content + ";\n$p+='";
+      source += "'\n$s=$i();\n$p+=$s;\n$[$s]=" + content + ";\n$p+='";
     } else if (operate == "=") {
       source += "'+\n(($t=(" + content + "))==null?'':$e($t))+\n'";
     } else if (operate == "!") {
@@ -1814,18 +1815,10 @@ var Tmpl_Compiler = function(text) {
   source += "';\n";
 
   // If a variable is not specified, place data values in local scope.
-  source = "with($mx){\n" + source + "}\n";
+  //source = "with($mx){\n" + source + "}\n";
   source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s;\n" + source + "return $p;\n";
-
-  var render;
-  try {
-    /*jshint evil: true*/
-    render = Function("$g", "$mx", source);
-  } catch (e) {
-    e.source = source;
-    throw e;
-  }
-  return render;
+  /*jshint evil: true*/
+  return Function("$g", "$", source);
 };
 var Tmpl_Cache = new G_Cache();
 /**
@@ -1862,9 +1855,8 @@ var Tmpl = function(text, data) {
   }
   return fn(1, data);
 };
-    //var Updater_HolderReg = /\u001f/g;
-var Updater_ContentReg = /@(\d+)\-\u001f/g;
-var Updater_Stringify = JSON.stringify;
+    var Updater_HolderReg = /\u001f/g;
+var Updater_ContentReg = /\u001f(\d+)\u001f/g;
 var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
     var view = host.$v;
     
@@ -1878,7 +1870,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                 keys;
             var one, updateTmpl, updateAttrs;
             var updateNode = function(node) {
-                var id = node.id || (node.id = G_Id('n'));
+                var id = node.id || (node.id = G_Id());
                 if (!updatedNodes[id]) {
                     //console.time('update:' + id);
                     updatedNodes[id] = 1;
@@ -1905,26 +1897,11 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         }
                     }
                     if (one.tmpl && updateTmpl) {
-                        view.setHTML(id, Tmpl(one.tmpl, renderData));
+                        view.setHTML(id, Tmpl(one.tmpl, renderData).replace(Updater_HolderReg, selfId));
                     }
                     if (magixView && viewValue) {
                         view.owner.mountVframe(id, viewValue);
                     }
-
-                    //var vf = one.view && Vframe_Vframes[id];
-                    // if (vf) {
-                    // vf.unmountView();
-                    // }
-                    // if (one.tmpl && updateTmpl) {
-                    // view.setHTML(id, build(one.tmpl, renderData));
-                    // }
-                    // if (vf) {
-                    // vf.mountView(build(one.view, renderData));
-                    // }
-                    /*
-
-                     */
-                    //console.timeEnd('update:' + id);
                 }
             };
             for (var i = list.length - 1, update, q, mask, m; i >= 0; i--) { //keys
@@ -1961,8 +1938,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         }
                     }
                     if (update) {
-                        update = G_HashKey + selfId + ' ' + one.selector;
-                        var nodes = document.querySelectorAll(update);
+                        var nodes = $(one.path.replace(Updater_HolderReg, selfId));
                         q = 0;
                         while (q < nodes.length) {
                             updateNode(nodes[q++]);
@@ -1982,10 +1958,10 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                     x = list.length;
                     while (x > 0) {
                         var s = list[--x];
-                        if (s.guid) {
-                            map[s.guid] = s;
+                        if (s.s) {
+                            map[s.s] = s;
                             s.tmpl = s.tmpl.replace(Updater_ContentReg, tmplment);
-                            delete s.guid;
+                            delete s.s;
                         }
                     }
                 }
@@ -1993,7 +1969,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
             }
             host.$rd = 1;
             var str = tmpl.replace(Updater_ContentReg, tmplment);
-            view.setHTML(selfId, Tmpl(str, renderData));
+            view.setHTML(selfId, Tmpl(str, renderData).replace(Updater_HolderReg, selfId));
         }
     }
 };
@@ -2115,7 +2091,7 @@ G_Mix(UP, {
         for (key in data) {
             val = data[key];
             lchange = 0;
-            valJSON = Updater_Stringify(val);
+            valJSON = JSONStringify(val);
             if (!G_Has(json, key)) {
                 json[key] = valJSON;
                 lchange = 1;
@@ -2166,7 +2142,7 @@ G_Mix(UP, {
         
         d = me.$json;
         
-        me.$ss = Updater_Stringify(d);
+        me.$ss = JSONStringify(d);
         return me;
     },
     /**
@@ -2198,7 +2174,7 @@ G_Mix(UP, {
         d = me.$json;
         
         if (me.$ss) { //存在快照
-            if (!me.$lss) me.$lss = JSON.stringify(d); //不存在比较的快照，生成
+            if (!me.$lss) me.$lss = JSONStringify(d); //不存在比较的快照，生成
             return me.$ss != me.$lss; //比较2次快照是否一样
         }
         return true;
@@ -2369,7 +2345,6 @@ var View_Oust = function(view) {
         View_DestroyAllResources(view, 1);
         
         View_DelegateEvents(view, 1);
-        
     }
     view.$s--;
 };
@@ -2869,7 +2844,7 @@ Magix.View = View;
  * @constructor
  * @property {String} id bag唯一标识
  */
-var JSONStringify = JSON.stringify;
+
 var Bag = function() {
     this.id = G_Id('b');
     this.$ = {};

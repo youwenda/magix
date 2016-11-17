@@ -47,7 +47,7 @@
  * @constructor
  * @property {String} id bag唯一标识
  */
-var JSONStringify = JSON.stringify;
+
 var Bag = function() {
     this.id = G_Id('b');
     this.$ = {};

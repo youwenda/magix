@@ -152,9 +152,6 @@ var View_Oust = function(view) {
         View_DestroyAllResources(view, 1);
         /*#}#*/
         View_DelegateEvents(view, 1);
-        /*#if(modules.viewRelate){#*/
-        delete Body_ViewRelateInfo[view.id];
-        /*#}#*/
     }
     view.$s--;
 };
@@ -347,10 +344,14 @@ G_Mix(G_Mix(ViewProto, Event), {
      * // 如果一个view创建出了一段html并把它塞到了body下，而里面的事件等需要这个view处理，则可以这样关联
      * view.relate('nodeId');
      */
-    relate: function(node) {
+    relate: function(node, me) {
         node = G_GetById(node);
         if (node) {
-            Body_ViewRelateInfo[(node.id || (node.id = G_Id()))] = this.owner;
+            me = this;
+            Body_ViewRelateInfo[(node.id || (node.id = G_Id()))] = me.owner;
+            me.on('destroy', function() {
+                delete Body_ViewRelateInfo[node.id];
+            });
         }
     },
     /*#}#*/

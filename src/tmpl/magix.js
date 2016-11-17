@@ -8,6 +8,7 @@ var G_NULL = null;
 var G_WINDOW = window;
 var G_DOCUMENT = document;
 var G_HashKey = '#';
+var JSONStringify = JSON.stringify;
 var G_DOCBODY; //initilize at vframe_root
 /*
     关于spliter
