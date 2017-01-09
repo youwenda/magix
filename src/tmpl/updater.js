@@ -1,56 +1,68 @@
 var Updater_HolderReg = /\u001f/g;
 var Updater_ContentReg = /\u001f(\d+)\u001f/g;
+var Updater_AttrReg = /([\w\-]+)(?:=(["'])([\s\S]+?)\2)?/g;
+var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, updateAttrs, updateTmpl,viewId) {
+    var id = node.id || (node.id = G_Id());
+    if (!updatedNodes[id]) {
+        //console.time('update:' + id);
+        updatedNodes[id] = 1;
+
+        var hasMagixView, viewValue, vf;
+        if (updateAttrs) {
+            var attr = Tmpl(one.attr, renderData);
+            var nowAttrs = {};
+            attr.replace(Updater_AttrReg, function(match, name, q, value) {
+                nowAttrs[name] = value;
+            });
+            for (var i = one.attrs.length - 1, a, n, old, now; i >= 0; i--) {
+                a = one.attrs[i];
+                n = a.n;
+                old = a.p ? node[n] : node.getAttribute(n);
+                now = nowAttrs[n];
+                if (old != now) {
+                    if (a.p) {
+                        node[n] = a.b ? G_Has(nowAttrs, n) : now;
+                    } else if (now) {
+                        node.setAttribute(n, now);
+                    } else {
+                        node.removeAttribute(n);
+                    }
+                    if (a.v) {
+                        hasMagixView = 1;
+                        viewValue = nowAttrs[n];
+                    }
+                }
+
+            }
+        }
+        if (hasMagixView) {
+            vf = Vframe_Vframes[id];
+            if (vf) {
+                vf[viewValue ? 'unmountView' : 'unmountVframe']();
+            }
+        }
+        if (updateTmpl) {
+            view.setHTML(id, Tmpl(one.tmpl, renderData).replace(Updater_HolderReg, viewId));
+        }
+        if (hasMagixView && viewValue) {
+            view.owner.mountVframe(id, viewValue);
+        }
+    }
+};
 var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
-    var view = host.$v;
-    /*#if(modules.tmplObject){#*/
+    var vf = Vframe_Vframes[host.$i];
+    var view = vf && vf.$v;
+    if (!view) return;
     var tmplObject = view.tmpl;
     var tmpl = tmplObject.html;
     var list = tmplObject.subs;
-    /*#}else{#*/
-    var tmpl = view.tmpl;
-    var list = view.tmplData;
-    /*#}#*/
     var selfId = view.id;
     if (changed || !host.$rd) {
         if (host.$rd && updateFlags && list) {
             var updatedNodes = {},
                 keys;
             var one, updateTmpl, updateAttrs;
-            var updateNode = function(node) {
-                var id = node.id || (node.id = G_Id());
-                if (!updatedNodes[id]) {
-                    //console.time('update:' + id);
-                    updatedNodes[id] = 1;
-                    if (updateAttrs) {
-                        for (var i = one.attrs.length - 1; i >= 0; i--) {
-                            var attr = one.attrs[i];
-                            var val = Tmpl(attr.v, renderData);
-                            if (attr.p) {
-                                node[attr.n] = val;
-                            } else if (!val && attr.a) {
-                                node.removeAttribute(attr.n);
-                            } else {
-                                node.setAttribute(attr.n, val);
-                            }
-                        }
-                    }
-                    var magixView = one.view,
-                        viewValue, vf;
-                    if (magixView) {
-                        vf = Vframe_Vframes[id];
-                        viewValue = Tmpl(magixView, renderData);
-                        if (vf) {
-                            vf[viewValue ? 'unmountView' : 'unmountVframe']();
-                        }
-                    }
-                    if (one.tmpl && updateTmpl) {
-                        view.setHTML(id, Tmpl(one.tmpl, renderData).replace(Updater_HolderReg, selfId));
-                    }
-                    if (magixView && viewValue) {
-                        view.owner.mountVframe(id, viewValue);
-                    }
-                }
-            };
+
             for (var i = list.length - 1, update, q, mask, m; i >= 0; i--) { //keys
                 updateTmpl = 0;
                 updateAttrs = 0;
@@ -76,7 +88,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                             update = 1;
                             if (!mask || (updateTmpl && updateAttrs)) {
                                 updateTmpl = one.tmpl;
-                                updateAttrs = one.attrs;
+                                updateAttrs = one.attr;
                                 break;
                             }
                             m = mask.charAt(q);
@@ -88,7 +100,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         var nodes = $(one.path.replace(Updater_HolderReg, selfId));
                         q = 0;
                         while (q < nodes.length) {
-                            updateNode(nodes[q++]);
+                            Updater_UpdateNode(nodes[q++], view, updatedNodes, one, renderData, updateAttrs, updateTmpl,selfId);
                         }
                     }
                 }
@@ -155,15 +167,15 @@ p.model.name = 'Commodore';
  * @class
  * @beta
  * @module updater
- * @param {View} view Magix.View对象
+ * @param {String} viewId Magix.View对象Id
  * @borrows Event.on as #on
  * @borrows Event.fire as #fire
  * @borrows Event.off as #off
  * @property {Object} $data 存放数据的对象
  */
-var Updater = function(view) {
+var Updater = function(viewId) {
     var me = this;
-    me.$v = view;
+    me.$i = viewId;
     me.$data = {};
     /*#if(modules.updaterSetState){#*/
     me.$keys = {};
@@ -299,12 +311,7 @@ G_Mix(UP, {
      */
     snapshot: function() {
         var me = this,
-            d;
-        /*#if(modules.updaterSetState){#*/
-        d = me.$data;
-        /*#}else{#*/
-        d = me.$json;
-        /*#}#*/
+            d = me.$data;
         me.$ss = JSONStringify(d);
         return me;
     },
@@ -332,17 +339,12 @@ G_Mix(UP, {
      */
     altered: function() {
         var me = this,
-            d;
-        /*#if(modules.updaterSetState){#*/
-        d = me.$data;
-        /*#}else{#*/
-        d = me.$json;
-        /*#}#*/
+            d = me.$data;
         if (me.$ss) { //存在快照
-            if (!me.$lss) me.$lss = JSONStringify(d); //不存在比较的快照，生成
-            return me.$ss != me.$lss; //比较2次快照是否一样
+            // if (!me.$lss) me.$lss = JSONStringify(d); //不存在比较的快照，生成
+            return me.$ss != JSONStringify(d); //比较2次快照是否一样
         }
-        return true;
+        return 1;
     }
 
 

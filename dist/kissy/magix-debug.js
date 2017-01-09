@@ -1,8 +1,8 @@
 /*
 version:3.1.6
 loader:kissy
-modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge
-others:cnum,ceach,tiprouter,viewRelate,edgeRouter,collectView,layerVframe,tmplObject,updaterSetState,forceEdgeRouter,serviceCombine,viewProtoMixins,mxOptions,mxInit
+modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter
+others:cnum,ceach,viewRelate,edgeRouter,collectView,layerVframe,updaterSetState,forceEdgeRouter,serviceCombine,viewProtoMixins,mxInit
 */
 /**
  * @fileOverview Magix全局对象
@@ -10,6 +10,7 @@ others:cnum,ceach,tiprouter,viewRelate,edgeRouter,collectView,layerVframe,tmplOb
  * @version edge
  **/
 KISSY.add('magix', function(S, SE) {
+    var G_NOOP = S.noop;
     var G_Require = function(name, fn) {
         S.use(name && (name + G_EMPTY), function(S) {
             if (fn) {
@@ -45,7 +46,6 @@ KISSY.add('magix', function(S, SE) {
 var G_EMPTY = '';
 var G_EMPTY_ARRAY = [];
 var G_Slice = G_EMPTY_ARRAY.slice;
-var G_NOOP = function() {};
 var G_COMMA = ',';
 var G_NULL = null;
 var G_WINDOW = window;
@@ -757,11 +757,13 @@ var Event = {
             while (end--) {
                 idx = lastToFirst ? end : len - end;
                 t = list[idx];
-                if (t.d) {
+                if (t.f) {
+                    t.x = 1;
+                    G_ToTry(t.f, data, me);
+                    t.x = G_EMPTY;
+                } else if (!t.x) {
                     list.splice(idx, 1);
                     len--;
-                } else {
-                    G_ToTry(t.f, data, me);
                 }
             }
         }
@@ -809,8 +811,8 @@ var Event = {
                 i = list.length;
                 while (i--) {
                     t = list[i];
-                    if (t.f == fn && !t.d) {
-                        t.d = 1;
+                    if (t.f == fn) {
+                        t.f = G_EMPTY;
                         break;
                     }
                 }
@@ -824,12 +826,14 @@ var Event = {
 Magix.Event = Event;
     var Router_Edge;
     
+    var G_IsFunction = S.isFunction;
     
     var Win = S.one(G_WINDOW);
+    var Router_Hashbang = G_HashKey + '!';
     var Router_Update = function(path, params, loc, replace, lQuery) {
         path = G_ToUri(path, params, lQuery);
         if (path != loc.srcHash) {
-            path = '#!' + path;
+            path = Router_Hashbang + path;
             if (replace) {
                 Router_WinLoc.replace(path);
             } else {
@@ -839,7 +843,41 @@ Magix.Event = Event;
     };
     
     var Router_Bind = function() {
-        Win.on('hashchange', Router.diff);
+        var lastHash = Router.parse().srcHash;
+        var newHash, suspend;
+        Win.on('hashchange', function(e) {
+            if (suspend) return;
+            newHash = Router.parse().srcHash;
+            if (newHash != lastHash) {
+                e = {
+                    backward: function() {
+                        suspend = G_EMPTY;
+                        location.hash = Router_Hashbang + lastHash;
+                    },
+                    forward: function() {
+                        lastHash = newHash;
+                        suspend = G_EMPTY;
+                        Router.diff();
+                    },
+                    prevent: function() {
+                        suspend = 1;
+                    }
+                };
+                Router.fire('change', e);
+                if (!suspend) {
+                    e.forward();
+                }
+            }
+        });
+        window.onbeforeunload = function(e) {
+            e = e || window.event;
+            var te = {};
+            Router.fire('pageunload', te);
+            if (te.msg) {
+                if (e) e.returnValue = te.msg;
+                return te.msg;
+            }
+        };
         Router.diff();
     };
     
@@ -874,16 +912,17 @@ var Router_TrimQueryReg = /^[^#]*#?!?/;
 //     return r;
 // };
 
-var Router_PNR_Routers, Router_PNR_UnmatchView, /*Router_PNR_IsFun, */ Router_PNR_DefaultView, Router_PNR_DefaultPath;
-var Router_AttachViewAndPath = function(loc) {
+var Router_PNR_Routers, Router_PNR_UnmatchView, Router_PNR_IsFun,
+    Router_PNR_DefaultView, Router_PNR_DefaultPath;
+var Router_AttachViewAndPath = function(loc, view) {
     //var result;
     if (!Router_PNR_Routers) {
         Router_PNR_Routers = Magix_Cfg.routes || {};
         Router_PNR_UnmatchView = Magix_Cfg.unmatchView;
         Router_PNR_DefaultView = Magix_Cfg.defaultView;
         Router_PNR_DefaultPath = Magix_Cfg.defaultPath || Magix_SLASH;
-        //Router_PNR_IsFun = G_IsFunction(Router_PNR_Routers);
-        if ( /*!Router_PNR_IsFun && */ !Router_PNR_Routers[Router_PNR_DefaultPath]) {
+        Router_PNR_IsFun = G_IsFunction(Router_PNR_Routers);
+        if (!Router_PNR_IsFun && !Router_PNR_Routers[Router_PNR_DefaultPath]) {
             Router_PNR_Routers[Router_PNR_DefaultPath] = Router_PNR_DefaultView;
         }
     }
@@ -891,14 +930,14 @@ var Router_AttachViewAndPath = function(loc) {
         
         var path = loc.hash[Router_PATH] || (Router_Edge && loc.query[Router_PATH]) || Router_PNR_DefaultPath;
         
-        //if (!path) path = Router_PNR_DefaultPath;
-        // if (Router_PNR_IsFun) {
-        //     result = Router_PNR_Routers.call(Magix_Cfg, path, loc);
-        // } else {
-        //result = Router_PNR_Routers[path]; //简单的在映射表中找
-        //}
+
+        if (Router_PNR_IsFun) {
+            view = Router_PNR_Routers.call(Magix_Cfg, path, loc);
+        } else {
+            view = Router_PNR_Routers[path] || Router_PNR_UnmatchView || Router_PNR_DefaultView;
+        }
         loc[Router_PATH] = path;
-        loc[Router_VIEW] = Router_PNR_Routers[path] || Router_PNR_UnmatchView || Router_PNR_DefaultView;
+        loc[Router_VIEW] = view;
     }
 };
 
@@ -912,7 +951,7 @@ var Router_GetChged = function(oldLocation, newLocation) {
         result = {
             //isParam: Router_IsParam,
             //location: newLocation,
-            force: !oldLocation.href //是否强制触发的changed，对于首次加载会强制触发一次
+            force: !oKey //是否强制触发的changed，对于首次加载会强制触发一次
         };
         //result[Router_VIEW] = to;
         //result[Router_PATH] = to;
@@ -1323,6 +1362,23 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             po = G_ParseUri(viewPath);
             view = po.path;
             sign = ++me.$s;
+            var params = po.params;
+            
+            var parent = Vframe_Vframes[me.pId],
+                p, val;
+            parent = parent && parent.$v;
+            parent = parent && parent.$updater;
+            if (parent && viewPath.indexOf(G_SPLITER) > 0) {
+                for (p in params) {
+                    val = params[p];
+                    if (val.charAt(0) == G_SPLITER) {
+                        params[p] = parent.get(val);
+                    }
+                }
+            }
+            
+            G_Mix(params, viewInitParams);
+            
             G_Require(view, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
                     if (!TView) {
@@ -1330,23 +1386,6 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     }
                     
                     View_Prepare(TView);
-                    
-                    var pParams = po.params;
-                    
-                    var parent = Vframe_Vframes[me.pId],
-                        p, val;
-                    parent = parent && parent.$v.$updater;
-                    if (parent && viewPath.indexOf(G_SPLITER) > 0) {
-                        for (p in pParams) {
-                            val = pParams[p];
-                            if (val.charAt(0) == G_SPLITER) {
-                                pParams[p] = parent.get(val);
-                            }
-                        }
-                    }
-                    
-                    var params = G_Mix(pParams, viewInitParams);
-                    
                     
                     view = new TView({
                         owner: me,
@@ -1387,7 +1426,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 };
             }
             me.$d = 1; //用于标记当前vframe处于view销毁状态，在当前vframe上再调用unmountZone时不派发created事件
-            me.unmountZone(0, 1);
+            me.unmountZone( /*0, 1*/ );
             Vframe_NotifyAlter(me, Vframe_GlobalAlter);
 
             me.$v = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
@@ -1520,7 +1559,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * 销毁某个区域下面的所有子vframes
      * @param {HTMLElement|String} [zoneId]节点对象或id
      */
-    unmountZone: function(zoneId /*,keepPreHTML*/ , inner) {
+    unmountZone: function(zoneId /*,keepPreHTML , inner*/ ) {
         var me = this;
         var p;
         var cm = me.$c;
@@ -1529,7 +1568,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 me.unmountVframe(p /*,keepPreHTML,*/ , 1);
             }
         }
-        if (!inner) Vframe_NotifyCreated(me);
+        //if (!inner) Vframe_NotifyCreated(me);
     }  ,
     /**
      * 获取父vframe
@@ -1735,6 +1774,9 @@ var Body_DOMEventProcessor = function(e) {
             arr.push(current);
         }
         current = current[Body_ParentNode] || G_DOCBODY;
+        if (current.id == vId) { //经过vframe时，target为vframe节点
+            e.target = current;
+        }
     }
     while ((current = arr.pop())) {
         ignore = current.$ || (current.$ = {});
@@ -1821,53 +1863,69 @@ var Tmpl = function(text, data) {
 };
     var Updater_HolderReg = /\u001f/g;
 var Updater_ContentReg = /\u001f(\d+)\u001f/g;
+var Updater_AttrReg = /([\w\-]+)(?:=(["'])([\s\S]+?)\2)?/g;
+var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, updateAttrs, updateTmpl,viewId) {
+    var id = node.id || (node.id = G_Id());
+    if (!updatedNodes[id]) {
+        //console.time('update:' + id);
+        updatedNodes[id] = 1;
+
+        var hasMagixView, viewValue, vf;
+        if (updateAttrs) {
+            var attr = Tmpl(one.attr, renderData);
+            var nowAttrs = {};
+            attr.replace(Updater_AttrReg, function(match, name, q, value) {
+                nowAttrs[name] = value;
+            });
+            for (var i = one.attrs.length - 1, a, n, old, now; i >= 0; i--) {
+                a = one.attrs[i];
+                n = a.n;
+                old = a.p ? node[n] : node.getAttribute(n);
+                now = nowAttrs[n];
+                if (old != now) {
+                    if (a.p) {
+                        node[n] = a.b ? G_Has(nowAttrs, n) : now;
+                    } else if (now) {
+                        node.setAttribute(n, now);
+                    } else {
+                        node.removeAttribute(n);
+                    }
+                    if (a.v) {
+                        hasMagixView = 1;
+                        viewValue = nowAttrs[n];
+                    }
+                }
+
+            }
+        }
+        if (hasMagixView) {
+            vf = Vframe_Vframes[id];
+            if (vf) {
+                vf[viewValue ? 'unmountView' : 'unmountVframe']();
+            }
+        }
+        if (updateTmpl) {
+            view.setHTML(id, Tmpl(one.tmpl, renderData).replace(Updater_HolderReg, viewId));
+        }
+        if (hasMagixView && viewValue) {
+            view.owner.mountVframe(id, viewValue);
+        }
+    }
+};
 var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
-    var view = host.$v;
-    
-    var tmpl = view.tmpl;
-    var list = view.tmplData;
-    
+    var vf = Vframe_Vframes[host.$i];
+    var view = vf && vf.$v;
+    if (!view) return;
+    var tmplObject = view.tmpl;
+    var tmpl = tmplObject.html;
+    var list = tmplObject.subs;
     var selfId = view.id;
     if (changed || !host.$rd) {
         if (host.$rd && updateFlags && list) {
             var updatedNodes = {},
                 keys;
             var one, updateTmpl, updateAttrs;
-            var updateNode = function(node) {
-                var id = node.id || (node.id = G_Id());
-                if (!updatedNodes[id]) {
-                    //console.time('update:' + id);
-                    updatedNodes[id] = 1;
-                    if (updateAttrs) {
-                        for (var i = one.attrs.length - 1; i >= 0; i--) {
-                            var attr = one.attrs[i];
-                            var val = Tmpl(attr.v, renderData);
-                            if (attr.p) {
-                                node[attr.n] = val;
-                            } else if (!val && attr.a) {
-                                node.removeAttribute(attr.n);
-                            } else {
-                                node.setAttribute(attr.n, val);
-                            }
-                        }
-                    }
-                    var magixView = one.view,
-                        viewValue, vf;
-                    if (magixView) {
-                        vf = Vframe_Vframes[id];
-                        viewValue = Tmpl(magixView, renderData);
-                        if (vf) {
-                            vf[viewValue ? 'unmountView' : 'unmountVframe']();
-                        }
-                    }
-                    if (one.tmpl && updateTmpl) {
-                        view.setHTML(id, Tmpl(one.tmpl, renderData).replace(Updater_HolderReg, selfId));
-                    }
-                    if (magixView && viewValue) {
-                        view.owner.mountVframe(id, viewValue);
-                    }
-                }
-            };
+
             for (var i = list.length - 1, update, q, mask, m; i >= 0; i--) { //keys
                 updateTmpl = 0;
                 updateAttrs = 0;
@@ -1893,7 +1951,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                             update = 1;
                             if (!mask || (updateTmpl && updateAttrs)) {
                                 updateTmpl = one.tmpl;
-                                updateAttrs = one.attrs;
+                                updateAttrs = one.attr;
                                 break;
                             }
                             m = mask.charAt(q);
@@ -1905,7 +1963,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         var nodes = $(one.path.replace(Updater_HolderReg, selfId));
                         q = 0;
                         while (q < nodes.length) {
-                            updateNode(nodes[q++]);
+                            Updater_UpdateNode(nodes[q++], view, updatedNodes, one, renderData, updateAttrs, updateTmpl,selfId);
                         }
                     }
                 }
@@ -1972,15 +2030,15 @@ p.model.name = 'Commodore';
  * @class
  * @beta
  * @module updater
- * @param {View} view Magix.View对象
+ * @param {String} viewId Magix.View对象Id
  * @borrows Event.on as #on
  * @borrows Event.fire as #fire
  * @borrows Event.off as #off
  * @property {Object} $data 存放数据的对象
  */
-var Updater = function(view) {
+var Updater = function(viewId) {
     var me = this;
-    me.$v = view;
+    me.$i = viewId;
     me.$data = {};
     
     me.$json = {};
@@ -2102,10 +2160,7 @@ G_Mix(UP, {
      */
     snapshot: function() {
         var me = this,
-            d;
-        
-        d = me.$json;
-        
+            d = me.$data;
         me.$ss = JSONStringify(d);
         return me;
     },
@@ -2133,15 +2188,12 @@ G_Mix(UP, {
      */
     altered: function() {
         var me = this,
-            d;
-        
-        d = me.$json;
-        
+            d = me.$data;
         if (me.$ss) { //存在快照
-            if (!me.$lss) me.$lss = JSONStringify(d); //不存在比较的快照，生成
-            return me.$ss != me.$lss; //比较2次快照是否一样
+            // if (!me.$lss) me.$lss = JSONStringify(d); //不存在比较的快照，生成
+            return me.$ss != JSONStringify(d); //比较2次快照是否一样
         }
-        return true;
+        return 1;
     }
 
 
@@ -2365,7 +2417,7 @@ var View = function(ops, me) {
     G_ToTry(View_Ctors, ops, me);
     
     
-    me.$updater = new Updater(me);
+    me.$updater = new Updater(me.id);
     
 };
 var ViewProto = View[G_PROTOTYPE];
@@ -2504,7 +2556,7 @@ G_Mix(G_Mix(ViewProto, Event), {
     beginUpdate: function(id, me) {
         me = this;
         if (me.$s > 0 && me.$p) {
-            me.owner.unmountZone(id, 1);
+            me.owner.unmountZone(id /*, 1*/ );
             // me.fire('prerender', {
             //     id: id
             // });
@@ -2653,6 +2705,53 @@ G_Mix(G_Mix(ViewProto, Event), {
         return View_DestroyResource(this.$r, key, destroy);
     },
     
+    
+    /**
+     * 离开提示实现
+     * @param  {String} msg 提示消息
+     * @param  {Object} e 事件对象
+     */
+    //leaveConfirm: function(msg, e) {
+        //
+    //},
+    /**
+     * 离开提示
+     * @param  {String} msg 提示消息
+     * @param  {Function} fn 是否提示的回调
+     * @beta
+     * @module tiprouter
+     * @example
+     * var Magix = require('magix');
+     * module.exports = Magix.View.extend({
+     *     init:function(){
+     *         this.leaveTip('页面数据未保存，确认离开吗？',function(){
+     *             return true;//true提示，false，不提示
+     *         });
+     *     }
+     * });
+     */
+    leaveTip: function(msg, fn) {
+        var me = this;
+        var changeListener = function(e) {
+            e.prevent();
+            if (fn()) {
+                me.leaveConfirm(msg, e);
+            } else {
+                e.forward();
+            }
+        };
+        var unloadListener = function(e) {
+            if (fn()) {
+                e.msg = msg;
+            }
+        };
+        Router.on('change', changeListener);
+        Router.on('pageunload', unloadListener);
+        me.on('destroy', function() {
+            Router.off('change', changeListener);
+            Router.off('pageunload', unloadListener);
+        });
+    },
     
     
     /**

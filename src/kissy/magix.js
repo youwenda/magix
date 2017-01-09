@@ -4,6 +4,7 @@
  * @version edge
  **/
 KISSY.add('magix', function(S, SE) {
+    var G_NOOP = S.noop;
     var G_Require = function(name, fn) {
         S.use(name && (name + G_EMPTY), function(S) {
             if (fn) {
@@ -39,12 +40,14 @@ KISSY.add('magix', function(S, SE) {
     Inc('../tmpl/event');
     var Router_Edge;
     /*#if(modules.router){#*/
+    var G_IsFunction = S.isFunction;
     /*#if(!modules.forceEdgeRouter){#*/
     var Win = S.one(G_WINDOW);
+    var Router_Hashbang = G_HashKey + '!';
     var Router_Update = function(path, params, loc, replace, lQuery) {
         path = G_ToUri(path, params, lQuery);
         if (path != loc.srcHash) {
-            path = '#!' + path;
+            path = Router_Hashbang + path;
             if (replace) {
                 Router_WinLoc.replace(path);
             } else {
@@ -55,28 +58,27 @@ KISSY.add('magix', function(S, SE) {
     /*#if(modules.tiprouter){#*/
     var Router_Bind = function() {
         var lastHash = Router.parse().srcHash;
-        var newHash;
-        Win.on('hashchange', function(e, loc) {
-            loc = Router.parse();
-            newHash = loc.srcHash;
+        var newHash, suspend;
+        Win.on('hashchange', function(e) {
+            if (suspend) return;
+            newHash = Router.parse().srcHash;
             if (newHash != lastHash) {
                 e = {
                     backward: function() {
-                        e.p = 1;
-                        location.hash = '#!' + lastHash;
+                        suspend = G_EMPTY;
+                        location.hash = Router_Hashbang + lastHash;
                     },
                     forward: function() {
-                        e.p = 1;
                         lastHash = newHash;
+                        suspend = G_EMPTY;
                         Router.diff();
                     },
                     prevent: function() {
-                        e.p = 1;
-                    },
-                    location: loc
+                        suspend = 1;
+                    }
                 };
                 Router.fire('change', e);
-                if (!e.p) {
+                if (!suspend) {
                     e.forward();
                 }
             }
@@ -117,30 +119,29 @@ KISSY.add('magix', function(S, SE) {
         var Router_Bind = function() {
             var initialURL = Router_WinLoc.href;
             var lastHref = initialURL;
-            var newHref;
+            var newHref, suspend;
             Win.on('popstate', function(e) {
                 newHref = Router_WinLoc.href;
                 var initPop = !Router_DidUpdate && newHref == initialURL;
                 Router_DidUpdate = 1;
-                if (initPop) return;
+                if (initPop || suspend) return;
                 if (newHref != lastHref) {
                     e = {
                         backward: function() {
-                            e.p = 1;
+                            suspend = G_EMPTY;
                             history.replaceState(G_NULL, G_NULL, lastHref);
                         },
                         forward: function() {
-                            e.p = 1;
                             lastHref = newHref;
+                            suspend = G_EMPTY;
                             Router.diff();
                         },
                         prevent: function() {
-                            e.p = 1;
-                        },
-                        location: Router.parse()
+                            suspend = 1;
+                        }
                     };
                     Router.fire('change', e);
-                    if (!e.p) {
+                    if (!suspend) {
                         e.forward();
                     }
                 }

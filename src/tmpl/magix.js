@@ -2,7 +2,6 @@ var G_COUNTER = 0;
 var G_EMPTY = '';
 var G_EMPTY_ARRAY = [];
 var G_Slice = G_EMPTY_ARRAY.slice;
-var G_NOOP = function() {};
 var G_COMMA = ',';
 var G_NULL = null;
 var G_WINDOW = window;

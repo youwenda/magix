@@ -256,6 +256,50 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             po = G_ParseUri(viewPath);
             view = po.path;
             sign = ++me.$s;
+            var params = po.params;
+            /*#if(modules.updater){#*/
+            var parent = Vframe_Vframes[me.pId],
+                p, val;
+            parent = parent && parent.$v;
+            parent = parent && parent.$updater;
+            if (parent && viewPath.indexOf(G_SPLITER) > 0) {
+                for (p in params) {
+                    val = params[p];
+                    if (val.charAt(0) == G_SPLITER) {
+                        params[p] = parent.get(val);
+                    }
+                }
+            }
+            /*#}#*/
+            G_Mix(params, viewInitParams);
+            /*#if(modules.mxInit){#*/
+            var mxd = node.getAttribute('mx-init');
+            if (mxd) {
+                var parent = me.parent();
+                parent = parent && parent.$v;
+                var mxdo = {};
+                var read = function(val) {
+                    var keys = val.split('.');
+                    var start = parent;
+                    while (keys.length && start) {
+                        start = start[keys.shift()];
+                    }
+                    return start;
+                };
+                mxd.replace(Vframe_DataParamsReg, function(m, name, val) {
+                    m = val.match(Vframe_DataParamsStrReg);
+                    if (m) {
+                        val = m[2];
+                    } else if (Vframe_DataParamsNumReg.test(val)) {
+                        val = parseFloat(val);
+                    } else {
+                        val = read(val);
+                    }
+                    mxdo[name] = val;
+                });
+                G_Mix(params, mxdo);
+            }
+            /*#}#*/
             G_Require(view, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
                     if (!TView) {
@@ -263,57 +307,6 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     }
                     /*#if(!modules.loader){#*/
                     View_Prepare(TView);
-                    /*#}#*/
-                    var pParams = po.params;
-                    /*#if(modules.updater){#*/
-                    var parent = Vframe_Vframes[me.pId],
-                        p, val;
-                    parent = parent && parent.$v.$updater;
-                    if (parent && viewPath.indexOf(G_SPLITER) > 0) {
-                        for (p in pParams) {
-                            val = pParams[p];
-                            if (val.charAt(0) == G_SPLITER) {
-                                pParams[p] = parent.get(val);
-                            }
-                        }
-                    }
-                    /*#}#*/
-                    var params = G_Mix(pParams, viewInitParams);
-                    /*#if(modules.mxOptions){#*/
-                    var mxo = decodeURIComponent(node.getAttribute('mx-options'));
-                    if (mxo) {
-                        /*jshint evil: true*/
-                        mxo = G_ToTry(Function('return ' + mxo));
-                        G_Mix(params, mxo);
-                    }
-                    /*#}#*/
-                    /*#if(modules.mxInit){#*/
-                    var mxd = node.getAttribute('mx-init');
-                    if (mxd) {
-                        var parent = me.parent();
-                        parent = parent && parent.$v;
-                        var mxdo = {};
-                        var read = function(val) {
-                            var keys = val.split('.');
-                            var start = parent;
-                            while (keys.length && start) {
-                                start = start[keys.shift()];
-                            }
-                            return start;
-                        };
-                        mxd.replace(Vframe_DataParamsReg, function(m, name, val) {
-                            m = val.match(Vframe_DataParamsStrReg);
-                            if (m) {
-                                val = m[2];
-                            } else if (Vframe_DataParamsNumReg.test(val)) {
-                                val = parseFloat(val);
-                            } else {
-                                val = read(val);
-                            }
-                            mxdo[name] = val;
-                        });
-                        G_Mix(params, mxdo);
-                    }
                     /*#}#*/
                     view = new TView({
                         owner: me,
@@ -354,7 +347,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 };
             }
             me.$d = 1; //用于标记当前vframe处于view销毁状态，在当前vframe上再调用unmountZone时不派发created事件
-            me.unmountZone(0, 1);
+            me.unmountZone( /*0, 1*/ );
             Vframe_NotifyAlter(me, Vframe_GlobalAlter);
 
             me.$v = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
@@ -507,7 +500,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * 销毁某个区域下面的所有子vframes
      * @param {HTMLElement|String} [zoneId]节点对象或id
      */
-    unmountZone: function(zoneId /*,keepPreHTML*/ , inner) {
+    unmountZone: function(zoneId /*,keepPreHTML , inner*/ ) {
         var me = this;
         var p;
         var cm = me.$c;
@@ -516,7 +509,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 me.unmountVframe(p /*,keepPreHTML,*/ , 1);
             }
         }
-        if (!inner) Vframe_NotifyCreated(me);
+        //if (!inner) Vframe_NotifyCreated(me);
     } /*#if(modules.linkage){#*/ ,
     /**
      * 获取父vframe

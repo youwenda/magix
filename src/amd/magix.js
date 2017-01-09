@@ -2,12 +2,18 @@
     author:xinglie.lkf@taobao.com
  */
 define('magix', ['$'], function($) {
+    var G_NOOP = $.noop;
     var G_Require = function(name, fn) {
         if (name) {
-            if (!G_IsArray(name)) {
-                name = [name];
+            if (G_IsArray(name)) {
+                require(name, fn);
+            } else {
+                try {
+                    fn(require(name));//获取过的直接返回
+                } catch (e) {
+                    require([name], fn);
+                }
             }
-            require(name, fn);
         } else if (fn) {
             fn();
         }
@@ -50,11 +56,13 @@ define('magix', ['$'], function($) {
     Inc('../tmpl/event');
     var Router_Edge;
     /*#if(modules.router){#*/
+    var G_IsFunction = $.isFunction;
     /*#if(!modules.forceEdgeRouter){#*/
+    var Router_Hashbang = G_HashKey + '!';
     var Router_Update = function(path, params, loc, replace, lQuery) {
         path = G_ToUri(path, params, lQuery);
         if (path != loc.srcHash) {
-            path = '#!' + path;
+            path = Router_Hashbang + path;
             if (replace) {
                 Router_WinLoc.replace(path);
             } else {
@@ -65,28 +73,28 @@ define('magix', ['$'], function($) {
     /*#if(modules.tiprouter){#*/
     var Router_Bind = function() {
         var lastHash = Router.parse().srcHash;
-        var newHash;
+        var newHash, suspend;
         $(G_WINDOW).on('hashchange', function(e, loc) {
+            if (suspend) return;
             loc = Router.parse();
             newHash = loc.srcHash;
             if (newHash != lastHash) {
                 e = {
                     backward: function() {
-                        e.p = 1;
-                        Router_WinLoc.hash = '#!' + lastHash;
+                        suspend = G_EMPTY;
+                        Router_WinLoc.hash = Router_Hashbang + lastHash;
                     },
                     forward: function() {
-                        e.p = 1;
                         lastHash = newHash;
+                        suspend = G_EMPTY;
                         Router.diff();
                     },
                     prevent: function() {
-                        e.p = 1;
-                    },
-                    location: loc
+                        suspend = 1;
+                    }
                 };
                 Router.fire('change', e);
-                if (!e.p) {
+                if (!suspend) {
                     e.forward();
                 }
             }
@@ -127,30 +135,29 @@ define('magix', ['$'], function($) {
         var Router_Bind = function() {
             var initialURL = Router_WinLoc.href;
             var lastHref = initialURL;
-            var newHref;
+            var newHref, suspend;
             $(G_WINDOW).on('popstate', function(e) {
                 newHref = Router_WinLoc.href;
                 var initPop = !Router_DidUpdate && newHref == initialURL;
                 Router_DidUpdate = 1;
-                if (initPop) return;
+                if (initPop || suspend) return;
                 if (newHref != lastHref) {
                     e = {
                         backward: function() {
-                            e.p = 1;
+                            suspend = G_EMPTY;
                             history.replaceState(G_NULL, G_NULL, lastHref);
                         },
                         forward: function() {
-                            e.p = 1;
                             lastHref = newHref;
+                            suspend = G_EMPTY;
                             Router.diff();
                         },
                         prevent: function() {
-                            e.p = 1;
-                        },
-                        location: Router.parse()
+                            suspend = 1;
+                        }
                     };
                     Router.fire('change', e);
-                    if (!e.p) {
+                    if (!suspend) {
                         e.forward();
                     }
                 }

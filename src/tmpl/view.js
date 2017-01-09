@@ -209,7 +209,7 @@ var View = function(ops, me) {
     G_ToTry(View_Ctors, ops, me);
     /*#}#*/
     /*#if(modules.updater){#*/
-    me.$updater = new Updater(me);
+    me.$updater = new Updater(me.id);
     /*#}#*/
 };
 var ViewProto = View[G_PROTOTYPE];
@@ -385,7 +385,7 @@ G_Mix(G_Mix(ViewProto, Event), {
     beginUpdate: function(id, me) {
         me = this;
         if (me.$s > 0 && me.$p) {
-            me.owner.unmountZone(id, 1);
+            me.owner.unmountZone(id /*, 1*/ );
             // me.fire('prerender', {
             //     id: id
             // });
@@ -538,6 +538,14 @@ G_Mix(G_Mix(ViewProto, Event), {
     /*#}#*/
     /*#if(modules.tiprouter){#*/
     /**
+     * 离开提示实现
+     * @param  {String} msg 提示消息
+     * @param  {Object} e 事件对象
+     */
+    //leaveConfirm: function(msg, e) {
+        //
+    //},
+    /**
      * 离开提示
      * @param  {String} msg 提示消息
      * @param  {Function} fn 是否提示的回调
@@ -557,23 +565,14 @@ G_Mix(G_Mix(ViewProto, Event), {
         var me = this;
         var changeListener = function(e) {
             e.prevent();
-            if (!me.$tipped) {
-                if (fn.call(me)) { //firefox的confirm可以同时有多个
-                    me.$tipped = true;
-                    if (window.confirm(msg)) {
-                        me.$tipped = false;
-                        e.forward();
-                    } else {
-                        me.$tipped = false;
-                        e.backward();
-                    }
-                } else {
-                    e.forward();
-                }
+            if (fn()) {
+                me.leaveConfirm(msg, e);
+            } else {
+                e.forward();
             }
         };
         var unloadListener = function(e) {
-            if (fn.call(me)) {
+            if (fn()) {
                 e.msg = msg;
             }
         };

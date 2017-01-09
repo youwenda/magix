@@ -25,16 +25,17 @@ var Router_TrimQueryReg = /^[^#]*#?!?/;
 //     return r;
 // };
 
-var Router_PNR_Routers, Router_PNR_UnmatchView, /*Router_PNR_IsFun, */ Router_PNR_DefaultView, Router_PNR_DefaultPath;
-var Router_AttachViewAndPath = function(loc) {
+var Router_PNR_Routers, Router_PNR_UnmatchView, Router_PNR_IsFun,
+    Router_PNR_DefaultView, Router_PNR_DefaultPath;
+var Router_AttachViewAndPath = function(loc, view) {
     //var result;
     if (!Router_PNR_Routers) {
         Router_PNR_Routers = Magix_Cfg.routes || {};
         Router_PNR_UnmatchView = Magix_Cfg.unmatchView;
         Router_PNR_DefaultView = Magix_Cfg.defaultView;
         Router_PNR_DefaultPath = Magix_Cfg.defaultPath || Magix_SLASH;
-        //Router_PNR_IsFun = G_IsFunction(Router_PNR_Routers);
-        if ( /*!Router_PNR_IsFun && */ !Router_PNR_Routers[Router_PNR_DefaultPath]) {
+        Router_PNR_IsFun = G_IsFunction(Router_PNR_Routers);
+        if (!Router_PNR_IsFun && !Router_PNR_Routers[Router_PNR_DefaultPath]) {
             Router_PNR_Routers[Router_PNR_DefaultPath] = Router_PNR_DefaultView;
         }
     }
@@ -44,14 +45,14 @@ var Router_AttachViewAndPath = function(loc) {
         /*#}else{#*/
         var path = loc.hash[Router_PATH] || (Router_Edge && loc.query[Router_PATH]) || Router_PNR_DefaultPath;
         /*#}#*/
-        //if (!path) path = Router_PNR_DefaultPath;
-        // if (Router_PNR_IsFun) {
-        //     result = Router_PNR_Routers.call(Magix_Cfg, path, loc);
-        // } else {
-        //result = Router_PNR_Routers[path]; //简单的在映射表中找
-        //}
+
+        if (Router_PNR_IsFun) {
+            view = Router_PNR_Routers.call(Magix_Cfg, path, loc);
+        } else {
+            view = Router_PNR_Routers[path] || Router_PNR_UnmatchView || Router_PNR_DefaultView;
+        }
         loc[Router_PATH] = path;
-        loc[Router_VIEW] = Router_PNR_Routers[path] || Router_PNR_UnmatchView || Router_PNR_DefaultView;
+        loc[Router_VIEW] = view;
     }
 };
 
@@ -65,7 +66,7 @@ var Router_GetChged = function(oldLocation, newLocation) {
         result = {
             //isParam: Router_IsParam,
             //location: newLocation,
-            force: !oldLocation.href //是否强制触发的changed，对于首次加载会强制触发一次
+            force: !oKey //是否强制触发的changed，对于首次加载会强制触发一次
         };
         //result[Router_VIEW] = to;
         //result[Router_PATH] = to;

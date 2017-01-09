@@ -28,11 +28,13 @@ var Event = {
             while (end--) {
                 idx = lastToFirst ? end : len - end;
                 t = list[idx];
-                if (t.d) {
+                if (t.f) {
+                    t.x = 1;
+                    G_ToTry(t.f, data, me);
+                    t.x = G_EMPTY;
+                } else if (!t.x) {
                     list.splice(idx, 1);
                     len--;
-                } else {
-                    G_ToTry(t.f, data, me);
                 }
             }
         }
@@ -80,8 +82,8 @@ var Event = {
                 i = list.length;
                 while (i--) {
                     t = list[i];
-                    if (t.f == fn && !t.d) {
-                        t.d = 1;
+                    if (t.f == fn) {
+                        t.f = G_EMPTY;
                         break;
                     }
                 }

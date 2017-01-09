@@ -103,6 +103,9 @@ var Body_DOMEventProcessor = function(e) {
             arr.push(current);
         }
         current = current[Body_ParentNode] || G_DOCBODY;
+        if (current.id == vId) { //经过vframe时，target为vframe节点
+            e.target = current;
+        }
     }
     while ((current = arr.pop())) {
         ignore = current.$ || (current.$ = {});

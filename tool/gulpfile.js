@@ -20,7 +20,6 @@ var modules = {
   edgeRouter: 1, //使用pushState
   collectView: 1, //收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
   layerVframe: 1, //父子化同一个view中嵌套存在的vframe
-  tmplObject: 1, //模板是否为对象，内置支持子模板，需要对源字符串进行拆分成html和subs
   updaterSetState: 1, //updater是否由用户指定更新。即用户指定什么就更新什么，不管值有没有改变
   forceEdgeRouter: 1, //强制使用pushState
   serviceCombine: 1, //接口combine
@@ -39,13 +38,12 @@ var modules = {
   router: 1, //路由模块
   resource: 1, //资源管理,不建议使用了,用wrapAsync足够了
   configIni: 1, //是否有ini配置文件
-  mxOptions: 1, //支持节点上添加mx-options属性
   nodeAttachVframe: 1, //节点上挂vframe对象
   mxInit: 1, //支持直接获取数据
   viewMerge: 1 //view是否提供merge方法供扩展原型链对象
 };
 var type = 'cmd'; //打包kissy则type='kissy'
-var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge';
+var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter';
 //coreModules='magix,event,vframe,body,view,tmpl,updater,core,viewInit,autoEndUpdate';
 //loaderModules='loader,magix,event,vframe';
 
