@@ -1901,7 +1901,7 @@ var Tmpl = function(text, data) {
     var Updater_HolderReg = /\u001f/g;
 var Updater_ContentReg = /\u001f(\d+)\u001f/g;
 var Updater_AttrReg = /([\w\-]+)(?:=(["'])([\s\S]+?)\2)?/g;
-var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, updateAttrs, updateTmpl,viewId) {
+var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, updateAttrs, updateTmpl, viewId) {
     var id = node.id || (node.id = G_Id());
     if (!updatedNodes[id]) {
         //console.time('update:' + id);
@@ -1917,22 +1917,22 @@ var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, upd
             for (var i = one.attrs.length - 1, a, n, old, now; i >= 0; i--) {
                 a = one.attrs[i];
                 n = a.n;
-                old = a.p ? node[n] : node.getAttribute(n);
-                now = nowAttrs[n];
-                if (old != now) {
-                    if (a.p) {
-                        node[n] = a.b ? G_Has(nowAttrs, n) : now;
-                    } else if (now) {
-                        node.setAttribute(n, now);
-                    } else {
-                        node.removeAttribute(n);
-                    }
-                    if (a.v) {
-                        hasMagixView = 1;
-                        viewValue = nowAttrs[n];
+                if (a.v) {
+                    hasMagixView = 1;
+                    viewValue = nowAttrs[n];
+                } else {
+                    old = a.p ? node[n] : node.getAttribute(n);
+                    now = nowAttrs[n];
+                    if (old != now) {
+                        if (a.p) {
+                            node[n] = a.b ? G_Has(nowAttrs, n) : now;
+                        } else if (now) {
+                            node.setAttribute(n, now);
+                        } else {
+                            node.removeAttribute(n);
+                        }
                     }
                 }
-
             }
         }
         if (hasMagixView) {
@@ -2000,7 +2000,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         var nodes = $(one.path.replace(Updater_HolderReg, selfId));
                         q = 0;
                         while (q < nodes.length) {
-                            Updater_UpdateNode(nodes[q++], view, updatedNodes, one, renderData, updateAttrs, updateTmpl,selfId);
+                            Updater_UpdateNode(nodes[q++], view, updatedNodes, one, renderData, updateAttrs, updateTmpl, selfId);
                         }
                     }
                 }

@@ -42,7 +42,7 @@ var modules = {
   mxInit: 1, //支持直接获取数据
   viewMerge: 1 //view是否提供merge方法供扩展原型链对象
 };
-var type = 'cmd'; //打包kissy则type='kissy'
+var type = 'kissy'; //打包kissy则type='kissy'
 var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter';
 //coreModules='magix,event,vframe,body,view,tmpl,updater,core,viewInit,autoEndUpdate';
 //loaderModules='loader,magix,event,vframe';
