@@ -3,6 +3,7 @@ var uglify = require('gulp-uglify');
 var fs = require('fs');
 var path = require('path');
 var rename = require('gulp-rename');
+var header = require('gulp-header');
 var tmpl = require('./lib/tmpl');
 var doc = require('./lib/doc');
 var pkg = require('../package.json');
@@ -23,11 +24,10 @@ var modules = {
   updaterSetState: 1, //updater是否由用户指定更新。即用户指定什么就更新什么，不管值有没有改变
   forceEdgeRouter: 1, //强制使用pushState
   serviceCombine: 1, //接口combine
-  tmpl: 1,
-  updater: 1,
+  updater: 1, //自动更新
   viewProtoMixins: 1, //支持mixins
   share: 1, //向子或孙view公开数据
-  core: 1,
+  core: 1, //核心模块
   autoEndUpdate: 1, //自动识别并结束更新。针对没有tmpl属性的view自动识别并结束更新
   linkage: 1, //vframe上是否带父子间调用的方法，通常在移动端并不需要
   base: 1, //base模块
@@ -36,16 +36,18 @@ var modules = {
   service: 1, //接口服务
   serviceWithoutPromise: 1, //不使用promise接口
   router: 1, //路由模块
-  resource: 1, //资源管理,不建议使用了,用wrapAsync足够了
+  resource: 1, //资源管理
   configIni: 1, //是否有ini配置文件
   nodeAttachVframe: 1, //节点上挂vframe对象
-  mxInit: 1, //支持直接获取数据
+  mxInit: 1, //支持mx-init获取数据
   viewMerge: 1 //view是否提供merge方法供扩展原型链对象
 };
-var type = 'kissy'; //打包kissy则type='kissy'
-var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter';
+var type = 'cmd'; //打包kissy则type='kissy'
+var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState';
 //coreModules='magix,event,vframe,body,view,tmpl,updater,core,viewInit,autoEndUpdate';
 //loaderModules='loader,magix,event,vframe';
+//var type = 'webpack';
+//var enableModules = 'magix,event,vframe,body,view,share,autoEndUpdate,linkage,base,viewInit,service,serviceWithoutPromise,router,resource,nodeAttachVframe,viewMerge';
 
 var copyFile = function(from, to, callback) {
   var folders = path.dirname(to).split(sep);
@@ -85,7 +87,7 @@ gulp.task('combine', function() {
     var header = '/*\r\nversion:' + pkg.version;
     header += '\r\nloader:' + type;
     header += '\r\nmodules:' + enableModules;
-    header += '\r\nothers:' + others;
+    header += '\r\n\r\nothers:' + others;
     header += '\r\n*/\r\n';
     return tmpl(header + content, map);
   });
@@ -112,13 +114,15 @@ gulp.task('combine', function() {
 gulp.task('compress', function() {
   gulp.src('../dist/' + type + '/magix-debug.js')
     .pipe(uglify({
-      banner: '/*' + pkg.version + ' Licensed MIT*/',
       compress: {
         drop_console: true
       },
       output: {
         ascii_only: true
       }
+    }))
+    .pipe(header('/*<%=ver%> Licensed MIT*/', {
+      ver: pkg.version
     }))
     .pipe(rename('magix.js'))
     .pipe(gulp.dest('../dist/' + type + '/'));

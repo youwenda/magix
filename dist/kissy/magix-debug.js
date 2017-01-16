@@ -1,8 +1,9 @@
 /*
-version:3.1.6
+version:3.1.7
 loader:kissy
-modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter
-others:cnum,ceach,viewRelate,edgeRouter,collectView,layerVframe,updaterSetState,forceEdgeRouter,serviceCombine,viewProtoMixins,mxInit
+modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState
+
+others:cnum,ceach,viewRelate,edgeRouter,collectView,layerVframe,forceEdgeRouter,serviceCombine,viewProtoMixins,mxInit
 */
 /**
  * @fileOverview Magix全局对象
@@ -2041,7 +2042,7 @@ var Updater = function(viewId) {
     me.$i = viewId;
     me.$data = {};
     
-    me.$json = {};
+    me.$keys = {};
     
 };
 var UP = Updater.prototype;
@@ -2088,7 +2089,11 @@ G_Mix(UP, {
     set: function(obj) {
         var me = this;
         
-        G_Mix(me.$data, obj);
+        for (var p in obj) {
+            me.$u = 1;
+            me.$keys[p] = 1;
+            me.$data[p] = obj[p];
+        }
         
         return me;
     },
@@ -2107,24 +2112,8 @@ G_Mix(UP, {
         var data = me.$data;
         var changed, keys;
         
-        keys = {};
-        var json = me.$json;
-        var val, key, valJSON, lchange;
-        for (key in data) {
-            val = data[key];
-            lchange = 0;
-            valJSON = JSONStringify(val);
-            if (!G_Has(json, key)) {
-                json[key] = valJSON;
-                lchange = 1;
-            } else {
-                lchange = valJSON != json[key];
-                json[key] = valJSON;
-            }
-            if (lchange) {
-                keys[key] = changed = 1;
-            }
-        }
+        changed = me.$u;
+        keys = me.$keys;
         
         Updater_UpdateDOM(me, changed, keys, data);
         if (changed) {
@@ -2133,6 +2122,9 @@ G_Mix(UP, {
             });
             delete me.$lss;
         }
+        
+        me.$u = 0;
+        me.$keys = {};
         
         return me;
     },

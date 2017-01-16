@@ -1,8 +1,8 @@
 {
   "name": "magix",
-  "version": "3.1.6",
+  "version": "3.1.7",
   "description": "view manager framewrok",
-  "main": "dist/cmd/magix-debug.js",
+  "main": "dist/webpack/magix-debug.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/thx/magix.git"
