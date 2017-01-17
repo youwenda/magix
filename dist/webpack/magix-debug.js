@@ -1,15 +1,21 @@
 /*
-version:3.1.7
+version:3.1.8
 loader:webpack
-modules:magix,event,vframe,body,view,share,autoEndUpdate,linkage,base,viewInit,service,serviceWithoutPromise,router,resource,nodeAttachVframe,viewMerge
+modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState
 
-others:cnum,ceach,tiprouter,viewRelate,edgeRouter,collectView,layerVframe,updaterSetState,forceEdgeRouter,serviceCombine,updater,viewProtoMixins,core,style,configIni,mxInit
+others:cnum,ceach,viewRelate,edgeRouter,collectView,layerVframe,forceEdgeRouter,serviceCombine,viewProtoMixins,mxInit
 */
 module.exports = (function() {
     var $ = require('$');
     var G_NOOP = $.noop;
+    
+    var coreDefaultView;
+    
     var G_Require = function(name, fn) {
         var views = Magix_Cfg.views;
+        
+        if (!views[MxGlobalView]) views[MxGlobalView] = coreDefaultView;
+        
         fn(views[name]);
     };
     var T = function() {};
@@ -27,6 +33,23 @@ module.exports = (function() {
     var G_IsArray = $.isArray;
     var G_HTML = function(node, html) {
         $(node).html(html);
+    };
+    
+    var View_ApplyStyle = function(key, css, node, sheet) {
+        if (css && !View_ApplyStyle[key]) {
+            View_ApplyStyle[key] = 1;
+            node = $(G_HashKey + MxStyleGlobalId);
+            if (node.length) {
+                sheet = node.prop('styleSheet');
+                if (sheet) {
+                    sheet.cssText += css;
+                } else {
+                    node.append(css);
+                }
+            } else {
+                $('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
+            }
+        }
     };
     
     var G_COUNTER = 0;
@@ -58,9 +81,15 @@ var G_Id = function(prefix) {
     return (prefix || 'mx_') + G_COUNTER++;
 };
 
+var MxStyleGlobalId = G_Id();
+
+
+var MxGlobalView = G_Id();
 
 var Magix_Cfg = {
     rootId: G_Id(),
+    
+    defaultView: MxGlobalView,
     
     error: function(e) {
         throw e;
@@ -457,11 +486,17 @@ var Magix = {
     boot: function(cfg) {
         G_Mix(Magix_Cfg, cfg); //先放到配置信息中，供ini文件中使用
         
+        G_Require(Magix_Cfg.ini, function(I) {
+            G_Mix(Magix_Cfg, I);
+            G_Mix(Magix_Cfg, cfg);
+            
             G_Require(Magix_Cfg.exts, function() {
                 Router.on('changed', Vframe_NotifyLocationChange);
                 Router_Bind();
             });
             
+        });
+        
     },
     
     /**
@@ -676,6 +711,20 @@ var Magix = {
     node: G_GetById,
     
     /**
+     * 应用样式
+     * @beta
+     * @module style
+     * @param {String} prefix 样式的名称前缀
+     * @param {String} css 样式字符串
+     * @example
+     * // 该方法配合magix-combine工具使用
+     * // 更多信息可参考magix-combine工具：https://github.com/thx/magix-combine
+     * // 样式问题可查阅这里：https://github.com/thx/magix-combine/issues/6
+     *
+     */
+    applyStyle: View_ApplyStyle,
+    
+    /**
      * 返回全局唯一ID
      * @function
      * @param {String} [prefix] 前缀
@@ -803,7 +852,42 @@ Magix.Event = Event;
     };
     
     var Router_Bind = function() {
-        $(G_WINDOW).on('hashchange', Router.diff);
+        var lastHash = Router.parse().srcHash;
+        var newHash, suspend;
+        $(G_WINDOW).on('hashchange', function(e, loc) {
+            if (suspend) return;
+            loc = Router.parse();
+            newHash = loc.srcHash;
+            if (newHash != lastHash) {
+                e = {
+                    backward: function() {
+                        suspend = G_EMPTY;
+                        Router_WinLoc.hash = Router_Hashbang + lastHash;
+                    },
+                    forward: function() {
+                        lastHash = newHash;
+                        suspend = G_EMPTY;
+                        Router.diff();
+                    },
+                    prevent: function() {
+                        suspend = 1;
+                    }
+                };
+                Router.fire('change', e);
+                if (!suspend) {
+                    e.forward();
+                }
+            }
+        });
+        G_WINDOW.onbeforeunload = function(e) {
+            e = e || G_WINDOW.event;
+            var te = {};
+            Router.fire('pageunload', te);
+            if (te.msg) {
+                if (e) e.returnValue = te.msg;
+                return te.msg;
+            }
+        };
         Router.diff();
     };
     
@@ -1035,6 +1119,8 @@ Magix.Router = Router;
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
 
+
+var Vframe_ReadDataFlag = '~';
 
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
@@ -1285,6 +1371,19 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             view = po.path;
             sign = ++me.$s;
             var params = po.params;
+            
+            var parent = Vframe_Vframes[me.pId],
+                p, val;
+            parent = parent && parent.$v;
+            parent = parent && parent.$updater;
+            if (parent && viewPath.indexOf(G_SPLITER) > 0) {
+                for (p in params) {
+                    val = params[p];
+                    if (val.charAt(0) == G_SPLITER) {
+                        params[p] = parent.get(val);
+                    }
+                }
+            }
             
             G_Mix(params, viewInitParams);
             
@@ -1704,8 +1803,407 @@ var Body_DOMEventBind = function(type, remove) {
     }
     Body_RootEvents[type] = counter;
 };
+    var Tmpl_EscapeSlashRegExp = /\\|'/g;
+var Tmpl_EscapeBreakReturnRegExp = /\r|\n/g;
+var Tmpl_Mathcer = /<%([@=!])?([\s\S]+?)%>|$/g;
+var Tmpl_Compiler = function(text) {
+  // Compile the template source, escaping string literals appropriately.
+  var index = 0;
+  var source = "$p+='";
+  text.replace(Tmpl_Mathcer, function(match, operate, content, offset) {
+    source += text.slice(index, offset).replace(Tmpl_EscapeSlashRegExp, "\\$&").replace(Tmpl_EscapeBreakReturnRegExp, "\\n");
+    index = offset + match.length;
+
+    if (operate == "@") {
+      source += "'\n$s=$i();\n$p+=$s;\n$[$s]=" + content + ";\n$p+='";
+    } else if (operate == "=") {
+      source += "'+\n(($t=(" + content + "))==null?'':$e($t))+\n'";
+    } else if (operate == "!") {
+      source += "'+\n(($t=(" + content + "))==null?'':$t)+\n'";
+    } else if (content) {
+      source += "';\n" + content + "\n$p+='";
+    }
+    // Adobe VMs need the match returned to produce the correct offset.
+    return match;
+  });
+  source += "';\n";
+
+  // If a variable is not specified, place data values in local scope.
+  //source = "with($mx){\n" + source + "}\n";
+  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s;\n" + source + "return $p;\n";
+  /*jshint evil: true*/
+  return Function("$g", "$", source);
+};
+var Tmpl_Cache = new G_Cache();
+/**
+ * Tmpl模板编译方法，该方法主要配合Updater存在
+ * @name Tmpl
+ * @beta
+ * @module updater
+ * @constructor
+ * @param {String} text 模板字符串
+ * @param {Object} data 数据对象
+ * @example
+ * // 主要配合updater使用
+ * // html
+ * // &lt;div mx-keys="a"&gt;&lt;%=a%&gt;&lt;/div&gt;
+ * render:fucntion(){
+ *   this.$updater.set({
+ *     a:1
+ *   }).digest();
+ * }
+ * // 语法
+ * // <% 语句块 %> <%= 转义输出 %> <%! 原始输出 %> <%@ view参数%>
+ * // 示例
+ * // <%for(var i=0;i<10;i++){%>
+ * //   index:<%=i%>&lt;br /&gt;
+ * //   &lt;div mx-view="path/to/view?index=<%@i%>"&gt;&lt;/div&gt;
+ * // <%}%>
+ *
+ */
+var Tmpl = function(text, data) {
+  var fn = Tmpl_Cache.get(text);
+  if (!fn) {
+    fn = Tmpl_Compiler(text);
+    Tmpl_Cache.set(text, fn);
+  }
+  return fn(1, data);
+};
+    var Updater_HolderReg = /\u001f/g;
+var Updater_ContentReg = /\u001f(\d+)\u001f/g;
+var Updater_AttrReg = /([\w\-]+)(?:=(["'])([\s\S]+?)\2)?/g;
+var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, updateAttrs, updateTmpl, viewId) {
+    var id = node.id || (node.id = G_Id());
+    if (!updatedNodes[id]) {
+        //console.time('update:' + id);
+        updatedNodes[id] = 1;
+
+        var hasMagixView, viewValue, vf;
+        if (updateAttrs) {
+            var attr = Tmpl(one.attr, renderData);
+            var nowAttrs = {};
+            attr.replace(Updater_AttrReg, function(match, name, q, value) {
+                nowAttrs[name] = value;
+            });
+            for (var i = one.attrs.length - 1, a, n, old, now; i >= 0; i--) {
+                a = one.attrs[i];
+                n = a.n;
+                if (a.v) {
+                    hasMagixView = 1;
+                    viewValue = nowAttrs[n];
+                } else {
+                    old = a.p ? node[n] : node.getAttribute(n);
+                    now = nowAttrs[n];
+                    if (old != now) {
+                        if (a.p) {
+                            node[n] = a.b ? G_Has(nowAttrs, n) : now;
+                        } else if (now) {
+                            node.setAttribute(n, now);
+                        } else {
+                            node.removeAttribute(n);
+                        }
+                    }
+                }
+            }
+        }
+        if (hasMagixView) {
+            vf = Vframe_Vframes[id];
+            if (vf) {
+                vf[viewValue ? 'unmountView' : 'unmountVframe']();
+            }
+        }
+        if (updateTmpl) {
+            view.setHTML(id, Tmpl(one.tmpl, renderData).replace(Updater_HolderReg, viewId));
+        }
+        if (hasMagixView && viewValue) {
+            view.owner.mountVframe(id, viewValue);
+        }
+    }
+};
+var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
+    var vf = Vframe_Vframes[host.$i];
+    var view = vf && vf.$v;
+    if (!view) return;
+    var tmplObject = view.tmpl;
+    var tmpl = tmplObject.html;
+    var list = tmplObject.subs;
+    var selfId = view.id;
+    if (changed || !host.$rd) {
+        if (host.$rd && updateFlags && list) {
+            var updatedNodes = {},
+                keys;
+            var one, updateTmpl, updateAttrs;
+
+            for (var i = list.length - 1, update, q, mask, m; i >= 0; i--) { //keys
+                updateTmpl = 0;
+                updateAttrs = 0;
+                one = list[i];
+                update = 1;
+                mask = one.mask;
+                keys = one.pKeys;
+                if (keys) {
+                    q = keys.length;
+                    while (--q >= 0) {
+                        if (G_Has(updateFlags, keys[q])) {
+                            update = 0;
+                            break;
+                        }
+                    }
+                }
+                if (update) {
+                    keys = one.keys;
+                    q = keys.length;
+                    update = 0;
+                    while (--q >= 0) {
+                        if (G_Has(updateFlags, keys[q])) {
+                            update = 1;
+                            if (!mask || (updateTmpl && updateAttrs)) {
+                                updateTmpl = one.tmpl;
+                                updateAttrs = one.attr;
+                                break;
+                            }
+                            m = mask.charAt(q);
+                            updateTmpl = updateTmpl || m & 1;
+                            updateAttrs = updateAttrs || m & 2;
+                        }
+                    }
+                    if (update) {
+                        var nodes = $(one.path.replace(Updater_HolderReg, selfId));
+                        q = 0;
+                        while (q < nodes.length) {
+                            Updater_UpdateNode(nodes[q++], view, updatedNodes, one, renderData, updateAttrs, updateTmpl, selfId);
+                        }
+                    }
+                }
+            }
+        } else {
+            var map,
+                tmplment = function(m, guid) {
+                    return map[guid].tmpl;
+                },
+                x;
+            if (list) {
+                if (!list.$) { //process once
+                    list.$ = map = {};
+                    x = list.length;
+                    while (x > 0) {
+                        var s = list[--x];
+                        if (s.s) {
+                            map[s.s] = s;
+                            s.tmpl = s.tmpl.replace(Updater_ContentReg, tmplment);
+                            delete s.s;
+                        }
+                    }
+                }
+                map = list.$;
+            }
+            host.$rd = 1;
+            var str = tmpl.replace(Updater_ContentReg, tmplment);
+            view.setHTML(selfId, Tmpl(str, renderData).replace(Updater_HolderReg, selfId));
+        }
+    }
+};
+/*
+function observe(o, fn) {
+  function buildProxy(prefix, o) {
+    return new Proxy(o, {
+      set(target, property, value) {
+        // same as before, but add prefix
+        fn(prefix + property, value);
+        target[property] = value;
+      },
+      get(target, property) {
+        // return a new proxy if possible, add to prefix
+        let out = target[property];
+        if (out instanceof Object) {
+          return buildProxy(prefix + property + '.', out);
+        }
+        return out;  // primitive, ignore
+      },
+    });
+  }
+
+  return buildProxy('', o);
+}
+
+let x = {'model': {name: 'Falcon'}};
+let p = observe(x, function(property, value) { console.info(property, value) });
+p.model.name = 'Commodore';
+
+ */
+/**
+ * 使用mx-keys进行局部刷新的类
+ * @constructor
+ * @name Updater
+ * @class
+ * @beta
+ * @module updater
+ * @param {String} viewId Magix.View对象Id
+ * @borrows Event.on as #on
+ * @borrows Event.fire as #fire
+ * @borrows Event.off as #off
+ * @property {Object} $data 存放数据的对象
+ */
+var Updater = function(viewId) {
+    var me = this;
+    me.$i = viewId;
+    me.$data = {};
     
+    me.$keys = {};
     
+};
+var UP = Updater.prototype;
+G_Mix(UP, Event);
+G_Mix(UP, {
+    /**
+     * @lends Updater#
+     */
+    /**
+     * 获取放入的数据
+     * @param  {String} [key] key
+     * @return {Object} 返回对应的数据，当key未传递时，返回整个数据对象
+     * @example
+     * render: function() {
+     *     this.$updater.set({
+     *         a: 10,
+     *         b: 20
+     *     });
+     * },
+     * 'read&lt;click&gt;': function() {
+     *     console.log(this.$updater.get('a'));
+     * }
+     */
+    get: function(key) {
+        var result = this.$data;
+        if (key) result = result[key];
+        return result;
+    },
+    /**
+     * 获取放入的数据
+     * @param  {Object} obj 待放入的数据
+     * @return {Updater} 返回updater
+     * @example
+     * render: function() {
+     *     this.$updater.set({
+     *         a: 10,
+     *         b: 20
+     *     });
+     * },
+     * 'read&lt;click&gt;': function() {
+     *     console.log(this.$updater.get('a'));
+     * }
+     */
+    set: function(obj) {
+        var me = this;
+        
+        for (var p in obj) {
+            me.$u = 1;
+            me.$keys[p] = 1;
+            me.$data[p] = obj[p];
+        }
+        
+        return me;
+    },
+    /**
+     * 检测数据变化，更新界面，放入数据后需要显式调用该方法才可以把数据更新到界面
+     * @example
+     * render: function() {
+     *     this.$updater.set({
+     *         a: 10,
+     *         b: 20
+     *     }).digest();
+     * }
+     */
+    digest: function() {
+        var me = this;
+        var data = me.$data;
+        var changed, keys;
+        
+        changed = me.$u;
+        keys = me.$keys;
+        
+        Updater_UpdateDOM(me, changed, keys, data);
+        if (changed) {
+            me.fire('changed', {
+                keys: keys
+            });
+            delete me.$lss;
+        }
+        
+        me.$u = 0;
+        me.$keys = {};
+        
+        return me;
+    },
+    /**
+     * 获取当前数据状态的快照，配合altered方法可获得数据是否有变化
+     * @return {Updater} 返回updater
+     * @example
+     * render: function() {
+     *     this.$updater.set({
+     *         a: 20,
+     *         b: 30
+     *     }).digest().snapshot(); //更新完界面后保存快照
+     * },
+     * 'save&lt;click&gt;': function() {
+     *     //save to server
+     *     console.log(this.$updater.altered()); //false
+     *     this.$updater.set({
+     *         a: 20,
+     *         b: 40
+     *     });
+     *     console.log(this.$updater.altered()); //true
+     *     this.$updater.snapshot(); //再保存一次快照
+     *     console.log(this.$updater.altered()); //false
+     * }
+     */
+    snapshot: function() {
+        var me = this,
+            d = me.$data;
+        me.$ss = JSONStringify(d);
+        return me;
+    },
+    /**
+     * 检测数据是否有变动
+     * @return {Boolean} 是否变动
+     * @example
+     * render: function() {
+     *     this.$updater.set({
+     *         a: 20,
+     *         b: 30
+     *     }).digest().snapshot(); //更新完界面后保存快照
+     * },
+     * 'save&lt;click&gt;': function() {
+     *     //save to server
+     *     console.log(this.$updater.altered()); //false
+     *     this.$updater.set({
+     *         a: 20,
+     *         b: 40
+     *     });
+     *     console.log(this.$updater.altered()); //true
+     *     this.$updater.snapshot(); //再保存一次快照
+     *     console.log(this.$updater.altered()); //false
+     * }
+     */
+    altered: function() {
+        var me = this,
+            d = me.$data;
+        if (me.$ss) { //存在快照
+            // if (!me.$lss) me.$lss = JSONStringify(d); //不存在比较的快照，生成
+            return me.$ss != JSONStringify(d); //比较2次快照是否一样
+        }
+        return 1;
+    }
+
+
+    /**
+     * 当数据有变化且调用digest更新时触发
+     * @name Updater#changed
+     * @event
+     * @param {Object} e
+     * @param {String} e.keys 指示哪些key被更新
+     */
+});
     
 
     var View_EvtMethodReg = /^(\$?)([^<]+)<([^>]+)>$/;
@@ -1766,6 +2264,13 @@ var View_DelegateEvents = function(me, destroy) {
         });
     }
 };
+
+// var View_Style_Map;
+// var View_Style_Key;
+// var View_Style_Reg = /(\.)([\w\-]+)(?=[^\{\}]*?\{)/g;
+// var View_Style_Processor = function(m, dot, name) {
+//     return dot + (View_Style_Map[name] = View_Style_Key + name);
+// };
 
 //
 //console.log((a=r.responseText).replace(/(\.)([\w\-]+)(?=[^\{\}]*?\{)/g,function(m,k,v){console.log(m);o[v]=v+'0';return k+v+'0'}));
@@ -1911,6 +2416,8 @@ var View = function(ops, me) {
     
     G_ToTry(View_Ctors, ops, me);
     
+    
+    me.$updater = new Updater(me.id);
     
 };
 var ViewProto = View[G_PROTOTYPE];
@@ -2198,6 +2705,53 @@ G_Mix(G_Mix(ViewProto, Event), {
         return View_DestroyResource(this.$r, key, destroy);
     },
     
+    
+    /**
+     * 离开提示实现
+     * @param  {String} msg 提示消息
+     * @param  {Object} e 事件对象
+     */
+    //leaveConfirm: function(msg, e) {
+        //
+    //},
+    /**
+     * 离开提示
+     * @param  {String} msg 提示消息
+     * @param  {Function} fn 是否提示的回调
+     * @beta
+     * @module tiprouter
+     * @example
+     * var Magix = require('magix');
+     * module.exports = Magix.View.extend({
+     *     init:function(){
+     *         this.leaveTip('页面数据未保存，确认离开吗？',function(){
+     *             return true;//true提示，false，不提示
+     *         });
+     *     }
+     * });
+     */
+    leaveTip: function(msg, fn) {
+        var me = this;
+        var changeListener = function(e) {
+            e.prevent();
+            if (fn()) {
+                me.leaveConfirm(msg, e);
+            } else {
+                e.forward();
+            }
+        };
+        var unloadListener = function(e) {
+            if (fn()) {
+                e.msg = msg;
+            }
+        };
+        Router.on('change', changeListener);
+        Router.on('pageunload', unloadListener);
+        me.on('destroy', function() {
+            Router.off('change', changeListener);
+            Router.off('pageunload', unloadListener);
+        });
+    },
     
     
     /**
@@ -3023,6 +3577,11 @@ Magix.Service = Service;
      * t.hi();
      */
     Magix.Base = G_NOOP;
+    
+    
+    coreDefaultView = View.extend(
+        
+    );
     
     return Magix;
 })();

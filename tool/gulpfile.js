@@ -46,8 +46,6 @@ var type = 'cmd'; //打包kissy则type='kissy'
 var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState';
 //coreModules='magix,event,vframe,body,view,tmpl,updater,core,viewInit,autoEndUpdate';
 //loaderModules='loader,magix,event,vframe';
-//var type = 'webpack';
-//var enableModules = 'magix,event,vframe,body,view,share,autoEndUpdate,linkage,base,viewInit,service,serviceWithoutPromise,router,resource,nodeAttachVframe,viewMerge';
 
 var copyFile = function(from, to, callback) {
   var folders = path.dirname(to).split(sep);

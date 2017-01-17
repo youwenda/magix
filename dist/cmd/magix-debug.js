@@ -1,5 +1,5 @@
 /*
-version:3.1.7
+version:3.1.8
 loader:cmd
 modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState
 

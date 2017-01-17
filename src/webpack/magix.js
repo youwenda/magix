@@ -1,8 +1,14 @@
 module.exports = (function() {
     var $ = require('$');
     var G_NOOP = $.noop;
+    /*#if(modules.core){#*/
+    var coreDefaultView;
+    /*#}#*/
     var G_Require = function(name, fn) {
         var views = Magix_Cfg.views;
+        /*#if(modules.core){#*/
+        if (!views[MxGlobalView]) views[MxGlobalView] = coreDefaultView;
+        /*#}#*/
         fn(views[name]);
     };
     var T = function() {};
@@ -248,6 +254,17 @@ module.exports = (function() {
      * t.hi();
      */
     Magix.Base = G_NOOP;
+    /*#}#*/
+    /*#if(modules.core){#*/
+    coreDefaultView = View.extend(
+        /*#if(!modules.autoEndUpdate){#*/
+        {
+            render: function() {
+                this.endUpdate();
+            }
+        }
+        /*#}#*/
+    );
     /*#}#*/
     return Magix;
 })();
