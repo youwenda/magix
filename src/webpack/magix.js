@@ -48,7 +48,7 @@ module.exports = (function() {
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
     var Router_Edge;
-    /*#if(modules.router){#*/
+    /*#if(modules.router||modules.updater){#*/
     var G_IsFunction = $.isFunction;
     /*#if(!modules.forceEdgeRouter){#*/
     var Router_Hashbang = G_HashKey + '!';

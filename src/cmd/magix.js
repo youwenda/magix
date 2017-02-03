@@ -76,7 +76,7 @@ define('magix', ['$'], function(require) {
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
     var Router_Edge;
-    /*#if(modules.router){#*/
+    /*#if(modules.router||modules.updater){#*/
     var G_IsFunction = $.isFunction;
     /*#if(!modules.forceEdgeRouter){#*/
     var Router_Hashbang = G_HashKey + '!';
@@ -205,6 +205,7 @@ define('magix', ['$'], function(require) {
     Inc('../tmpl/vframe');
     var Body_DOMGlobalProcessor = function(e, d) {
         d = e.data;
+        e.eventTarget=e.currentTarget;
         G_ToTry(d.f, e, d.v);
     };
     /*#if(!modules.loader){#*/

@@ -1,4 +1,8 @@
 var View_EvtMethodReg = /^(\$?)([^<]+)<([^>]+)>$/;
+var View_ScopeReg = /\u001f/g;
+var View_SetEventOwner = function(str, id) {
+    return (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
+};
 //var View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 /*#if(modules.resource){#*/
 var View_DestroyAllResources = function(me, lastly) {
@@ -109,7 +113,10 @@ var View_Prepare = function(oView) {
                         });
                     } else {
                         eventsObject[item] = 1;
-                        prop[selectorOrCallback + G_SPLITER + item] = oldFun;
+                        item = selectorOrCallback + G_SPLITER + item;
+                        if (!prop[item]) { //for in 就近遍历，如果有则忽略
+                            prop[item] = oldFun;
+                        }
                     }
                 }
             }
@@ -205,11 +212,11 @@ var View = function(ops, me) {
     me.$r = {};
     /*#}#*/
     me.$s = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
-    /*#if(modules.viewMerge){#*/
-    G_ToTry(View_Ctors, ops, me);
-    /*#}#*/
     /*#if(modules.updater){#*/
     me.$updater = new Updater(me.id);
+    /*#}#*/
+    /*#if(modules.viewMerge){#*/
+    G_ToTry(View_Ctors, ops, me);
     /*#}#*/
 };
 var ViewProto = View[G_PROTOTYPE];
@@ -308,7 +315,7 @@ G_Mix(View, {
                 o = mixins[i];
                 ctor = o.ctor;
                 if (ctor) ctors.push(ctor);
-                G_Mix(props, ctor);
+                G_Mix(props, o);
             }
         }
         /*#}#*/
@@ -334,50 +341,26 @@ G_Mix(G_Mix(ViewProto, Event), {
      */
     init: G_NOOP,
     /*#}#*/
-    /*#if(modules.viewRelate){#*/
-    /**
-     * 将当前view与某个节点关联，当dom节点不属于当前view范围内时有用
-     * @param  {HTMLElement} node dom节点对象
-     * @beta
-     * @module viewRelate
+    /*
+     * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^test<prevent>({key:'field})"，以方便识别交由哪个view处理
+     * @function
+     * @param {String} html 处理的代码片断
+     * @param {Boolean} [onlyAddPrefix] 是否只添加前缀
+     * @return {String} 处理后的字符串
      * @example
-     * // 如果一个view创建出了一段html并把它塞到了body下，而里面的事件等需要这个view处理，则可以这样关联
-     * view.relate('nodeId');
+     * View.extend({
+     *     'del&lt;click&gt;':function(e){
+     *         S.one(G_HashKey+e.currentId).remove();
+     *     },
+     *     'addNode&lt;click&gt;':function(e){
+     *         var tmpl='&lt;div mx-click="del"&gt;delete&lt;/div&gt;';
+     *         //因为tmpl中有mx-click，因此需要下面这行代码进行处理一次
+     *         tmpl=this.wrapEvent(tmpl);
+     *         S.one(G_HashKey+e.currentId).append(tmpl);
+     *     }
+     * });
      */
-    relate: function(node, me) {
-        node = G_GetById(node);
-        if (node) {
-            me = this;
-            Body_ViewRelateInfo[(node.id || (node.id = G_Id()))] = me.owner;
-            me.on('destroy', function() {
-                delete Body_ViewRelateInfo[node.id];
-            });
-        }
-    },
-    /*#}#*/
-    // *
-    //  * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^test<prevent>({key:'field})"，以方便识别交由哪个view处理
-    //  * @function
-    //  * @param {String} html 处理的代码片断
-    //  * @param {Boolean} [onlyAddPrefix] 是否只添加前缀
-    //  * @return {String} 处理后的字符串
-    //  * @example
-    //  * View.extend({
-    //  *     'del&lt;click&gt;':function(e){
-    //  *         S.one(G_HashKey+e.currentId).remove();
-    //  *     },
-    //  *     'addNode&lt;click&gt;':function(e){
-    //  *         var tmpl='&lt;div mx-click="del"&gt;delete&lt;/div&gt;';
-    //  *         //因为tmpl中有mx-click，因此需要下面这行代码进行处理一次
-    //  *         tmpl=this.wrapEvent(tmpl);
-    //  *         S.one(G_HashKey+e.currentId).append(tmpl);
-    //  *     }
-    //  * });
-    //  * //注意，只有动态添加的节点才需要处理
-
-    // wrapEvent: function(html) {
-    //     return (html + G_EMPTY).replace(View_MxEvt, '$&' + this.id + G_SPLITER);
-    // },
+    wrapEvent: View_SetEventOwner,
     /**
      * 通知当前view即将开始进行html的更新
      * @param {String} [id] 哪块区域需要更新，默认整个view
@@ -408,7 +391,11 @@ G_Mix(G_Mix(ViewProto, Event), {
             /*#if(modules.linkage){#*/
             o = me.owner;
             o.mountZone(id);
-            if (!f) Vframe_RunInvokes(o);
+            if (!f) {
+                setTimeout(function() {
+                    Vframe_RunInvokes(o);
+                }, 0);
+            }
             /*#}else{#*/
             me.owner.mountZone(id);
             /*#}#*/
@@ -543,7 +530,7 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @param  {Object} e 事件对象
      */
     //leaveConfirm: function(msg, e) {
-        //
+    //
     //},
     /**
      * 离开提示
@@ -646,7 +633,7 @@ G_Mix(G_Mix(ViewProto, Event), {
         me.beginUpdate(id);
         if (me.$s > 0) {
             n = G_GetById(id);
-            if (n) G_HTML(n, html);
+            if (n) G_HTML(n, View_SetEventOwner(html, me.id));
         }
         me.endUpdate(id);
     }

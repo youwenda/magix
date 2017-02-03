@@ -1,9 +1,9 @@
 /*
-version:3.1.8
+version:3.1.9
 loader:cmd
 modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState
 
-others:cnum,ceach,viewRelate,edgeRouter,collectView,layerVframe,forceEdgeRouter,serviceCombine,viewProtoMixins,mxInit
+others:cnum,ceach,edgeRouter,collectView,forceEdgeRouter,serviceCombine,viewProtoMixins,mxInit
 */
 /*
     author:xinglie.lkf@taobao.com
@@ -149,6 +149,7 @@ var G_Mix = function(aim, src, p) {
 };
 
 var G_ToTry = function(fns, args, context, i, r, e) {
+    args = args || G_EMPTY_ARRAY;
     if (!G_IsArray(fns)) fns = [fns];
     if (!G_IsArray(args)) args = [args];
     for (i = 0; e = fns[i]; i++) {
@@ -936,7 +937,10 @@ var Router_LLoc = {
 var Router_LParams;
 var Router_TrimHashReg = /(?:^.*\/\/[^\/]+|#.*$)/gi;
 var Router_TrimQueryReg = /^[^#]*#?!?/;
-
+var GetParam = function(key, params) {
+    params = this[Router_PARAMS];
+    return params[key] || G_EMPTY;
+};
 // var Router_IsParam = function(params, r, ps) {
 //     if (params) {
 //         ps = this[Router_PARAMS];
@@ -1057,6 +1061,7 @@ var Router = G_Mix({
             G_Mix(params, hashObj[Router_PARAMS])
                 
             result = {
+                get: GetParam,
                 href: href,
                 srcQuery: query,
                 srcHash: hash,
@@ -1147,9 +1152,6 @@ Magix.Router = Router;
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
 
-
-var Vframe_ReadDataFlag = '~';
-
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
@@ -1221,6 +1223,7 @@ var Vframe_AddVframe = function(id, vf) {
 
 var Vframe_RunInvokes = function(vf, list, o) {
     list = vf.$il; //invokeList
+    list.$p = 1;
     while (list.length) {
         o = list.shift();
         if (!o.r) { //remove
@@ -1531,8 +1534,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      */
     mountZone: function(zoneId, viewInitParams /*,keepPreHTML*/ ) {
         var me = this;
-        
-        var i, vf, id;
+        var i, vf, id, vfs = [];
         zoneId = zoneId || me.id;
 
         var vframes = $(G_HashKey + zoneId + ' [mx-view]');
@@ -1554,12 +1556,17 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         me.$h = 1; //hold fire creted
         //me.unmountZone(zoneId, 1); 不去清理，详情见：https://github.com/thx/magix/issues/27
         
-        for (i = vframes.length - 1; i >= 0; i--) {
+        for (i = 0; i < vframes.length; i++) {
             vf = vframes[i];
             id = vf.id || (vf.id = G_Id());
-            
-                me.mountVframe(id, vf.getAttribute('mx-view'), viewInitParams);
-                
+            if (!vf.$m) {
+                vf.$m = 1;
+                vfs.push([id, vf.getAttribute('mx-view')]);
+            }
+        }
+        while (vfs.length) {
+            vf = vfs.shift();
+            me.mountVframe(vf[0], vf[1], viewInitParams);
         }
         me.$h = 0;
         Vframe_NotifyCreated(me);
@@ -1650,14 +1657,14 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
     invoke: function(name, args) {
         var result;
         var vf = this,
-            view, fn, o, list, key;
-        if ((view = vf.$v) && view.$p) { //view rendered
+            view, fn, o, list = vf.$il,
+            key;
+        if ((view = vf.$v) && list.$p) { //view rendered
             result = (fn = view[name]) && G_ToTry(fn, args, view);
         } else {
-            list = vf.$il;
             o = list[key = G_SPLITER + name];
             if (o) {
-                o.r = 1;
+                o.r = G_Type(args) == G_Type(o.a); //参数一样，则忽略上次的
             }
             o = {
                 n: name,
@@ -1705,6 +1712,7 @@ Magix.Vframe = Vframe;
  */
     var Body_DOMGlobalProcessor = function(e, d) {
         d = e.data;
+        e.eventTarget=e.currentTarget;
         G_ToTry(d.f, e, d.v);
     };
     
@@ -1732,9 +1740,8 @@ Magix.Vframe = Vframe;
  */
 var Body_ParentNode = 'parentNode';
 var Body_EvtInfoCache = new G_Cache(30, 10);
-var Body_EvtInfoReg = /([^\(]+)\(([\s\S]*)?\)/;
+var Body_EvtInfoReg = /(?:([\w\-]+)\u001e)?([^\(]+)\(([\s\S]*)?\)/;
 var Body_RootEvents = {};
-
 
 var Body_DOMEventProcessor = function(e) {
     var current = e.target;
@@ -1750,53 +1757,54 @@ var Body_DOMEventProcessor = function(e) {
             arr = [];
             //ts = info.split(G_SPLITER);
             //info = ts.pop();
-            vId = current.$f; //ts[0];
-            if (!vId) { //如果没有则找最近的vframe
-                begin = current;
-                /*
-                    关于下方的while
-                    考虑这样的结构：
-                    div(mx-vframe,id=outer)
-                        div(mx-vframe,mx-userevent="change()",id=inner)
-                            content
-                    当inner做为组件存在时，比如webcomponents，从根节点inner向外派发userevent事件
-                    外vframe outer做为inner的userevent监听者，监听表达式自然是写到inner根节点
-
-                    所以，当找到事件信息后，直接从事件信息的上一层节点开始查找最近的vframe，不应该从当前节点上查找
-
-                    div(mx-click="test()")
-                        click here
-                 */
-                while ((begin = begin[Body_ParentNode])) {
-                    
-                    if (G_Has(Vframe_Vframes, tempId = begin.id)) {
-                        current.$f = vId = tempId;
-                        //current.setAttribute(type, (vId = tempId) + G_SPLITER + info);
-                        break;
-                    }
-                    
-                }
+            match = Body_EvtInfoCache.get(info);
+            if (!match) {
+                match = info.match(Body_EvtInfoReg) || G_EMPTY_ARRAY;
+                match = {
+                    v: match[1],
+                    n: match[2],
+                    i: match[3]
+                };
+                /*jshint evil: true*/
+                match.p = match.i && G_ToTry(Function('return ' + match.i)) || {};
+                Body_EvtInfoCache.set(info, match);
             }
+            vId = match.v; //|| current.$f; //ts[0];
+            // if (!vId) { //如果没有则找最近的vframe
+            //     begin = current;
+
+            //         // 关于下方的while
+            //         // 考虑这样的结构：
+            //         // div(mx-vframe,id=outer)
+            //         //     div(mx-vframe,mx-userevent="change()",id=inner)
+            //         //         content
+            //         // 当inner做为组件存在时，比如webcomponents，从根节点inner向外派发userevent事件
+            //         // 外vframe outer做为inner的userevent监听者，监听表达式自然是写到inner根节点
+
+            //         // 所以，当找到事件信息后，直接从事件信息的上一层节点开始查找最近的vframe，不应该从当前节点上查找
+
+            //         // div(mx-click="test()")
+            //         //     click here
+
+            //     while ((begin = begin[Body_ParentNode])) {
+
+            //         if (G_Has(Vframe_Vframes, tempId = begin.id)) {
+            //             begin.$f = vId = tempId;
+            //             //current.setAttribute(type, (vId = tempId) + G_SPLITER + info);
+            //             break;
+            //         }
+
+            //     }
+            // }
             if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
-                vframe = Vframe_Vframes[vId]  ;
+                vframe = Vframe_Vframes[vId];
                 view = vframe && vframe.$v;
                 if (view && view.$s > 0) {
-                    match = Body_EvtInfoCache.get(info);
-                    if (!match) {
-                        match = info.match(Body_EvtInfoReg) || G_EMPTY_ARRAY;
-                        match = {
-                            n: match[1],
-                            i: match[2]
-                        };
-                        /*jshint evil: true*/
-                        match.p = match.i && G_ToTry(Function('return ' + match.i)) || {};
-                        Body_EvtInfoCache.set(info, match);
-                    }
                     name = match.n + G_SPLITER + eventType;
                     fn = view[name];
                     if (fn) {
                         //e.current = current;
-                        e.currentTarget = current;
+                        e.eventTarget = current;
                         e.params = match.p;
                         G_ToTry(fn, e, view);
                         //e.previous = current; //下一个处理函数可检测是否已经处理过
@@ -1812,9 +1820,9 @@ var Body_DOMEventProcessor = function(e) {
             arr.push(current);
         }
         current = current[Body_ParentNode] || G_DOCBODY;
-        if (current.id == vId) { //经过vframe时，target为vframe节点
-            e.target = current;
-        }
+        // if (current.id == vId) { //经过vframe时，target为vframe节点
+        //     e.target = current;
+        // }
     }
     while ((current = arr.pop())) {
         ignore = current.$ || (current.$ = {});
@@ -1845,7 +1853,7 @@ var Tmpl_Compiler = function(text) {
     index = offset + match.length;
 
     if (operate == "@") {
-      source += "'\n$s=$i();\n$p+=$s;\n$[$s]=" + content + ";\n$p+='";
+      source += "'\n$s=$i();\n$p+=$s;\n$$[$s]=" + content + ";\n$p+='";
     } else if (operate == "=") {
       source += "'+\n(($t=(" + content + "))==null?'':$e($t))+\n'";
     } else if (operate == "!") {
@@ -1860,9 +1868,9 @@ var Tmpl_Compiler = function(text) {
 
   // If a variable is not specified, place data values in local scope.
   //source = "with($mx){\n" + source + "}\n";
-  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s;\n" + source + "return $p;\n";
+  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){return (''+v).replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s;\n" + source + "return $p;\n";
   /*jshint evil: true*/
-  return Function("$g", "$", source);
+  return Function("$g", "$$", source);
 };
 var Tmpl_Cache = new G_Cache();
 /**
@@ -1899,10 +1907,21 @@ var Tmpl = function(text, data) {
   }
   return fn(1, data);
 };
-    var Updater_HolderReg = /\u001f/g;
-var Updater_ContentReg = /\u001f(\d+)\u001f/g;
-var Updater_AttrReg = /([\w\-]+)(?:=(["'])([\s\S]+?)\2)?/g;
-var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, updateAttrs, updateTmpl, viewId) {
+    var Updater_ContentReg = /\u001f(\d+)\u001f/g;
+var Updater_AttrReg = /([\w\-]+)(?:=(["'])([\s\S]*?)\2)?/g;
+var Updater_UnescapeMap = {
+    'amp': '&',
+    'lt': '<',
+    'gt': '>',
+    'quot': '"',
+    '#x27': '\'',
+    '#x60': '`'
+};
+var Updater_UnescapeReg = /&([^;]+?);/g;
+var Updater_Unescape = function(m, name) {
+    return Updater_UnescapeMap[name] || m;
+};
+var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, updateAttrs, updateTmpl, viewId, host) {
     var id = node.id || (node.id = G_Id());
     if (!updatedNodes[id]) {
         //console.time('update:' + id);
@@ -1910,23 +1929,25 @@ var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, upd
 
         var hasMagixView, viewValue, vf;
         if (updateAttrs) {
-            var attr = Tmpl(one.attr, renderData);
+            var attr = View_SetEventOwner(Tmpl(one.attr, renderData), viewId);
             var nowAttrs = {};
             attr.replace(Updater_AttrReg, function(match, name, q, value) {
                 nowAttrs[name] = value;
             });
-            for (var i = one.attrs.length - 1, a, n, old, now; i >= 0; i--) {
+            for (var i = one.attrs.length - 1, a, n, old, now, f; i >= 0; i--) {
                 a = one.attrs[i];
                 n = a.n;
+                f = a.f;
                 if (a.v) {
                     hasMagixView = 1;
                     viewValue = nowAttrs[n];
                 } else {
-                    old = a.p ? node[n] : node.getAttribute(n);
-                    now = nowAttrs[n];
+                    old = a.p ? node[f || n] : node.getAttribute(n);
+                    now = a.b ? G_Has(nowAttrs, n) : nowAttrs[n] || '';
                     if (old != now) {
                         if (a.p) {
-                            node[n] = a.b ? G_Has(nowAttrs, n) : now;
+                            if (a.q) now = now.replace(Updater_UnescapeReg, Updater_Unescape);
+                            node[f || n] = now;
                         } else if (now) {
                             node.setAttribute(n, now);
                         } else {
@@ -1943,7 +1964,10 @@ var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, upd
             }
         }
         if (updateTmpl) {
-            view.setHTML(id, Tmpl(one.tmpl, renderData).replace(Updater_HolderReg, viewId));
+            view.setHTML(id, Tmpl(one.tmpl, renderData));
+            host.fire('update', {
+                node: node
+            });
         }
         if (hasMagixView && viewValue) {
             view.owner.mountVframe(id, viewValue);
@@ -1998,10 +2022,10 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         }
                     }
                     if (update) {
-                        var nodes = $(one.path.replace(Updater_HolderReg, selfId));
+                        var nodes = $(View_SetEventOwner(one.path, selfId));
                         q = 0;
                         while (q < nodes.length) {
-                            Updater_UpdateNode(nodes[q++], view, updatedNodes, one, renderData, updateAttrs, updateTmpl, selfId);
+                            Updater_UpdateNode(nodes[q++], view, updatedNodes, one, renderData, updateAttrs, updateTmpl, selfId, host);
                         }
                     }
                 }
@@ -2029,7 +2053,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
             }
             host.$rd = 1;
             var str = tmpl.replace(Updater_ContentReg, tmplment);
-            view.setHTML(selfId, Tmpl(str, renderData).replace(Updater_HolderReg, selfId));
+            view.setHTML(host.$t, Tmpl(str, renderData));
         }
     }
 };
@@ -2077,9 +2101,11 @@ p.model.name = 'Commodore';
 var Updater = function(viewId) {
     var me = this;
     me.$i = viewId;
+    me.$t = viewId;
     me.$data = {};
     
     me.$keys = {};
+    me.$fk = {};
     
 };
 var UP = Updater.prototype;
@@ -2088,6 +2114,11 @@ G_Mix(UP, {
     /**
      * @lends Updater#
      */
+    to: function(id, me) {
+        me = this;
+        me.$t = id;
+        return me;
+    },
     /**
      * 获取放入的数据
      * @param  {String} [key] key
@@ -2105,7 +2136,9 @@ G_Mix(UP, {
      */
     get: function(key) {
         var result = this.$data;
-        if (key) result = result[key];
+        if (key) {
+            result = result[key];
+        }
         return result;
     },
     /**
@@ -2124,12 +2157,17 @@ G_Mix(UP, {
      * }
      */
     set: function(obj) {
-        var me = this;
+        var me = this,
+            val;
         
         for (var p in obj) {
             me.$u = 1;
             me.$keys[p] = 1;
-            me.$data[p] = obj[p];
+            me.$data[p] = val = obj[p];
+            if (G_IsFunction(val)) {
+                me.$fkf = 1;
+                me.$fk[p] = 1;
+            }
         }
         
         return me;
@@ -2160,8 +2198,12 @@ G_Mix(UP, {
             delete me.$lss;
         }
         
-        me.$u = 0;
-        me.$keys = {};
+        if (me.$fkf) {
+            me.$keys = G_Mix({}, me.$fk);
+        } else {
+            me.$u = 0;
+            me.$keys = {};
+        }
         
         return me;
     },
@@ -2237,6 +2279,10 @@ G_Mix(UP, {
     
 
     var View_EvtMethodReg = /^(\$?)([^<]+)<([^>]+)>$/;
+var View_ScopeReg = /\u001f/g;
+var View_SetEventOwner = function(str, id) {
+    return (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
+};
 //var View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 
 var View_DestroyAllResources = function(me, lastly) {
@@ -2347,7 +2393,10 @@ var View_Prepare = function(oView) {
                         });
                     } else {
                         eventsObject[item] = 1;
-                        prop[selectorOrCallback + G_SPLITER + item] = oldFun;
+                        item = selectorOrCallback + G_SPLITER + item;
+                        if (!prop[item]) { //for in 就近遍历，如果有则忽略
+                            prop[item] = oldFun;
+                        }
                     }
                 }
             }
@@ -2444,10 +2493,10 @@ var View = function(ops, me) {
     
     me.$s = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     
-    G_ToTry(View_Ctors, ops, me);
-    
-    
     me.$updater = new Updater(me.id);
+    
+    
+    G_ToTry(View_Ctors, ops, me);
     
 };
 var ViewProto = View[G_PROTOTYPE];
@@ -2555,30 +2604,26 @@ G_Mix(G_Mix(ViewProto, Event), {
      */
     init: G_NOOP,
     
-    
-    // *
-    //  * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^test<prevent>({key:'field})"，以方便识别交由哪个view处理
-    //  * @function
-    //  * @param {String} html 处理的代码片断
-    //  * @param {Boolean} [onlyAddPrefix] 是否只添加前缀
-    //  * @return {String} 处理后的字符串
-    //  * @example
-    //  * View.extend({
-    //  *     'del&lt;click&gt;':function(e){
-    //  *         S.one(G_HashKey+e.currentId).remove();
-    //  *     },
-    //  *     'addNode&lt;click&gt;':function(e){
-    //  *         var tmpl='&lt;div mx-click="del"&gt;delete&lt;/div&gt;';
-    //  *         //因为tmpl中有mx-click，因此需要下面这行代码进行处理一次
-    //  *         tmpl=this.wrapEvent(tmpl);
-    //  *         S.one(G_HashKey+e.currentId).append(tmpl);
-    //  *     }
-    //  * });
-    //  * //注意，只有动态添加的节点才需要处理
-
-    // wrapEvent: function(html) {
-    //     return (html + G_EMPTY).replace(View_MxEvt, '$&' + this.id + G_SPLITER);
-    // },
+    /*
+     * 包装mx-event事件，比如把mx-click="test<prevent>({key:'field'})" 包装成 mx-click="magix_vf_root^test<prevent>({key:'field})"，以方便识别交由哪个view处理
+     * @function
+     * @param {String} html 处理的代码片断
+     * @param {Boolean} [onlyAddPrefix] 是否只添加前缀
+     * @return {String} 处理后的字符串
+     * @example
+     * View.extend({
+     *     'del&lt;click&gt;':function(e){
+     *         S.one(G_HashKey+e.currentId).remove();
+     *     },
+     *     'addNode&lt;click&gt;':function(e){
+     *         var tmpl='&lt;div mx-click="del"&gt;delete&lt;/div&gt;';
+     *         //因为tmpl中有mx-click，因此需要下面这行代码进行处理一次
+     *         tmpl=this.wrapEvent(tmpl);
+     *         S.one(G_HashKey+e.currentId).append(tmpl);
+     *     }
+     * });
+     */
+    wrapEvent: View_SetEventOwner,
     /**
      * 通知当前view即将开始进行html的更新
      * @param {String} [id] 哪块区域需要更新，默认整个view
@@ -2609,7 +2654,11 @@ G_Mix(G_Mix(ViewProto, Event), {
             
             o = me.owner;
             o.mountZone(id);
-            if (!f) Vframe_RunInvokes(o);
+            if (!f) {
+                setTimeout(function() {
+                    Vframe_RunInvokes(o);
+                }, 0);
+            }
             
         }
     },
@@ -2742,7 +2791,7 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @param  {Object} e 事件对象
      */
     //leaveConfirm: function(msg, e) {
-        //
+    //
     //},
     /**
      * 离开提示
@@ -2845,7 +2894,7 @@ G_Mix(G_Mix(ViewProto, Event), {
         me.beginUpdate(id);
         if (me.$s > 0) {
             n = G_GetById(id);
-            if (n) G_HTML(n, html);
+            if (n) G_HTML(n, View_SetEventOwner(html, me.id));
         }
         me.endUpdate(id);
     }
@@ -2994,7 +3043,7 @@ G_Mix(Bag[G_PROTOTYPE], {
             }
         }
         if (hasDValue && G_Type(dValue) != G_Type(attrs)) {
-            Magix_Cfg.error(Error('type neq:' + key + '\n' + JSONStringify($attrs)));
+            Magix_Cfg.error(Error('type neq:' + key));
             attrs = dValue;
         }
         return attrs;
@@ -3529,7 +3578,7 @@ var Service_Manager = G_Mix({
             } else { //缓存
                 entity = bagCache.get(cacheKey);
                 if (entity && cache > 0 && G_Now() - entity.$m.t > cache) {
-                    //bagCache.del(cacheKey);
+                    bagCache.del(cacheKey);
                     entity = 0;
                 }
             }

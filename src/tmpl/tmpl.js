@@ -10,7 +10,7 @@ var Tmpl_Compiler = function(text) {
     index = offset + match.length;
 
     if (operate == "@") {
-      source += "'\n$s=$i();\n$p+=$s;\n$[$s]=" + content + ";\n$p+='";
+      source += "'\n$s=$i();\n$p+=$s;\n$$[$s]=" + content + ";\n$p+='";
     } else if (operate == "=") {
       source += "'+\n(($t=(" + content + "))==null?'':$e($t))+\n'";
     } else if (operate == "!") {
@@ -25,9 +25,9 @@ var Tmpl_Compiler = function(text) {
 
   // If a variable is not specified, place data values in local scope.
   //source = "with($mx){\n" + source + "}\n";
-  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){v=v==null?'':''+v;return v.replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s;\n" + source + "return $p;\n";
+  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){return (''+v).replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s;\n" + source + "return $p;\n";
   /*jshint evil: true*/
-  return Function("$g", "$", source);
+  return Function("$g", "$$", source);
 };
 var Tmpl_Cache = new G_Cache();
 /**

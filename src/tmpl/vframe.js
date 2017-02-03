@@ -5,9 +5,6 @@ var Vframe_DataParamsReg = /(\w+):\s*([^,\}]+)\s*/g;
 var Vframe_DataParamsStrReg = /(['"])(.*)\1/;
 var Vframe_DataParamsNumReg = /^[\d\.]+$/;
 /*#}#*/
-/*#if(modules.updater){#*/
-var Vframe_ReadDataFlag = '~';
-/*#}#*/
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
@@ -79,6 +76,7 @@ var Vframe_AddVframe = function(id, vf) {
 /*#if(modules.linkage){#*/
 var Vframe_RunInvokes = function(vf, list, o) {
     list = vf.$il; //invokeList
+    list.$p = 1;
     while (list.length) {
         o = list.shift();
         if (!o.r) { //remove
@@ -416,11 +414,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      */
     mountZone: function(zoneId, viewInitParams /*,keepPreHTML*/ ) {
         var me = this;
-        /*#if(modules.layerVframe){#*/
-        var subs = {},
-            vfs, j, subVf;
-        /*#}#*/
-        var i, vf, id;
+        var i, vf, id, vfs = [];
         zoneId = zoneId || me.id;
 
         var vframes = $(G_HashKey + zoneId + ' [mx-view]');
@@ -449,22 +443,17 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         }
         G_Require(temp);
         /*#}#*/
-        for (i = vframes.length - 1; i >= 0; i--) {
+        for (i = 0; i < vframes.length; i++) {
             vf = vframes[i];
             id = vf.id || (vf.id = G_Id());
-            /*#if(modules.layerVframe){#*/
-            if (!G_Has(subs, id)) {
-                /*#}#*/
-                me.mountVframe(id, vf.getAttribute('mx-view'), viewInitParams);
-                /*#if(modules.layerVframe){#*/
-                vfs = $(G_HashKey + id + ' [mx-view]');
-                for (j = vfs.length - 1; j >= 0; j--) {
-                    subVf = vfs[j];
-                    id = subVf.id || (subVf.id = G_Id());
-                    subs[id] = 1;
-                }
+            if (!vf.$m) {
+                vf.$m = 1;
+                vfs.push([id, vf.getAttribute('mx-view')]);
             }
-            /*#}#*/
+        }
+        while (vfs.length) {
+            vf = vfs.shift();
+            me.mountVframe(vf[0], vf[1], viewInitParams);
         }
         me.$h = 0;
         Vframe_NotifyCreated(me);
@@ -555,14 +544,14 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
     invoke: function(name, args) {
         var result;
         var vf = this,
-            view, fn, o, list, key;
-        if ((view = vf.$v) && view.$p) { //view rendered
+            view, fn, o, list = vf.$il,
+            key;
+        if ((view = vf.$v) && list.$p) { //view rendered
             result = (fn = view[name]) && G_ToTry(fn, args, view);
         } else {
-            list = vf.$il;
             o = list[key = G_SPLITER + name];
             if (o) {
-                o.r = 1;
+                o.r = G_Type(args) == G_Type(o.a); //参数一样，则忽略上次的
             }
             o = {
                 n: name,

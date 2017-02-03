@@ -1,7 +1,18 @@
-var Updater_HolderReg = /\u001f/g;
 var Updater_ContentReg = /\u001f(\d+)\u001f/g;
-var Updater_AttrReg = /([\w\-]+)(?:=(["'])([\s\S]+?)\2)?/g;
-var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, updateAttrs, updateTmpl, viewId) {
+var Updater_AttrReg = /([\w\-]+)(?:=(["'])([\s\S]*?)\2)?/g;
+var Updater_UnescapeMap = {
+    'amp': '&',
+    'lt': '<',
+    'gt': '>',
+    'quot': '"',
+    '#x27': '\'',
+    '#x60': '`'
+};
+var Updater_UnescapeReg = /&([^;]+?);/g;
+var Updater_Unescape = function(m, name) {
+    return Updater_UnescapeMap[name] || m;
+};
+var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, updateAttrs, updateTmpl, viewId, host) {
     var id = node.id || (node.id = G_Id());
     if (!updatedNodes[id]) {
         //console.time('update:' + id);
@@ -9,23 +20,25 @@ var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, upd
 
         var hasMagixView, viewValue, vf;
         if (updateAttrs) {
-            var attr = Tmpl(one.attr, renderData);
+            var attr = View_SetEventOwner(Tmpl(one.attr, renderData), viewId);
             var nowAttrs = {};
             attr.replace(Updater_AttrReg, function(match, name, q, value) {
                 nowAttrs[name] = value;
             });
-            for (var i = one.attrs.length - 1, a, n, old, now; i >= 0; i--) {
+            for (var i = one.attrs.length - 1, a, n, old, now, f; i >= 0; i--) {
                 a = one.attrs[i];
                 n = a.n;
+                f = a.f;
                 if (a.v) {
                     hasMagixView = 1;
                     viewValue = nowAttrs[n];
                 } else {
-                    old = a.p ? node[n] : node.getAttribute(n);
-                    now = nowAttrs[n];
+                    old = a.p ? node[f || n] : node.getAttribute(n);
+                    now = a.b ? G_Has(nowAttrs, n) : nowAttrs[n] || '';
                     if (old != now) {
                         if (a.p) {
-                            node[n] = a.b ? G_Has(nowAttrs, n) : now;
+                            if (a.q) now = now.replace(Updater_UnescapeReg, Updater_Unescape);
+                            node[f || n] = now;
                         } else if (now) {
                             node.setAttribute(n, now);
                         } else {
@@ -42,7 +55,10 @@ var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, upd
             }
         }
         if (updateTmpl) {
-            view.setHTML(id, Tmpl(one.tmpl, renderData).replace(Updater_HolderReg, viewId));
+            view.setHTML(id, Tmpl(one.tmpl, renderData));
+            host.fire('update', {
+                node: node
+            });
         }
         if (hasMagixView && viewValue) {
             view.owner.mountVframe(id, viewValue);
@@ -97,10 +113,10 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
                         }
                     }
                     if (update) {
-                        var nodes = $(one.path.replace(Updater_HolderReg, selfId));
+                        var nodes = $(View_SetEventOwner(one.path, selfId));
                         q = 0;
                         while (q < nodes.length) {
-                            Updater_UpdateNode(nodes[q++], view, updatedNodes, one, renderData, updateAttrs, updateTmpl, selfId);
+                            Updater_UpdateNode(nodes[q++], view, updatedNodes, one, renderData, updateAttrs, updateTmpl, selfId, host);
                         }
                     }
                 }
@@ -128,7 +144,7 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
             }
             host.$rd = 1;
             var str = tmpl.replace(Updater_ContentReg, tmplment);
-            view.setHTML(selfId, Tmpl(str, renderData).replace(Updater_HolderReg, selfId));
+            view.setHTML(host.$t, Tmpl(str, renderData));
         }
     }
 };
@@ -176,9 +192,11 @@ p.model.name = 'Commodore';
 var Updater = function(viewId) {
     var me = this;
     me.$i = viewId;
+    me.$t = viewId;
     me.$data = {};
     /*#if(modules.updaterSetState){#*/
     me.$keys = {};
+    me.$fk = {};
     /*#}else{#*/
     me.$json = {};
     /*#}#*/
@@ -189,6 +207,11 @@ G_Mix(UP, {
     /**
      * @lends Updater#
      */
+    to: function(id, me) {
+        me = this;
+        me.$t = id;
+        return me;
+    },
     /**
      * 获取放入的数据
      * @param  {String} [key] key
@@ -206,7 +229,9 @@ G_Mix(UP, {
      */
     get: function(key) {
         var result = this.$data;
-        if (key) result = result[key];
+        if (key) {
+            result = result[key];
+        }
         return result;
     },
     /**
@@ -225,12 +250,17 @@ G_Mix(UP, {
      * }
      */
     set: function(obj) {
-        var me = this;
+        var me = this,
+            val;
         /*#if(modules.updaterSetState){#*/
         for (var p in obj) {
             me.$u = 1;
             me.$keys[p] = 1;
-            me.$data[p] = obj[p];
+            me.$data[p] = val = obj[p];
+            if (G_IsFunction(val)) {
+                me.$fkf = 1;
+                me.$fk[p] = 1;
+            }
         }
         /*#}else{#*/
         G_Mix(me.$data, obj);
@@ -282,8 +312,12 @@ G_Mix(UP, {
             delete me.$lss;
         }
         /*#if(modules.updaterSetState){#*/
-        me.$u = 0;
-        me.$keys = {};
+        if (me.$fkf) {
+            me.$keys = G_Mix({}, me.$fk);
+        } else {
+            me.$u = 0;
+            me.$keys = {};
+        }
         /*#}#*/
         return me;
     },

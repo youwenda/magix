@@ -17,10 +17,8 @@ var modules = {
   cnum: 1, //Cache num
   ceach: 1, //Cache each
   tiprouter: 1, //切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
-  viewRelate: 1, //view上是否增加relate方法，当一些节点在view范围外面，但需要响应view事件时有用
   edgeRouter: 1, //使用pushState
   collectView: 1, //收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
-  layerVframe: 1, //父子化同一个view中嵌套存在的vframe
   updaterSetState: 1, //updater是否由用户指定更新。即用户指定什么就更新什么，不管值有没有改变
   forceEdgeRouter: 1, //强制使用pushState
   serviceCombine: 1, //接口combine
@@ -42,7 +40,7 @@ var modules = {
   mxInit: 1, //支持mx-init获取数据
   viewMerge: 1 //view是否提供merge方法供扩展原型链对象
 };
-var type = 'cmd'; //打包kissy则type='kissy'
+var type = 'amd'; //打包kissy则type='kissy'
 var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState';
 //coreModules='magix,event,vframe,body,view,tmpl,updater,core,viewInit,autoEndUpdate';
 //loaderModules='loader,magix,event,vframe';

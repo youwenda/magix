@@ -67,6 +67,7 @@ var G_Mix = function(aim, src, p) {
 };
 
 var G_ToTry = function(fns, args, context, i, r, e) {
+    args = args || G_EMPTY_ARRAY;
     if (!G_IsArray(fns)) fns = [fns];
     if (!G_IsArray(args)) args = [args];
     for (i = 0; e = fns[i]; i++) {

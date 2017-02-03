@@ -39,7 +39,7 @@ KISSY.add('magix', function(S, SE) {
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
     var Router_Edge;
-    /*#if(modules.router){#*/
+    /*#if(modules.router||modules.updater){#*/
     var G_IsFunction = S.isFunction;
     /*#if(!modules.forceEdgeRouter){#*/
     var Win = S.one(G_WINDOW);
@@ -170,6 +170,7 @@ KISSY.add('magix', function(S, SE) {
     Inc('../tmpl/vframe');
     var Body_DOMGlobalProcessor = function(e, me) {
         me = this;
+        e.eventTarget = e.currentTarget;
         G_ToTry(me.f, e, me.v);
     };
     var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {

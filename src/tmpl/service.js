@@ -105,7 +105,7 @@ G_Mix(Bag[G_PROTOTYPE], {
             }
         }
         if (hasDValue && G_Type(dValue) != G_Type(attrs)) {
-            Magix_Cfg.error(Error('type neq:' + key + '\n' + JSONStringify($attrs)));
+            Magix_Cfg.error(Error('type neq:' + key));
             attrs = dValue;
         }
         return attrs;
@@ -670,7 +670,7 @@ var Service_Manager = G_Mix({
             } else { //缓存
                 entity = bagCache.get(cacheKey);
                 if (entity && cache > 0 && G_Now() - entity.$m.t > cache) {
-                    //bagCache.del(cacheKey);
+                    bagCache.del(cacheKey);
                     entity = 0;
                 }
             }

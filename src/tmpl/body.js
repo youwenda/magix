@@ -14,11 +14,8 @@
  */
 var Body_ParentNode = 'parentNode';
 var Body_EvtInfoCache = new G_Cache(30, 10);
-var Body_EvtInfoReg = /([^\(]+)\(([\s\S]*)?\)/;
+var Body_EvtInfoReg = /(?:([\w\-]+)\u001e)?([^\(]+)\(([\s\S]*)?\)/;
 var Body_RootEvents = {};
-/*#if(modules.viewRelate){#*/
-var Body_ViewRelateInfo = {};
-/*#}#*/
 
 var Body_DOMEventProcessor = function(e) {
     var current = e.target;
@@ -34,60 +31,54 @@ var Body_DOMEventProcessor = function(e) {
             arr = [];
             //ts = info.split(G_SPLITER);
             //info = ts.pop();
-            vId = current.$f; //ts[0];
-            if (!vId) { //如果没有则找最近的vframe
-                begin = current;
-                /*
-                    关于下方的while
-                    考虑这样的结构：
-                    div(mx-vframe,id=outer)
-                        div(mx-vframe,mx-userevent="change()",id=inner)
-                            content
-                    当inner做为组件存在时，比如webcomponents，从根节点inner向外派发userevent事件
-                    外vframe outer做为inner的userevent监听者，监听表达式自然是写到inner根节点
-
-                    所以，当找到事件信息后，直接从事件信息的上一层节点开始查找最近的vframe，不应该从当前节点上查找
-
-                    div(mx-click="test()")
-                        click here
-                 */
-                while ((begin = begin[Body_ParentNode])) {
-                    /*#if(modules.viewRelate){#*/
-                    tempId = begin.id;
-                    if (G_Has(Vframe_Vframes, tempId) || G_Has(Body_ViewRelateInfo, tempId)) {
-                        current.$f = vId = tempId;
-                        //current.setAttribute(type, (vId = tempId) + G_SPLITER + info);
-                        break;
-                    }
-                    /*#}else{#*/
-                    if (G_Has(Vframe_Vframes, tempId = begin.id)) {
-                        current.$f = vId = tempId;
-                        //current.setAttribute(type, (vId = tempId) + G_SPLITER + info);
-                        break;
-                    }
-                    /*#}#*/
-                }
+            match = Body_EvtInfoCache.get(info);
+            if (!match) {
+                match = info.match(Body_EvtInfoReg) || G_EMPTY_ARRAY;
+                match = {
+                    v: match[1],
+                    n: match[2],
+                    i: match[3]
+                };
+                /*jshint evil: true*/
+                match.p = match.i && G_ToTry(Function('return ' + match.i)) || {};
+                Body_EvtInfoCache.set(info, match);
             }
+            vId = match.v; //|| current.$f; //ts[0];
+            // if (!vId) { //如果没有则找最近的vframe
+            //     begin = current;
+
+            //         // 关于下方的while
+            //         // 考虑这样的结构：
+            //         // div(mx-vframe,id=outer)
+            //         //     div(mx-vframe,mx-userevent="change()",id=inner)
+            //         //         content
+            //         // 当inner做为组件存在时，比如webcomponents，从根节点inner向外派发userevent事件
+            //         // 外vframe outer做为inner的userevent监听者，监听表达式自然是写到inner根节点
+
+            //         // 所以，当找到事件信息后，直接从事件信息的上一层节点开始查找最近的vframe，不应该从当前节点上查找
+
+            //         // div(mx-click="test()")
+            //         //     click here
+
+            //     while ((begin = begin[Body_ParentNode])) {
+
+            //         if (G_Has(Vframe_Vframes, tempId = begin.id)) {
+            //             begin.$f = vId = tempId;
+            //             //current.setAttribute(type, (vId = tempId) + G_SPLITER + info);
+            //             break;
+            //         }
+
+            //     }
+            // }
             if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
-                vframe = Vframe_Vframes[vId] /*#if(modules.viewRelate){#*/ || Body_ViewRelateInfo[vId] /*#}#*/ ;
+                vframe = Vframe_Vframes[vId];
                 view = vframe && vframe.$v;
                 if (view && view.$s > 0) {
-                    match = Body_EvtInfoCache.get(info);
-                    if (!match) {
-                        match = info.match(Body_EvtInfoReg) || G_EMPTY_ARRAY;
-                        match = {
-                            n: match[1],
-                            i: match[2]
-                        };
-                        /*jshint evil: true*/
-                        match.p = match.i && G_ToTry(Function('return ' + match.i)) || {};
-                        Body_EvtInfoCache.set(info, match);
-                    }
                     name = match.n + G_SPLITER + eventType;
                     fn = view[name];
                     if (fn) {
                         //e.current = current;
-                        e.currentTarget = current;
+                        e.eventTarget = current;
                         e.params = match.p;
                         G_ToTry(fn, e, view);
                         //e.previous = current; //下一个处理函数可检测是否已经处理过
@@ -103,9 +94,9 @@ var Body_DOMEventProcessor = function(e) {
             arr.push(current);
         }
         current = current[Body_ParentNode] || G_DOCBODY;
-        if (current.id == vId) { //经过vframe时，target为vframe节点
-            e.target = current;
-        }
+        // if (current.id == vId) { //经过vframe时，target为vframe节点
+        //     e.target = current;
+        // }
     }
     while ((current = arr.pop())) {
         ignore = current.$ || (current.$ = {});

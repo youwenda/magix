@@ -12,7 +12,10 @@ var Router_LLoc = {
 var Router_LParams;
 var Router_TrimHashReg = /(?:^.*\/\/[^\/]+|#.*$)/gi;
 var Router_TrimQueryReg = /^[^#]*#?!?/;
-
+var GetParam = function(key, params) {
+    params = this[Router_PARAMS];
+    return params[key] || G_EMPTY;
+};
 // var Router_IsParam = function(params, r, ps) {
 //     if (params) {
 //         ps = this[Router_PARAMS];
@@ -135,6 +138,7 @@ var Router = G_Mix({
             G_Mix(params, hashObj[Router_PARAMS])
                 /*#}#*/
             result = {
+                get: GetParam,
                 href: href,
                 srcQuery: query,
                 srcHash: hash,
