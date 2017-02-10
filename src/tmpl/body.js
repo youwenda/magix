@@ -105,13 +105,8 @@ var Body_DOMEventProcessor = function(e) {
 };
 var Body_DOMEventBind = function(type, remove) {
     var counter = Body_RootEvents[type] | 0;
-    var step = counter > 0 ? 1 : 0;
-    counter += remove ? -step : step;
-    if (!counter) {
+    if (!counter || (remove && counter == 1)) {
         Body_DOMEventLibBind(G_DOCBODY, type, Body_DOMEventProcessor, remove);
-        if (!remove) {
-            counter = 1;
-        }
     }
-    Body_RootEvents[type] = counter;
+    Body_RootEvents[type] = counter + (remove ? -1 : 1);
 };

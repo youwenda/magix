@@ -76,7 +76,6 @@ var Vframe_AddVframe = function(id, vf) {
 /*#if(modules.linkage){#*/
 var Vframe_RunInvokes = function(vf, list, o) {
     list = vf.$il; //invokeList
-    list.$p = 1;
     while (list.length) {
         o = list.shift();
         if (!o.r) { //remove
@@ -546,7 +545,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         var vf = this,
             view, fn, o, list = vf.$il,
             key;
-        if ((view = vf.$v) && list.$p) { //view rendered
+        if ((view = vf.$v) && view.$p) { //view rendered
             result = (fn = view[name]) && G_ToTry(fn, args, view);
         } else {
             o = list[key = G_SPLITER + name];

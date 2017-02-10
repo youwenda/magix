@@ -9,7 +9,14 @@ module.exports = (function() {
         /*#if(modules.core){#*/
         if (!views[MxGlobalView]) views[MxGlobalView] = coreDefaultView;
         /*#}#*/
-        fn(views[name]);
+        if (!G_IsArray(name)) {
+            name = [name];
+        }
+        var results = [];
+        for (var i = 0; i < name.length; i++) {
+            results.push(views[name[i]]);
+        }
+        fn.apply(Magix, results);
     };
     var T = function() {};
     var G_Extend = function(ctor, base, props, statics, cProto) {
@@ -180,6 +187,9 @@ module.exports = (function() {
         G_ToTry(d.f, e, d.v);
     };
     var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {
+        if (scope) {
+            type += '.' + scope.i;
+        }
         if (remove) {
             $(node).off(type, selector, cb);
         } else {

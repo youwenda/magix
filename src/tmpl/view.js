@@ -46,7 +46,7 @@ var View_WrapRender = function(prop, fn, me) {
 };
 var View_DelegateEvents = function(me, destroy) {
     var events = me.$eo; //eventsObject
-    var p, e;
+    var p, e, id = me.id;
     for (p in events) {
         Body_DOMEventBind(p, destroy);
     }
@@ -54,7 +54,8 @@ var View_DelegateEvents = function(me, destroy) {
     p = events.length;
     while (p--) {
         e = events[p];
-        Body_DOMEventLibBind(e.e || G_HashKey + me.id, e.n, Body_DOMGlobalProcessor, destroy, e.s, {
+        Body_DOMEventLibBind(e.e || G_HashKey + id, e.n, Body_DOMGlobalProcessor, destroy, e.s, {
+            i: id,
             v: me,
             f: e.f
         });

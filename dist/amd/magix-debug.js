@@ -1,5 +1,5 @@
 /*
-version:3.1.9
+version:3.1.10
 loader:amd
 modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState
 
@@ -1202,7 +1202,6 @@ var Vframe_AddVframe = function(id, vf) {
 
 var Vframe_RunInvokes = function(vf, list, o) {
     list = vf.$il; //invokeList
-    list.$p = 1;
     while (list.length) {
         o = list.shift();
         if (!o.r) { //remove
@@ -1638,7 +1637,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         var vf = this,
             view, fn, o, list = vf.$il,
             key;
-        if ((view = vf.$v) && list.$p) { //view rendered
+        if ((view = vf.$v) && view.$p) { //view rendered
             result = (fn = view[name]) && G_ToTry(fn, args, view);
         } else {
             o = list[key = G_SPLITER + name];
@@ -1695,6 +1694,9 @@ Magix.Vframe = Vframe;
         G_ToTry(d.f, e, d.v);
     };
     var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {
+        if (scope) {
+            type += '.' + scope.i;
+        }
         if (remove) {
             $(node).off(type, selector, cb);
         } else {
@@ -1808,15 +1810,10 @@ var Body_DOMEventProcessor = function(e) {
 };
 var Body_DOMEventBind = function(type, remove) {
     var counter = Body_RootEvents[type] | 0;
-    var step = counter > 0 ? 1 : 0;
-    counter += remove ? -step : step;
-    if (!counter) {
+    if (!counter || (remove && counter == 1)) {
         Body_DOMEventLibBind(G_DOCBODY, type, Body_DOMEventProcessor, remove);
-        if (!remove) {
-            counter = 1;
-        }
     }
-    Body_RootEvents[type] = counter;
+    Body_RootEvents[type] = counter + (remove ? -1 : 1);
 };
     var Tmpl_EscapeSlashRegExp = /\\|'/g;
 var Tmpl_EscapeBreakReturnRegExp = /\r|\n/g;
@@ -1898,60 +1895,59 @@ var Updater_UnescapeReg = /&([^;]+?);/g;
 var Updater_Unescape = function(m, name) {
     return Updater_UnescapeMap[name] || m;
 };
-var Updater_UpdateNode = function(node, view, updatedNodes, one, renderData, updateAttrs, updateTmpl, viewId, host) {
+var Updater_IsPrimitive = function(args) {
+    return !args || typeof args != Magix_StrObject;
+};
+var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, updateTmpl, viewId, host) {
     var id = node.id || (node.id = G_Id());
-    if (!updatedNodes[id]) {
-        //console.time('update:' + id);
-        updatedNodes[id] = 1;
 
-        var hasMagixView, viewValue, vf;
-        if (updateAttrs) {
-            var attr = View_SetEventOwner(Tmpl(one.attr, renderData), viewId);
-            var nowAttrs = {};
-            attr.replace(Updater_AttrReg, function(match, name, q, value) {
-                nowAttrs[name] = value;
-            });
-            for (var i = one.attrs.length - 1, a, n, old, now, f; i >= 0; i--) {
-                a = one.attrs[i];
-                n = a.n;
-                f = a.f;
-                if (a.v) {
-                    hasMagixView = 1;
-                    viewValue = nowAttrs[n];
-                } else {
-                    old = a.p ? node[f || n] : node.getAttribute(n);
-                    now = a.b ? G_Has(nowAttrs, n) : nowAttrs[n] || '';
-                    if (old != now) {
-                        if (a.p) {
-                            if (a.q) now = now.replace(Updater_UnescapeReg, Updater_Unescape);
-                            node[f || n] = now;
-                        } else if (now) {
-                            node.setAttribute(n, now);
-                        } else {
-                            node.removeAttribute(n);
-                        }
+    var hasMagixView, viewValue, vf;
+    if (updateAttrs) {
+        var attr = View_SetEventOwner(Tmpl(one.attr, renderData), viewId);
+        var nowAttrs = {};
+        attr.replace(Updater_AttrReg, function(match, name, q, value) {
+            nowAttrs[name] = value;
+        });
+        for (var i = one.attrs.length - 1, a, n, old, now, f; i >= 0; i--) {
+            a = one.attrs[i];
+            n = a.n;
+            f = a.f;
+            if (a.v) {
+                hasMagixView = 1;
+                viewValue = nowAttrs[n];
+            } else {
+                old = a.p ? node[f || n] : node.getAttribute(n);
+                now = a.b ? G_Has(nowAttrs, n) : nowAttrs[n] || '';
+                if (old != now) {
+                    if (a.p) {
+                        if (a.q) now = now.replace(Updater_UnescapeReg, Updater_Unescape);
+                        node[f || n] = now;
+                    } else if (now) {
+                        node.setAttribute(n, now);
+                    } else {
+                        node.removeAttribute(n);
                     }
                 }
             }
         }
-        if (hasMagixView) {
-            vf = Vframe_Vframes[id];
-            if (vf) {
-                vf[viewValue ? 'unmountView' : 'unmountVframe']();
-            }
-        }
-        if (updateTmpl) {
-            view.setHTML(id, Tmpl(one.tmpl, renderData));
-            host.fire('update', {
-                node: node
-            });
-        }
-        if (hasMagixView && viewValue) {
-            view.owner.mountVframe(id, viewValue);
+    }
+    if (hasMagixView) {
+        vf = Vframe_Vframes[id];
+        if (vf) {
+            vf[viewValue ? 'unmountView' : 'unmountVframe']();
         }
     }
+    if (updateTmpl) {
+        view.setHTML(id, Tmpl(one.tmpl, renderData));
+        host.fire('update', {
+            node: node
+        });
+    }
+    if (hasMagixView && viewValue) {
+        view.owner.mountVframe(id, viewValue);
+    }
 };
-var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
+var Updater_UpdateDOM = function(host, updateFlags, renderData) {
     var vf = Vframe_Vframes[host.$i];
     var view = vf && vf.$v;
     if (!view) return;
@@ -1959,79 +1955,75 @@ var Updater_UpdateDOM = function(host, changed, updateFlags, renderData) {
     var tmpl = tmplObject.html;
     var list = tmplObject.subs;
     var selfId = view.id;
-    if (changed || !host.$rd) {
-        if (host.$rd && updateFlags && list) {
-            var updatedNodes = {},
-                keys;
-            var one, updateTmpl, updateAttrs;
+    if (host.$rd && updateFlags) {
+        var keys, one, updateTmpl, updateAttrs;
 
-            for (var i = list.length - 1, update, q, mask, m; i >= 0; i--) { //keys
-                updateTmpl = 0;
-                updateAttrs = 0;
-                one = list[i];
-                update = 1;
-                mask = one.mask;
-                keys = one.pKeys;
-                if (keys) {
-                    q = keys.length;
-                    while (--q >= 0) {
-                        if (G_Has(updateFlags, keys[q])) {
-                            update = 0;
+        for (var i = list.length - 1, update, q, mask, m; i >= 0; i--) { //keys
+            updateTmpl = 0;
+            updateAttrs = 0;
+            one = list[i];
+            update = 1;
+            mask = one.mask;
+            keys = one.pKeys;
+            if (keys) {
+                q = keys.length;
+                while (--q >= 0) {
+                    if (G_Has(updateFlags, keys[q])) {
+                        update = 0;
+                        break;
+                    }
+                }
+            }
+            if (update) {
+                keys = one.keys;
+                q = keys.length;
+                update = 0;
+                while (--q >= 0) {
+                    if (G_Has(updateFlags, keys[q])) {
+                        update = 1;
+                        if (!mask || (updateTmpl && updateAttrs)) {
+                            updateTmpl = one.tmpl;
+                            updateAttrs = one.attr;
                             break;
                         }
+                        m = mask.charAt(q);
+                        updateTmpl = updateTmpl || m & 1;
+                        updateAttrs = updateAttrs || m & 2;
                     }
                 }
                 if (update) {
-                    keys = one.keys;
-                    q = keys.length;
-                    update = 0;
-                    while (--q >= 0) {
-                        if (G_Has(updateFlags, keys[q])) {
-                            update = 1;
-                            if (!mask || (updateTmpl && updateAttrs)) {
-                                updateTmpl = one.tmpl;
-                                updateAttrs = one.attr;
-                                break;
-                            }
-                            m = mask.charAt(q);
-                            updateTmpl = updateTmpl || m & 1;
-                            updateAttrs = updateAttrs || m & 2;
-                        }
-                    }
-                    if (update) {
-                        var nodes = $(View_SetEventOwner(one.path, selfId));
-                        q = 0;
-                        while (q < nodes.length) {
-                            Updater_UpdateNode(nodes[q++], view, updatedNodes, one, renderData, updateAttrs, updateTmpl, selfId, host);
-                        }
+                    var nodes = $(View_SetEventOwner(one.path, selfId));
+                    q = 0;
+                    while (q < nodes.length) {
+                        Updater_UpdateNode(nodes[q++], view, one, renderData, updateAttrs, updateTmpl, selfId, host);
                     }
                 }
             }
-        } else {
-            var map,
-                tmplment = function(m, guid) {
-                    return map[guid].tmpl;
-                },
-                x;
-            if (list) {
-                if (!list.$) { //process once
-                    list.$ = map = {};
-                    x = list.length;
-                    while (x > 0) {
-                        var s = list[--x];
-                        if (s.s) {
-                            map[s.s] = s;
-                            s.tmpl = s.tmpl.replace(Updater_ContentReg, tmplment);
-                            delete s.s;
-                        }
-                    }
-                }
-                map = list.$;
-            }
-            host.$rd = 1;
-            var str = tmpl.replace(Updater_ContentReg, tmplment);
-            view.setHTML(host.$t, Tmpl(str, renderData));
         }
+    } else {
+        var map,
+            tmplment = function(m, guid) {
+                return map[guid].tmpl;
+            },
+            x;
+        if (list) {
+            if (!list.$) { //process once
+                list.$ = map = {};
+                x = list.length;
+                while (x > 0) {
+                    var s = list[--x];
+                    if (s.s) {
+                        map[s.s] = s;
+                        s.tmpl = s.tmpl.replace(Updater_ContentReg, tmplment);
+                        delete s.s;
+                    }
+                }
+            }
+            map = list.$;
+        }
+        host.$rd = 1;
+        var str = tmpl.replace(Updater_ContentReg, tmplment);
+        view.setHTML(host.$t, Tmpl(str, renderData));
     }
 };
 /*
@@ -2135,16 +2127,20 @@ G_Mix(UP, {
      */
     set: function(obj) {
         var me = this,
-            val;
+            old, now, data = me.$data,
+            keys = me.$keys;
         
         for (var p in obj) {
-            me.$u = 1;
-            me.$keys[p] = 1;
-            me.$data[p] = val = obj[p];
-            if (G_IsFunction(val)) {
+            now = obj[p];
+            old = data[p];
+            if (G_IsFunction(now)) {
                 me.$fkf = 1;
                 me.$fk[p] = 1;
+                keys[p] = 1;
+            } else if (!Updater_IsPrimitive(now) || old != now) {
+                keys[p] = 1;
             }
+            data[p] = now;
         }
         
         return me;
@@ -2162,23 +2158,14 @@ G_Mix(UP, {
     digest: function() {
         var me = this;
         var data = me.$data;
-        var changed, keys;
         
-        changed = me.$u;
-        keys = me.$keys;
+        var keys = me.$keys;
         
-        Updater_UpdateDOM(me, changed, keys, data);
-        if (changed) {
-            me.fire('changed', {
-                keys: keys
-            });
-            delete me.$lss;
-        }
+        Updater_UpdateDOM(me, keys, data);
         
         if (me.$fkf) {
             me.$keys = G_Mix({}, me.$fk);
         } else {
-            me.$u = 0;
             me.$keys = {};
         }
         
@@ -2207,9 +2194,8 @@ G_Mix(UP, {
      * }
      */
     snapshot: function() {
-        var me = this,
-            d = me.$data;
-        me.$ss = JSONStringify(d);
+        var me = this;
+        me.$ss = JSONStringify(me.$data);
         return me;
     },
     /**
@@ -2235,13 +2221,8 @@ G_Mix(UP, {
      * }
      */
     altered: function() {
-        var me = this,
-            d = me.$data;
-        if (me.$ss) { //存在快照
-            // if (!me.$lss) me.$lss = JSONStringify(d); //不存在比较的快照，生成
-            return me.$ss != JSONStringify(d); //比较2次快照是否一样
-        }
-        return 1;
+        var me = this;
+        return me.$ss != JSONStringify(me.$data);
     }
 
 
@@ -2303,7 +2284,7 @@ var View_WrapRender = function(prop, fn, me) {
 };
 var View_DelegateEvents = function(me, destroy) {
     var events = me.$eo; //eventsObject
-    var p, e;
+    var p, e, id = me.id;
     for (p in events) {
         Body_DOMEventBind(p, destroy);
     }
@@ -2311,7 +2292,8 @@ var View_DelegateEvents = function(me, destroy) {
     p = events.length;
     while (p--) {
         e = events[p];
-        Body_DOMEventLibBind(e.e || G_HashKey + me.id, e.n, Body_DOMGlobalProcessor, destroy, e.s, {
+        Body_DOMEventLibBind(e.e || G_HashKey + id, e.n, Body_DOMGlobalProcessor, destroy, e.s, {
+            i: id,
             v: me,
             f: e.f
         });

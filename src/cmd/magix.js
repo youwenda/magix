@@ -210,6 +210,9 @@ define('magix', ['$'], function(require) {
     };
     /*#if(!modules.loader){#*/
     var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {
+        if (scope) {
+            type += '.' + scope.i;
+        }
         if (remove) {
             $(node).off(type, selector, cb);
         } else {
