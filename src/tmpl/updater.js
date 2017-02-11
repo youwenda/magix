@@ -1,4 +1,4 @@
-var Updater_ContentReg = /\u001f(\d+)\u001f/g;
+var Updater_ContentReg = /\d+\u001d/g;
 var Updater_AttrReg = /([\w\-]+)(?:=(["'])([\s\S]*?)\2)?/g;
 var Updater_UnescapeMap = {
     'amp': '&',
@@ -119,7 +119,7 @@ var Updater_UpdateDOM = function(host, updateFlags, renderData) {
         }
     } else {
         var map,
-            tmplment = function(m, guid) {
+            tmplment = function(guid) {
                 return map[guid].tmpl;
             },
             x;

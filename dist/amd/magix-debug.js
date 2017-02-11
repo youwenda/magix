@@ -1,5 +1,5 @@
 /*
-version:3.1.10
+version:3.1.11
 loader:amd
 modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState
 
@@ -1881,7 +1881,7 @@ var Tmpl = function(text, data) {
   }
   return fn(1, data);
 };
-    var Updater_ContentReg = /\u001f(\d+)\u001f/g;
+    var Updater_ContentReg = /\d+\u001d/g;
 var Updater_AttrReg = /([\w\-]+)(?:=(["'])([\s\S]*?)\2)?/g;
 var Updater_UnescapeMap = {
     'amp': '&',
@@ -2002,7 +2002,7 @@ var Updater_UpdateDOM = function(host, updateFlags, renderData) {
         }
     } else {
         var map,
-            tmplment = function(m, guid) {
+            tmplment = function(guid) {
                 return map[guid].tmpl;
             },
             x;
