@@ -43,33 +43,32 @@ var Body_DOMEventProcessor = function(e) {
                 match.p = match.i && G_ToTry(Function('return ' + match.i)) || {};
                 Body_EvtInfoCache.set(info, match);
             }
-            vId = match.v; //|| current.$f; //ts[0];
-            // if (!vId) { //如果没有则找最近的vframe
-            //     begin = current;
+            vId = match.v || current.$f; //ts[0];
+            if (!vId) { //如果没有则找最近的vframe
+                begin = current;
 
-            //         // 关于下方的while
-            //         // 考虑这样的结构：
-            //         // div(mx-vframe,id=outer)
-            //         //     div(mx-vframe,mx-userevent="change()",id=inner)
-            //         //         content
-            //         // 当inner做为组件存在时，比如webcomponents，从根节点inner向外派发userevent事件
-            //         // 外vframe outer做为inner的userevent监听者，监听表达式自然是写到inner根节点
+                // 关于下方的while
+                // 考虑这样的结构：
+                // div(mx-vframe,id=outer)
+                //     div(mx-vframe,mx-userevent="change()",id=inner)
+                //         content
+                // 当inner做为组件存在时，比如webcomponents，从根节点inner向外派发userevent事件
+                // 外vframe outer做为inner的userevent监听者，监听表达式自然是写到inner根节点
 
-            //         // 所以，当找到事件信息后，直接从事件信息的上一层节点开始查找最近的vframe，不应该从当前节点上查找
+                // 所以，当找到事件信息后，直接从事件信息的上一层节点开始查找最近的vframe，不应该从当前节点上查找
 
-            //         // div(mx-click="test()")
-            //         //     click here
+                // div(mx-click="test()")
+                //     click here
 
-            //     while ((begin = begin[Body_ParentNode])) {
+                while ((begin = begin[Body_ParentNode])) {
 
-            //         if (G_Has(Vframe_Vframes, tempId = begin.id)) {
-            //             begin.$f = vId = tempId;
-            //             //current.setAttribute(type, (vId = tempId) + G_SPLITER + info);
-            //             break;
-            //         }
+                    if (G_Has(Vframe_Vframes, tempId = begin.id)) {
+                        begin.$f = vId = tempId;
+                        break;
+                    }
 
-            //     }
-            // }
+                }
+            }
             if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
                 vframe = Vframe_Vframes[vId];
                 view = vframe && vframe.$v;
@@ -85,7 +84,7 @@ var Body_DOMEventProcessor = function(e) {
                     }
                 }
             } else {
-                Magix_Cfg.error(Error('bad:' + info));
+                Magix_Cfg.error(Error('bad ' + type + ':' + info));
             }
         }
         if ((ignore = current.$) && ignore[eventType] || e.mxStop || e.isPropagationStopped()) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏

@@ -1,5 +1,5 @@
 var Updater_ContentReg = /\d+\u001d/g;
-var Updater_AttrReg = /([\w\-]+)(?:=(["'])([\s\S]*?)\2)?/g;
+var Updater_AttrReg = /([\w\-:]+)(?:=(["'])([\s\S]*?)\2)?/g;
 var Updater_UnescapeMap = {
     'amp': '&',
     'lt': '<',
@@ -56,9 +56,6 @@ var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, upda
     }
     if (updateTmpl) {
         view.setHTML(id, Tmpl(one.tmpl, renderData));
-        host.fire('update', {
-            node: node
-        });
     }
     if (hasMagixView && viewValue) {
         view.owner.mountVframe(id, viewValue);
@@ -179,9 +176,6 @@ p.model.name = 'Commodore';
  * @beta
  * @module updater
  * @param {String} viewId Magix.View对象Id
- * @borrows Event.on as #on
- * @borrows Event.fire as #fire
- * @borrows Event.off as #off
  * @property {Object} $data 存放数据的对象
  */
 var Updater = function(viewId) {
@@ -197,7 +191,6 @@ var Updater = function(viewId) {
     /*#}#*/
 };
 var UP = Updater.prototype;
-G_Mix(UP, Event);
 G_Mix(UP, {
     /**
      * @lends Updater#

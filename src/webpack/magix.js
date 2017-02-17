@@ -9,14 +9,37 @@ module.exports = (function() {
         /*#if(modules.core){#*/
         if (!views[MxGlobalView]) views[MxGlobalView] = coreDefaultView;
         /*#}#*/
+        if (!name) {
+            return fn();
+        }
         if (!G_IsArray(name)) {
             name = [name];
         }
-        var results = [];
+        var results = [],
+            view;
+        var promiseCount = 0;
+        var checkCount = function() {
+            if (!promiseCount) {
+                fn.apply(Magix, results);
+            }
+        };
+        var promise = function(p, idx) {
+            p.then(function(v) {
+                promiseCount--;
+                results[idx] = v;
+                checkCount();
+            });
+        };
         for (var i = 0; i < name.length; i++) {
-            results.push(views[name[i]]);
+            view = views[name[i]];
+            if (view && view.then) {
+                promiseCount++;
+                promise(view, i);
+            } else {
+                results[i] = views[name[i]];
+            }
         }
-        fn.apply(Magix, results);
+        checkCount();
     };
     var T = function() {};
     var G_Extend = function(ctor, base, props, statics, cProto) {

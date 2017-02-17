@@ -314,7 +314,7 @@ G_Mix(View, {
                 o;
             while (--i >= 0) {
                 o = mixins[i];
-                ctor = o.ctor;
+                ctor = o && o.ctor;
                 if (ctor) ctors.push(ctor);
                 G_Mix(props, o);
             }
@@ -370,9 +370,9 @@ G_Mix(G_Mix(ViewProto, Event), {
         me = this;
         if (me.$s > 0 && me.$p) {
             me.owner.unmountZone(id /*, 1*/ );
-            // me.fire('prerender', {
-            //     id: id
-            // });
+            me.fire('prerender', {
+                id: id
+            });
         }
     },
     /**
@@ -382,9 +382,10 @@ G_Mix(G_Mix(ViewProto, Event), {
     endUpdate: function(id, me /*#if(modules.linkage){#*/ , o, f /*#}#*/ ) {
         me = this;
         if (me.$s > 0) {
-            // me.fire('rendered', {
-            //     id: id
-            // });
+            id = id || me.id;
+            me.fire('rendered', {
+                id: id
+            });
             /*#if(modules.linkage){#*/
             f = me.$p;
             /*#}#*/
