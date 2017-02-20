@@ -182,10 +182,14 @@ define('magix', ['$'], function($) {
     /*#}#*/
     Inc('../tmpl/router');
     Inc('../tmpl/vframe');
-    var Body_DOMGlobalProcessor = function(e, d) {
+    var Body_DOMGlobalProcessor = function(e, d, c, i) {
         d = e.data;
-        e.eventTarget = e.currentTarget;
-        G_ToTry(d.f, e, d.v);
+        c = e.currentTarget;
+        e.eventTarget = c;
+        i = d.i;
+        if (d.e || Body_FindVframe(c, i) == i) {
+            G_ToTry(d.f, e, d.v);
+        }
     };
     var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {
         if (scope) {

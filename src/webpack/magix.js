@@ -1,6 +1,7 @@
 module.exports = (function() {
     var $ = require('$');
     var G_NOOP = $.noop;
+    var G_IsFunction = $.isFunction;
     /*#if(modules.core){#*/
     var coreDefaultView;
     /*#}#*/
@@ -24,7 +25,7 @@ module.exports = (function() {
             }
         };
         var promise = function(p, idx) {
-            p.then(function(v) {
+            p().then(function(v) {
                 promiseCount--;
                 results[idx] = v;
                 checkCount();
@@ -32,7 +33,7 @@ module.exports = (function() {
         };
         for (var i = 0; i < name.length; i++) {
             view = views[name[i]];
-            if (view && view.then) {
+            if (G_IsFunction(view) && !view.extend) {
                 promiseCount++;
                 promise(view, i);
             } else {
@@ -79,7 +80,6 @@ module.exports = (function() {
     Inc('../tmpl/event');
     var Router_Edge;
     /*#if(modules.router||modules.updater){#*/
-    var G_IsFunction = $.isFunction;
     /*#if(!modules.forceEdgeRouter){#*/
     var Router_Hashbang = G_HashKey + '!';
     var Router_Update = function(path, params, loc, replace, lQuery) {
@@ -205,9 +205,14 @@ module.exports = (function() {
     /*#}#*/
     Inc('../tmpl/router');
     Inc('../tmpl/vframe');
-    var Body_DOMGlobalProcessor = function(e, d) {
+    var Body_DOMGlobalProcessor = function(e, d, c, i) {
         d = e.data;
-        G_ToTry(d.f, e, d.v);
+        c = e.currentTarget;
+        e.eventTarget = c;
+        i = d.i;
+        if (d.e || Body_FindVframe(c, i) == i) {
+            G_ToTry(d.f, e, d.v);
+        }
     };
     var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {
         if (scope) {

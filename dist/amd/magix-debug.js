@@ -1,9 +1,9 @@
 /*
-version:3.1.12
+version:3.2.0
 loader:amd
-modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState,mxInit,viewProtoMixins
+modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState,viewProtoMixins
 
-others:cnum,ceach,edgeRouter,collectView,forceEdgeRouter,serviceCombine
+others:cnum,ceach,edgeRouter,collectView,forceEdgeRouter,serviceCombine,mxInit
 */
 /*
     author:xinglie.lkf@taobao.com
@@ -1131,10 +1131,6 @@ Magix.Router = Router;
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
 
-var Vframe_DataParamsReg = /(\w+):\s*([^,\}]+)\s*/g;
-var Vframe_DataParamsStrReg = /(['"])(.*)\1/;
-var Vframe_DataParamsNumReg = /^[\d\.]+$/;
-
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
@@ -1401,37 +1397,10 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             
             G_Mix(params, viewInitParams);
             
-            var mxd = node.getAttribute('mx-init');
-            if (mxd) {
-                var parent = me.parent();
-                parent = parent && parent.$v;
-                var mxdo = {};
-                var read = function(val) {
-                    var keys = val.split('.');
-                    var start = parent;
-                    while (keys.length && start) {
-                        start = start[keys.shift()];
-                    }
-                    return start;
-                };
-                mxd.replace(Vframe_DataParamsReg, function(m, name, val) {
-                    m = val.match(Vframe_DataParamsStrReg);
-                    if (m) {
-                        val = m[2];
-                    } else if (Vframe_DataParamsNumReg.test(val)) {
-                        val = parseFloat(val);
-                    } else {
-                        val = read(val);
-                    }
-                    mxdo[name] = val;
-                });
-                G_Mix(params, mxdo);
-            }
-            
             G_Require(view, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
                     if (!TView) {
-                        Magix_Cfg.error(Error('id:' + id + ' cannot load:' + view));
+                        return Magix_Cfg.error(Error('id:' + id + ' cannot load:' + view));
                     }
                     
                     View_Prepare(TView);
@@ -1449,7 +1418,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     
                     view.render();
                     
-                    if (!view.tmpl && !view.$p) {
+                    if (!view.$t && !view.$p) {
                         view.endUpdate();
                     }
                     
@@ -1720,10 +1689,14 @@ Magix.Vframe = Vframe;
  *
  *      fca firstChildrenAlter  fcc firstChildrenCreated
  */
-    var Body_DOMGlobalProcessor = function(e, d) {
+    var Body_DOMGlobalProcessor = function(e, d, c, i) {
         d = e.data;
-        e.eventTarget = e.currentTarget;
-        G_ToTry(d.f, e, d.v);
+        c = e.currentTarget;
+        e.eventTarget = c;
+        i = d.i;
+        if (d.e || Body_FindVframe(c, i) == i) {
+            G_ToTry(d.f, e, d.v);
+        }
     };
     var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {
         if (scope) {
@@ -1753,6 +1726,16 @@ var Body_ParentNode = 'parentNode';
 var Body_EvtInfoCache = new G_Cache(30, 10);
 var Body_EvtInfoReg = /(?:([\w\-]+)\u001e)?([^\(]+)\(([\s\S]*)?\)/;
 var Body_RootEvents = {};
+var Body_FindVframe = function(begin, vfId, tempId, vf, vId, view) {
+    while ((begin = begin[Body_ParentNode])) {
+        vf = Vframe_Vframes[tempId = begin.id];
+        if (vf && (vfId == tempId || ((view = vf.$v) && view.$p && view.$t))) { //如果是独立的vframe或指定的id相同
+            vId = tempId;
+            break;
+        }
+    }
+    return vId;
+};
 
 var Body_DOMEventProcessor = function(e) {
     var current = e.target;
@@ -1761,7 +1744,7 @@ var Body_DOMEventProcessor = function(e) {
     var info;
     var ignore;
     var arr = [];
-    var vframe, view, vId, begin, tempId, match, name, fn;
+    var vframe, view, vId, match, name, fn;
 
     while (current != G_DOCBODY && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点,考虑在向上遍历的过程中，节点被删除，所以需要判断nodeType,主要是IE
         if ((info = current.getAttribute(type))) {
@@ -1782,7 +1765,6 @@ var Body_DOMEventProcessor = function(e) {
             }
             vId = match.v || current.$f; //ts[0];
             if (!vId) { //如果没有则找最近的vframe
-                begin = current;
 
                 // 关于下方的while
                 // 考虑这样的结构：
@@ -1796,20 +1778,12 @@ var Body_DOMEventProcessor = function(e) {
 
                 // div(mx-click="test()")
                 //     click here
-
-                while ((begin = begin[Body_ParentNode])) {
-
-                    if (G_Has(Vframe_Vframes, tempId = begin.id)) {
-                        begin.$f = vId = tempId;
-                        break;
-                    }
-
-                }
+                vId = Body_FindVframe(current);
             }
             if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
                 vframe = Vframe_Vframes[vId];
                 view = vframe && vframe.$v;
-                if (view && view.$s > 0) {
+                if (view) {
                     name = match.n + G_SPLITER + eventType;
                     fn = view[name];
                     if (fn) {
@@ -2265,6 +2239,20 @@ var View_ScopeReg = /\u001f/g;
 var View_SetEventOwner = function(str, id) {
     return (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
 };
+
+var processMixinsSameEvent = function(exist, additional, temp) {
+    if (exist.$l) {
+        exist.$l.push(additional);
+        temp = exist;
+    } else {
+        temp = function(e) {
+            G_ToTry(temp.$l, e, this);
+        };
+        temp.$l = [exist, additional];
+    }
+    return temp;
+};
+
 //var View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 
 var View_DestroyAllResources = function(me, lastly) {
@@ -2319,7 +2307,8 @@ var View_DelegateEvents = function(me, destroy) {
         Body_DOMEventLibBind(e.e || G_HashKey + id, e.n, Body_DOMGlobalProcessor, destroy, e.s, {
             i: id,
             v: me,
-            f: e.f
+            f: e.f,
+            e: e.e
         });
     }
 };
@@ -2355,11 +2344,11 @@ var View_Prepare = function(oView) {
     if (!oView[G_SPLITER]) { //只处理一次
         oView[G_SPLITER] = 1;
         var prop = oView[G_PROTOTYPE],
-            oldFun, matches, selectorOrCallback, events, eventsObject = {},
+            currentFn, matches, selectorOrCallback, events, eventsObject = {},
             eventsList = [],
             node, isSelector, p, item;
         for (p in prop) {
-            oldFun = prop[p];
+            currentFn = prop[p];
             matches = p.match(View_EvtMethodReg);
             if (matches) {
                 isSelector = matches[1];
@@ -2369,7 +2358,7 @@ var View_Prepare = function(oView) {
                     if (isSelector) {
                         node = View_Globals[selectorOrCallback];
                         eventsList.push({
-                            f: oldFun,
+                            f: currentFn,
                             s: node ? G_NULL : selectorOrCallback,
                             n: item,
                             e: node
@@ -2377,9 +2366,15 @@ var View_Prepare = function(oView) {
                     } else {
                         eventsObject[item] = 1;
                         item = selectorOrCallback + G_SPLITER + item;
-                        if (!prop[item]) { //for in 就近遍历，如果有则忽略
-                            prop[item] = oldFun;
+                        node = prop[item];
+                        
+                        //for in 就近遍历，如果有则忽略
+                        if (!node || (node.$m && !currentFn.$m)) { //没有相同的
+                            prop[item] = currentFn;
+                        } else if (currentFn.$m) {
+                            prop[item] = node.$m ? processMixinsSameEvent(node, currentFn) : node;
                         }
+                        
                     }
                 }
             }
@@ -2387,6 +2382,7 @@ var View_Prepare = function(oView) {
         View_WrapRender(prop);
         prop.$eo = eventsObject;
         prop.$el = eventsList;
+        prop.$t = !!prop.tmpl;
     }
 };
 
@@ -2570,14 +2566,29 @@ G_Mix(View, {
         
         var mixins = props.mixins;
         if (mixins) {
-            var i = mixins.length,
-                o;
-            while (--i >= 0) {
-                o = mixins[i];
-                ctor = o && o.ctor;
-                if (ctor) ctors.push(ctor);
-                G_Mix(props, o);
+            var c = mixins.length,
+                i = 0,
+                o, temp = {},
+                p, val, old;
+            while (i < c) {
+                o = mixins[i++];
+                for (p in o) {
+                    val = o[p];
+                    old = temp[p];
+                    if (p == 'ctor') {
+                        ctors.push(val);
+                    } else if (View_EvtMethodReg.test(p)) {
+                        val = old ? processMixinsSameEvent(old, val) : val;
+                        val.$m = 1;
+                        temp[p] = val;
+                    } else if (old) {
+                        Magix_Cfg.error(Error('mixins duplicate:' + p));
+                    } else {
+                        temp[p] = val;
+                    }
+                }
             }
+            props = G_Mix(temp, props);
         }
         
         NView.extend = me.extend;

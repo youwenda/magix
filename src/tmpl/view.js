@@ -3,6 +3,20 @@ var View_ScopeReg = /\u001f/g;
 var View_SetEventOwner = function(str, id) {
     return (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
 };
+/*#if(modules.viewProtoMixins){#*/
+var processMixinsSameEvent = function(exist, additional, temp) {
+    if (exist.$l) {
+        exist.$l.push(additional);
+        temp = exist;
+    } else {
+        temp = function(e) {
+            G_ToTry(temp.$l, e, this);
+        };
+        temp.$l = [exist, additional];
+    }
+    return temp;
+};
+/*#}#*/
 //var View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 /*#if(modules.resource){#*/
 var View_DestroyAllResources = function(me, lastly) {
@@ -57,7 +71,8 @@ var View_DelegateEvents = function(me, destroy) {
         Body_DOMEventLibBind(e.e || G_HashKey + id, e.n, Body_DOMGlobalProcessor, destroy, e.s, {
             i: id,
             v: me,
-            f: e.f
+            f: e.f,
+            e: e.e
         });
     }
 };
@@ -93,11 +108,11 @@ var View_Prepare = function(oView) {
     if (!oView[G_SPLITER]) { //只处理一次
         oView[G_SPLITER] = 1;
         var prop = oView[G_PROTOTYPE],
-            oldFun, matches, selectorOrCallback, events, eventsObject = {},
+            currentFn, matches, selectorOrCallback, events, eventsObject = {},
             eventsList = [],
             node, isSelector, p, item;
         for (p in prop) {
-            oldFun = prop[p];
+            currentFn = prop[p];
             matches = p.match(View_EvtMethodReg);
             if (matches) {
                 isSelector = matches[1];
@@ -107,7 +122,7 @@ var View_Prepare = function(oView) {
                     if (isSelector) {
                         node = View_Globals[selectorOrCallback];
                         eventsList.push({
-                            f: oldFun,
+                            f: currentFn,
                             s: node ? G_NULL : selectorOrCallback,
                             n: item,
                             e: node
@@ -115,9 +130,19 @@ var View_Prepare = function(oView) {
                     } else {
                         eventsObject[item] = 1;
                         item = selectorOrCallback + G_SPLITER + item;
-                        if (!prop[item]) { //for in 就近遍历，如果有则忽略
-                            prop[item] = oldFun;
+                        node = prop[item];
+                        /*#if(modules.viewProtoMixins){#*/
+                        //for in 就近遍历，如果有则忽略
+                        if (!node || (node.$m && !currentFn.$m)) { //没有相同的
+                            prop[item] = currentFn;
+                        } else if (currentFn.$m) {
+                            prop[item] = node.$m ? processMixinsSameEvent(node, currentFn) : node;
                         }
+                        /*#}else{#*/
+                        if (!node) {
+                            prop[item] = currentFn;
+                        }
+                        /*#}#*/
                     }
                 }
             }
@@ -125,6 +150,7 @@ var View_Prepare = function(oView) {
         View_WrapRender(prop);
         prop.$eo = eventsObject;
         prop.$el = eventsList;
+        prop.$t = !!prop.tmpl;
     }
 };
 /*#if(modules.router){#*/
@@ -310,14 +336,29 @@ G_Mix(View, {
         /*#if(modules.viewProtoMixins){#*/
         var mixins = props.mixins;
         if (mixins) {
-            var i = mixins.length,
-                o;
-            while (--i >= 0) {
-                o = mixins[i];
-                ctor = o && o.ctor;
-                if (ctor) ctors.push(ctor);
-                G_Mix(props, o);
+            var c = mixins.length,
+                i = 0,
+                o, temp = {},
+                p, val, old;
+            while (i < c) {
+                o = mixins[i++];
+                for (p in o) {
+                    val = o[p];
+                    old = temp[p];
+                    if (p == 'ctor') {
+                        ctors.push(val);
+                    } else if (View_EvtMethodReg.test(p)) {
+                        val = old ? processMixinsSameEvent(old, val) : val;
+                        val.$m = 1;
+                        temp[p] = val;
+                    } else if (old) {
+                        Magix_Cfg.error(Error('mixins duplicate:' + p));
+                    } else {
+                        temp[p] = val;
+                    }
+                }
             }
+            props = G_Mix(temp, props);
         }
         /*#}#*/
         NView.extend = me.extend;

@@ -301,7 +301,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             G_Require(view, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
                     if (!TView) {
-                        Magix_Cfg.error(Error('id:' + id + ' cannot load:' + view));
+                        return Magix_Cfg.error(Error('id:' + id + ' cannot load:' + view));
                     }
                     /*#if(!modules.loader){#*/
                     View_Prepare(TView);
@@ -319,7 +319,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     /*#}#*/
                     view.render();
                     /*#if(modules.autoEndUpdate&&!modules.loader){#*/
-                    if (!view.tmpl && !view.$p) {
+                    if (!view.$t && !view.$p) {
                         view.endUpdate();
                     }
                     /*#}#*/

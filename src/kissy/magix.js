@@ -168,10 +168,14 @@ KISSY.add('magix', function(S, SE) {
     Inc('../tmpl/router');
     var $ = S.all;
     Inc('../tmpl/vframe');
-    var Body_DOMGlobalProcessor = function(e, me) {
-        me = this;
-        e.eventTarget = e.currentTarget;
-        G_ToTry(me.f, e, me.v);
+    var Body_DOMGlobalProcessor = function(e, d, c, i) {
+        d = this;
+        c = e.currentTarget;
+        e.eventTarget = c;
+        i = d.i;
+        if (d.e || Body_FindVframe(c, i) == i) {
+            G_ToTry(d.f, e, d.v);
+        }
     };
     var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {
         if (scope) {

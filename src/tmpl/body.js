@@ -16,6 +16,16 @@ var Body_ParentNode = 'parentNode';
 var Body_EvtInfoCache = new G_Cache(30, 10);
 var Body_EvtInfoReg = /(?:([\w\-]+)\u001e)?([^\(]+)\(([\s\S]*)?\)/;
 var Body_RootEvents = {};
+var Body_FindVframe = function(begin, vfId, tempId, vf, vId, view) {
+    while ((begin = begin[Body_ParentNode])) {
+        vf = Vframe_Vframes[tempId = begin.id];
+        if (vf && (vfId == tempId || ((view = vf.$v) && view.$p && view.$t))) { //如果是独立的vframe或指定的id相同
+            vId = tempId;
+            break;
+        }
+    }
+    return vId;
+};
 
 var Body_DOMEventProcessor = function(e) {
     var current = e.target;
@@ -24,7 +34,7 @@ var Body_DOMEventProcessor = function(e) {
     var info;
     var ignore;
     var arr = [];
-    var vframe, view, vId, begin, tempId, match, name, fn;
+    var vframe, view, vId, match, name, fn;
 
     while (current != G_DOCBODY && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点,考虑在向上遍历的过程中，节点被删除，所以需要判断nodeType,主要是IE
         if ((info = current.getAttribute(type))) {
@@ -45,7 +55,6 @@ var Body_DOMEventProcessor = function(e) {
             }
             vId = match.v || current.$f; //ts[0];
             if (!vId) { //如果没有则找最近的vframe
-                begin = current;
 
                 // 关于下方的while
                 // 考虑这样的结构：
@@ -59,20 +68,12 @@ var Body_DOMEventProcessor = function(e) {
 
                 // div(mx-click="test()")
                 //     click here
-
-                while ((begin = begin[Body_ParentNode])) {
-
-                    if (G_Has(Vframe_Vframes, tempId = begin.id)) {
-                        begin.$f = vId = tempId;
-                        break;
-                    }
-
-                }
+                vId = Body_FindVframe(current);
             }
             if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
                 vframe = Vframe_Vframes[vId];
                 view = vframe && vframe.$v;
-                if (view && view.$s > 0) {
+                if (view) {
                     name = match.n + G_SPLITER + eventType;
                     fn = view[name];
                     if (fn) {
