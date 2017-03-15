@@ -5,6 +5,7 @@
  **/
 KISSY.add('magix', function(S, SE) {
     var G_NOOP = S.noop;
+    var $ = S.all;
     var G_Require = function(name, fn) {
         S.use(name && (name + G_EMPTY), function(S) {
             if (fn) {
@@ -16,26 +17,14 @@ KISSY.add('magix', function(S, SE) {
     var G_IsObject = S.isObject;
     var G_IsArray = S.isArray;
     var G_DOM = S.DOM;
-    var G_HTML = G_DOM.html;
-
-    /*#if(modules.style){#*/
-    var View_ApplyStyle = function(key, css, node, sheet) {
-        if (css && !View_ApplyStyle[key]) {
-            View_ApplyStyle[key] = 1;
-            node = S.one(G_HashKey + MxStyleGlobalId);
-            if (node) {
-                sheet = node.prop('styleSheet');
-                if (sheet) {
-                    sheet.cssText += css;
-                } else {
-                    node.append(css);
-                }
-            } else {
-                S.one('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
-            }
-        }
+    var G_HTML = function(node, html) {
+        S.one(node).html(html);
+        G_DOC.fireHandler('htmlchange', {
+            target: node
+        });
     };
-    /*#}#*/
+
+
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
     var Router_Edge;
@@ -44,47 +33,57 @@ KISSY.add('magix', function(S, SE) {
     /*#if(!modules.forceEdgeRouter){#*/
     var Win = S.one(G_WINDOW);
     var Router_Hashbang = G_HashKey + '!';
+    var Router_UpdateHash = function(path, replace) {
+        path = Router_Hashbang + path;
+        if (replace) {
+            Router_WinLoc.replace(path);
+        } else {
+            Router_WinLoc.hash = path;
+        }
+    };
     var Router_Update = function(path, params, loc, replace, lQuery) {
         path = G_ToUri(path, params, lQuery);
         if (path != loc.srcHash) {
-            path = Router_Hashbang + path;
-            if (replace) {
-                Router_WinLoc.replace(path);
-            } else {
-                Router_WinLoc.hash = path;
-            }
+            Router_UpdateHash(path, replace);
         }
     };
     /*#if(modules.tiprouter){#*/
     var Router_Bind = function() {
-        var lastHash = Router.parse().srcHash;
+        var lastHash = Router_Parse().srcHash;
         var newHash, suspend;
-        Win.on('hashchange', function(e) {
-            if (suspend) return;
-            newHash = Router.parse().srcHash;
+        Win.on('hashchange', function(e, forward) {
+            if (suspend) {
+                Router_UpdateHash(lastHash);
+                return;
+            }
+            newHash = Router_Parse().srcHash;
             if (newHash != lastHash) {
+                forward = function() {
+                    e.p = 1;
+                    lastHash = newHash;
+                    suspend = G_EMPTY;
+                    Router_UpdateHash(newHash);
+                    Router_Diff();
+                };
                 e = {
                     backward: function() {
+                        e.p = 1;
                         suspend = G_EMPTY;
-                        location.hash = Router_Hashbang + lastHash;
                     },
-                    forward: function() {
-                        lastHash = newHash;
-                        suspend = G_EMPTY;
-                        Router.diff();
-                    },
+                    forward: forward,
                     prevent: function() {
                         suspend = 1;
+                        Router_UpdateHash(lastHash);
                     }
                 };
                 Router.fire('change', e);
-                if (!suspend) {
-                    e.forward();
+                if (!suspend && !e.p) {
+                    forward();
                 }
             }
         });
-        window.onbeforeunload = function(e) {
-            e = e || window.event;
+        G_WINDOW.onbeforeunload = function(e) {
+            e = e || G_WINDOW.event;
             var te = {};
             Router.fire('pageunload', te);
             if (te.msg) {
@@ -92,12 +91,12 @@ KISSY.add('magix', function(S, SE) {
                 return te.msg;
             }
         };
-        Router.diff();
+        Router_Diff();
     };
     /*#}else{#*/
     var Router_Bind = function() {
-        Win.on('hashchange', Router.diff);
-        Router.diff();
+        Win.on('hashchange', Router_Diff);
+        Router_Diff();
     };
     /*#}#*/
     /*#}#*/
@@ -108,11 +107,15 @@ KISSY.add('magix', function(S, SE) {
         /*#}#*/
         Router_Edge = 1;
         var Router_DidUpdate;
+
+        var Router_UpdateState = function(path, replace) {
+            WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
+        };
         var Router_Update = function(path, params, loc, replace) {
             path = G_ToUri(path, params);
             if (path != loc.srcQuery) {
-                WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
-                Router.diff();
+                Router_UpdateState(path, replace);
+                Router_Diff();
             }
         };
         /*#if(modules.tiprouter){#*/
@@ -120,32 +123,49 @@ KISSY.add('magix', function(S, SE) {
             var initialURL = Router_WinLoc.href;
             var lastHref = initialURL;
             var newHref, suspend;
-            Win.on('popstate', function(e) {
+            Win.on('popstate', function(e, forward) {
                 newHref = Router_WinLoc.href;
                 var initPop = !Router_DidUpdate && newHref == initialURL;
                 Router_DidUpdate = 1;
-                if (initPop || suspend) return;
+                if (initPop) return;
+                if (suspend) {
+                    Router_UpdateState(lastHref);
+                    return;
+                }
                 if (newHref != lastHref) {
+                    forward = function() {
+                        e.p = 1;
+                        suspend = G_EMPTY;
+                        Router_UpdateState(lastHref = newHref);
+                        Router_Diff();
+                    };
                     e = {
                         backward: function() {
                             suspend = G_EMPTY;
-                            history.replaceState(G_NULL, G_NULL, lastHref);
+                            e.p = 1;
                         },
-                        forward: function() {
-                            lastHref = newHref;
-                            suspend = G_EMPTY;
-                            Router.diff();
-                        },
+                        forward: forward,
                         prevent: function() {
                             suspend = 1;
+                            Router_UpdateState(lastHref);
                         }
                     };
                     Router.fire('change', e);
-                    if (!suspend) {
-                        e.forward();
+                    if (!suspend && !e.p) {
+                        forward();
                     }
                 }
             });
+            G_WINDOW.onbeforeunload = function(e) {
+                e = e || G_WINDOW.event;
+                var te = {};
+                Router.fire('pageunload', te);
+                if (te.msg) {
+                    if (e) e.returnValue = te.msg;
+                    return te.msg;
+                }
+            };
+            Router_Diff();
         };
         /*#}else{#*/
         var Router_Bind = function() {
@@ -154,9 +174,9 @@ KISSY.add('magix', function(S, SE) {
                 var initPop = !Router_DidUpdate && Router_WinLoc.href == initialURL;
                 Router_DidUpdate = 1;
                 if (initPop) return;
-                Router.diff();
+                Router_Diff();
             });
-            Router.diff();
+            Router_Diff();
         };
         /*#}#*/
         /*#if(!modules.forceEdgeRouter){#*/
@@ -166,7 +186,6 @@ KISSY.add('magix', function(S, SE) {
     /*#}#*/
 
     Inc('../tmpl/router');
-    var $ = S.all;
     Inc('../tmpl/vframe');
     var Body_DOMGlobalProcessor = function(e, d, c, i) {
         d = this;
@@ -187,26 +206,6 @@ KISSY.add('magix', function(S, SE) {
     Inc('../tmpl/body');
     Inc('../tmpl/tmpl');
     Inc('../tmpl/updater');
-    /*#if(modules.fullstyle){#*/
-    var View_Style_Cache = new G_Cache(15, 5, function(key) {
-        S.one(G_HashKey + key).remove();
-    });
-    var View_ApplyStyle = function(key, css) {
-        if (css) {
-            if (!View_Style_Cache.has(key)) {
-                S.one('head').append('<style id="' + key + '">' + css + '</style>');
-            }
-            View_Style_Cache.num(key, 1);
-            //$(node).addClass(key);
-        }
-    };
-    var View_RemoveStyle = function(key) {
-        if (key) {
-            //$(node).removeClass(key);
-            View_Style_Cache.num(key);
-        }
-    };
-    /*#}#*/
     Inc('../tmpl/view');
 
     /*#if(modules.service){#*/

@@ -100,13 +100,14 @@ var Vframe_RemoveVframe = function(id, fcc, vf) {
     }
 };
 /*#if(modules.router){#*/
+var Vframe_UpdateTag;
 /**
  * 通知当前vframe，地址栏发生变化
  * @param {Vframe} vframe vframe对象
  * @private
  */
 var Vframe_Update = function(vframe, view) {
-    if (vframe && (view = vframe.$v) && view.$s > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
+    if (vframe && vframe.$g != Vframe_UpdateTag && (view = vframe.$v) && view.$s > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
 
         var isChanged = View_IsObsveChanged(view);
         /**
@@ -158,6 +159,7 @@ var Vframe_NotifyLocationChange = function(e) {
     if ((view = e.view)) {
         vf.mountView(view.to);
     } else {
+        Vframe_UpdateTag = G_COUNTER++;
         Vframe_Update(vf);
     }
 };
@@ -311,6 +313,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                         id: id
                     }, params);
                     me.$v = view;
+                    me.$g = Vframe_UpdateTag;
                     /*#if(!modules.loader){#*/
                     View_DelegateEvents(view);
                     /*#}#*/

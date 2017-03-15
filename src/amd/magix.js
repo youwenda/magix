@@ -2,7 +2,7 @@
     author:xinglie.lkf@taobao.com
  */
 define('magix', ['$'], function($) {
-    var G_NOOP = $.noop;
+    var G_NOOP = function() {};
     var G_Require = function(name, fn) {
         if (name) {
             if (G_IsArray(name)) {
@@ -33,25 +33,11 @@ define('magix', ['$'], function($) {
     var G_IsArray = $.isArray;
     var G_HTML = function(node, html) {
         $(node).html(html);
+        G_DOC.triggerHandler({
+            type: 'htmlchange',
+            target: node
+        });
     };
-    /*#if(modules.style){#*/
-    var View_ApplyStyle = function(key, css, node, sheet) {
-        if (css && !View_ApplyStyle[key]) {
-            View_ApplyStyle[key] = 1;
-            node = $(G_HashKey + MxStyleGlobalId);
-            if (node.length) {
-                sheet = node.prop('styleSheet');
-                if (sheet) {
-                    sheet.cssText += css;
-                } else {
-                    node.append(css);
-                }
-            } else {
-                $('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
-            }
-        }
-    };
-    /*#}#*/
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
     var Router_Edge;
@@ -59,43 +45,53 @@ define('magix', ['$'], function($) {
     var G_IsFunction = $.isFunction;
     /*#if(!modules.forceEdgeRouter){#*/
     var Router_Hashbang = G_HashKey + '!';
+    var Router_UpdateHash = function(path, replace) {
+        path = Router_Hashbang + path;
+        if (replace) {
+            Router_WinLoc.replace(path);
+        } else {
+            Router_WinLoc.hash = path;
+        }
+    };
     var Router_Update = function(path, params, loc, replace, lQuery) {
         path = G_ToUri(path, params, lQuery);
         if (path != loc.srcHash) {
-            path = Router_Hashbang + path;
-            if (replace) {
-                Router_WinLoc.replace(path);
-            } else {
-                Router_WinLoc.hash = path;
-            }
+            Router_UpdateHash(path, replace);
         }
     };
     /*#if(modules.tiprouter){#*/
     var Router_Bind = function() {
-        var lastHash = Router.parse().srcHash;
+        var lastHash = Router_Parse().srcHash;
         var newHash, suspend;
-        $(G_WINDOW).on('hashchange', function(e, loc) {
-            if (suspend) return;
-            loc = Router.parse();
+        $(G_WINDOW).on('hashchange', function(e, loc, forward) {
+            if (suspend) {
+                Router_UpdateHash(lastHash);
+                return;
+            }
+            loc = Router_Parse();
             newHash = loc.srcHash;
             if (newHash != lastHash) {
+                forward = function() {
+                    e.p = 1;
+                    lastHash = newHash;
+                    suspend = G_EMPTY;
+                    Router_UpdateHash(newHash);
+                    Router_Diff();
+                };
                 e = {
                     backward: function() {
+                        e.p = 1;
                         suspend = G_EMPTY;
-                        Router_WinLoc.hash = Router_Hashbang + lastHash;
                     },
-                    forward: function() {
-                        lastHash = newHash;
-                        suspend = G_EMPTY;
-                        Router.diff();
-                    },
+                    forward: forward,
                     prevent: function() {
                         suspend = 1;
+                        Router_UpdateHash(lastHash);
                     }
                 };
                 Router.fire('change', e);
-                if (!suspend) {
-                    e.forward();
+                if (!suspend && !e.p) {
+                    forward();
                 }
             }
         });
@@ -108,12 +104,12 @@ define('magix', ['$'], function($) {
                 return te.msg;
             }
         };
-        Router.diff();
+        Router_Diff();
     };
     /*#}else{#*/
     var Router_Bind = function() {
-        $(G_WINDOW).on('hashchange', Router.diff);
-        Router.diff();
+        $(G_WINDOW).on('hashchange', Router_Diff);
+        Router_Diff();
     };
     /*#}#*/
     /*#}#*/
@@ -124,11 +120,14 @@ define('magix', ['$'], function($) {
         /*#}#*/
         Router_Edge = 1;
         var Router_DidUpdate;
+        var Router_UpdateState = function(path, replace) {
+            WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
+        };
         var Router_Update = function(path, params, loc, replace) {
             path = G_ToUri(path, params);
             if (path != loc.srcQuery) {
-                WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
-                Router.diff();
+                Router_UpdateState(path, replace);
+                Router_Diff();
             }
         };
         /*#if(modules.tiprouter){#*/
@@ -136,32 +135,49 @@ define('magix', ['$'], function($) {
             var initialURL = Router_WinLoc.href;
             var lastHref = initialURL;
             var newHref, suspend;
-            $(G_WINDOW).on('popstate', function(e) {
+            $(G_WINDOW).on('popstate', function(e, forward) {
                 newHref = Router_WinLoc.href;
                 var initPop = !Router_DidUpdate && newHref == initialURL;
                 Router_DidUpdate = 1;
-                if (initPop || suspend) return;
+                if (initPop) return;
+                if (suspend) {
+                    Router_UpdateState(lastHref);
+                    return;
+                }
                 if (newHref != lastHref) {
+                    forward = function() {
+                        e.p = 1;
+                        suspend = G_EMPTY;
+                        Router_UpdateState(lastHref = newHref);
+                        Router_Diff();
+                    };
                     e = {
                         backward: function() {
                             suspend = G_EMPTY;
-                            history.replaceState(G_NULL, G_NULL, lastHref);
+                            e.p = 1;
                         },
-                        forward: function() {
-                            lastHref = newHref;
-                            suspend = G_EMPTY;
-                            Router.diff();
-                        },
+                        forward: forward,
                         prevent: function() {
                             suspend = 1;
+                            Router_UpdateState(lastHref);
                         }
                     };
                     Router.fire('change', e);
-                    if (!suspend) {
-                        e.forward();
+                    if (!suspend && !e.p) {
+                        forward();
                     }
                 }
             });
+            G_WINDOW.onbeforeunload = function(e) {
+                e = e || G_WINDOW.event;
+                var te = {};
+                Router.fire('pageunload', te);
+                if (te.msg) {
+                    if (e) e.returnValue = te.msg;
+                    return te.msg;
+                }
+            };
+            Router_Diff();
         };
         /*#}else{#*/
         var Router_Bind = function() {
@@ -170,9 +186,9 @@ define('magix', ['$'], function($) {
                 var initPop = !Router_DidUpdate && Router_WinLoc.href == initialURL;
                 Router_DidUpdate = 1;
                 if (initPop) return;
-                Router.diff();
+                Router_Diff();
             });
-            Router.diff();
+            Router_Diff();
         };
         /*#}#*/
         /*#if(!modules.forceEdgeRouter){#*/
@@ -204,26 +220,6 @@ define('magix', ['$'], function($) {
     Inc('../tmpl/body');
     Inc('../tmpl/tmpl');
     Inc('../tmpl/updater');
-    /*#if(modules.fullstyle){#*/
-    var View_Style_Cache = new G_Cache(15, 5, function(key) {
-        $(G_HashKey + key).remove();
-    });
-    var View_ApplyStyle = function(key, css) {
-        if (css) {
-            if (!View_Style_Cache.has(key)) {
-                $('head').append('<style id="' + key + '">' + css + '</style>');
-            }
-            View_Style_Cache.num(key, 1);
-            //$(node).addClass(key);
-        }
-    };
-    var View_RemoveStyle = function(key) {
-        if (key) {
-            //$(node).removeClass(key);
-            View_Style_Cache.num(key);
-        }
-    };
-    /*#}#*/
 
     Inc('../tmpl/view');
     /*#if(modules.service){#*/

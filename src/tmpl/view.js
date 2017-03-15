@@ -1,4 +1,4 @@
-var View_EvtMethodReg = /^(\$?)([^<]+)<([^>]+)>$/;
+var View_EvtMethodReg = /^(\$?)([^]*)<([^>]+)>$/;
 var View_ScopeReg = /\u001f/g;
 var View_SetEventOwner = function(str, id) {
     return (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
@@ -76,22 +76,6 @@ var View_DelegateEvents = function(me, destroy) {
         });
     }
 };
-/*#if(modules.fullstyle||modules.style){#*/
-// var View_Style_Map;
-// var View_Style_Key;
-// var View_Style_Reg = /(\.)([\w\-]+)(?=[^\{\}]*?\{)/g;
-// var View_Style_Processor = function(m, dot, name) {
-//     return dot + (View_Style_Map[name] = View_Style_Key + name);
-// };
-/*#}#*/
-//
-//console.log((a=r.responseText).replace(/(\.)([\w\-]+)(?=[^\{\}]*?\{)/g,function(m,k,v){console.log(m);o[v]=v+'0';return k+v+'0'}));
-// var View_StyleNameKeyReg = /[^,]+(?=,|$)/g;
-// var View_StyleNamePickReg = /(^|\})\s*([^{}]+)(?=\{)/mg;
-// var View_StyleCssKeyTemp; //
-// var View_StyleCallback = function(m, left, key) {
-//     return left + key.replace(View_StyleNameKeyReg, '.' + View_StyleCssKeyTemp + ' $&');
-// };
 /*#if(modules.viewMerge){#*/
 var View_Ctors = [];
 /*#}#*/
@@ -435,9 +419,9 @@ G_Mix(G_Mix(ViewProto, Event), {
             o = me.owner;
             o.mountZone(id);
             if (!f) {
-                setTimeout(function() {
+                setTimeout(me.wrapAsync(function() {
                     Vframe_RunInvokes(o);
-                }, 0);
+                }), 0);
             }
             /*#}else{#*/
             me.owner.mountZone(id);
@@ -595,8 +579,23 @@ G_Mix(G_Mix(ViewProto, Event), {
         var me = this;
         var changeListener = function(e) {
             e.prevent();
-            if (fn()) {
-                me.leaveConfirm(msg, e);
+            var flag = 'a', // a for router change
+                v = 'b'; // b for viewunload change
+            if (e.type != 'change') {
+                flag = 'b';
+                v = 'a';
+            }
+            if (changeListener[flag]) {
+                e.backward();
+            } else if (fn()) {
+                changeListener[v] = 1;
+                me.leaveConfirm(msg, function() {
+                    changeListener[v] = 0;
+                    e.forward();
+                }, function() {
+                    changeListener[v] = 0;
+                    e.backward();
+                });
             } else {
                 e.forward();
             }
@@ -612,6 +611,7 @@ G_Mix(G_Mix(ViewProto, Event), {
             Router.off('change', changeListener);
             Router.off('pageunload', unloadListener);
         });
+        me.onviewunload = changeListener;
     },
     /*#}#*/
     /*#if(modules.share){#*/

@@ -103,6 +103,42 @@ var Router_GetChged = function(oldLocation, newLocation) {
     }
     return result;
 };
+var Router_Parse = function(href) {
+    href = href || Router_WinLoc.href;
+    var result = Router_HrefCache.get(href),
+        query, hash, queryObj, hashObj, params;
+    if (!result) {
+        query = href.replace(Router_TrimHashReg, G_EMPTY);
+        hash = href.replace(Router_TrimQueryReg, G_EMPTY);
+        queryObj = G_ParseUri(query);
+        hashObj = G_ParseUri(hash);
+        params = G_Mix({}, queryObj[Router_PARAMS]);
+        /*#if(!modules.forceEdgeRouter){#*/
+        G_Mix(params, hashObj[Router_PARAMS]);
+        /*#}#*/
+        result = {
+            get: GetParam,
+            href: href,
+            srcQuery: query,
+            srcHash: hash,
+            query: queryObj,
+            hash: hashObj,
+            params: params
+        };
+        Router_AttachViewAndPath(result);
+        Router_HrefCache.set(href, result);
+    }
+    return result;
+};
+var Router_Diff = function() {
+    var location = Router_Parse();
+    var changed = Router_GetChged(Router_LLoc, Router_LLoc = location);
+    if (changed.a) {
+        Router_LParams = Router_LLoc[Router_PARAMS];
+        Router.fire('changed', Router_LastChanged = changed.b);
+    }
+    return Router_LastChanged;
+};
 //var PathTrimFileParamsReg=/(\/)?[^\/]*[=#]$/;//).replace(,'$1').replace(,EMPTY);
 //var PathTrimSearch=/\?.*$/;
 /**
@@ -124,33 +160,7 @@ var Router = G_Mix({
      * @param {String} [href] href
      * @return {Object} 解析的对象
      */
-    parse: function(href) {
-        href = href || Router_WinLoc.href;
-        var result = Router_HrefCache.get(href),
-            query, hash, queryObj, hashObj, params;
-        if (!result) {
-            query = href.replace(Router_TrimHashReg, G_EMPTY);
-            hash = href.replace(Router_TrimQueryReg, G_EMPTY);
-            queryObj = G_ParseUri(query);
-            hashObj = G_ParseUri(hash);
-            params = G_Mix({}, queryObj[Router_PARAMS]);
-            /*#if(!modules.forceEdgeRouter){#*/
-            G_Mix(params, hashObj[Router_PARAMS])
-                /*#}#*/
-            result = {
-                get: GetParam,
-                href: href,
-                srcQuery: query,
-                srcHash: hash,
-                query: queryObj,
-                hash: hashObj,
-                params: params
-            };
-            Router_AttachViewAndPath(result);
-            Router_HrefCache.set(href, result);
-        }
-        return result;
-    },
+    parse: Router_Parse,
     /**
      * 根据location.href路由并派发相应的事件,同时返回当前href与上一个href差异对象
      * @example
@@ -159,15 +169,7 @@ var Router = G_Mix({
      *     console.log('page or rows changed');
      * }
      */
-    diff: function() {
-        var location = Router.parse();
-        var changed = Router_GetChged(Router_LLoc, Router_LLoc = location);
-        if (changed.a) {
-            Router_LParams = Router_LLoc[Router_PARAMS];
-            Router.fire('changed', Router_LastChanged = changed.b);
-        }
-        return Router_LastChanged;
-    },
+    diff: Router_Diff,
     /**
      * 导航到新的地址
      * @param  {Object|String} pn path或参数字符串或参数对象

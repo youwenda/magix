@@ -1,7 +1,7 @@
 /*
-version:3.2.0
+version:3.2.1
 loader:kissy
-modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState,viewProtoMixins
+modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState,viewProtoMixins,base
 
 others:cnum,ceach,edgeRouter,collectView,forceEdgeRouter,serviceCombine,mxInit
 */
@@ -12,6 +12,7 @@ others:cnum,ceach,edgeRouter,collectView,forceEdgeRouter,serviceCombine,mxInit
  **/
 KISSY.add('magix', function(S, SE) {
     var G_NOOP = S.noop;
+    var $ = S.all;
     var G_Require = function(name, fn) {
         S.use(name && (name + G_EMPTY), function(S) {
             if (fn) {
@@ -23,26 +24,14 @@ KISSY.add('magix', function(S, SE) {
     var G_IsObject = S.isObject;
     var G_IsArray = S.isArray;
     var G_DOM = S.DOM;
-    var G_HTML = G_DOM.html;
-
-    
-    var View_ApplyStyle = function(key, css, node, sheet) {
-        if (css && !View_ApplyStyle[key]) {
-            View_ApplyStyle[key] = 1;
-            node = S.one(G_HashKey + MxStyleGlobalId);
-            if (node) {
-                sheet = node.prop('styleSheet');
-                if (sheet) {
-                    sheet.cssText += css;
-                } else {
-                    node.append(css);
-                }
-            } else {
-                S.one('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
-            }
-        }
+    var G_HTML = function(node, html) {
+        S.one(node).html(html);
+        G_DOC.fireHandler('htmlchange', {
+            target: node
+        });
     };
-    
+
+
     var G_COUNTER = 0;
 var G_EMPTY = '';
 var G_EMPTY_ARRAY = [];
@@ -51,6 +40,7 @@ var G_COMMA = ',';
 var G_NULL = null;
 var G_WINDOW = window;
 var G_DOCUMENT = document;
+var G_DOC = $(G_DOCUMENT);
 var G_HashKey = '#';
 var JSONStringify = JSON.stringify;
 var G_DOCBODY; //initilize at vframe_root
@@ -104,12 +94,30 @@ var G_NodeIn = function(a, b, r) {
     }
     return r;
 };
-var G_Mix = function(aim, src, p) {
+var G_Mix = Object.assign || function(aim, src, p) {
     for (p in src) {
         aim[p] = src[p];
     }
     return aim;
 };
+
+var View_ApplyStyle = function(key, css, node, sheet) {
+    if (css && !View_ApplyStyle[key]) {
+        View_ApplyStyle[key] = 1;
+        node = $(G_HashKey + MxStyleGlobalId);
+        if (node.length) {
+            sheet = node.prop('styleSheet');
+            if (sheet) {
+                sheet.cssText += css;
+            } else {
+                node.append(css);
+            }
+        } else {
+            $('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
+        }
+    }
+};
+
 
 var G_ToTry = function(fns, args, context, i, r, e) {
     args = args || G_EMPTY_ARRAY;
@@ -399,7 +407,6 @@ var G_ToMap = function(list, key) {
     }
     return map;
 };
-
 var G_Keys = Object.keys || function(obj, keys, p) {
     keys = [];
     for (p in obj) {
@@ -409,7 +416,6 @@ var G_Keys = Object.keys || function(obj, keys, p) {
     }
     return keys;
 };
-
 /**
  * Magix对象，提供常用方法
  * @name Magix
@@ -643,7 +649,6 @@ var Magix = {
      * @return {Boolean} 是否拥有prop属性
      */
     has: G_Has,
-    
     /**
      * 获取对象的keys
      * @type {Array}
@@ -661,7 +666,6 @@ var Magix = {
      * @return {Array[string]}
      */
     keys: G_Keys,
-    
     /**
      * 判断一个节点是否在另外一个节点内，如果比较的2个节点是同一个节点，也返回true
      * @function
@@ -832,47 +836,57 @@ Magix.Event = Event;
     
     var Win = S.one(G_WINDOW);
     var Router_Hashbang = G_HashKey + '!';
+    var Router_UpdateHash = function(path, replace) {
+        path = Router_Hashbang + path;
+        if (replace) {
+            Router_WinLoc.replace(path);
+        } else {
+            Router_WinLoc.hash = path;
+        }
+    };
     var Router_Update = function(path, params, loc, replace, lQuery) {
         path = G_ToUri(path, params, lQuery);
         if (path != loc.srcHash) {
-            path = Router_Hashbang + path;
-            if (replace) {
-                Router_WinLoc.replace(path);
-            } else {
-                Router_WinLoc.hash = path;
-            }
+            Router_UpdateHash(path, replace);
         }
     };
     
     var Router_Bind = function() {
-        var lastHash = Router.parse().srcHash;
+        var lastHash = Router_Parse().srcHash;
         var newHash, suspend;
-        Win.on('hashchange', function(e) {
-            if (suspend) return;
-            newHash = Router.parse().srcHash;
+        Win.on('hashchange', function(e, forward) {
+            if (suspend) {
+                Router_UpdateHash(lastHash);
+                return;
+            }
+            newHash = Router_Parse().srcHash;
             if (newHash != lastHash) {
+                forward = function() {
+                    e.p = 1;
+                    lastHash = newHash;
+                    suspend = G_EMPTY;
+                    Router_UpdateHash(newHash);
+                    Router_Diff();
+                };
                 e = {
                     backward: function() {
+                        e.p = 1;
                         suspend = G_EMPTY;
-                        location.hash = Router_Hashbang + lastHash;
                     },
-                    forward: function() {
-                        lastHash = newHash;
-                        suspend = G_EMPTY;
-                        Router.diff();
-                    },
+                    forward: forward,
                     prevent: function() {
                         suspend = 1;
+                        Router_UpdateHash(lastHash);
                     }
                 };
                 Router.fire('change', e);
-                if (!suspend) {
-                    e.forward();
+                if (!suspend && !e.p) {
+                    forward();
                 }
             }
         });
-        window.onbeforeunload = function(e) {
-            e = e || window.event;
+        G_WINDOW.onbeforeunload = function(e) {
+            e = e || G_WINDOW.event;
             var te = {};
             Router.fire('pageunload', te);
             if (te.msg) {
@@ -880,7 +894,7 @@ Magix.Event = Event;
                 return te.msg;
             }
         };
-        Router.diff();
+        Router_Diff();
     };
     
     
@@ -990,6 +1004,42 @@ var Router_GetChged = function(oldLocation, newLocation) {
     }
     return result;
 };
+var Router_Parse = function(href) {
+    href = href || Router_WinLoc.href;
+    var result = Router_HrefCache.get(href),
+        query, hash, queryObj, hashObj, params;
+    if (!result) {
+        query = href.replace(Router_TrimHashReg, G_EMPTY);
+        hash = href.replace(Router_TrimQueryReg, G_EMPTY);
+        queryObj = G_ParseUri(query);
+        hashObj = G_ParseUri(hash);
+        params = G_Mix({}, queryObj[Router_PARAMS]);
+        
+        G_Mix(params, hashObj[Router_PARAMS]);
+        
+        result = {
+            get: GetParam,
+            href: href,
+            srcQuery: query,
+            srcHash: hash,
+            query: queryObj,
+            hash: hashObj,
+            params: params
+        };
+        Router_AttachViewAndPath(result);
+        Router_HrefCache.set(href, result);
+    }
+    return result;
+};
+var Router_Diff = function() {
+    var location = Router_Parse();
+    var changed = Router_GetChged(Router_LLoc, Router_LLoc = location);
+    if (changed.a) {
+        Router_LParams = Router_LLoc[Router_PARAMS];
+        Router.fire('changed', Router_LastChanged = changed.b);
+    }
+    return Router_LastChanged;
+};
 //var PathTrimFileParamsReg=/(\/)?[^\/]*[=#]$/;//).replace(,'$1').replace(,EMPTY);
 //var PathTrimSearch=/\?.*$/;
 /**
@@ -1011,33 +1061,7 @@ var Router = G_Mix({
      * @param {String} [href] href
      * @return {Object} 解析的对象
      */
-    parse: function(href) {
-        href = href || Router_WinLoc.href;
-        var result = Router_HrefCache.get(href),
-            query, hash, queryObj, hashObj, params;
-        if (!result) {
-            query = href.replace(Router_TrimHashReg, G_EMPTY);
-            hash = href.replace(Router_TrimQueryReg, G_EMPTY);
-            queryObj = G_ParseUri(query);
-            hashObj = G_ParseUri(hash);
-            params = G_Mix({}, queryObj[Router_PARAMS]);
-            
-            G_Mix(params, hashObj[Router_PARAMS])
-                
-            result = {
-                get: GetParam,
-                href: href,
-                srcQuery: query,
-                srcHash: hash,
-                query: queryObj,
-                hash: hashObj,
-                params: params
-            };
-            Router_AttachViewAndPath(result);
-            Router_HrefCache.set(href, result);
-        }
-        return result;
-    },
+    parse: Router_Parse,
     /**
      * 根据location.href路由并派发相应的事件,同时返回当前href与上一个href差异对象
      * @example
@@ -1046,15 +1070,7 @@ var Router = G_Mix({
      *     console.log('page or rows changed');
      * }
      */
-    diff: function() {
-        var location = Router.parse();
-        var changed = Router_GetChged(Router_LLoc, Router_LLoc = location);
-        if (changed.a) {
-            Router_LParams = Router_LLoc[Router_PARAMS];
-            Router.fire('changed', Router_LastChanged = changed.b);
-        }
-        return Router_LastChanged;
-    },
+    diff: Router_Diff,
     /**
      * 导航到新的地址
      * @param  {Object|String} pn path或参数字符串或参数对象
@@ -1113,7 +1129,6 @@ var Router = G_Mix({
      */
 }, Event);
 Magix.Router = Router;
-    var $ = S.all;
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
 
@@ -1212,13 +1227,14 @@ var Vframe_RemoveVframe = function(id, fcc, vf) {
     }
 };
 
+var Vframe_UpdateTag;
 /**
  * 通知当前vframe，地址栏发生变化
  * @param {Vframe} vframe vframe对象
  * @private
  */
 var Vframe_Update = function(vframe, view) {
-    if (vframe && (view = vframe.$v) && view.$s > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
+    if (vframe && vframe.$g != Vframe_UpdateTag && (view = vframe.$v) && view.$s > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
 
         var isChanged = View_IsObsveChanged(view);
         /**
@@ -1270,6 +1286,7 @@ var Vframe_NotifyLocationChange = function(e) {
     if ((view = e.view)) {
         vf.mountView(view.to);
     } else {
+        Vframe_UpdateTag = G_COUNTER++;
         Vframe_Update(vf);
     }
 };
@@ -1396,6 +1413,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                         id: id
                     }, params);
                     me.$v = view;
+                    me.$g = Vframe_UpdateTag;
                     
                     View_DelegateEvents(view);
                     
@@ -2092,6 +2110,21 @@ G_Mix(UP, {
         return result;
     },
     /**
+     * 通过path获取值
+     * @param  {String} path 点分割的路径
+     * @return {Object}
+     */
+    gain: function(path) {
+        var result = this.$data;
+        var ps = path.split('.'),
+            temp;
+        while (result && ps.length) {
+            temp = ps.shift();
+            result = result[temp];
+        }
+        return result;
+    },
+    /**
      * 获取放入的数据
      * @param  {Object} obj 待放入的数据
      * @return {Updater} 返回updater
@@ -2203,7 +2236,9 @@ G_Mix(UP, {
      */
     altered: function() {
         var me = this;
-        return me.$ss != JSONStringify(me.$data);
+        if (me.$ss) {
+            return me.$ss != JSONStringify(me.$data);
+        }
     }
 
 
@@ -2215,8 +2250,7 @@ G_Mix(UP, {
      * @param {String} e.keys 指示哪些key被更新
      */
 });
-    
-    var View_EvtMethodReg = /^(\$?)([^<]+)<([^>]+)>$/;
+    var View_EvtMethodReg = /^(\$?)([^]*)<([^>]+)>$/;
 var View_ScopeReg = /\u001f/g;
 var View_SetEventOwner = function(str, id) {
     return (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
@@ -2294,22 +2328,6 @@ var View_DelegateEvents = function(me, destroy) {
         });
     }
 };
-
-// var View_Style_Map;
-// var View_Style_Key;
-// var View_Style_Reg = /(\.)([\w\-]+)(?=[^\{\}]*?\{)/g;
-// var View_Style_Processor = function(m, dot, name) {
-//     return dot + (View_Style_Map[name] = View_Style_Key + name);
-// };
-
-//
-//console.log((a=r.responseText).replace(/(\.)([\w\-]+)(?=[^\{\}]*?\{)/g,function(m,k,v){console.log(m);o[v]=v+'0';return k+v+'0'}));
-// var View_StyleNameKeyReg = /[^,]+(?=,|$)/g;
-// var View_StyleNamePickReg = /(^|\})\s*([^{}]+)(?=\{)/mg;
-// var View_StyleCssKeyTemp; //
-// var View_StyleCallback = function(m, left, key) {
-//     return left + key.replace(View_StyleNameKeyReg, '.' + View_StyleCssKeyTemp + ' $&');
-// };
 
 var View_Ctors = [];
 
@@ -2647,9 +2665,9 @@ G_Mix(G_Mix(ViewProto, Event), {
             o = me.owner;
             o.mountZone(id);
             if (!f) {
-                setTimeout(function() {
+                setTimeout(me.wrapAsync(function() {
                     Vframe_RunInvokes(o);
-                }, 0);
+                }), 0);
             }
             
         }
@@ -2805,8 +2823,23 @@ G_Mix(G_Mix(ViewProto, Event), {
         var me = this;
         var changeListener = function(e) {
             e.prevent();
-            if (fn()) {
-                me.leaveConfirm(msg, e);
+            var flag = 'a', // a for router change
+                v = 'b'; // b for viewunload change
+            if (e.type != 'change') {
+                flag = 'b';
+                v = 'a';
+            }
+            if (changeListener[flag]) {
+                e.backward();
+            } else if (fn()) {
+                changeListener[v] = 1;
+                me.leaveConfirm(msg, function() {
+                    changeListener[v] = 0;
+                    e.forward();
+                }, function() {
+                    changeListener[v] = 0;
+                    e.backward();
+                });
             } else {
                 e.forward();
             }
@@ -2822,6 +2855,7 @@ G_Mix(G_Mix(ViewProto, Event), {
             Router.off('change', changeListener);
             Router.off('pageunload', unloadListener);
         });
+        me.onviewunload = changeListener;
     },
     
     

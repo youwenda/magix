@@ -223,6 +223,21 @@ G_Mix(UP, {
         return result;
     },
     /**
+     * 通过path获取值
+     * @param  {String} path 点分割的路径
+     * @return {Object}
+     */
+    gain: function(path) {
+        var result = this.$data;
+        var ps = path.split('.'),
+            temp;
+        while (result && ps.length) {
+            temp = ps.shift();
+            result = result[temp];
+        }
+        return result;
+    },
+    /**
      * 获取放入的数据
      * @param  {Object} obj 待放入的数据
      * @return {Updater} 返回updater
@@ -355,7 +370,9 @@ G_Mix(UP, {
      */
     altered: function() {
         var me = this;
-        return me.$ss != JSONStringify(me.$data);
+        if (me.$ss) {
+            return me.$ss != JSONStringify(me.$data);
+        }
     }
 
 

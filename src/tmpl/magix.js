@@ -6,6 +6,7 @@ var G_COMMA = ',';
 var G_NULL = null;
 var G_WINDOW = window;
 var G_DOCUMENT = document;
+var G_DOC = $(G_DOCUMENT);
 var G_HashKey = '#';
 var JSONStringify = JSON.stringify;
 var G_DOCBODY; //initilize at vframe_root
@@ -59,12 +60,30 @@ var G_NodeIn = function(a, b, r) {
     }
     return r;
 };
-var G_Mix = function(aim, src, p) {
+var G_Mix = Object.assign || function(aim, src, p) {
     for (p in src) {
         aim[p] = src[p];
     }
     return aim;
 };
+/*#if(modules.style){#*/
+var View_ApplyStyle = function(key, css, node, sheet) {
+    if (css && !View_ApplyStyle[key]) {
+        View_ApplyStyle[key] = 1;
+        node = $(G_HashKey + MxStyleGlobalId);
+        if (node.length) {
+            sheet = node.prop('styleSheet');
+            if (sheet) {
+                sheet.cssText += css;
+            } else {
+                node.append(css);
+            }
+        } else {
+            $('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
+        }
+    }
+};
+/*#}#*/
 
 var G_ToTry = function(fns, args, context, i, r, e) {
     args = args || G_EMPTY_ARRAY;
@@ -84,7 +103,7 @@ var G_Has = function(owner, prop) {
     return owner && Magix_HasProp.call(owner, prop); //false 0 G_NULL '' undefined
 };
 var Magix_CacheSort = function(a, b) {
-    return /*#if(modules.cnum||modules.fullstyle){#*/ b.n - a.n || /*#}#*/ b.f - a.f || b.t - a.t;
+    return /*#if(modules.cnum){#*/ b.n - a.n || /*#}#*/ b.f - a.f || b.t - a.t;
 };
 /**
  * Magix.Cache 类
@@ -131,7 +150,7 @@ G_Mix(G_Cache[G_PROTOTYPE], {
         }
         return r;
     },
-    /*#if(modules.cnum||modules.fullstyle){#*/
+    /*#if(modules.cnum){#*/
     /**
      * 获取引用值，仅启动cnum模块时该方法才存在
      * @param  {String} key 缓存key
@@ -190,7 +209,7 @@ G_Mix(G_Cache[G_PROTOTYPE], {
             if (c.length >= me.x) {
                 c.sort(Magix_CacheSort);
                 while (t--) {
-                    /*#if(modules.cnum||modules.fullstyle){#*/
+                    /*#if(modules.cnum){#*/
                     r = c[c.length - 1]; //弹出最后一个
                     if (r.n) { //如果有引用
                         break; //直接跳出循环
@@ -202,18 +221,18 @@ G_Mix(G_Cache[G_PROTOTYPE], {
                     //为什么要判断r.f>0,考虑这样的情况：用户设置a,b，主动删除了a,重新设置a,数组中的a原来指向的对象残留在列表里，当排序删除时，如果不判断则会把新设置的删除，因为key都是a
                     //
                     if (r.f > 0) me.del(r.o); //如果没有引用，则删除
-                    /*#if(modules.cnum||modules.fullstyle){#*/
+                    /*#if(modules.cnum){#*/
                     f = 1; //标记无引用
                     /*#}#*/
                 }
-                /*#if(modules.cnum||modules.fullstyle){#*/
+                /*#if(modules.cnum){#*/
                 if (!f) { //auto increase
                     me.x += me.b;
                 }
                 /*#}#*/
             }
             r = {
-                /*#if(modules.cnum||modules.fullstyle){#*/
+                /*#if(modules.cnum){#*/
                 n: 0,
                 /*#}#*/
                 o: okey
@@ -393,7 +412,6 @@ var G_ToMap = function(list, key) {
     }
     return map;
 };
-/*#if(modules.linkage||modules.router){#*/
 var G_Keys = Object.keys || function(obj, keys, p) {
     keys = [];
     for (p in obj) {
@@ -403,7 +421,6 @@ var G_Keys = Object.keys || function(obj, keys, p) {
     }
     return keys;
 };
-/*#}#*/
 /**
  * Magix对象，提供常用方法
  * @name Magix
@@ -644,7 +661,6 @@ var Magix = {
      * @return {Boolean} 是否拥有prop属性
      */
     has: G_Has,
-    /*#if(modules.linkage||modules.router){#*/
     /**
      * 获取对象的keys
      * @type {Array}
@@ -662,7 +678,6 @@ var Magix = {
      * @return {Array[string]}
      */
     keys: G_Keys,
-    /*#}#*/
     /**
      * 判断一个节点是否在另外一个节点内，如果比较的2个节点是同一个节点，也返回true
      * @function

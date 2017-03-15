@@ -41,7 +41,7 @@ var modules = {
   viewMerge: 1 //view是否提供merge方法供扩展原型链对象
 };
 var type = 'amd'; //打包kissy则type='kissy'
-var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,base,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState,viewProtoMixins';
+var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState,viewProtoMixins,base';
 //coreModules='magix,event,vframe,body,view,tmpl,updater,core,viewInit,autoEndUpdate';
 //loaderModules='loader,magix,event,vframe';
 
