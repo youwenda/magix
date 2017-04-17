@@ -27,9 +27,6 @@ var Magix_IsParam = /(?!^)=|&/;
 var G_Id = function(prefix) {
     return (prefix || 'mx_') + G_COUNTER++;
 };
-/*#if(modules.style){#*/
-var MxStyleGlobalId = G_Id();
-/*#}#*/
 /*#if(modules.core){#*/
 var MxGlobalView = G_Id();
 /*#}#*/
@@ -67,20 +64,10 @@ var G_Mix = Object.assign || function(aim, src, p) {
     return aim;
 };
 /*#if(modules.style){#*/
-var View_ApplyStyle = function(key, css, node, sheet) {
+var View_ApplyStyle = function(key, css) {
     if (css && !View_ApplyStyle[key]) {
         View_ApplyStyle[key] = 1;
-        node = $(G_HashKey + MxStyleGlobalId);
-        if (node.length) {
-            sheet = node.prop('styleSheet');
-            if (sheet) {
-                sheet.cssText += css;
-            } else {
-                node.append(css);
-            }
-        } else {
-            $('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
-        }
+        $('head').append('<style>' + css + '</style>');
     }
 };
 /*#}#*/

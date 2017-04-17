@@ -1,9 +1,10 @@
+/*!3.2.2 Licensed MIT*/
 /*
-version:3.2.1
+author:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com
 loader:kissy
-modules:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState,viewProtoMixins,base
+enables:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState,viewProtoMixins,base
 
-others:cnum,ceach,edgeRouter,collectView,forceEdgeRouter,serviceCombine,mxInit
+optionals:cnum,ceach,edgeRouter,collectView,forceEdgeRouter,serviceCombine,mxInit
 */
 /**
  * @fileOverview Magix全局对象
@@ -62,9 +63,6 @@ var G_Id = function(prefix) {
     return (prefix || 'mx_') + G_COUNTER++;
 };
 
-var MxStyleGlobalId = G_Id();
-
-
 var MxGlobalView = G_Id();
 
 var Magix_Cfg = {
@@ -101,20 +99,10 @@ var G_Mix = Object.assign || function(aim, src, p) {
     return aim;
 };
 
-var View_ApplyStyle = function(key, css, node, sheet) {
+var View_ApplyStyle = function(key, css) {
     if (css && !View_ApplyStyle[key]) {
         View_ApplyStyle[key] = 1;
-        node = $(G_HashKey + MxStyleGlobalId);
-        if (node.length) {
-            sheet = node.prop('styleSheet');
-            if (sheet) {
-                sheet.cssText += css;
-            } else {
-                node.append(css);
-            }
-        } else {
-            $('head').append('<style id="' + MxStyleGlobalId + '">' + css + '</style>');
-        }
+        $('head').append('<style>' + css + '</style>');
     }
 };
 
@@ -1388,7 +1376,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             var parent = Vframe_Vframes[me.pId],
                 p, val;
             parent = parent && parent.$v;
-            parent = parent && parent.$updater;
+            parent = parent && parent.updater;
             if (parent && viewPath.indexOf(G_SPLITER) > 0) {
                 for (p in params) {
                     val = params[p];
@@ -1622,7 +1610,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      */
     children: function(me) {
         me = this;
-        return me.$cl || (me.$cl = G_Keys(me.$c));
+        return me.$cl || (me.$cl = G_Keys(me.$c));//排序，获取对象的key在不同的浏览器返回的顺序不一样，我们这里排序一次，强制一样。同时id不存在重复，所以排序后浏览器之间的表现肯定一致。
     },
     /**
      * 调用view的方法
@@ -1764,7 +1752,7 @@ var Body_DOMEventProcessor = function(e) {
                 match.p = match.i && G_ToTry(Function('return ' + match.i)) || {};
                 Body_EvtInfoCache.set(info, match);
             }
-            vId = match.v || current.$f; //ts[0];
+            vId = match.v; //|| current.$f; //ts[0];
             if (!vId) { //如果没有则找最近的vframe
 
                 // 关于下方的while
@@ -1866,7 +1854,7 @@ var Tmpl_Cache = new G_Cache();
  * // html
  * // &lt;div mx-keys="a"&gt;&lt;%=a%&gt;&lt;/div&gt;
  * render:fucntion(){
- *   this.$updater.set({
+ *   this.updater.set({
  *     a:1
  *   }).digest();
  * }
@@ -1904,7 +1892,7 @@ var Updater_Unescape = function(m, name) {
 var Updater_IsPrimitive = function(args) {
     return !args || typeof args != Magix_StrObject;
 };
-var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, updateTmpl, viewId, host) {
+var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, updateTmpl, viewId) {
     var id = node.id || (node.id = G_Id());
 
     var hasMagixView, viewValue, vf;
@@ -2074,7 +2062,6 @@ var Updater = function(viewId) {
     me.$data = {};
     
     me.$keys = {};
-    me.$fk = {};
     
 };
 var UP = Updater.prototype;
@@ -2093,13 +2080,13 @@ G_Mix(UP, {
      * @return {Object} 返回对应的数据，当key未传递时，返回整个数据对象
      * @example
      * render: function() {
-     *     this.$updater.set({
+     *     this.updater.set({
      *         a: 10,
      *         b: 20
      *     });
      * },
      * 'read&lt;click&gt;': function() {
-     *     console.log(this.$updater.get('a'));
+     *     console.log(this.updater.get('a'));
      * }
      */
     get: function(key) {
@@ -2130,13 +2117,13 @@ G_Mix(UP, {
      * @return {Updater} 返回updater
      * @example
      * render: function() {
-     *     this.$updater.set({
+     *     this.updater.set({
      *         a: 10,
      *         b: 20
      *     });
      * },
      * 'read&lt;click&gt;': function() {
-     *     console.log(this.$updater.get('a'));
+     *     console.log(this.updater.get('a'));
      * }
      */
     set: function(obj) {
@@ -2147,11 +2134,7 @@ G_Mix(UP, {
         for (var p in obj) {
             now = obj[p];
             old = data[p];
-            if (G_IsFunction(now)) {
-                me.$fkf = 1;
-                me.$fk[p] = 1;
-                keys[p] = 1;
-            } else if (!Updater_IsPrimitive(now) || old != now) {
+            if (!Updater_IsPrimitive(now) || old != now) {
                 keys[p] = 1;
             }
             data[p] = now;
@@ -2163,25 +2146,24 @@ G_Mix(UP, {
      * 检测数据变化，更新界面，放入数据后需要显式调用该方法才可以把数据更新到界面
      * @example
      * render: function() {
-     *     this.$updater.set({
+     *     this.updater.set({
      *         a: 10,
      *         b: 20
      *     }).digest();
      * }
      */
-    digest: function() {
+    digest: function(data) {
         var me = this;
-        var data = me.$data;
+        if (data) {
+            me.set(data);
+        }
+        data = me.$data;
         
         var keys = me.$keys;
         
         Updater_UpdateDOM(me, keys, data);
         
-        if (me.$fkf) {
-            me.$keys = G_Mix({}, me.$fk);
-        } else {
-            me.$keys = {};
-        }
+        me.$keys = {};
         
         return me;
     },
@@ -2190,21 +2172,21 @@ G_Mix(UP, {
      * @return {Updater} 返回updater
      * @example
      * render: function() {
-     *     this.$updater.set({
+     *     this.updater.set({
      *         a: 20,
      *         b: 30
      *     }).digest().snapshot(); //更新完界面后保存快照
      * },
      * 'save&lt;click&gt;': function() {
      *     //save to server
-     *     console.log(this.$updater.altered()); //false
-     *     this.$updater.set({
+     *     console.log(this.updater.altered()); //false
+     *     this.updater.set({
      *         a: 20,
      *         b: 40
      *     });
-     *     console.log(this.$updater.altered()); //true
-     *     this.$updater.snapshot(); //再保存一次快照
-     *     console.log(this.$updater.altered()); //false
+     *     console.log(this.updater.altered()); //true
+     *     this.updater.snapshot(); //再保存一次快照
+     *     console.log(this.updater.altered()); //false
      * }
      */
     snapshot: function() {
@@ -2217,21 +2199,21 @@ G_Mix(UP, {
      * @return {Boolean} 是否变动
      * @example
      * render: function() {
-     *     this.$updater.set({
+     *     this.updater.set({
      *         a: 20,
      *         b: 30
      *     }).digest().snapshot(); //更新完界面后保存快照
      * },
      * 'save&lt;click&gt;': function() {
      *     //save to server
-     *     console.log(this.$updater.altered()); //false
-     *     this.$updater.set({
+     *     console.log(this.updater.altered()); //false
+     *     this.updater.set({
      *         a: 20,
      *         b: 40
      *     });
-     *     console.log(this.$updater.altered()); //true
-     *     this.$updater.snapshot(); //再保存一次快照
-     *     console.log(this.$updater.altered()); //false
+     *     console.log(this.updater.altered()); //true
+     *     this.updater.snapshot(); //再保存一次快照
+     *     console.log(this.updater.altered()); //false
      * }
      */
     altered: function() {
@@ -2250,7 +2232,7 @@ G_Mix(UP, {
      * @param {String} e.keys 指示哪些key被更新
      */
 });
-    var View_EvtMethodReg = /^(\$?)([^]*)<([^>]+)>$/;
+    var View_EvtMethodReg = /^(\$?)([^<]*?)<([^>]+)>$/;
 var View_ScopeReg = /\u001f/g;
 var View_SetEventOwner = function(str, id) {
     return (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
@@ -2258,14 +2240,15 @@ var View_SetEventOwner = function(str, id) {
 
 var processMixinsSameEvent = function(exist, additional, temp) {
     if (exist.$l) {
-        exist.$l.push(additional);
         temp = exist;
     } else {
         temp = function(e) {
             G_ToTry(temp.$l, e, this);
         };
-        temp.$l = [exist, additional];
+        temp.$l = [exist];
+        temp.$m = 1;
     }
+    temp.$l = temp.$l.concat(additional.$l || additional);
     return temp;
 };
 
@@ -2369,16 +2352,21 @@ var View_Prepare = function(oView) {
                         node = prop[item];
                         
                         //for in 就近遍历，如果有则忽略
-                        if (!node || (node.$m && !currentFn.$m)) { //没有相同的
+                        if (!node) { //未设置过
                             prop[item] = currentFn;
-                        } else if (currentFn.$m) {
-                            prop[item] = node.$m ? processMixinsSameEvent(node, currentFn) : node;
+                        } else if (node.$m) { //现有的方法是mixins上的
+                            if (currentFn.$m) { //2者都是mixins上的事件，则合并
+                                prop[item] = processMixinsSameEvent(node, currentFn);
+                            } else if (G_Has(prop, p)) { //currentFn方法不是mixin上的，也不是继承来的，在当前view上，优先级最高
+                                prop[item] = currentFn;
+                            }
                         }
                         
                     }
                 }
             }
         }
+        console.log(prop);
         View_WrapRender(prop);
         prop.$eo = eventsObject;
         prop.$el = eventsList;
@@ -2472,7 +2460,7 @@ var View = function(ops, me) {
     
     me.$s = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     
-    me.$updater = new Updater(me.id);
+    me.updater = new Updater(me.id);
     
     
     G_ToTry(View_Ctors, ops, me);
@@ -2578,8 +2566,11 @@ G_Mix(View, {
                     if (p == 'ctor') {
                         ctors.push(val);
                     } else if (View_EvtMethodReg.test(p)) {
-                        val = old ? processMixinsSameEvent(old, val) : val;
-                        val.$m = 1;
+                        if (old) {
+                            val = processMixinsSameEvent(old, val);
+                        } else {
+                            val.$m = 1;
+                        }
                         temp[p] = val;
                     } else if (old) {
                         Magix_Cfg.error(Error('mixins duplicate:' + p));
@@ -2588,6 +2579,7 @@ G_Mix(View, {
                     }
                 }
             }
+
             props = G_Mix(temp, props);
         }
         
@@ -3094,9 +3086,7 @@ G_Mix(Bag[G_PROTOTYPE], {
         G_Mix(me.$, key);
     }
 });
-
 var Service_FetchFlags_ONE = 1;
-
 var Service_FetchFlags_ALL = 2;
 var Service_CacheDone = function(cacheKey, err, fns) {
     fns = this[cacheKey]; //取出当前的缓存信息
@@ -3152,11 +3142,9 @@ var Service_Task = function(done, host, service, total, flag, bagCache) {
                     G_ToTry(done, doneArr, service);
                 }
             }
-            
             if (flag == Service_FetchFlags_ONE) { //如果是其中一个成功，则每次成功回调一次
                 G_ToTry(done, [err ? err : G_NULL, bag, finish, idx], service);
             }
-            
         }
         if (newBag) { //不管当前request或回调是否销毁，均派发end事件，就像前面缓存一样，尽量让请求处理完成，该缓存的缓存，该派发事件派发事件。
             host.fire('end', dispach);
@@ -3174,14 +3162,12 @@ var Service_Task = function(done, host, service, total, flag, bagCache) {
  */
 var Service_Send = function(me, attrs, done, flag, save) {
     if (me.$o) return me; //如果已销毁，返回
-    
     if (me.$b) { //繁忙，后续请求入队
         return me.enqueue(function() {
             Service_Send(this, attrs, done, flag, save);
         });
     }
     me.$b = 1; //标志繁忙
-    
     var host = me.constructor;
     //var bagCache = host.$c; //存放bag的Cache对象
     var bagCacheKeys = host.$r; //可缓存的bag key
@@ -3297,14 +3283,12 @@ G_Mix(Service[G_PROTOTYPE], {
     save: function(attrs, done) {
         return Service_Send(this, attrs, done, Service_FetchFlags_ALL, 1);
     },
-    
     /**
      * 获取attrs，其中任意一个成功均立即回调，回调会被调用多次。注：当使用promise时，不存在该方法。
      * @function
      * @param {Object|Array} attrs 获取attrs时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},formParams:{b:2}}
      * @param {Function} callback   完成时的回调
      * @beta
-     * @module serviceWithoutPromise
      * @return {Service}
      * @example
      *  //代码片断：
@@ -3328,7 +3312,6 @@ G_Mix(Service[G_PROTOTYPE], {
      * @param  {Function} callback 当前面的任务完成后调用该回调
      * @return {Service}
      * @beta
-     * @module serviceWithoutPromise
      * @example
      * var r = new Service().all([
      *     {name:'M1'},
@@ -3352,7 +3335,6 @@ G_Mix(Service[G_PROTOTYPE], {
      * 做下一个任务
      * @param {Array} preArgs 传递的参数
      * @beta
-     * @module serviceWithoutPromise
      * @example
      * var r = new Service();
      * r.all('Name',function(e,bag){
@@ -3391,7 +3373,6 @@ G_Mix(Service[G_PROTOTYPE], {
             }, 0);
         }
     },
-    
     /**
      * 销毁当前请求，不可以继续发起新请求，而且不再调用相应的回调
      */

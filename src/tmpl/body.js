@@ -53,7 +53,7 @@ var Body_DOMEventProcessor = function(e) {
                 match.p = match.i && G_ToTry(Function('return ' + match.i)) || {};
                 Body_EvtInfoCache.set(info, match);
             }
-            vId = match.v || current.$f; //ts[0];
+            vId = match.v; //|| current.$f; //ts[0];
             if (!vId) { //如果没有则找最近的vframe
 
                 // 关于下方的while

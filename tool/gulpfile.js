@@ -32,7 +32,6 @@ var modules = {
   style: 1, //是否有样式处理
   viewInit: 1, //init方法
   service: 1, //接口服务
-  serviceWithoutPromise: 1, //不使用promise接口
   router: 1, //路由模块
   resource: 1, //资源管理
   configIni: 1, //是否有ini配置文件
@@ -40,8 +39,8 @@ var modules = {
   mxInit: 1, //支持mx-init获取数据
   viewMerge: 1 //view是否提供merge方法供扩展原型链对象
 };
-var type = 'amd'; //打包kissy则type='kissy'
-var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,style,viewInit,service,serviceWithoutPromise,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState,viewProtoMixins,base';
+var type = 'cmd,amd,kissy,webpack'; //打包kissy则type='kissy'
+var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState,viewProtoMixins,base';
 //coreModules='magix,event,vframe,body,view,tmpl,updater,core,viewInit,autoEndUpdate';
 //loaderModules='loader,magix,event,vframe';
 
@@ -73,79 +72,41 @@ gulp.task('combine', function() {
     }
   }
   var incReg = new RegExp('Inc\\(\'.+?\\/tmpl\\/(.+)\'\\);?', 'g');
-  copyFile('../src/' + type + '/magix.js', '../dist/' + type + '/magix-debug.js', function(content) {
-    content = content.replace(incReg, function(match, name) {
-      if (map[name]) {
-        return fs.readFileSync('../src/tmpl/' + name + '.js') + '';
-      }
-      return '';
+  type.split(',').forEach(function(t) {
+    copyFile('../src/' + t + '/magix.js', '../dist/' + t + '/magix-debug.js', function(content) {
+      content = content.replace(incReg, function(match, name) {
+        if (map[name]) {
+          return fs.readFileSync('../src/tmpl/' + name + '.js') + '';
+        }
+        return '';
+      });
+      var header = '/*!' + pkg.version + ' Licensed MIT*/';
+      header += '\r\n/*\r\nauthor:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com\r\nloader:' + t;
+      header += '\r\nenables:' + enableModules;
+      header += '\r\n\r\noptionals:' + others;
+      header += '\r\n*/\r\n';
+      return tmpl(header + content, map);
     });
-    var header = '/*\r\nversion:' + pkg.version;
-    header += '\r\nloader:' + type;
-    header += '\r\nmodules:' + enableModules;
-    header += '\r\n\r\nothers:' + others;
-    header += '\r\n*/\r\n';
-    return tmpl(header + content, map);
   });
-  // copyFile('../src/' + type + '/magix.js', '../dist/' + type + '/magix-core-debug.js', function(content) {
-  //   content = content.replace(incReg, function(match, name) {
-  //     if (coreModules[name]) {
-  //       return fs.readFileSync('../src/tmpl/' + name + '.js') + '';
-  //     }
-  //     return '';
-  //   });
-  //   return tmpl('/*' + pkg.version + '*/\r\n/*modules:' + Object.keys(coreModules) + '*/\r\n' + content, coreModules);
-  // });
-  // copyFile('../src/' + type + '/magix.js', '../dist/' + type + '/magix-loader-debug.js', function(content) {
-  //   content = content.replace(incReg, function(match, name) {
-  //     if (loaderModules[name]) {
-  //       return fs.readFileSync('../src/tmpl/' + name + '.js') + '';
-  //     }
-  //     return '';
-  //   });
-  //   return tmpl('/*' + pkg.version + '*/' + content, loaderModules);
-  // });
 });
 
 gulp.task('compress', function() {
-  gulp.src('../dist/' + type + '/magix-debug.js')
-    .pipe(uglify({
-      compress: {
-        drop_console: true
-      },
-      output: {
-        ascii_only: true
-      }
-    }))
-    .pipe(header('/*<%=ver%> Licensed MIT*/', {
-      ver: pkg.version
-    }))
-    .pipe(rename('magix.js'))
-    .pipe(gulp.dest('../dist/' + type + '/'));
-  // gulp.src('../dist/' + type + '/magix-core-debug.js')
-  //   .pipe(uglify({
-  //     banner: '/*' + pkg.version + ' Licensed MIT*/',
-  //     compress: {
-  //       drop_console: true
-  //     },
-  //     output: {
-  //       ascii_only: true
-  //     }
-  //   }))
-  //   .pipe(rename('magix-core.js'))
-  //   .pipe(gulp.dest('../dist/' + type + '/'));
-  // gulp.src('../dist/' + type + '/magix-loader-debug.js')
-  // .pipe(uglify({
-  //   banner: '/*' + pkg.version + ' Licensed MIT*/',
-  //   compress: {
-  //     drop_console: true
-  //   },
-  //   output: {
-  //     ascii_only: true
-  //   }
-  // }))
-  // .pipe(rename('magix-loader.js'))
-  // .pipe(gulp.dest('../dist/' + type + '/'));
+  type.split(',').forEach(function(t) {
+    gulp.src('../dist/' + t + '/magix-debug.js')
+      .pipe(uglify({
+        compress: {
+          drop_console: true
+        },
+        output: {
+          ascii_only: true
+        }
+      }))
+      .pipe(header('/*<%=ver%> Licensed MIT*/', {
+        ver: pkg.version
+      }))
+      .pipe(rename('magix.js'))
+      .pipe(gulp.dest('../dist/' + t + '/'));
+  });
 });
 
 gulp.task('doc', ['combine'], function() {

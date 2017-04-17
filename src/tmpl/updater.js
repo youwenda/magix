@@ -15,7 +15,7 @@ var Updater_Unescape = function(m, name) {
 var Updater_IsPrimitive = function(args) {
     return !args || typeof args != Magix_StrObject;
 };
-var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, updateTmpl, viewId, host) {
+var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, updateTmpl, viewId) {
     var id = node.id || (node.id = G_Id());
 
     var hasMagixView, viewValue, vf;
@@ -185,7 +185,6 @@ var Updater = function(viewId) {
     me.$data = {};
     /*#if(modules.updaterSetState){#*/
     me.$keys = {};
-    me.$fk = {};
     /*#}else{#*/
     me.$json = {};
     /*#}#*/
@@ -206,13 +205,13 @@ G_Mix(UP, {
      * @return {Object} 返回对应的数据，当key未传递时，返回整个数据对象
      * @example
      * render: function() {
-     *     this.$updater.set({
+     *     this.updater.set({
      *         a: 10,
      *         b: 20
      *     });
      * },
      * 'read&lt;click&gt;': function() {
-     *     console.log(this.$updater.get('a'));
+     *     console.log(this.updater.get('a'));
      * }
      */
     get: function(key) {
@@ -243,13 +242,13 @@ G_Mix(UP, {
      * @return {Updater} 返回updater
      * @example
      * render: function() {
-     *     this.$updater.set({
+     *     this.updater.set({
      *         a: 10,
      *         b: 20
      *     });
      * },
      * 'read&lt;click&gt;': function() {
-     *     console.log(this.$updater.get('a'));
+     *     console.log(this.updater.get('a'));
      * }
      */
     set: function(obj) {
@@ -260,11 +259,7 @@ G_Mix(UP, {
         for (var p in obj) {
             now = obj[p];
             old = data[p];
-            if (G_IsFunction(now)) {
-                me.$fkf = 1;
-                me.$fk[p] = 1;
-                keys[p] = 1;
-            } else if (!Updater_IsPrimitive(now) || old != now) {
+            if (!Updater_IsPrimitive(now) || old != now) {
                 keys[p] = 1;
             }
             data[p] = now;
@@ -278,15 +273,18 @@ G_Mix(UP, {
      * 检测数据变化，更新界面，放入数据后需要显式调用该方法才可以把数据更新到界面
      * @example
      * render: function() {
-     *     this.$updater.set({
+     *     this.updater.set({
      *         a: 10,
      *         b: 20
      *     }).digest();
      * }
      */
-    digest: function() {
+    digest: function(data) {
         var me = this;
-        var data = me.$data;
+        if (data) {
+            me.set(data);
+        }
+        data = me.$data;
         /*#if(modules.updaterSetState){#*/
         var keys = me.$keys;
         /*#}else{#*/
@@ -311,11 +309,7 @@ G_Mix(UP, {
         /*#}#*/
         Updater_UpdateDOM(me, keys, data);
         /*#if(modules.updaterSetState){#*/
-        if (me.$fkf) {
-            me.$keys = G_Mix({}, me.$fk);
-        } else {
-            me.$keys = {};
-        }
+        me.$keys = {};
         /*#}#*/
         return me;
     },
@@ -324,21 +318,21 @@ G_Mix(UP, {
      * @return {Updater} 返回updater
      * @example
      * render: function() {
-     *     this.$updater.set({
+     *     this.updater.set({
      *         a: 20,
      *         b: 30
      *     }).digest().snapshot(); //更新完界面后保存快照
      * },
      * 'save&lt;click&gt;': function() {
      *     //save to server
-     *     console.log(this.$updater.altered()); //false
-     *     this.$updater.set({
+     *     console.log(this.updater.altered()); //false
+     *     this.updater.set({
      *         a: 20,
      *         b: 40
      *     });
-     *     console.log(this.$updater.altered()); //true
-     *     this.$updater.snapshot(); //再保存一次快照
-     *     console.log(this.$updater.altered()); //false
+     *     console.log(this.updater.altered()); //true
+     *     this.updater.snapshot(); //再保存一次快照
+     *     console.log(this.updater.altered()); //false
      * }
      */
     snapshot: function() {
@@ -351,21 +345,21 @@ G_Mix(UP, {
      * @return {Boolean} 是否变动
      * @example
      * render: function() {
-     *     this.$updater.set({
+     *     this.updater.set({
      *         a: 20,
      *         b: 30
      *     }).digest().snapshot(); //更新完界面后保存快照
      * },
      * 'save&lt;click&gt;': function() {
      *     //save to server
-     *     console.log(this.$updater.altered()); //false
-     *     this.$updater.set({
+     *     console.log(this.updater.altered()); //false
+     *     this.updater.set({
      *         a: 20,
      *         b: 40
      *     });
-     *     console.log(this.$updater.altered()); //true
-     *     this.$updater.snapshot(); //再保存一次快照
-     *     console.log(this.$updater.altered()); //false
+     *     console.log(this.updater.altered()); //true
+     *     this.updater.snapshot(); //再保存一次快照
+     *     console.log(this.updater.altered()); //false
      * }
      */
     altered: function() {

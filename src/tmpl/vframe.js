@@ -261,7 +261,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             var parent = Vframe_Vframes[me.pId],
                 p, val;
             parent = parent && parent.$v;
-            parent = parent && parent.$updater;
+            parent = parent && parent.updater;
             if (parent && viewPath.indexOf(G_SPLITER) > 0) {
                 for (p in params) {
                     val = params[p];
@@ -529,7 +529,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      */
     children: function(me) {
         me = this;
-        return me.$cl || (me.$cl = G_Keys(me.$c));
+        return me.$cl || (me.$cl = G_Keys(me.$c));//排序，获取对象的key在不同的浏览器返回的顺序不一样，我们这里排序一次，强制一样。同时id不存在重复，所以排序后浏览器之间的表现肯定一致。
     },
     /**
      * 调用view的方法

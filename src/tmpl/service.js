@@ -127,9 +127,7 @@ G_Mix(Bag[G_PROTOTYPE], {
         G_Mix(me.$, key);
     }
 });
-/*#if(modules.serviceWithoutPromise){#*/
 var Service_FetchFlags_ONE = 1;
-/*#}#*/
 var Service_FetchFlags_ALL = 2;
 var Service_CacheDone = function(cacheKey, err, fns) {
     fns = this[cacheKey]; //取出当前的缓存信息
@@ -185,11 +183,9 @@ var Service_Task = function(done, host, service, total, flag, bagCache) {
                     G_ToTry(done, doneArr, service);
                 }
             }
-            /*#if(modules.serviceWithoutPromise){#*/
             if (flag == Service_FetchFlags_ONE) { //如果是其中一个成功，则每次成功回调一次
                 G_ToTry(done, [err ? err : G_NULL, bag, finish, idx], service);
             }
-            /*#}#*/
         }
         if (newBag) { //不管当前request或回调是否销毁，均派发end事件，就像前面缓存一样，尽量让请求处理完成，该缓存的缓存，该派发事件派发事件。
             host.fire('end', dispach);
@@ -207,26 +203,12 @@ var Service_Task = function(done, host, service, total, flag, bagCache) {
  */
 var Service_Send = function(me, attrs, done, flag, save) {
     if (me.$o) return me; //如果已销毁，返回
-    /*#if(modules.serviceWithoutPromise){#*/
     if (me.$b) { //繁忙，后续请求入队
         return me.enqueue(function() {
             Service_Send(this, attrs, done, flag, save);
         });
     }
     me.$b = 1; //标志繁忙
-    /*#}else{#*/
-    done = function(e) {
-        if (e) {
-            done.reject(e);
-        } else {
-            done.resolve(G_Slice.cll(arguments, 1));
-        }
-    };
-    var p = new Promise(function(resolve, reject) {
-        done.resolve = resolve;
-        done.reject = reject;
-    });
-    /*#}#*/
     var host = me.constructor;
     //var bagCache = host.$c; //存放bag的Cache对象
     var bagCacheKeys = host.$r; //可缓存的bag key
@@ -360,14 +342,12 @@ G_Mix(Service[G_PROTOTYPE], {
     save: function(attrs, done) {
         return Service_Send(this, attrs, done, Service_FetchFlags_ALL, 1);
     },
-    /*#if(modules.serviceWithoutPromise){#*/
     /**
      * 获取attrs，其中任意一个成功均立即回调，回调会被调用多次。注：当使用promise时，不存在该方法。
      * @function
      * @param {Object|Array} attrs 获取attrs时的描述信息，如:{name:'Home',cacheKey:'key',urlParams:{a:'12'},formParams:{b:2}}
      * @param {Function} callback   完成时的回调
      * @beta
-     * @module serviceWithoutPromise
      * @return {Service}
      * @example
      *  //代码片断：
@@ -391,7 +371,6 @@ G_Mix(Service[G_PROTOTYPE], {
      * @param  {Function} callback 当前面的任务完成后调用该回调
      * @return {Service}
      * @beta
-     * @module serviceWithoutPromise
      * @example
      * var r = new Service().all([
      *     {name:'M1'},
@@ -415,7 +394,6 @@ G_Mix(Service[G_PROTOTYPE], {
      * 做下一个任务
      * @param {Array} preArgs 传递的参数
      * @beta
-     * @module serviceWithoutPromise
      * @example
      * var r = new Service();
      * r.all('Name',function(e,bag){
@@ -454,7 +432,6 @@ G_Mix(Service[G_PROTOTYPE], {
             }, 0);
         }
     },
-    /*#}#*/
     /**
      * 销毁当前请求，不可以继续发起新请求，而且不再调用相应的回调
      */

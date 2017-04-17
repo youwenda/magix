@@ -1,4 +1,4 @@
-var View_EvtMethodReg = /^(\$?)([^]*)<([^>]+)>$/;
+var View_EvtMethodReg = /^(\$?)([^<]*?)<([^>]+)>$/;
 var View_ScopeReg = /\u001f/g;
 var View_SetEventOwner = function(str, id) {
     return (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
@@ -6,14 +6,15 @@ var View_SetEventOwner = function(str, id) {
 /*#if(modules.viewProtoMixins){#*/
 var processMixinsSameEvent = function(exist, additional, temp) {
     if (exist.$l) {
-        exist.$l.push(additional);
         temp = exist;
     } else {
         temp = function(e) {
             G_ToTry(temp.$l, e, this);
         };
-        temp.$l = [exist, additional];
+        temp.$l = [exist];
+        temp.$m = 1;
     }
+    temp.$l = temp.$l.concat(additional.$l || additional);
     return temp;
 };
 /*#}#*/
@@ -117,10 +118,14 @@ var View_Prepare = function(oView) {
                         node = prop[item];
                         /*#if(modules.viewProtoMixins){#*/
                         //for in 就近遍历，如果有则忽略
-                        if (!node || (node.$m && !currentFn.$m)) { //没有相同的
+                        if (!node) { //未设置过
                             prop[item] = currentFn;
-                        } else if (currentFn.$m) {
-                            prop[item] = node.$m ? processMixinsSameEvent(node, currentFn) : node;
+                        } else if (node.$m) { //现有的方法是mixins上的
+                            if (currentFn.$m) { //2者都是mixins上的事件，则合并
+                                prop[item] = processMixinsSameEvent(node, currentFn);
+                            } else if (G_Has(prop, p)) { //currentFn方法不是mixin上的，也不是继承来的，在当前view上，优先级最高
+                                prop[item] = currentFn;
+                            }
                         }
                         /*#}else{#*/
                         if (!node) {
@@ -131,6 +136,7 @@ var View_Prepare = function(oView) {
                 }
             }
         }
+        console.log(prop);
         View_WrapRender(prop);
         prop.$eo = eventsObject;
         prop.$el = eventsList;
@@ -224,7 +230,7 @@ var View = function(ops, me) {
     /*#}#*/
     me.$s = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     /*#if(modules.updater){#*/
-    me.$updater = new Updater(me.id);
+    me.updater = new Updater(me.id);
     /*#}#*/
     /*#if(modules.viewMerge){#*/
     G_ToTry(View_Ctors, ops, me);
@@ -332,8 +338,11 @@ G_Mix(View, {
                     if (p == 'ctor') {
                         ctors.push(val);
                     } else if (View_EvtMethodReg.test(p)) {
-                        val = old ? processMixinsSameEvent(old, val) : val;
-                        val.$m = 1;
+                        if (old) {
+                            val = processMixinsSameEvent(old, val);
+                        } else {
+                            val.$m = 1;
+                        }
                         temp[p] = val;
                     } else if (old) {
                         Magix_Cfg.error(Error('mixins duplicate:' + p));
@@ -342,6 +351,7 @@ G_Mix(View, {
                     }
                 }
             }
+
             props = G_Mix(temp, props);
         }
         /*#}#*/

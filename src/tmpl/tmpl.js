@@ -43,7 +43,7 @@ var Tmpl_Cache = new G_Cache();
  * // html
  * // &lt;div mx-keys="a"&gt;&lt;%=a%&gt;&lt;/div&gt;
  * render:fucntion(){
- *   this.$updater.set({
+ *   this.updater.set({
  *     a:1
  *   }).digest();
  * }
