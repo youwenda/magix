@@ -22,7 +22,6 @@ var Vframe_NotifyCreated = function(vframe, mId, p) {
     }
 };
 var Vframe_NotifyAlter = function(vframe, e, mId, p) {
-    if (!e) e = {};
     if (!vframe.$ca && vframe.$cr) { //childrenAlter childrenCreated 当前vframe触发过created才可以触发alter事件
         vframe.$cr = 0; //childrenCreated
         vframe.$ca = 1; //childreAleter
@@ -212,23 +211,23 @@ G_Mix(Vframe, G_Mix({
      * @return {Vframe|undefined} vframe对象
      */
     get: function(id) {
-            return Vframe_Vframes[id];
-        }
-        /**
-         * 注册vframe对象时触发
-         * @name Vframe.add
-         * @event
-         * @param {Object} e
-         * @param {Vframe} e.vframe
-         */
-        /**
-         * 删除vframe对象时触发
-         * @name Vframe.remove
-         * @event
-         * @param {Object} e
-         * @param {Vframe} e.vframe
-         * @param {Boolean} e.fcc 是否派发过created事件
-         */
+        return Vframe_Vframes[id];
+    }
+    /**
+     * 注册vframe对象时触发
+     * @name Vframe.add
+     * @event
+     * @param {Object} e
+     * @param {Vframe} e.vframe
+     */
+    /**
+     * 删除vframe对象时触发
+     * @name Vframe.remove
+     * @event
+     * @param {Object} e
+     * @param {Vframe} e.vframe
+     * @param {Boolean} e.fcc 是否派发过created事件
+     */
 }, Event));
 
 G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
@@ -387,7 +386,9 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
     mountVframe: function(id, viewPath, viewInitParams /*, keepPreHTML*/ ) {
         var me = this,
             vf;
-        Vframe_NotifyAlter(me); //如果在就绪的vframe上渲染新的vframe，则通知有变化
+        Vframe_NotifyAlter(me, {
+            id: id
+        }); //如果在就绪的vframe上渲染新的vframe，则通知有变化
         //var vom = me.owner;
         vf = Vframe_Vframes[id];
         if (!vf) {
@@ -456,7 +457,12 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         }
         while (vfs.length) {
             vf = vfs.shift();
-            me.mountVframe(vf[0], vf[1], viewInitParams);
+            id = vf[0];
+            if (vfs[id]) {
+                Magix_Cfg.error(Error('vf.id duplicate:' + id + ' at ' + me.path));
+            } else {
+                me.mountVframe(vfs[id] = id, vf[1], viewInitParams);
+            }
         }
         me.$h = 0;
         Vframe_NotifyCreated(me);
@@ -529,7 +535,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      */
     children: function(me) {
         me = this;
-        return me.$cl || (me.$cl = G_Keys(me.$c));//排序，获取对象的key在不同的浏览器返回的顺序不一样，我们这里排序一次，强制一样。同时id不存在重复，所以排序后浏览器之间的表现肯定一致。
+        return me.$cl || (me.$cl = G_Keys(me.$c)); //排序，获取对象的key在不同的浏览器返回的顺序不一样，我们这里排序一次，强制一样。同时id不存在重复，所以排序后浏览器之间的表现肯定一致。
     },
     /**
      * 调用view的方法

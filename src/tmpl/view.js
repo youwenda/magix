@@ -621,7 +621,7 @@ G_Mix(G_Mix(ViewProto, Event), {
             Router.off('change', changeListener);
             Router.off('pageunload', unloadListener);
         });
-        me.onviewunload = changeListener;
+        me.on('viewunload', changeListener);
     },
     /*#}#*/
     /*#if(modules.share){#*/

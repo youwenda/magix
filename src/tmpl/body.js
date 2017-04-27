@@ -78,6 +78,7 @@ var Body_DOMEventProcessor = function(e) {
                     fn = view[name];
                     if (fn) {
                         //e.current = current;
+                        //e.currentTarget = current;
                         e.eventTarget = current;
                         e.params = match.p;
                         G_ToTry(fn, e, view);
