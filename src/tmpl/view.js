@@ -1,4 +1,4 @@
-var View_EvtMethodReg = /^(\$?)([^<]*?)<([^>]+)>$/;
+var View_EvtMethodReg = /^(\$?)([^<]+?)<([^>]+)>$/;
 var View_ScopeReg = /\u001f/g;
 var View_SetEventOwner = function(str, id) {
     return (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
@@ -61,16 +61,17 @@ var View_WrapRender = function(prop, fn, me) {
 };
 var View_DelegateEvents = function(me, destroy) {
     var events = me.$eo; //eventsObject
+    var selectorObject = me.$so;
     var p, e, id = me.id;
     for (p in events) {
-        Body_DOMEventBind(p, destroy);
+        Body_DOMEventBind(p, selectorObject[p], destroy);
     }
     events = me.$el; //eventsList
     p = events.length;
     while (p--) {
         e = events[p];
-        Body_DOMEventLibBind(e.e || G_HashKey + id, e.n, Body_DOMGlobalProcessor, destroy, e.s, {
-            i: id,
+        Body_DOMEventLibBind(e.e, e.n, Body_DOMGlobalProcessor, destroy, {
+            i: me.id,
             v: me,
             f: e.f,
             e: e.e
@@ -95,7 +96,8 @@ var View_Prepare = function(oView) {
         var prop = oView[G_PROTOTYPE],
             currentFn, matches, selectorOrCallback, events, eventsObject = {},
             eventsList = [],
-            node, isSelector, p, item;
+            selectorObject = {},
+            node, isSelector, p, item, mask;
         for (p in prop) {
             currentFn = prop[p];
             matches = p.match(View_EvtMethodReg);
@@ -104,42 +106,51 @@ var View_Prepare = function(oView) {
                 selectorOrCallback = matches[2];
                 events = matches[3].split(G_COMMA);
                 while ((item = events.pop())) {
+                    node = View_Globals[selectorOrCallback];
+                    mask = 1;
                     if (isSelector) {
-                        node = View_Globals[selectorOrCallback];
-                        eventsList.push({
-                            f: currentFn,
-                            s: node ? G_NULL : selectorOrCallback,
-                            n: item,
-                            e: node
-                        });
-                    } else {
-                        eventsObject[item] = 1;
-                        item = selectorOrCallback + G_SPLITER + item;
-                        node = prop[item];
-                        /*#if(modules.viewProtoMixins){#*/
-                        //for in 就近遍历，如果有则忽略
-                        if (!node) { //未设置过
-                            prop[item] = currentFn;
-                        } else if (node.$m) { //现有的方法是mixins上的
-                            if (currentFn.$m) { //2者都是mixins上的事件，则合并
-                                prop[item] = processMixinsSameEvent(node, currentFn);
-                            } else if (G_Has(prop, p)) { //currentFn方法不是mixin上的，也不是继承来的，在当前view上，优先级最高
-                                prop[item] = currentFn;
-                            }
+                        if (node) {
+                            eventsList.push({
+                                f: currentFn,
+                                e: node,
+                                n: item
+                            });
+                            continue;
                         }
-                        /*#}else{#*/
+                        mask = 2;
+                        node = selectorObject[item];
                         if (!node) {
+                            node = selectorObject[item] = {};
+                        }
+                        node[selectorOrCallback] = 1;
+                    }
+                    eventsObject[item] = eventsObject[item] | mask;
+                    item = selectorOrCallback + G_SPLITER + item;
+                    node = prop[item];
+                    /*#if(modules.viewProtoMixins){#*/
+                    //for in 就近遍历，如果有则忽略
+                    if (!node) { //未设置过
+                        prop[item] = currentFn;
+                    } else if (node.$m) { //现有的方法是mixins上的
+                        if (currentFn.$m) { //2者都是mixins上的事件，则合并
+                            prop[item] = processMixinsSameEvent(node, currentFn);
+                        } else if (G_Has(prop, p)) { //currentFn方法不是mixin上的，也不是继承来的，在当前view上，优先级最高
                             prop[item] = currentFn;
                         }
-                        /*#}#*/
                     }
+                    /*#}else{#*/
+                    if (!node) {
+                        prop[item] = currentFn;
+                    }
+                    /*#}#*/
                 }
             }
         }
-        console.log(prop);
+        //console.log(prop);
         View_WrapRender(prop);
         prop.$eo = eventsObject;
         prop.$el = eventsList;
+        prop.$so = selectorObject;
         prop.$t = !!prop.tmpl;
     }
 };
@@ -560,7 +571,7 @@ G_Mix(G_Mix(ViewProto, Event), {
         return View_DestroyResource(this.$r, key, destroy);
     },
     /*#}#*/
-    /*#if(modules.tiprouter){#*/
+    /*#if(modules.tipRouter){#*/
     /**
      * 离开提示实现
      * @param  {String} msg 提示消息
@@ -574,7 +585,7 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @param  {String} msg 提示消息
      * @param  {Function} fn 是否提示的回调
      * @beta
-     * @module tiprouter
+     * @module tipRouter
      * @example
      * var Magix = require('magix');
      * module.exports = Magix.View.extend({
@@ -588,7 +599,6 @@ G_Mix(G_Mix(ViewProto, Event), {
     leaveTip: function(msg, fn) {
         var me = this;
         var changeListener = function(e) {
-            e.prevent();
             var flag = 'a', // a for router change
                 v = 'b'; // b for viewunload change
             if (e.type != 'change') {
@@ -596,18 +606,20 @@ G_Mix(G_Mix(ViewProto, Event), {
                 v = 'a';
             }
             if (changeListener[flag]) {
-                e.backward();
+                e.prevent();
+                e.reject();
             } else if (fn()) {
+                e.prevent();
                 changeListener[v] = 1;
                 me.leaveConfirm(msg, function() {
                     changeListener[v] = 0;
-                    e.forward();
+                    e.resolve();
                 }, function() {
                     changeListener[v] = 0;
-                    e.backward();
+                    e.reject();
                 });
             } else {
-                e.forward();
+                e.resolve();
             }
         };
         var unloadListener = function(e) {
@@ -621,7 +633,7 @@ G_Mix(G_Mix(ViewProto, Event), {
             Router.off('change', changeListener);
             Router.off('pageunload', unloadListener);
         });
-        me.on('viewunload', changeListener);
+        me.on('unload', changeListener);
     },
     /*#}#*/
     /*#if(modules.share){#*/

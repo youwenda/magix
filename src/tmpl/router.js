@@ -6,6 +6,7 @@ var Router_ChgdCache = new G_Cache();
 var Router_WinLoc = G_WINDOW.location;
 var Router_LastChanged;
 var Router_LLoc = {
+    query: {},
     params: {},
     href: G_EMPTY
 };

@@ -16,7 +16,8 @@ var modules = {
   view: 1, //view
   cnum: 1, //Cache num
   ceach: 1, //Cache each
-  tiprouter: 1, //切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
+  tipRouter: 1, //切换页面时，如果开发者明确告诉magix数据有改变，则会提示用户
+  tipLockUrlRouter: 1,//锁定url功能
   edgeRouter: 1, //使用pushState
   collectView: 1, //收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
   updaterSetState: 1, //updater是否由用户指定更新。即用户指定什么就更新什么，不管值有没有改变
@@ -40,7 +41,7 @@ var modules = {
   viewMerge: 1 //view是否提供merge方法供扩展原型链对象
 };
 var type = 'cmd,amd,kissy,webpack'; //打包kissy则type='kissy'
-var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState,viewProtoMixins,base';
+var enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base';
 //coreModules='magix,event,vframe,body,view,tmpl,updater,core,viewInit,autoEndUpdate';
 //loaderModules='loader,magix,event,vframe';
 

@@ -1,17 +1,17 @@
-/*!3.2.3 Licensed MIT*/
+/*!3.3.0 Licensed MIT*/
 /*
 author:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com
 loader:kissy
-enables:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tiprouter,updaterSetState,viewProtoMixins,base
+enables:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base
 
-optionals:cnum,ceach,edgeRouter,collectView,forceEdgeRouter,serviceCombine,mxInit
+optionals:cnum,ceach,tipLockUrlRouter,edgeRouter,collectView,forceEdgeRouter,serviceCombine,mxInit
 */
 /**
  * @fileOverview Magix全局对象
  * @author 行列<xinglie.lkf@taobao.com>
  * @version edge
  **/
-KISSY.add('magix', function(S, SE) {
+KISSY.add('magix', function(S, SE, DOM) {
     var G_NOOP = S.noop;
     var $ = S.all;
     var G_Require = function(name, fn) {
@@ -842,14 +842,14 @@ Magix.Event = Event;
     var Router_Bind = function() {
         var lastHash = Router_Parse().srcHash;
         var newHash, suspend;
-        Win.on('hashchange', function(e, forward) {
+        Win.on('hashchange', function(e, resolve) {
             if (suspend) {
-                Router_UpdateHash(lastHash);
+                
                 return;
             }
             newHash = Router_Parse().srcHash;
             if (newHash != lastHash) {
-                forward = function() {
+                resolve = function() {
                     e.p = 1;
                     lastHash = newHash;
                     suspend = G_EMPTY;
@@ -857,19 +857,22 @@ Magix.Event = Event;
                     Router_Diff();
                 };
                 e = {
-                    backward: function() {
+                    reject: function() {
                         e.p = 1;
                         suspend = G_EMPTY;
+                        
+                        Router_UpdateHash(lastHash);
+                        
                     },
-                    forward: forward,
+                    resolve: resolve,
                     prevent: function() {
                         suspend = 1;
-                        Router_UpdateHash(lastHash);
+                        
                     }
                 };
                 Router.fire('change', e);
                 if (!suspend && !e.p) {
-                    forward();
+                    resolve();
                 }
             }
         });
@@ -897,6 +900,7 @@ var Router_ChgdCache = new G_Cache();
 var Router_WinLoc = G_WINDOW.location;
 var Router_LastChanged;
 var Router_LLoc = {
+    query: {},
     params: {},
     href: G_EMPTY
 };
@@ -1687,18 +1691,15 @@ Magix.Vframe = Vframe;
  *
  *      fca firstChildrenAlter  fcc firstChildrenCreated
  */
-    var Body_DOMGlobalProcessor = function(e, d, c, i) {
+    var Body_TargetMatchSelector = DOM.test;
+    var Body_DOMGlobalProcessor = function(e, d) {
         d = this;
-        c = e.currentTarget;
-        e.eventTarget = c;
-        i = d.i;
-        if (d.e || Body_FindVframe(c, i) == i) {
-            G_ToTry(d.f, e, d.v);
-        }
+        e.eventTarget = d.e;
+        G_ToTry(d.f, e, d.v);
     };
-    var Body_DOMEventLibBind = function(node, type, cb, remove, selector, scope) {
+    var Body_DOMEventLibBind = function(node, type, cb, remove, scope) {
         if (scope) {
-            SE[(remove ? 'un' : G_EMPTY) + 'delegate'](node, type, selector, cb, scope);
+            SE[(remove ? 'un' : G_EMPTY) + 'delegate'](node, type, cb, scope);
         } else {
             SE[remove ? 'detach' : Event_ON](node, type, cb, scope);
         }
@@ -1721,80 +1722,109 @@ var Body_ParentNode = 'parentNode';
 var Body_EvtInfoCache = new G_Cache(30, 10);
 var Body_EvtInfoReg = /(?:([\w\-]+)\u001e)?([^\(]+)\(([\s\S]*)?\)/;
 var Body_RootEvents = {};
-var Body_FindVframe = function(begin, vfId, tempId, vf, vId, view) {
-    while ((begin = begin[Body_ParentNode])) {
-        vf = Vframe_Vframes[tempId = begin.id];
-        if (vf && (vfId == tempId || ((view = vf.$v) && view.$p && view.$t))) { //如果是独立的vframe或指定的id相同
-            vId = tempId;
-            break;
+var Body_SearchSelectorEvents = {};
+var Body_FindVframeInfo = function(current, eventType) {
+    var vf, tempId, selectorObject, eventSelector, names = [],
+        begin = current,
+        info = current.getAttribute('mx-' + eventType),
+        match, view,
+        vfs = [],
+        selectorVfId;
+    if (info) {
+        match = Body_EvtInfoCache.get(info);
+        if (!match) {
+            match = info.match(Body_EvtInfoReg) || G_EMPTY_ARRAY;
+            match = {
+                v: match[1],
+                n: match[2],
+                i: match[3]
+            };
+            /*jshint evil: true*/
+            match.p = match.i && G_ToTry(Function('return ' + match.i));
+            Body_EvtInfoCache.set(info, match);
+        }
+        names.push(match = {
+            r: info,
+            v: match.v,
+            p: match.p,
+            n: match.n
+        });
+    }
+    //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件 里
+    if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
+        if (current.$v) {
+            selectorVfId = current.$v;
+        } else {
+            vfs.push(begin);
+            while ((begin = begin[Body_ParentNode])) {
+                if (Vframe_Vframes[tempId = begin.id] || (tempId = begin.$v)) {
+                    selectorVfId = tempId;
+                    break;
+                }
+                vfs.push(begin);
+            }
+        }
+
+        if (selectorVfId) {
+            while ((info = vfs.pop())) {
+                info.$v = selectorVfId;
+            }
+            do {
+                vf = Vframe_Vframes[selectorVfId];
+                view = vf.$v;
+                if (view) {
+                    selectorObject = view.$so;
+                    eventSelector = selectorObject[eventType];
+                    for (tempId in eventSelector) {
+                        if (Body_TargetMatchSelector(current, tempId)) {
+                            names.push({
+                                r: tempId,
+                                v: selectorVfId,
+                                n: tempId
+                            });
+                        }
+                    }
+                    if (view.$t) {
+                        if (match && !match.v) match.v = selectorVfId;
+                        break; //带界面的中止
+                    }
+                }
+            } while ((selectorVfId = vf.pId));
         }
     }
-    return vId;
+    return names;
 };
 
 var Body_DOMEventProcessor = function(e) {
     var current = e.target;
     var eventType = e.type;
-    var type = 'mx-' + eventType;
-    var info;
+    var info, names;
     var ignore;
     var arr = [];
-    var vframe, view, vId, match, name, fn;
-
+    var vframe, view, name, fn;
     while (current != G_DOCBODY && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点,考虑在向上遍历的过程中，节点被删除，所以需要判断nodeType,主要是IE
-        if ((info = current.getAttribute(type))) {
+        names = Body_FindVframeInfo(current, eventType);
+        if (names.length) {
             arr = [];
-            //ts = info.split(G_SPLITER);
-            //info = ts.pop();
-            match = Body_EvtInfoCache.get(info);
-            if (!match) {
-                match = info.match(Body_EvtInfoReg) || G_EMPTY_ARRAY;
-                match = {
-                    v: match[1],
-                    n: match[2],
-                    i: match[3]
-                };
-                /*jshint evil: true*/
-                match.p = match.i && G_ToTry(Function('return ' + match.i)) || {};
-                Body_EvtInfoCache.set(info, match);
-            }
-            vId = match.v; //|| current.$f; //ts[0];
-            if (!vId) { //如果没有则找最近的vframe
-
-                // 关于下方的while
-                // 考虑这样的结构：
-                // div(mx-vframe,id=outer)
-                //     div(mx-vframe,mx-userevent="change()",id=inner)
-                //         content
-                // 当inner做为组件存在时，比如webcomponents，从根节点inner向外派发userevent事件
-                // 外vframe outer做为inner的userevent监听者，监听表达式自然是写到inner根节点
-
-                // 所以，当找到事件信息后，直接从事件信息的上一层节点开始查找最近的vframe，不应该从当前节点上查找
-
-                // div(mx-click="test()")
-                //     click here
-                vId = Body_FindVframe(current);
-            }
-            if (vId) { //有处理的vframe,派发事件，让对应的vframe进行处理
-                vframe = Vframe_Vframes[vId];
-                view = vframe && vframe.$v;
-                if (view) {
-                    name = match.n + G_SPLITER + eventType;
-                    fn = view[name];
-                    if (fn) {
-                        //e.current = current;
-                        //e.currentTarget = current;
-                        e.eventTarget = current;
-                        e.params = match.p;
-                        G_ToTry(fn, e, view);
-                        //e.previous = current; //下一个处理函数可检测是否已经处理过
-                    }
+            while ((info = names.pop())) {
+                if (!info.v) {
+                    Magix_Cfg.error(Error('bad ' + eventType + ':' + info.r));
                 }
-            } else {
-                Magix_Cfg.error(Error('bad ' + type + ':' + info));
+                vframe = Vframe_Vframes[info.v];
+                view = vframe && vframe.$v;
+                name = info.n + G_SPLITER + eventType;
+                fn = view[name];
+                if (fn) {
+                    e.eventTarget = current;
+                    e.params = info.p || {};
+                    G_ToTry(fn, e, view);
+                }
             }
         }
-        if ((ignore = current.$) && ignore[eventType] || e.mxStop || e.isPropagationStopped()) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
+        /*|| e.mxStop */
+        if ((ignore = current.$) &&
+            ignore[eventType] ||
+            e.isPropagationStopped()) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
             break;
         } else {
             arr.push(current);
@@ -1809,12 +1839,16 @@ var Body_DOMEventProcessor = function(e) {
         ignore[eventType] = 1;
     }
 };
-var Body_DOMEventBind = function(type, remove) {
+var Body_DOMEventBind = function(type, searchSelector, remove) {
     var counter = Body_RootEvents[type] | 0;
+    var offset = (remove ? -1 : 1);
     if (!counter || (remove && counter == 1)) {
         Body_DOMEventLibBind(G_DOCBODY, type, Body_DOMEventProcessor, remove);
     }
-    Body_RootEvents[type] = counter + (remove ? -1 : 1);
+    Body_RootEvents[type] = counter + offset;
+    if (searchSelector) { //记录需要搜索选择器的事件
+        Body_SearchSelectorEvents[type] = (Body_SearchSelectorEvents[type] | 0) + offset;
+    }
 };
     var Tmpl_EscapeSlashRegExp = /\\|'/g;
 var Tmpl_EscapeBreakReturnRegExp = /\r|\n/g;
@@ -1843,7 +1877,7 @@ var Tmpl_Compiler = function(text) {
 
   // If a variable is not specified, place data values in local scope.
   //source = "with($mx){\n" + source + "}\n";
-  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){return (''+v).replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s;\n" + source + "return $p;\n";
+  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){return (''+v).replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s,$eum={'!':'%21','\\'':'%27','(':'%28',')':'%29','*':'%2A'},$euf=function(m){return $eum[m]},$eur=/[!')(*]/g,$eu=function(v){return encodeURIComponent(v).replace($eur,$euf)};\n" + source + "return $p;\n";
   /*jshint evil: true*/
   return Function("$g", "$$", source);
 };
@@ -2239,7 +2273,7 @@ G_Mix(UP, {
      * @param {String} e.keys 指示哪些key被更新
      */
 });
-    var View_EvtMethodReg = /^(\$?)([^<]*?)<([^>]+)>$/;
+    var View_EvtMethodReg = /^(\$?)([^<]+?)<([^>]+)>$/;
 var View_ScopeReg = /\u001f/g;
 var View_SetEventOwner = function(str, id) {
     return (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
@@ -2302,16 +2336,17 @@ var View_WrapRender = function(prop, fn, me) {
 };
 var View_DelegateEvents = function(me, destroy) {
     var events = me.$eo; //eventsObject
+    var selectorObject = me.$so;
     var p, e, id = me.id;
     for (p in events) {
-        Body_DOMEventBind(p, destroy);
+        Body_DOMEventBind(p, selectorObject[p], destroy);
     }
     events = me.$el; //eventsList
     p = events.length;
     while (p--) {
         e = events[p];
-        Body_DOMEventLibBind(e.e || G_HashKey + id, e.n, Body_DOMGlobalProcessor, destroy, e.s, {
-            i: id,
+        Body_DOMEventLibBind(e.e, e.n, Body_DOMGlobalProcessor, destroy, {
+            i: me.id,
             v: me,
             f: e.f,
             e: e.e
@@ -2336,7 +2371,8 @@ var View_Prepare = function(oView) {
         var prop = oView[G_PROTOTYPE],
             currentFn, matches, selectorOrCallback, events, eventsObject = {},
             eventsList = [],
-            node, isSelector, p, item;
+            selectorObject = {},
+            node, isSelector, p, item, mask;
         for (p in prop) {
             currentFn = prop[p];
             matches = p.match(View_EvtMethodReg);
@@ -2345,38 +2381,47 @@ var View_Prepare = function(oView) {
                 selectorOrCallback = matches[2];
                 events = matches[3].split(G_COMMA);
                 while ((item = events.pop())) {
+                    node = View_Globals[selectorOrCallback];
+                    mask = 1;
                     if (isSelector) {
-                        node = View_Globals[selectorOrCallback];
-                        eventsList.push({
-                            f: currentFn,
-                            s: node ? G_NULL : selectorOrCallback,
-                            n: item,
-                            e: node
-                        });
-                    } else {
-                        eventsObject[item] = 1;
-                        item = selectorOrCallback + G_SPLITER + item;
-                        node = prop[item];
-                        
-                        //for in 就近遍历，如果有则忽略
-                        if (!node) { //未设置过
-                            prop[item] = currentFn;
-                        } else if (node.$m) { //现有的方法是mixins上的
-                            if (currentFn.$m) { //2者都是mixins上的事件，则合并
-                                prop[item] = processMixinsSameEvent(node, currentFn);
-                            } else if (G_Has(prop, p)) { //currentFn方法不是mixin上的，也不是继承来的，在当前view上，优先级最高
-                                prop[item] = currentFn;
-                            }
+                        if (node) {
+                            eventsList.push({
+                                f: currentFn,
+                                e: node,
+                                n: item
+                            });
+                            continue;
                         }
-                        
+                        mask = 2;
+                        node = selectorObject[item];
+                        if (!node) {
+                            node = selectorObject[item] = {};
+                        }
+                        node[selectorOrCallback] = 1;
                     }
+                    eventsObject[item] = eventsObject[item] | mask;
+                    item = selectorOrCallback + G_SPLITER + item;
+                    node = prop[item];
+                    
+                    //for in 就近遍历，如果有则忽略
+                    if (!node) { //未设置过
+                        prop[item] = currentFn;
+                    } else if (node.$m) { //现有的方法是mixins上的
+                        if (currentFn.$m) { //2者都是mixins上的事件，则合并
+                            prop[item] = processMixinsSameEvent(node, currentFn);
+                        } else if (G_Has(prop, p)) { //currentFn方法不是mixin上的，也不是继承来的，在当前view上，优先级最高
+                            prop[item] = currentFn;
+                        }
+                    }
+                    
                 }
             }
         }
-        console.log(prop);
+        //console.log(prop);
         View_WrapRender(prop);
         prop.$eo = eventsObject;
         prop.$el = eventsList;
+        prop.$so = selectorObject;
         prop.$t = !!prop.tmpl;
     }
 };
@@ -2807,7 +2852,7 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @param  {String} msg 提示消息
      * @param  {Function} fn 是否提示的回调
      * @beta
-     * @module tiprouter
+     * @module tipRouter
      * @example
      * var Magix = require('magix');
      * module.exports = Magix.View.extend({
@@ -2821,7 +2866,6 @@ G_Mix(G_Mix(ViewProto, Event), {
     leaveTip: function(msg, fn) {
         var me = this;
         var changeListener = function(e) {
-            e.prevent();
             var flag = 'a', // a for router change
                 v = 'b'; // b for viewunload change
             if (e.type != 'change') {
@@ -2829,18 +2873,20 @@ G_Mix(G_Mix(ViewProto, Event), {
                 v = 'a';
             }
             if (changeListener[flag]) {
-                e.backward();
+                e.prevent();
+                e.reject();
             } else if (fn()) {
+                e.prevent();
                 changeListener[v] = 1;
                 me.leaveConfirm(msg, function() {
                     changeListener[v] = 0;
-                    e.forward();
+                    e.resolve();
                 }, function() {
                     changeListener[v] = 0;
-                    e.backward();
+                    e.reject();
                 });
             } else {
-                e.forward();
+                e.resolve();
             }
         };
         var unloadListener = function(e) {
@@ -2854,7 +2900,7 @@ G_Mix(G_Mix(ViewProto, Event), {
             Router.off('change', changeListener);
             Router.off('pageunload', unloadListener);
         });
-        me.on('viewunload', changeListener);
+        me.on('unload', changeListener);
     },
     
     
@@ -3673,5 +3719,5 @@ Magix.Service = Service;
     
     return Magix;
 }, {
-    requires: ['event', 'node']
+    requires: ['event', 'node', 'dom']
 });
