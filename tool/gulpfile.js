@@ -111,7 +111,7 @@ gulp.task('compress', function() {
 });
 
 gulp.task('doc', ['combine'], function() {
-  var content = fs.readFileSync('../dist/' + type + '/magix-debug.js').toString();
+  var content = fs.readFileSync('../dist/' + (type.split(',')[0]) + '/magix-debug.js').toString();
   var main = doc(content);
   fs.writeFileSync('../../magix-doc3/tmpl/data.js', 'define("data",function(){return ' + JSON.stringify(main) + '})');
 });
