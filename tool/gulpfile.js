@@ -81,7 +81,7 @@ gulp.task('combine', function() {
         }
         return '';
       });
-      var header = '/*!' + pkg.version + ' Licensed MIT*/';
+      var header = '\/\/\'#exclude(define,before)\';\r\n/*!' + pkg.version + ' Licensed MIT*/';
       header += '\r\n/*\r\nauthor:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com\r\nloader:' + t;
       header += '\r\nenables:' + enableModules;
       header += '\r\n\r\noptionals:' + others;

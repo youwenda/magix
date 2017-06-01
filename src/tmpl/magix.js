@@ -245,7 +245,7 @@ G_Mix(G_Cache[G_PROTOTYPE], {
             r.v = G_EMPTY;
             delete c[k];
             if (m) {
-                G_ToTry(m, r.o, r);
+                G_ToTry(m, r.o);
             }
         }
     },

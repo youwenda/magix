@@ -1,4 +1,5 @@
-/*!3.3.0 Licensed MIT*/
+//'#exclude(define,before)';
+/*!3.3.1 Licensed MIT*/
 /*
 author:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com
 loader:webpack
@@ -284,7 +285,7 @@ G_Mix(G_Cache[G_PROTOTYPE], {
             r.v = G_EMPTY;
             delete c[k];
             if (m) {
-                G_ToTry(m, r.o, r);
+                G_ToTry(m, r.o);
             }
         }
     },
@@ -1267,7 +1268,7 @@ var Vframe_UpdateTag;
 var Vframe_Update = function(vframe, view) {
     if (vframe && vframe.$g != Vframe_UpdateTag && (view = vframe.$v) && view.$s > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
 
-        var isChanged = View_IsObsveChanged(view);
+        var isChanged = View_IsObserveChanged(view);
         /**
          * 事件对象
          * @type {Object}
@@ -1484,7 +1485,16 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
 
             me.$v = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
             
-            View_Oust(view);
+            if (view.$s > 0) {
+                view.$s = 0;
+                view.fire('destroy', 0, 1, 1);
+                
+                View_DestroyAllResources(view, 1);
+                
+                View_DelegateEvents(view, 1);
+            }
+            view.$s--;
+            view.owner = G_NULL;
             
             node = G_GetById(me.id);
             if (node && me.$a /*&&!keepPreHTML*/ ) { //如果view本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且view有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即view安装前什么样，销毁后把节点恢复到安装前的情况
@@ -1685,7 +1695,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         } else {
             o = list[key = G_SPLITER + name];
             if (o) {
-                o.r = G_Type(args) == G_Type(o.a); //参数一样，则忽略上次的
+                o.r = args == o.a; //参数一样，则忽略上次的
             }
             o = {
                 n: name,
@@ -2351,10 +2361,10 @@ var View_DestroyAllResources = function(me, lastly) {
         }
     }
 };
-var View_DestroyResource = function(cache, key, callDestroy) {
+var View_DestroyResource = function(cache, key, callDestroy, old) {
     var o = cache[key],
         fn, res;
-    if (o) {
+    if (o != old) {
         //var processed=false;
         res = o.e; //entity
         fn = res.destroy;
@@ -2479,7 +2489,7 @@ var View_IsParamsChanged = function(params, ps, r) {
     }
     return r;
 };
-var View_IsObsveChanged = function(view) {
+var View_IsObserveChanged = function(view) {
     var loc = view.$l;
     var res;
     if (loc.f) {
@@ -2496,17 +2506,6 @@ var View_IsObsveChanged = function(view) {
     return res;
 };
 
-var View_Oust = function(view) {
-    if (view.$s > 0) {
-        view.$s = 0;
-        view.fire('destroy', 0, 1, 1);
-        
-        View_DestroyAllResources(view, 1);
-        
-        View_DelegateEvents(view, 1);
-    }
-    view.$s--;
-};
 /**
  * View类
  * @name View
@@ -2860,7 +2859,7 @@ G_Mix(G_Mix(ViewProto, Event), {
     capture: function(key, res, destroyWhenCallRender, cache, wrapObj) {
         cache = this.$r;
         if (res) {
-            View_DestroyResource(cache, key, 1);
+            View_DestroyResource(cache, key, 1, res);
             wrapObj = {
                 e: res,
                 x: destroyWhenCallRender
@@ -2942,11 +2941,11 @@ G_Mix(G_Mix(ViewProto, Event), {
         };
         Router.on('change', changeListener);
         Router.on('pageunload', unloadListener);
+        me.on('unload', changeListener);
         me.on('destroy', function() {
             Router.off('change', changeListener);
             Router.off('pageunload', unloadListener);
         });
-        me.on('unload', changeListener);
     },
     
     

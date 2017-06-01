@@ -30,10 +30,10 @@ var View_DestroyAllResources = function(me, lastly) {
         }
     }
 };
-var View_DestroyResource = function(cache, key, callDestroy) {
+var View_DestroyResource = function(cache, key, callDestroy, old) {
     var o = cache[key],
         fn, res;
-    if (o) {
+    if (o != old) {
         //var processed=false;
         res = o.e; //entity
         fn = res.destroy;
@@ -162,7 +162,7 @@ var View_IsParamsChanged = function(params, ps, r) {
     }
     return r;
 };
-var View_IsObsveChanged = function(view) {
+var View_IsObserveChanged = function(view) {
     var loc = view.$l;
     var res;
     if (loc.f) {
@@ -179,17 +179,6 @@ var View_IsObsveChanged = function(view) {
     return res;
 };
 /*#}#*/
-var View_Oust = function(view) {
-    if (view.$s > 0) {
-        view.$s = 0;
-        view.fire('destroy', 0, 1, 1);
-        /*#if(modules.resource){#*/
-        View_DestroyAllResources(view, 1);
-        /*#}#*/
-        View_DelegateEvents(view, 1);
-    }
-    view.$s--;
-};
 /**
  * View类
  * @name View
@@ -547,7 +536,7 @@ G_Mix(G_Mix(ViewProto, Event), {
     capture: function(key, res, destroyWhenCallRender, cache, wrapObj) {
         cache = this.$r;
         if (res) {
-            View_DestroyResource(cache, key, 1);
+            View_DestroyResource(cache, key, 1, res);
             wrapObj = {
                 e: res,
                 x: destroyWhenCallRender
@@ -629,11 +618,11 @@ G_Mix(G_Mix(ViewProto, Event), {
         };
         Router.on('change', changeListener);
         Router.on('pageunload', unloadListener);
+        me.on('unload', changeListener);
         me.on('destroy', function() {
             Router.off('change', changeListener);
             Router.off('pageunload', unloadListener);
         });
-        me.on('unload', changeListener);
     },
     /*#}#*/
     /*#if(modules.share){#*/

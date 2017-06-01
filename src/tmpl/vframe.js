@@ -108,7 +108,7 @@ var Vframe_UpdateTag;
 var Vframe_Update = function(vframe, view) {
     if (vframe && vframe.$g != Vframe_UpdateTag && (view = vframe.$v) && view.$s > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
 
-        var isChanged = View_IsObsveChanged(view);
+        var isChanged = View_IsObserveChanged(view);
         /**
          * 事件对象
          * @type {Object}
@@ -352,7 +352,16 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
 
             me.$v = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
             /*#if(!modules.loader){#*/
-            View_Oust(view);
+            if (view.$s > 0) {
+                view.$s = 0;
+                view.fire('destroy', 0, 1, 1);
+                /*#if(modules.resource){#*/
+                View_DestroyAllResources(view, 1);
+                /*#}#*/
+                View_DelegateEvents(view, 1);
+            }
+            view.$s--;
+            view.owner = G_NULL;
             /*#}#*/
             node = G_GetById(me.id);
             if (node && me.$a /*&&!keepPreHTML*/ ) { //如果view本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且view有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即view安装前什么样，销毁后把节点恢复到安装前的情况
@@ -560,7 +569,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         } else {
             o = list[key = G_SPLITER + name];
             if (o) {
-                o.r = G_Type(args) == G_Type(o.a); //参数一样，则忽略上次的
+                o.r = args == o.a; //参数一样，则忽略上次的
             }
             o = {
                 n: name,
