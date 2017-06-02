@@ -33,7 +33,7 @@ var View_DestroyAllResources = function(me, lastly) {
 var View_DestroyResource = function(cache, key, callDestroy, old) {
     var o = cache[key],
         fn, res;
-    if (o != old) {
+    if (o && o != old) {
         //var processed=false;
         res = o.e; //entity
         fn = res.destroy;

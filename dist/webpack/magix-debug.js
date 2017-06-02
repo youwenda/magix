@@ -1,5 +1,5 @@
 //'#exclude(define,before)';
-/*!3.3.1 Licensed MIT*/
+/*!3.3.2 Licensed MIT*/
 /*
 author:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com
 loader:webpack
@@ -2364,7 +2364,7 @@ var View_DestroyAllResources = function(me, lastly) {
 var View_DestroyResource = function(cache, key, callDestroy, old) {
     var o = cache[key],
         fn, res;
-    if (o != old) {
+    if (o && o != old) {
         //var processed=false;
         res = o.e; //entity
         fn = res.destroy;

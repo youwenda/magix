@@ -1,5 +1,7 @@
 declare module "magix" {
-
+    /**
+     * 配置信息接口
+     */
     interface IConfig {
         /**
          * 默认加载的view
@@ -30,7 +32,9 @@ declare module "magix" {
          */
         error?: (this: void, exception: Error) => void
     }
-
+    /**
+     * url解析部分对象接口
+     */
     interface IRouterParseParts {
         /**
          * 参数对象
@@ -43,7 +47,9 @@ declare module "magix" {
          */
         path: string
     }
-
+    /**
+     * url解析接口
+     */
     interface IRouterParse {
         /**
          * 原始的href
@@ -91,7 +97,9 @@ declare module "magix" {
         get(key: string): string
 
     }
-
+    /**
+     * 差异对象接口
+     */
     interface IRouterDiffItem {
         /**
          * 旧值
@@ -103,6 +111,9 @@ declare module "magix" {
          */
         to: string
     }
+    /**
+     * url差异对象接口
+     */
     interface IRouterDiff {
         /**
          * 是否为应用首次初始化时强制触发的差异比较
@@ -125,7 +136,9 @@ declare module "magix" {
             [key: string]: IRouterDiffItem
         }
     }
-
+    /**
+     * view更新器接口
+     */
     interface IUpdater {
         /**
          * 把结果渲染到某个节点上，默认是当前view所在的节点
@@ -166,7 +179,9 @@ declare module "magix" {
          */
         altered(): boolean
     }
-
+    /**
+     * 数据载体接口
+     */
     interface IBag {
         /**
          * bag id
@@ -178,7 +193,7 @@ declare module "magix" {
          * @param key 数据key，如果未传递则返回整个数据对象
          * @param defaultValue 默认值，如果传递了该参数且从bag中获取到的数据类型如果与defaultValue不一致，则使用defaultValue
          */
-        get<T>(key?: string, defaultValue?: T): T
+        get<TReturnAndDefaultValueType>(key?: string, defaultValue?: TReturnAndDefaultValueType): TReturnAndDefaultValueType
 
         /**
          * 设置数据
@@ -193,7 +208,9 @@ declare module "magix" {
          */
         set(data: object): void
     }
-
+    /**
+     * api注册信息接口
+     */
     interface IServiceInterfaceMeta {
         /**
          * 缓存时间，以毫秒为单位
@@ -219,7 +236,7 @@ declare module "magix" {
     }
 
     /**
-     * 事件对象
+     * 事件对象接口
      */
     interface IEventEmitter {
         /**
@@ -245,12 +262,18 @@ declare module "magix" {
          */
         fire(name: string, data?: object, remove?: boolean, lastToFirst?: boolean): void
     }
+    /**
+     * 基础触发事件接口
+     */
     interface ITriggerEventDescriptor {
         /**
          * 事件类型
          */
         type: string
     }
+    /**
+     * 路由变化事件接口
+     */
     interface IRouterChangeEvent extends ITriggerEventDescriptor {
         /**
          * 拒绝url改变
@@ -267,11 +290,14 @@ declare module "magix" {
          */
         prevent: () => void
     }
+    /**
+     * 路由变化后事件接口
+     */
     interface IRouterChangedEvent extends IRouterDiff, ITriggerEventDescriptor {
 
     }
     /**
-     * 路由对象
+     * 路由对象接口
      */
     interface IRouter {
         /**
@@ -329,7 +355,9 @@ declare module "magix" {
          */
         onchanged: (this: this, e?: IRouterChangedEvent) => void
     }
-
+    /**
+     * 接口服务事件接口
+     */
     interface IServiceEvent extends ITriggerEventDescriptor {
         /**
          * 数据对象的载体
@@ -340,9 +368,21 @@ declare module "magix" {
          */
         error: object | string | null
     }
-    interface IExtendPropertyDescriptor<T> {
-        [key: string]: string | number | undefined | boolean | RegExp | symbol | object | null | ((this: T, ...args: any[]) => any)
+    /**
+     * 对象属性方法调用接口
+     */
+    interface IPropertyFunctionCall<T> {
+        [key: string]: <TReturnType>(this: T, ...args: any[]) => TReturnType
     }
+    /**
+     * 继承对象接口
+     */
+    interface IExtendPropertyDescriptor<T> {
+        [key: string]: string | number | undefined | boolean | RegExp | symbol | object | null | ((this: T & IPropertyFunctionCall<T>, ...args: any[]) => any)
+    }
+    /**
+     * 监控url参数接口
+     */
     interface IViewObserveUrl {
         /**
          * 监听参数。逗号分割的字符串，或字符串数组
@@ -354,14 +394,18 @@ declare module "magix" {
          */
         path?: boolean
     }
-
+    /**
+     * view事件接口
+     */
     interface IViewEvent extends ITriggerEventDescriptor {
         /**
          * 节点id
          */
         id: string
     }
-
+    /**
+     * vframe静态事件接口
+     */
     interface IVframeStaticEvent extends ITriggerEventDescriptor {
         /**
          * vframe对象
@@ -372,7 +416,18 @@ declare module "magix" {
      * 设置或获取配置信息
      * @param cfg 配置信息参数对象
      */
-    function config(cfg: IConfig): any
+    function config(cfg: IConfig): IConfig
+
+    /**
+     * 获取配置信息
+     * @param key 配置key
+     */
+    function config(key: string): any
+
+    /**
+     * 获取配置信息对象
+     */
+    function config(): IConfig
 
     /**
      * 应用初始化入口
@@ -467,18 +522,18 @@ declare module "magix" {
          * @param key 缓存资源时使用的key，唯一的key对应唯一的资源
          * @param resource 缓存的资源
          */
-        set<T>(key: string, resource: T): T
+        set<TResourceAndReturnType>(key: string, resource: TResourceAndReturnType): TResourceAndReturnType
 
         /**
          * 获取缓存的资源，如果不存在则返回undefined
          * @param key 缓存资源时使用的key
          */
-        get<T>(key: string): T
+        get<TReturnType>(key: string): TReturnType
         /**
          * 从缓存对象中删除缓存的资源
          * @param key 缓存的资源key
          */
-        del<T>(key: string): T
+        del<TReturnType>(key: string): TReturnType
         /**
          * 判断缓存对象中是否包含给定key的缓存资源
          * @param key 缓存的资源key
@@ -511,7 +566,7 @@ declare module "magix" {
          * @param props 原型方法或属性的对象
          * @param statics 静态方法或属性的对象
          */
-        static extend(props: IExtendPropertyDescriptor<Base> & ThisType<Base>, statics?: object): typeof Base
+        static extend(props?: IExtendPropertyDescriptor<Base> & ThisType<Base>, statics?: object): typeof Base
         /**
          * 绑定事件
          * @param name 事件名称
@@ -717,7 +772,7 @@ declare module "magix" {
          * @param props 包含可选的init和render方法的对象
          * @param statics 静态方法或属性的对象
          */
-        static extend(props: IExtendPropertyDescriptor<View> & ThisType<View>, statics?: object): typeof View
+        static extend(props?: IExtendPropertyDescriptor<View> & ThisType<View>, statics?: object): typeof View
         /**
          * 扩展到Magix.View原型上的对象
          * @param props 包含可选的ctor方法的对象
@@ -779,13 +834,13 @@ declare module "magix" {
          * @param resource 托管的资源
          * @param destroyWhenCallRender 当render方法再次调用时，是否自动销毁该资源，通常Magix.Service实例需要在render时自动销毁
          */
-        capture<T>(key: string, resource?: T, destroyWhenCallRender?: boolean): T
+        capture<TResourceAndReturnType extends { destroy: () => void }>(key: string, resource?: TResourceAndReturnType, destroyWhenCallRender?: boolean): TResourceAndReturnType
         /**
          * 释放管理的资源。返回托管的资源，无论是否销毁
          * @param key 托管资源的key
          * @param destroy 是否销毁资源，即自动调用资源的destroy方法
          */
-        release<T>(key: string, destroy?: boolean): T
+        release<TResourceType extends { destroy: () => void }>(key: string, destroy?: boolean): TResourceType
         /**
          * 离开确认方法，需要开发者实现离开的界面和逻辑
          * @param msg 调用leaveTip时传递的离开消息
@@ -809,7 +864,7 @@ declare module "magix" {
          * 获取祖先view上公开的数据
          * @param key 祖先view公开数据时的key
          */
-        getShared<T>(key: string): T
+        getShared<TReturnType>(key: string): TReturnType
 
         /**
          * 绑定事件
