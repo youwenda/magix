@@ -1,5 +1,5 @@
 //'#exclude(define,before)';
-/*!3.4.1 Licensed MIT*/
+/*!3.4.2 Licensed MIT*/
 /*
 author:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com
 loader:kissy
@@ -1405,7 +1405,9 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                         id: id
                     }, params);
                     me.$v = view;
+                    
                     me.$g = Vframe_UpdateTag;
+                    
                     
                     View_DelegateEvents(view);
                     

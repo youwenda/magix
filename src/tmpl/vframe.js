@@ -302,7 +302,9 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                         id: id
                     }, params);
                     me.$v = view;
+                    /*#if(modules.router){#*/
                     me.$g = Vframe_UpdateTag;
+                    /*#}#*/
                     /*#if(!modules.loader){#*/
                     View_DelegateEvents(view);
                     /*#}#*/
