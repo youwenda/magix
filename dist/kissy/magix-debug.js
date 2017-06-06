@@ -1,11 +1,11 @@
 //'#exclude(define,before)';
-/*!3.4.2 Licensed MIT*/
+/*!3.4.3 Licensed MIT*/
 /*
 author:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com
 loader:kissy
 enables:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base
 
-optionals:cnum,ceach,tipLockUrlRouter,edgeRouter,collectView,forceEdgeRouter,serviceCombine,mxViewAttr
+optionals:cnum,ceach,tipLockUrlRouter,edgeRouter,collectView,forceEdgeRouter,serviceCombine,mxInit
 */
 /**
  * @fileOverview Magix全局对象
@@ -1873,7 +1873,7 @@ var Tmpl_Compiler = function(text) {
     source += text.slice(index, offset).replace(Tmpl_EscapeSlashRegExp, "\\$&").replace(Tmpl_EscapeBreakReturnRegExp, "\\n");
     index = offset + match.length;
 
-    if (operate == "@") {
+    if (operate == "@") {//$$[$s]=$$.list1;
       source += "'\n$s=$i();\n$p+=$s;\n$$[$s]=" + content + ";\n$p+='";
     } else if (operate == "=") {
       source += "'+\n(($t=(" + content + "))==null?'':$e($t))+\n'";

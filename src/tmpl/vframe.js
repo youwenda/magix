@@ -266,12 +266,15 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             }
             /*#if(modules.mxViewAttr){#*/
             var attrs = node.attributes;
+            var capitalize = function(_, c) {
+                return c.toUpperCase();
+            };
             for (var i = attrs.length - 1, attr, name, value; i >= 0; i--) {
                 attr = attrs[i];
                 name = attr.name;
                 value = attr.value;
                 if (name.indexOf('view-') === 0) {
-                    var key = name.slice(5);
+                    var key = name.slice(5).replace(/-(\w)/g, capitalize);
                     if (value.slice(0, 3) == '<%@' && value.slice(-2) == '%>') {
                         try {
                             var temp = {};

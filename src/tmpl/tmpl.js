@@ -9,7 +9,7 @@ var Tmpl_Compiler = function(text) {
     source += text.slice(index, offset).replace(Tmpl_EscapeSlashRegExp, "\\$&").replace(Tmpl_EscapeBreakReturnRegExp, "\\n");
     index = offset + match.length;
 
-    if (operate == "@") {
+    if (operate == "@") {//$$[$s]=$$.list1;
       source += "'\n$s=$i();\n$p+=$s;\n$$[$s]=" + content + ";\n$p+='";
     } else if (operate == "=") {
       source += "'+\n(($t=(" + content + "))==null?'':$e($t))+\n'";
