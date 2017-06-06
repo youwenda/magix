@@ -27,8 +27,8 @@ KISSY.add('magix', function(S, SE, DOM) {
 
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
+    /*#if(modules.router){#*/
     var Router_Edge;
-    /*#if(modules.router||modules.updater){#*/
     var G_IsFunction = S.isFunction;
     /*#if(!modules.forceEdgeRouter){#*/
     var Win = S.one(G_WINDOW);
@@ -200,6 +200,9 @@ KISSY.add('magix', function(S, SE, DOM) {
     /*#}#*/
 
     Inc('../tmpl/router');
+    /*#if(modules.mxViewAttr){#*/
+    var G_Trim = S.trim;
+    /*#}#*/
     Inc('../tmpl/vframe');
     var Body_TargetMatchSelector = DOM.test;
     var Body_DOMGlobalProcessor = function(e, d) {

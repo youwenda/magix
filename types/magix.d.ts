@@ -387,7 +387,7 @@ declare module "magix" {
         /**
          * 监听参数。逗号分割的字符串，或字符串数组
          */
-        params: string | string[]
+        params?: string | string[]
 
         /**
          * 是否监听地址的改变

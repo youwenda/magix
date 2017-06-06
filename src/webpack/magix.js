@@ -70,8 +70,8 @@ module.exports = (function() {
     };
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
+    /*#if(modules.router){#*/
     var Router_Edge;
-    /*#if(modules.router||modules.updater){#*/
     /*#if(!modules.forceEdgeRouter){#*/
     var Router_Hashbang = G_HashKey + '!';
     var Router_UpdateHash = function(path, replace) {
@@ -239,6 +239,9 @@ module.exports = (function() {
     /*#}#*/
     /*#}#*/
     Inc('../tmpl/router');
+    /*#if(modules.mxViewAttr){#*/
+    var G_Trim = $.trim;
+    /*#}#*/
     Inc('../tmpl/vframe');
 
     var Body_SelectorEngine = $.find || $.zepto;

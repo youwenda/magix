@@ -61,8 +61,8 @@ define('magix', ['$'], function(require) {
     };
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
+    /*#if(modules.router){#*/
     var Router_Edge;
-    /*#if(modules.router||modules.updater){#*/
     var G_IsFunction = $.isFunction;
     /*#if(!modules.forceEdgeRouter){#*/
     var Router_Hashbang = G_HashKey + '!';
@@ -249,6 +249,9 @@ define('magix', ['$'], function(require) {
     /*#}#*/
     /*#}#*/
     Inc('../tmpl/router');
+    /*#if(modules.mxViewAttr){#*/
+    var G_Trim = $.trim;
+    /*#}#*/
     Inc('../tmpl/vframe');
     var Body_SelectorEngine = $.find || $.zepto;
     var Body_TargetMatchSelector = Body_SelectorEngine.matchesSelector || Body_SelectorEngine.matches;

@@ -1,10 +1,5 @@
 var Vframe_RootVframe;
 var Vframe_GlobalAlter;
-/*#if(modules.mxInit){#*/
-var Vframe_DataParamsReg = /(\w+):\s*([^,\}]+)\s*/g;
-var Vframe_DataParamsStrReg = /(['"])(.*)\1/;
-var Vframe_DataParamsNumReg = /^[\d\.]+$/;
-/*#}#*/
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
@@ -269,36 +264,31 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     }
                 }
             }
-            /*#}#*/
-            G_Mix(params, viewInitParams);
-            /*#if(modules.mxInit){#*/
-            var mxd = node.getAttribute('mx-init');
-            if (mxd) {
-                var parent = me.parent();
-                parent = parent && parent.$v;
-                var mxdo = {};
-                var read = function(val) {
-                    var keys = val.split('.');
-                    var start = parent;
-                    while (keys.length && start) {
-                        start = start[keys.shift()];
+            /*#if(modules.mxViewAttr){#*/
+            var attrs = node.attributes;
+            for (var i = attrs.length - 1, attr, name, value; i >= 0; i--) {
+                attr = attrs[i];
+                name = attr.name;
+                value = attr.value;
+                if (name.indexOf('view-') === 0) {
+                    var key = name.slice(5);
+                    if (value.slice(0, 3) == '<%@' && value.slice(-2) == '%>') {
+                        try {
+                            var temp = {};
+                            Tmpl(value, temp);
+                            value = temp[G_SPLITER + '1'];
+                        } catch (ignore) {
+                            if (parent) {
+                                value = parent.get(G_Trim(value.slice(3, -2)));
+                            }
+                        }
                     }
-                    return start;
-                };
-                mxd.replace(Vframe_DataParamsReg, function(m, name, val) {
-                    m = val.match(Vframe_DataParamsStrReg);
-                    if (m) {
-                        val = m[2];
-                    } else if (Vframe_DataParamsNumReg.test(val)) {
-                        val = parseFloat(val);
-                    } else {
-                        val = read(val);
-                    }
-                    mxdo[name] = val;
-                });
-                G_Mix(params, mxdo);
+                    params[key] = value;
+                }
             }
             /*#}#*/
+            /*#}#*/
+            G_Mix(params, viewInitParams);
             G_Require(view, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
                     if (!TView) {

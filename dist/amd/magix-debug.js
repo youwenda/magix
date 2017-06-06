@@ -1,11 +1,11 @@
 //'#exclude(define,before)';
-/*!3.3.2 Licensed MIT*/
+/*!3.4.1 Licensed MIT*/
 /*
 author:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com
 loader:amd
 enables:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base
 
-optionals:cnum,ceach,tipLockUrlRouter,edgeRouter,collectView,forceEdgeRouter,serviceCombine,mxInit
+optionals:cnum,ceach,tipLockUrlRouter,edgeRouter,collectView,forceEdgeRouter,serviceCombine,mxViewAttr
 */
 /*
     author:xinglie.lkf@taobao.com
@@ -832,8 +832,8 @@ var Event = {
     }
 };
 Magix.Event = Event;
-    var Router_Edge;
     
+    var Router_Edge;
     var G_IsFunction = $.isFunction;
     
     var Router_Hashbang = G_HashKey + '!';
@@ -1134,9 +1134,9 @@ var Router = G_Mix({
      */
 }, Event);
 Magix.Router = Router;
+    
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
-
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
@@ -1402,8 +1402,8 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 }
             }
             
-            G_Mix(params, viewInitParams);
             
+            G_Mix(params, viewInitParams);
             G_Require(view, function(TView) {
                 if (sign == me.$s) { //有可能在view载入后，vframe已经卸载了
                     if (!TView) {
