@@ -150,7 +150,7 @@ declare module "magix" {
          * 获取设置的数据，当key未传递时，返回整个数据对象
          * @param key 设置时的数据key
          */
-        get<T>(key?: string): T
+        get<TReturnType>(key?: string): TReturnType
         /**
          * 设置数据
          * @param data 数据对象，如{a:20,b:30}
@@ -161,7 +161,7 @@ declare module "magix" {
          * 通过path获取值，path形如"data.list.2.name"字符串
          * @param path 路径
          */
-        gain<T>(path: string): T
+        gain<TReturnType>(path: string): TReturnType
 
         /**
          * 检测数据变化，更新界面，放入数据后需要显式调用该方法才可以把数据更新到界面
@@ -223,7 +223,7 @@ declare module "magix" {
         /**
          * 逗号分割的字符串，用来清除其它接口的缓存，如该接口是一个添加新数据的接口，这个接口调用成功后，应该把所有获取相关数据的缓存接口给清理掉，否则将获取不到新数据
          */
-        clenas?: string | string[]
+        cleans?: string | string[]
         /**
          * 接口在请求发送前调用，可以在该方法内对数据进行加工处理
          */
@@ -446,7 +446,7 @@ declare module "magix" {
      * @param args 参数数组
      * @param context 在待执行的方法内部，this的指向
      */
-    function toTry<T>(fns: Function[], args?: any[], context?: any): T
+    function toTry<TReturnType>(fns: Function[], args?: any[], context?: any): TReturnType
     /**
      * 转换成字符串路径。Magix.toUrl('/xxx/',{a:'b',c:'d'}) => /xxx/?a=b&c=d
      * @param path 路径
@@ -544,7 +544,7 @@ declare module "magix" {
          * @param callback 回调
          * @param options 回调时传递的额外对象
          */
-        each(callback: (this: this, resource: any, options?: object) => void, options?: any): void
+        each<TResourceType, TOptionsType>(callback: (resource: TResourceType, options: TOptionsType, cache: this) => void, options?: TOptionsType): void
     }
 
 
@@ -710,7 +710,7 @@ declare module "magix" {
          * @param name 方法名
          * @param args 传递的参数
          */
-        invoke<T>(name: string, args?: any[]): T
+        invoke<TReturnType>(name: string, args?: any[]): TReturnType
 
         /**
          * 绑定事件
@@ -827,7 +827,7 @@ declare module "magix" {
          * @param callback 回调方法
          * @param context 回调方法执行时的this指向
          */
-        wrapAsync(callback: (...args: any[]) => void, context?: any): Function
+        wrapAsync<TThisType>(callback: (this: TThisType, ...args: any[]) => void, context?: TThisType): Function
         /**
          * 把资源交给当前view托管，当view销毁或重新渲染时自动对托管的资源做处理，即在合适的时候调用资源的destroy方法。返回托管的资源
          * @param key 托管资源的key，当要托管的key已经存在时且要托管的资源与之前的不相同时，会自动销毁之前托管的资源

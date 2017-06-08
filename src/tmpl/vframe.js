@@ -273,6 +273,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             var capitalize = function(_, c) {
                 return c.toUpperCase();
             };
+            var vreg = /^[\w_\d]$/;
             for (var i = attrs.length - 1, attr, name, value; i >= 0; i--) {
                 attr = attrs[i];
                 name = attr.name;
@@ -281,12 +282,15 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     var key = name.slice(5).replace(/-(\w)/g, capitalize);
                     if (value.slice(0, 3) == '<%@' && value.slice(-2) == '%>') {
                         try {
-                            var temp = {};
+                            var temp = parent.$data;
                             Tmpl(value, temp);
                             value = temp[G_SPLITER + '1'];
-                        } catch (ignore) {
-                            if (parent) {
-                                value = parent.get(G_Trim(value.slice(3, -2)));
+                        } catch (ex) {
+                            value = G_Trim(value.slice(3, -2));
+                            if (parent && vreg.test(value)) {
+                                value = parent.get(value);
+                            } else {
+                                Magix_Cfg.error(ex);
                             }
                         }
                     }

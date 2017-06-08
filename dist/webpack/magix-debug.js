@@ -1,11 +1,11 @@
 //'#exclude(define,before)';
-/*!3.4.4 Licensed MIT*/
+/*!3.4.5 Licensed MIT*/
 /*
 author:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com
 loader:webpack
-enables:magix,event,vframe,body,view,tmpl,updater,share,hasDefaultView,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base
+enables:magix,event,vframe,body,view,tmpl,updater,share,hasDefaultView,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base,mxViewAttr
 
-optionals:cnum,ceach,tipLockUrlRouter,edgeRouter,collectView,layerVframe,forceEdgeRouter,serviceCombine,mxViewAttr
+optionals:cnum,ceach,tipLockUrlRouter,edgeRouter,collectView,layerVframe,forceEdgeRouter,serviceCombine
 */
 module.exports = (function() {
     var $ = require('$');
@@ -1163,6 +1163,8 @@ var Router = G_Mix({
 }, Event);
 Magix.Router = Router;
     
+    var G_Trim = $.trim;
+    
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
 var Vframe_NotifyCreated = function(vframe, mId, p) {
@@ -1419,6 +1421,8 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             
             var pId = me.pId;
             
+            pId = node.getAttribute('mx-datafrom') || pId;
+            
             var parent = Vframe_Vframes[pId],
                 p, val;
             parent = parent && parent.$v;
@@ -1429,6 +1433,35 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     if (val.charAt(0) == G_SPLITER) {
                         params[p] = parent.get(val);
                     }
+                }
+            }
+            
+            var attrs = node.attributes;
+            var capitalize = function(_, c) {
+                return c.toUpperCase();
+            };
+            var vreg = /^[\w_\d]$/;
+            for (var i = attrs.length - 1, attr, name, value; i >= 0; i--) {
+                attr = attrs[i];
+                name = attr.name;
+                value = attr.value;
+                if (name.indexOf('view-') === 0) {
+                    var key = name.slice(5).replace(/-(\w)/g, capitalize);
+                    if (value.slice(0, 3) == '<%@' && value.slice(-2) == '%>') {
+                        try {
+                            var temp = parent.$data;
+                            Tmpl(value, temp);
+                            value = temp[G_SPLITER + '1'];
+                        } catch (ex) {
+                            value = G_Trim(value.slice(3, -2));
+                            if (parent && vreg.test(value)) {
+                                value = parent.get(value);
+                            } else {
+                                Magix_Cfg.error(ex);
+                            }
+                        }
+                    }
+                    params[key] = value;
                 }
             }
             
@@ -1819,7 +1852,7 @@ var Body_FindVframeInfo = function(current, eventType) {
         names.push(match = {
             r: info,
             //如果事件已经存在处理的vframe或节点上通过mx-owner指定处理的vframe
-            v: match.v  ,
+            v: match.v  || current.getAttribute('mx-owner')  ,
             p: match.p,
             n: match.n
         });
