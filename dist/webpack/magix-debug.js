@@ -1,11 +1,11 @@
 //'#exclude(define,before)';
-/*!3.4.3 Licensed MIT*/
+/*!3.4.4 Licensed MIT*/
 /*
 author:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com
 loader:webpack
-enables:magix,event,vframe,body,view,tmpl,updater,share,core,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base
+enables:magix,event,vframe,body,view,tmpl,updater,share,hasDefaultView,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base
 
-optionals:cnum,ceach,tipLockUrlRouter,edgeRouter,collectView,forceEdgeRouter,serviceCombine,mxInit
+optionals:cnum,ceach,tipLockUrlRouter,edgeRouter,collectView,layerVframe,forceEdgeRouter,serviceCombine,mxViewAttr
 */
 module.exports = (function() {
     var $ = require('$');
@@ -1417,7 +1417,9 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             sign = ++me.$s;
             var params = po.params;
             
-            var parent = Vframe_Vframes[me.pId],
+            var pId = me.pId;
+            
+            var parent = Vframe_Vframes[pId],
                 p, val;
             parent = parent && parent.$v;
             parent = parent && parent.updater;
@@ -1442,7 +1444,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     
                     view = new TView({
                         owner: me,
-                        id: id
+                        id: id 
                     }, params);
                     me.$v = view;
                     
@@ -1584,13 +1586,16 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         me.$h = 1; //hold fire creted
         //me.unmountZone(zoneId, 1); 不去清理，详情见：https://github.com/thx/magix/issues/27
         
+        
         for (i = 0; i < vframes.length; i++) {
             vf = vframes[i];
             id = vf.id || (vf.id = G_Id());
-            if (!vf.$m) {
-                vf.$m = 1;
-                vfs.push([id, vf.getAttribute('mx-view')]);
-            }
+            
+                if (!vf.$m) { //防止嵌套的情况下深层的view被反复实例化
+                    vf.$m = 1;
+                    vfs.push([id, vf.getAttribute('mx-view')]);
+                }
+                
         }
         while (vfs.length) {
             vf = vfs.shift();
@@ -1743,6 +1748,16 @@ Magix.Vframe = Vframe;
  *
  *      fca firstChildrenAlter  fcc firstChildrenCreated
  */
+    
+    $.fn.invokeView = function() {
+        var vf = this.prop('vframe'),
+            returned;
+        if (vf) {
+            returned = vf.invoke.apply(vf, arguments);
+        }
+        return returned;
+    };
+    
 
     var Body_SelectorEngine = $.find || $.zepto;
     var Body_TargetMatchSelector = Body_SelectorEngine.matchesSelector || Body_SelectorEngine.matches;
@@ -1776,6 +1791,7 @@ Magix.Vframe = Vframe;
     3.事件支持嵌套，向上冒泡
  */
 var Body_ParentNode = 'parentNode';
+var Body_MagixPrefix = 'mx-';
 var Body_EvtInfoCache = new G_Cache(30, 10);
 var Body_EvtInfoReg = /(?:([\w\-]+)\u001e)?([^\(]+)\(([\s\S]*)?\)/;
 var Body_RootEvents = {};
@@ -1783,7 +1799,7 @@ var Body_SearchSelectorEvents = {};
 var Body_FindVframeInfo = function(current, eventType) {
     var vf, tempId, selectorObject, eventSelector, names = [],
         begin = current,
-        info = current.getAttribute('mx-' + eventType),
+        info = current.getAttribute(Body_MagixPrefix + eventType),
         match, view,
         vfs = [],
         selectorVfId;
@@ -1802,19 +1818,19 @@ var Body_FindVframeInfo = function(current, eventType) {
         }
         names.push(match = {
             r: info,
-            v: match.v,
+            //如果事件已经存在处理的vframe或节点上通过mx-owner指定处理的vframe
+            v: match.v  ,
             p: match.p,
             n: match.n
         });
     }
     //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件 里
     if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
-        if (current.$v) {
-            selectorVfId = current.$v;
-        } else {
+        selectorVfId = current.$v; //如果节点有缓存，则使用缓存
+        if (!selectorVfId) { //先找最近的vframe
             vfs.push(begin);
-            while ((begin = begin[Body_ParentNode])) {
-                if (Vframe_Vframes[tempId = begin.id] || (tempId = begin.$v)) {
+            while (begin != G_DOCBODY && (begin = begin[Body_ParentNode])) { //找最近的vframe,且节点上没有mx-autonomy属性
+                if ((Vframe_Vframes[tempId = begin.id] || (tempId = begin.$v))) {
                     selectorVfId = tempId;
                     break;
                 }
@@ -1822,7 +1838,7 @@ var Body_FindVframeInfo = function(current, eventType) {
             }
         }
 
-        if (selectorVfId) {
+        if (selectorVfId) { //从最近的vframe向上查找带有选择器事件的view
             while ((info = vfs.pop())) {
                 info.$v = selectorVfId;
             }
@@ -1841,7 +1857,8 @@ var Body_FindVframeInfo = function(current, eventType) {
                             });
                         }
                     }
-                    if (view.$t) {
+                    //防止跨view选中，到带模板的view时就中止或未指定
+                    if (view.$t  ) { //||!hasAttribute('mx-autonomy')
                         if (match && !match.v) match.v = selectorVfId;
                         break; //带界面的中止
                     }

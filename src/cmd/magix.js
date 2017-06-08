@@ -4,18 +4,36 @@
 define('magix', ['$'], function(require) {
     var $ = require('$');
     var G_NOOP = function() {};
+    /*#if(modules.hasDefaultView){#*/
+    var G_DefaultView;
+    /*#}#*/
     var G_Require = function(name, fn) {
         if (name) {
-            if (window.seajs) {
-                seajs.use(name, fn);
-            } else {
-                var a = [];
-                if (!G_IsArray(name)) name = [name];
-                for (var i = 0; i < name.length; i++) {
-                    a.push(require(name[i]));
+            /*#if(modules.hasDefaultView){#*/
+            if (MxGlobalView == name) {
+                if (!G_DefaultView) {
+                    G_DefaultView = View.extend(
+                        /*#if(!modules.autoEndUpdate){#*/
+                        {
+                            render: function() {
+                                this.endUpdate();
+                            }
+                        }
+                        /*#}#*/
+                    );
                 }
-                if (fn) fn.apply(G_NULL, a);
-            }
+                fn(G_DefaultView);
+            } else /*#}#*/
+                if (window.seajs) {
+                    seajs.use(name, fn);
+                } else {
+                    var a = [];
+                    if (!G_IsArray(name)) name = [name];
+                    for (var i = 0; i < name.length; i++) {
+                        a.push(require(name[i]));
+                    }
+                    if (fn) fn.apply(G_NULL, a);
+                }
         } else {
             fn();
         }
@@ -253,6 +271,16 @@ define('magix', ['$'], function(require) {
     var G_Trim = $.trim;
     /*#}#*/
     Inc('../tmpl/vframe');
+    /*#if(modules.nodeAttachVframe){#*/
+    $.fn.invokeView = function() {
+        var vf = this.prop('vframe'),
+            returned;
+        if (vf) {
+            returned = vf.invoke.apply(vf, arguments);
+        }
+        return returned;
+    };
+    /*#}#*/
     var Body_SelectorEngine = $.find || $.zepto;
     var Body_TargetMatchSelector = Body_SelectorEngine.matchesSelector || Body_SelectorEngine.matches;
     var Body_DOMGlobalProcessor = function(e, d) {
@@ -320,19 +348,6 @@ define('magix', ['$'], function(require) {
      * t.hi();
      */
     Magix.Base = G_NOOP;
-    /*#}#*/
-    /*#if(modules.core){#*/
-    define(MxGlobalView, function() {
-        return View.extend(
-            /*#if(!modules.autoEndUpdate){#*/
-            {
-                render: function() {
-                    this.endUpdate();
-                }
-            }
-            /*#}#*/
-        );
-    });
     /*#}#*/
     return Magix;
 });

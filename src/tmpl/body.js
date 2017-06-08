@@ -13,6 +13,7 @@
     3.事件支持嵌套，向上冒泡
  */
 var Body_ParentNode = 'parentNode';
+var Body_MagixPrefix = 'mx-';
 var Body_EvtInfoCache = new G_Cache(30, 10);
 var Body_EvtInfoReg = /(?:([\w\-]+)\u001e)?([^\(]+)\(([\s\S]*)?\)/;
 var Body_RootEvents = {};
@@ -20,7 +21,7 @@ var Body_SearchSelectorEvents = {};
 var Body_FindVframeInfo = function(current, eventType) {
     var vf, tempId, selectorObject, eventSelector, names = [],
         begin = current,
-        info = current.getAttribute('mx-' + eventType),
+        info = current.getAttribute(Body_MagixPrefix + eventType),
         match, view,
         vfs = [],
         selectorVfId;
@@ -39,19 +40,19 @@ var Body_FindVframeInfo = function(current, eventType) {
         }
         names.push(match = {
             r: info,
-            v: match.v,
+            //如果事件已经存在处理的vframe或节点上通过mx-owner指定处理的vframe
+            v: match.v /*#if(modules.mxViewAttr){#*/ || current.getAttribute('mx-owner') /*#}#*/ ,
             p: match.p,
             n: match.n
         });
     }
     //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件 里
     if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
-        if (current.$v) {
-            selectorVfId = current.$v;
-        } else {
+        selectorVfId = current.$v; //如果节点有缓存，则使用缓存
+        if (!selectorVfId) { //先找最近的vframe
             vfs.push(begin);
-            while ((begin = begin[Body_ParentNode])) {
-                if (Vframe_Vframes[tempId = begin.id] || (tempId = begin.$v)) {
+            while (begin != G_DOCBODY && (begin = begin[Body_ParentNode])) { //找最近的vframe,且节点上没有mx-autonomy属性
+                if ((Vframe_Vframes[tempId = begin.id] || (tempId = begin.$v))) {
                     selectorVfId = tempId;
                     break;
                 }
@@ -59,7 +60,7 @@ var Body_FindVframeInfo = function(current, eventType) {
             }
         }
 
-        if (selectorVfId) {
+        if (selectorVfId) { //从最近的vframe向上查找带有选择器事件的view
             while ((info = vfs.pop())) {
                 info.$v = selectorVfId;
             }
@@ -78,7 +79,8 @@ var Body_FindVframeInfo = function(current, eventType) {
                             });
                         }
                     }
-                    if (view.$t) {
+                    //防止跨view选中，到带模板的view时就中止或未指定
+                    if (view.$t /*#if(modules.layerVframe){#*/ || !view.$a /*#}#*/ ) { //||!hasAttribute('mx-autonomy')
                         if (match && !match.v) match.v = selectorVfId;
                         break; //带界面的中止
                     }

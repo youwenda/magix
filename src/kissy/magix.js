@@ -16,7 +16,6 @@ KISSY.add('magix', function(S, SE, DOM) {
     var G_Extend = S.extend;
     var G_IsObject = S.isObject;
     var G_IsArray = S.isArray;
-    var G_DOM = S.DOM;
     var G_HTML = function(node, html) {
         S.one(node).html(html);
         G_DOC.fireHandler('htmlchange', {
@@ -204,6 +203,16 @@ KISSY.add('magix', function(S, SE, DOM) {
     var G_Trim = S.trim;
     /*#}#*/
     Inc('../tmpl/vframe');
+    /*#if(modules.nodeAttachVframe){#*/
+    DOM[G_PROTOTYPE].invokeView = function() {
+        var vf = this.prop('vframe'),
+            returned;
+        if (vf) {
+            returned = vf.invoke.apply(vf, arguments);
+        }
+        return returned;
+    };
+    /*#}#*/
     var Body_TargetMatchSelector = DOM.test;
     var Body_DOMGlobalProcessor = function(e, d) {
         d = this;
@@ -257,7 +266,7 @@ KISSY.add('magix', function(S, SE, DOM) {
      */
     Magix.Base = G_NOOP;
     /*#}#*/
-    /*#if(modules.core){#*/
+    /*#if(modules.hasDefaultView){#*/
     S.add(MxGlobalView, function() {
         return View.extend(
             /*#if(!modules.autoEndUpdate){#*/

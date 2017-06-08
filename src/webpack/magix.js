@@ -2,12 +2,12 @@ module.exports = (function() {
     var $ = require('$');
     var G_NOOP = function() {};
     var G_IsFunction = $.isFunction;
-    /*#if(modules.core){#*/
+    /*#if(modules.hasDefaultView){#*/
     var coreDefaultView;
     /*#}#*/
     var G_Require = function(name, fn) {
         var views = Magix_Cfg.views || G_NOOP;
-        /*#if(modules.core){#*/
+        /*#if(modules.hasDefaultView){#*/
         if (!views[MxGlobalView]) views[MxGlobalView] = coreDefaultView;
         /*#}#*/
         if (!name) {
@@ -243,6 +243,16 @@ module.exports = (function() {
     var G_Trim = $.trim;
     /*#}#*/
     Inc('../tmpl/vframe');
+    /*#if(modules.nodeAttachVframe){#*/
+    $.fn.invokeView = function() {
+        var vf = this.prop('vframe'),
+            returned;
+        if (vf) {
+            returned = vf.invoke.apply(vf, arguments);
+        }
+        return returned;
+    };
+    /*#}#*/
 
     var Body_SelectorEngine = $.find || $.zepto;
     var Body_TargetMatchSelector = Body_SelectorEngine.matchesSelector || Body_SelectorEngine.matches;
@@ -310,7 +320,7 @@ module.exports = (function() {
      */
     Magix.Base = G_NOOP;
     /*#}#*/
-    /*#if(modules.core){#*/
+    /*#if(modules.hasDefaultView){#*/
     coreDefaultView = View.extend(
         /*#if(!modules.autoEndUpdate){#*/
         {

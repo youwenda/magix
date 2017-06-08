@@ -15,13 +15,14 @@ let modules = {
     tipLockUrlRouter: 1, //锁定url功能
     edgeRouter: 1, //使用pushState
     collectView: 1, //收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
+    layerVframe: 1, //父子化同一个view中嵌套存在的vframe
     updaterSetState: 1, //updater是否由用户指定更新。即用户指定什么就更新什么，不管值有没有改变
     forceEdgeRouter: 1, //强制使用pushState
     serviceCombine: 1, //接口combine
     updater: 1, //自动更新
     viewProtoMixins: 1, //支持mixins
     share: 1, //向子或孙view公开数据
-    core: 1, //核心模块
+    hasDefaultView: 1, //自动初始化
     autoEndUpdate: 1, //自动识别并结束更新。针对没有tmpl属性的view自动识别并结束更新
     linkage: 1, //vframe上是否带父子间调用的方法，通常在移动端并不需要
     base: 1, //base模块
@@ -32,7 +33,7 @@ let modules = {
     resource: 1, //资源管理
     configIni: 1, //是否有ini配置文件
     nodeAttachVframe: 1, //节点上挂vframe对象
-    mxInit: 1, //支持mx-init获取数据
+    mxViewAttr: 1, //支持服务端直出
     viewMerge: 1 //view是否提供merge方法供扩展原型链对象
 };
 
@@ -60,7 +61,12 @@ module.exports = (options) => {
     let tmplFile = options.tmplFile;
     let aimFile = options.aimFile;
     enableModules.split(',').forEach(function(m) {
-        map[m.trim()] = 1;
+        m = m.trim();
+        if (m == 'core') { //兼容
+            map[m] = 1;
+            m = 'hasDefaultView';
+        }
+        map[m] = 1;
     });
     for (let p in modules) {
         if (!map[p]) {

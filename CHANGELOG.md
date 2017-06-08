@@ -1,3 +1,9 @@
+## 3.4.4
+1. 调整内置的view
+2. 支持事件写mx-owner
+3. 向类库选择器增加invokeView方法
+4. 增加layerVframe选项
+
 ## 3.4.3
 1. view-attr增加camelcase
 2. 增强打包工具，更易订制

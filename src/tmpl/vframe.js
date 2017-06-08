@@ -252,7 +252,11 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             sign = ++me.$s;
             var params = po.params;
             /*#if(modules.updater){#*/
-            var parent = Vframe_Vframes[me.pId],
+            var pId = me.pId;
+            /*#if(modules.mxViewAttr){#*/
+            pId = node.getAttribute('mx-datafrom') || pId;
+            /*#}#*/
+            var parent = Vframe_Vframes[pId],
                 p, val;
             parent = parent && parent.$v;
             parent = parent && parent.updater;
@@ -302,7 +306,9 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     /*#}#*/
                     view = new TView({
                         owner: me,
-                        id: id
+                        id: id /*#if(modules.layerVframe){#*/ ,
+                        $a: node.hasAttribute('mx-autonomy')
+                        /*#}#*/
                     }, params);
                     me.$v = view;
                     /*#if(modules.router){#*/
@@ -451,13 +457,29 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         }
         G_Require(temp);
         /*#}#*/
+        /*#if(modules.layerVframe){#*/
+        var subs = {},
+            svfs, j, subVf;
+        /*#}#*/
         for (i = 0; i < vframes.length; i++) {
             vf = vframes[i];
             id = vf.id || (vf.id = G_Id());
-            if (!vf.$m) {
-                vf.$m = 1;
-                vfs.push([id, vf.getAttribute('mx-view')]);
+            /*#if(modules.layerVframe){#*/
+            if (!G_Has(subs, id)) {
+                /*#}#*/
+                if (!vf.$m) { //防止嵌套的情况下深层的view被反复实例化
+                    vf.$m = 1;
+                    vfs.push([id, vf.getAttribute('mx-view')]);
+                }
+                /*#if(modules.layerVframe){#*/
+                svfs = $(G_HashKey + id + ' [mx-view]');
+                for (j = svfs.length - 1; j >= 0; j--) {
+                    subVf = svfs[j];
+                    id = subVf.id || (subVf.id = G_Id());
+                    subs[id] = 1;
+                }
             }
+            /*#}#*/
         }
         while (vfs.length) {
             vf = vfs.shift();

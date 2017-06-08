@@ -27,12 +27,12 @@ var Magix_IsParam = /(?!^)=|&/;
 var G_Id = function(prefix) {
     return (prefix || 'mx_') + G_COUNTER++;
 };
-/*#if(modules.core){#*/
+/*#if(modules.hasDefaultView){#*/
 var MxGlobalView = G_Id();
 /*#}#*/
 var Magix_Cfg = {
     rootId: G_Id(),
-    /*#if(modules.core){#*/
+    /*#if(modules.hasDefaultView){#*/
     defaultView: MxGlobalView,
     /*#}#*/
     error: function(e) {

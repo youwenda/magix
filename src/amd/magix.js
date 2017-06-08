@@ -3,17 +3,35 @@
  */
 define('magix', ['$'], function($) {
     var G_NOOP = function() {};
+    /*#if(modules.hasDefaultView){#*/
+    var G_DefaultView;
+    /*#}#*/
     var G_Require = function(name, fn) {
         if (name) {
-            if (G_IsArray(name)) {
-                require(name, fn);
-            } else {
-                try {
-                    fn(require(name)); //获取过的直接返回
-                } catch (e) {
-                    require([name], fn);
+            /*#if(modules.hasDefaultView){#*/
+            if (MxGlobalView == name) {
+                if (!G_DefaultView) {
+                    G_DefaultView = View.extend(
+                        /*#if(!modules.autoEndUpdate){#*/
+                        {
+                            render: function() {
+                                this.endUpdate();
+                            }
+                        }
+                        /*#}#*/
+                    );
                 }
-            }
+                fn(G_DefaultView);
+            } else /*#}#*/
+                if (G_IsArray(name)) {
+                    require(name, fn);
+                } else {
+                    try {
+                        fn(require(name)); //获取过的直接返回
+                    } catch (e) {
+                        require([name], fn);
+                    }
+                }
         } else if (fn) {
             fn();
         }
@@ -215,7 +233,16 @@ define('magix', ['$'], function($) {
     var G_Trim = $.trim;
     /*#}#*/
     Inc('../tmpl/vframe');
-
+    /*#if(modules.nodeAttachVframe){#*/
+    $.fn.invokeView = function() {
+        var vf = this.prop('vframe'),
+            returned;
+        if (vf) {
+            returned = vf.invoke.apply(vf, arguments);
+        }
+        return returned;
+    };
+    /*#}#*/
     var Body_SelectorEngine = $.find || $.zepto;
     var Body_TargetMatchSelector = Body_SelectorEngine.matchesSelector || Body_SelectorEngine.matches;
     var Body_DOMGlobalProcessor = function(e, d) {
@@ -281,19 +308,6 @@ define('magix', ['$'], function($) {
      * t.hi();
      */
     Magix.Base = G_NOOP;
-    /*#}#*/
-    /*#if(modules.core){#*/
-    define(MxGlobalView, function() {
-        return View.extend(
-            /*#if(!modules.autoEndUpdate){#*/
-            {
-                render: function() {
-                    this.endUpdate();
-                }
-            }
-            /*#}#*/
-        );
-    });
     /*#}#*/
     return Magix;
 });
