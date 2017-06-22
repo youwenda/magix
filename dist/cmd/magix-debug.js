@@ -1,11 +1,11 @@
 //'#exclude(define,before)';
-/*!3.4.5 Licensed MIT*/
+/*!3.4.6 Licensed MIT*/
 /*
 author:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com
 loader:cmd
-enables:magix,event,vframe,body,view,tmpl,updater,share,hasDefaultView,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base,mxViewAttr
+enables:magix,event,vframe,body,view,tmpl,updater,share,hasDefaultView,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base
 
-optionals:cnum,ceach,tipLockUrlRouter,edgeRouter,collectView,layerVframe,forceEdgeRouter,serviceCombine
+optionals:cnum,ceach,tipLockUrlRouter,edgeRouter,collectView,layerVframe,forceEdgeRouter,serviceCombine,mxViewAttr
 */
 /*
     author:xinglie.lkf@taobao.com
@@ -126,6 +126,7 @@ var Magix_HasProp = Magix_Cfg.hasOwnProperty;
 var G_GetById = function(id) {
     return typeof id == Magix_StrObject ? id : G_DOCUMENT.getElementById(id);
 };
+
 var G_NodeIn = function(a, b, r) {
     a = G_GetById(a);
     b = G_GetById(b);
@@ -1185,10 +1186,9 @@ var Router = G_Mix({
 }, Event);
 Magix.Router = Router;
     
-    var G_Trim = $.trim;
-    
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
+var Vframe_MxView = 'mx-view';
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
@@ -1443,8 +1443,6 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             
             var pId = me.pId;
             
-            pId = node.getAttribute('mx-datafrom') || pId;
-            
             var parent = Vframe_Vframes[pId],
                 p, val;
             parent = parent && parent.$v;
@@ -1455,35 +1453,6 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     if (val.charAt(0) == G_SPLITER) {
                         params[p] = parent.get(val);
                     }
-                }
-            }
-            
-            var attrs = node.attributes;
-            var capitalize = function(_, c) {
-                return c.toUpperCase();
-            };
-            var vreg = /^[\w_\d]$/;
-            for (var i = attrs.length - 1, attr, name, value; i >= 0; i--) {
-                attr = attrs[i];
-                name = attr.name;
-                value = attr.value;
-                if (name.indexOf('view-') === 0) {
-                    var key = name.slice(5).replace(/-(\w)/g, capitalize);
-                    if (value.slice(0, 3) == '<%@' && value.slice(-2) == '%>') {
-                        try {
-                            var temp = parent.$data;
-                            Tmpl(value, temp);
-                            value = temp[G_SPLITER + '1'];
-                        } catch (ex) {
-                            value = G_Trim(value.slice(3, -2));
-                            if (parent && vreg.test(value)) {
-                                value = parent.get(value);
-                            } else {
-                                Magix_Cfg.error(ex);
-                            }
-                        }
-                    }
-                    params[key] = value;
                 }
             }
             
@@ -1499,7 +1468,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     
                     view = new TView({
                         owner: me,
-                        id: id 
+                        id: id
                     }, params);
                     me.$v = view;
                     
@@ -1539,7 +1508,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 };
             }
             me.$d = 1; //用于标记当前vframe处于view销毁状态，在当前vframe上再调用unmountZone时不派发created事件
-            me.unmountZone( /*0, 1*/ );
+            me.unmountZone(0, 1);
             Vframe_NotifyAlter(me, Vframe_GlobalAlter);
 
             me.$v = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
@@ -1644,11 +1613,13 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         
         for (i = 0; i < vframes.length; i++) {
             vf = vframes[i];
+            
             id = vf.id || (vf.id = G_Id());
+            
             
                 if (!vf.$m) { //防止嵌套的情况下深层的view被反复实例化
                     vf.$m = 1;
-                    vfs.push([id, vf.getAttribute('mx-view')]);
+                    vfs.push([id, vf.getAttribute(Vframe_MxView)]);
                 }
                 
         }
@@ -1695,7 +1666,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * 销毁某个区域下面的所有子vframes
      * @param {HTMLElement|String} [zoneId]节点对象或id
      */
-    unmountZone: function(zoneId /*,keepPreHTML , inner*/ ) {
+    unmountZone: function(zoneId, inner) {
         var me = this;
         var p;
         var cm = me.$c;
@@ -1704,7 +1675,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 me.unmountVframe(p /*,keepPreHTML,*/ , 1);
             }
         }
-        //if (!inner) Vframe_NotifyCreated(me);
+        if (!inner) Vframe_NotifyCreated(me);
     }  ,
     /**
      * 获取父vframe
@@ -1875,12 +1846,12 @@ var Body_FindVframeInfo = function(current, eventType) {
         names.push(match = {
             r: info,
             //如果事件已经存在处理的vframe或节点上通过mx-owner指定处理的vframe
-            v: match.v  || current.getAttribute('mx-owner')  ,
+            v: match.v  ,
             p: match.p,
             n: match.n
         });
     }
-    //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件 里
+    //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件里
     if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
         selectorVfId = current.$v; //如果节点有缓存，则使用缓存
         if (!selectorVfId) { //先找最近的vframe
@@ -1898,6 +1869,7 @@ var Body_FindVframeInfo = function(current, eventType) {
             while ((info = vfs.pop())) {
                 info.$v = selectorVfId;
             }
+            
             do {
                 vf = Vframe_Vframes[selectorVfId];
                 view = vf.$v;
@@ -1914,12 +1886,16 @@ var Body_FindVframeInfo = function(current, eventType) {
                         }
                     }
                     //防止跨view选中，到带模板的view时就中止或未指定
-                    if (view.$t  ) { //||!hasAttribute('mx-autonomy')
+                    
+                    if (view.$t) {
+                        
                         if (match && !match.v) match.v = selectorVfId;
+                        
                         break; //带界面的中止
                     }
                 }
-            } while ((selectorVfId = vf.pId));
+            }
+            while ((selectorVfId = vf.pId));
         }
     }
     return names;
@@ -1932,14 +1908,17 @@ var Body_DOMEventProcessor = function(e) {
     var ignore;
     var arr = [];
     var vframe, view, name, fn;
+    
     while (current != G_DOCBODY && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点,考虑在向上遍历的过程中，节点被删除，所以需要判断nodeType,主要是IE
         names = Body_FindVframeInfo(current, eventType);
         if (names.length) {
             arr = [];
-            while ((info = names.pop())) {
+            while ((info = names.shift())) {
                 if (!info.v) {
                     Magix_Cfg.error(Error('bad ' + eventType + ':' + info.r));
                 }
+                
+                
                 vframe = Vframe_Vframes[info.v];
                 view = vframe && vframe.$v;
                 name = info.n + G_SPLITER + eventType;
@@ -2063,7 +2042,7 @@ var Updater_Unescape = function(m, name) {
 var Updater_IsPrimitive = function(args) {
     return !args || typeof args != Magix_StrObject;
 };
-var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, updateTmpl, viewId) {
+var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, updateTmpl, viewId, currentVframe) {
     var id = node.id || (node.id = G_Id());
 
     var hasMagixView, viewValue, vf;
@@ -2110,13 +2089,13 @@ var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, upda
     }
 };
 var Updater_UpdateDOM = function(host, updateFlags, renderData) {
-    var vf = Vframe_Vframes[host.$i];
+    var selfId = host.$i;
+    var vf = Vframe_Vframes[selfId];
     var view = vf && vf.$v;
     if (!view) return;
     var tmplObject = view.tmpl;
     var tmpl = tmplObject.html;
     var list = tmplObject.subs;
-    var selfId = view.id;
     if (host.$rd && updateFlags) {
         var keys, one, updateTmpl, updateAttrs;
 
@@ -2157,7 +2136,7 @@ var Updater_UpdateDOM = function(host, updateFlags, renderData) {
                     var nodes = $(View_SetEventOwner(one.path, selfId));
                     q = 0;
                     while (q < nodes.length) {
-                        Updater_UpdateNode(nodes[q++], view, one, renderData, updateAttrs, updateTmpl, selfId, host);
+                        Updater_UpdateNode(nodes[q++], view, one, renderData, updateAttrs, updateTmpl, selfId, vf);
                     }
                 }
             }
@@ -2299,8 +2278,9 @@ G_Mix(UP, {
      */
     set: function(obj) {
         var me = this,
-            old, now, data = me.$data,
-            keys = me.$keys;
+            data = me.$data,
+            keys = me.$keys,
+            old, now  ;
         
         for (var p in obj) {
             now = obj[p];
@@ -2332,10 +2312,10 @@ G_Mix(UP, {
         
         var keys = me.$keys;
         
-        Updater_UpdateDOM(me, keys, data);
         
         me.$keys = {};
         
+        Updater_UpdateDOM(me, keys, data);
         return me;
     },
     /**
@@ -2393,15 +2373,6 @@ G_Mix(UP, {
             return me.$ss != JSONStringify(me.$data);
         }
     }
-
-
-    /**
-     * 当数据有变化且调用digest更新时触发
-     * @name Updater#changed
-     * @event
-     * @param {Object} e
-     * @param {String} e.keys 指示哪些key被更新
-     */
 });
 
     var View_EvtMethodReg = /^(\$?)([^<]+?)<([^>]+)>$/;
@@ -2804,7 +2775,7 @@ G_Mix(G_Mix(ViewProto, Event), {
     beginUpdate: function(id, me) {
         me = this;
         if (me.$s > 0 && me.$p) {
-            me.owner.unmountZone(id /*, 1*/ );
+            me.owner.unmountZone(id, 1);
             me.fire('prerender', {
                 id: id
             });
@@ -3377,7 +3348,7 @@ var Service_Send = function(me, attrs, done, flag, save) {
         }
     }
     
-    return  me  ;
+    return me;
 };
 /**
  * 接口请求服务类
@@ -3547,48 +3518,48 @@ G_Mix(Service[G_PROTOTYPE], {
      * 销毁当前请求，不可以继续发起新请求，而且不再调用相应的回调
      */
     destroy: function(me) {
-            me = this;
-            me.$o = 1; //只需要标记及清理即可，其它的不需要
-            me.$q = 0;
-        }
-        /**
-         * 当Service发送请求前触发
-         * @name Service.begin
-         * @event
-         * @param {Object} e 事件对象
-         * @param {Bag} e.bag bag对象
-         * @example
-         * var S = Magix.Service.extend({
-         *     //codes
-         * });
-         *
-         * S.on('begin',function(e){//监听所有的开始请求事件
-         *     console.log(e);
-         * });
-         */
-        /**
-         * 当Service结束请求时触发(成功或失败均触发)
-         * @name Service.end
-         * @event
-         * @param {Object} e 事件对象
-         * @param {Bag} e.bag bag对象
-         * @param {String} e.error 当请求出错时，error是出错的消息
-         */
-        /**
-         * 当Service发送请求失败时触发
-         * @name Service.fail
-         * @event
-         * @param {Object} e 事件对象
-         * @param {Bag} e.bag bag对象
-         * @param {String} e.error 当请求出错时，error是出错的消息
-         */
-        /**
-         * 当Service发送请求成功时触发
-         * @name Service.done
-         * @event
-         * @param {Object} e 事件对象
-         * @param {Bag} e.bag bag对象
-         */
+        me = this;
+        me.$o = 1; //只需要标记及清理即可，其它的不需要
+        me.$q = 0;
+    }
+    /**
+     * 当Service发送请求前触发
+     * @name Service.begin
+     * @event
+     * @param {Object} e 事件对象
+     * @param {Bag} e.bag bag对象
+     * @example
+     * var S = Magix.Service.extend({
+     *     //codes
+     * });
+     *
+     * S.on('begin',function(e){//监听所有的开始请求事件
+     *     console.log(e);
+     * });
+     */
+    /**
+     * 当Service结束请求时触发(成功或失败均触发)
+     * @name Service.end
+     * @event
+     * @param {Object} e 事件对象
+     * @param {Bag} e.bag bag对象
+     * @param {String} e.error 当请求出错时，error是出错的消息
+     */
+    /**
+     * 当Service发送请求失败时触发
+     * @name Service.fail
+     * @event
+     * @param {Object} e 事件对象
+     * @param {Bag} e.bag bag对象
+     * @param {String} e.error 当请求出错时，error是出错的消息
+     */
+    /**
+     * 当Service发送请求成功时触发
+     * @name Service.done
+     * @event
+     * @param {Object} e 事件对象
+     * @param {Bag} e.bag bag对象
+     */
 });
 
 var Manager_DefaultCacheKey = function(meta, attrs, arr) {

@@ -44,6 +44,11 @@ var Magix_HasProp = Magix_Cfg.hasOwnProperty;
 var G_GetById = function(id) {
     return typeof id == Magix_StrObject ? id : G_DOCUMENT.getElementById(id);
 };
+/*#if(modules.morph){#*/
+var G_IdIt = function(node) {
+    return node.id || (node.id = G_Id());
+};
+/*#}#*/
 var G_NodeIn = function(a, b, r) {
     a = G_GetById(a);
     b = G_GetById(b);

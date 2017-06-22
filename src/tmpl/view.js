@@ -404,7 +404,7 @@ G_Mix(G_Mix(ViewProto, Event), {
     beginUpdate: function(id, me) {
         me = this;
         if (me.$s > 0 && me.$p) {
-            me.owner.unmountZone(id /*, 1*/ );
+            me.owner.unmountZone(id, 1);
             me.fire('prerender', {
                 id: id
             });

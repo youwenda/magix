@@ -46,7 +46,7 @@ var Body_FindVframeInfo = function(current, eventType) {
             n: match.n
         });
     }
-    //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件 里
+    //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件里
     if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
         selectorVfId = current.$v; //如果节点有缓存，则使用缓存
         if (!selectorVfId) { //先找最近的vframe
@@ -64,6 +64,9 @@ var Body_FindVframeInfo = function(current, eventType) {
             while ((info = vfs.pop())) {
                 info.$v = selectorVfId;
             }
+            /*#if(modules.layerVframe){#*/
+            var findParent = match && !match.v;
+            /*#}#*/
             do {
                 vf = Vframe_Vframes[selectorVfId];
                 view = vf.$v;
@@ -80,12 +83,26 @@ var Body_FindVframeInfo = function(current, eventType) {
                         }
                     }
                     //防止跨view选中，到带模板的view时就中止或未指定
-                    if (view.$t /*#if(modules.layerVframe){#*/ || !view.$a /*#}#*/ ) { //||!hasAttribute('mx-autonomy')
+                    /*#if(modules.layerVframe){#*/
+                    if (findParent) {
+                        if (match.v) {
+                            var matchInfo = G_Mix({}, match);
+                            matchInfo.v = selectorVfId;
+                            names.push(matchInfo);
+                        } else {
+                            match.v = selectorVfId;
+                        }
+                    }
+                    /*#}#*/
+                    if (view.$t) {
+                        /*#if(!modules.layerVframe){#*/
                         if (match && !match.v) match.v = selectorVfId;
+                        /*#}#*/
                         break; //带界面的中止
                     }
                 }
-            } while ((selectorVfId = vf.pId));
+            }
+            while ((selectorVfId = vf.pId));
         }
     }
     return names;
@@ -98,14 +115,25 @@ var Body_DOMEventProcessor = function(e) {
     var ignore;
     var arr = [];
     var vframe, view, name, fn;
+    /*#if(modules.layerVframe){#*/
+    var lastVfId;
+    /*#}#*/
     while (current != G_DOCBODY && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点,考虑在向上遍历的过程中，节点被删除，所以需要判断nodeType,主要是IE
         names = Body_FindVframeInfo(current, eventType);
         if (names.length) {
             arr = [];
-            while ((info = names.pop())) {
+            while ((info = names.shift())) {
                 if (!info.v) {
                     Magix_Cfg.error(Error('bad ' + eventType + ':' + info.r));
                 }
+                /*#if(modules.layerVframe){#*/
+                if (!lastVfId) lastVfId = info.v;
+                /*#}#*/
+                /*#if(modules.layerVframe){#*/
+                if (lastVfId != info.v && e.isPropagationStopped()) {
+                    break;
+                }
+                /*#}#*/
                 vframe = Vframe_Vframes[info.v];
                 view = vframe && vframe.$v;
                 name = info.n + G_SPLITER + eventType;

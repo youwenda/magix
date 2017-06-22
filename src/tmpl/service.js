@@ -266,7 +266,7 @@ var Service_Send = function(me, attrs, done, flag, save) {
         });
     }
     /*#}#*/
-    return /*#if(modules.servicePromise){#*/ p /*#}else{#*/ me /*#}#*/ ;
+    return me;
 };
 /**
  * 接口请求服务类
@@ -436,48 +436,48 @@ G_Mix(Service[G_PROTOTYPE], {
      * 销毁当前请求，不可以继续发起新请求，而且不再调用相应的回调
      */
     destroy: function(me) {
-            me = this;
-            me.$o = 1; //只需要标记及清理即可，其它的不需要
-            me.$q = 0;
-        }
-        /**
-         * 当Service发送请求前触发
-         * @name Service.begin
-         * @event
-         * @param {Object} e 事件对象
-         * @param {Bag} e.bag bag对象
-         * @example
-         * var S = Magix.Service.extend({
-         *     //codes
-         * });
-         *
-         * S.on('begin',function(e){//监听所有的开始请求事件
-         *     console.log(e);
-         * });
-         */
-        /**
-         * 当Service结束请求时触发(成功或失败均触发)
-         * @name Service.end
-         * @event
-         * @param {Object} e 事件对象
-         * @param {Bag} e.bag bag对象
-         * @param {String} e.error 当请求出错时，error是出错的消息
-         */
-        /**
-         * 当Service发送请求失败时触发
-         * @name Service.fail
-         * @event
-         * @param {Object} e 事件对象
-         * @param {Bag} e.bag bag对象
-         * @param {String} e.error 当请求出错时，error是出错的消息
-         */
-        /**
-         * 当Service发送请求成功时触发
-         * @name Service.done
-         * @event
-         * @param {Object} e 事件对象
-         * @param {Bag} e.bag bag对象
-         */
+        me = this;
+        me.$o = 1; //只需要标记及清理即可，其它的不需要
+        me.$q = 0;
+    }
+    /**
+     * 当Service发送请求前触发
+     * @name Service.begin
+     * @event
+     * @param {Object} e 事件对象
+     * @param {Bag} e.bag bag对象
+     * @example
+     * var S = Magix.Service.extend({
+     *     //codes
+     * });
+     *
+     * S.on('begin',function(e){//监听所有的开始请求事件
+     *     console.log(e);
+     * });
+     */
+    /**
+     * 当Service结束请求时触发(成功或失败均触发)
+     * @name Service.end
+     * @event
+     * @param {Object} e 事件对象
+     * @param {Bag} e.bag bag对象
+     * @param {String} e.error 当请求出错时，error是出错的消息
+     */
+    /**
+     * 当Service发送请求失败时触发
+     * @name Service.fail
+     * @event
+     * @param {Object} e 事件对象
+     * @param {Bag} e.bag bag对象
+     * @param {String} e.error 当请求出错时，error是出错的消息
+     */
+    /**
+     * 当Service发送请求成功时触发
+     * @name Service.done
+     * @event
+     * @param {Object} e 事件对象
+     * @param {Bag} e.bag bag对象
+     */
 });
 
 var Manager_DefaultCacheKey = function(meta, attrs, arr) {

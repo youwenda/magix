@@ -1,5 +1,6 @@
 var Vframe_RootVframe;
 var Vframe_GlobalAlter;
+var Vframe_MxView = 'mx-view';
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
@@ -310,9 +311,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     /*#}#*/
                     view = new TView({
                         owner: me,
-                        id: id /*#if(modules.layerVframe){#*/ ,
-                        $a: node.hasAttribute('mx-autonomy')
-                        /*#}#*/
+                        id: id
                     }, params);
                     me.$v = view;
                     /*#if(modules.router){#*/
@@ -352,7 +351,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 };
             }
             me.$d = 1; //用于标记当前vframe处于view销毁状态，在当前vframe上再调用unmountZone时不派发created事件
-            me.unmountZone( /*0, 1*/ );
+            me.unmountZone(0, 1);
             Vframe_NotifyAlter(me, Vframe_GlobalAlter);
 
             me.$v = 0; //unmountView时，尽可能早的删除vframe上的view对象，防止view销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
@@ -457,7 +456,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         var temp = [];
         for (i = vframes.length - 1; i >= 0; i--) {
             vf = vframes[i];
-            temp.push(vf.getAttribute('mx-view'));
+            temp.push(vf.getAttribute(Vframe_MxView));
         }
         G_Require(temp);
         /*#}#*/
@@ -467,19 +466,27 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         /*#}#*/
         for (i = 0; i < vframes.length; i++) {
             vf = vframes[i];
+            /*#if(modules.morph){#*/
+            id = G_IdIt(vf);
+            /*#}else{#*/
             id = vf.id || (vf.id = G_Id());
+            /*#}#*/
             /*#if(modules.layerVframe){#*/
             if (!G_Has(subs, id)) {
                 /*#}#*/
                 if (!vf.$m) { //防止嵌套的情况下深层的view被反复实例化
                     vf.$m = 1;
-                    vfs.push([id, vf.getAttribute('mx-view')]);
+                    vfs.push([id, vf.getAttribute(Vframe_MxView)]);
                 }
                 /*#if(modules.layerVframe){#*/
                 svfs = $(G_HashKey + id + ' [mx-view]');
                 for (j = svfs.length - 1; j >= 0; j--) {
                     subVf = svfs[j];
+                    /*#if(modules.morph){#*/
+                    id = G_IdIt(subVf);
+                    /*#}else{#*/
                     id = subVf.id || (subVf.id = G_Id());
+                    /*#}#*/
                     subs[id] = 1;
                 }
             }
@@ -528,7 +535,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
      * 销毁某个区域下面的所有子vframes
      * @param {HTMLElement|String} [zoneId]节点对象或id
      */
-    unmountZone: function(zoneId /*,keepPreHTML , inner*/ ) {
+    unmountZone: function(zoneId, inner) {
         var me = this;
         var p;
         var cm = me.$c;
@@ -537,7 +544,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 me.unmountVframe(p /*,keepPreHTML,*/ , 1);
             }
         }
-        //if (!inner) Vframe_NotifyCreated(me);
+        if (!inner) Vframe_NotifyCreated(me);
     } /*#if(modules.linkage){#*/ ,
     /**
      * 获取父vframe

@@ -15,7 +15,7 @@ var Updater_Unescape = function(m, name) {
 var Updater_IsPrimitive = function(args) {
     return !args || typeof args != Magix_StrObject;
 };
-var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, updateTmpl, viewId) {
+var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, updateTmpl, viewId, currentVframe) {
     var id = node.id || (node.id = G_Id());
 
     var hasMagixView, viewValue, vf;
@@ -62,13 +62,13 @@ var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, upda
     }
 };
 var Updater_UpdateDOM = function(host, updateFlags, renderData) {
-    var vf = Vframe_Vframes[host.$i];
+    var selfId = host.$i;
+    var vf = Vframe_Vframes[selfId];
     var view = vf && vf.$v;
     if (!view) return;
     var tmplObject = view.tmpl;
     var tmpl = tmplObject.html;
     var list = tmplObject.subs;
-    var selfId = view.id;
     if (host.$rd && updateFlags) {
         var keys, one, updateTmpl, updateAttrs;
 
@@ -109,7 +109,7 @@ var Updater_UpdateDOM = function(host, updateFlags, renderData) {
                     var nodes = $(View_SetEventOwner(one.path, selfId));
                     q = 0;
                     while (q < nodes.length) {
-                        Updater_UpdateNode(nodes[q++], view, one, renderData, updateAttrs, updateTmpl, selfId, host);
+                        Updater_UpdateNode(nodes[q++], view, one, renderData, updateAttrs, updateTmpl, selfId, vf);
                     }
                 }
             }
@@ -253,8 +253,9 @@ G_Mix(UP, {
      */
     set: function(obj) {
         var me = this,
-            old, now, data = me.$data,
-            keys = me.$keys;
+            data = me.$data,
+            keys = me.$keys,
+            old, now  ;
         /*#if(modules.updaterSetState){#*/
         for (var p in obj) {
             now = obj[p];
@@ -265,7 +266,7 @@ G_Mix(UP, {
             data[p] = now;
         }
         /*#}else{#*/
-        G_Mix(me.$data, obj);
+        G_Mix(data, obj);
         /*#}#*/
         return me;
     },
@@ -307,10 +308,10 @@ G_Mix(UP, {
             }
         }
         /*#}#*/
-        Updater_UpdateDOM(me, keys, data);
         /*#if(modules.updaterSetState){#*/
         me.$keys = {};
         /*#}#*/
+        Updater_UpdateDOM(me, keys, data);
         return me;
     },
     /**
@@ -368,13 +369,4 @@ G_Mix(UP, {
             return me.$ss != JSONStringify(me.$data);
         }
     }
-
-
-    /**
-     * 当数据有变化且调用digest更新时触发
-     * @name Updater#changed
-     * @event
-     * @param {Object} e
-     * @param {String} e.keys 指示哪些key被更新
-     */
 });
