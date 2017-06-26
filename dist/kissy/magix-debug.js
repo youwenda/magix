@@ -1,9 +1,9 @@
-//'#exclude(define,before)';
-/*!3.4.6 Licensed MIT*/
+//#exclude(define,before);
+/*!3.4.7 Licensed MIT*/
 /*
 author:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com
 loader:kissy
-enables:magix,event,vframe,body,view,tmpl,updater,share,hasDefaultView,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base
+enables:magix,event,vframe,body,view,tmpl,partial,updater,share,hasDefaultView,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base
 
 optionals:cnum,ceach,tipLockUrlRouter,edgeRouter,collectView,layerVframe,forceEdgeRouter,serviceCombine,mxViewAttr
 */
@@ -905,7 +905,6 @@ var Router_LLoc = {
     params: {},
     href: G_EMPTY
 };
-var Router_LParams;
 var Router_TrimHashReg = /(?:^.*\/\/[^\/]+|#.*$)/gi;
 var Router_TrimQueryReg = /^[^#]*#?!?/;
 var GetParam = function(key, params) {
@@ -1028,7 +1027,6 @@ var Router_Diff = function() {
     var location = Router_Parse();
     var changed = Router_GetChged(Router_LLoc, Router_LLoc = location);
     if (changed.a) {
-        Router_LParams = Router_LLoc[Router_PARAMS];
         Router.fire('changed', Router_LastChanged = changed.b);
     }
     return Router_LastChanged;
@@ -1093,6 +1091,7 @@ var Router = G_Mix({
         var tParams = temp[Router_PARAMS];
         var tPath = temp[Router_PATH];
         var lPath = Router_LLoc[Router_PATH]; //历史路径
+        var lParams = Router_LLoc[Router_PARAMS];
         var lQuery = Router_LLoc.query[Router_PARAMS];
         G_Mix(tParams, params); //把路径中解析出来的参数与用户传递的参数进行合并
 
@@ -1103,11 +1102,11 @@ var Router = G_Mix({
                     if (!G_Has(tParams, lPath)) tParams[lPath] = G_EMPTY;
                 }
             }
-        } else if (Router_LParams) { //只有参数，如:a=b&c=d
+        } else if (lParams) { //只有参数，如:a=b&c=d
             tPath = lPath; //使用历史路径
-            tParams = G_Mix(G_Mix({}, Router_LParams), tParams); //复制原来的参数，合并新的参数
+            tParams = G_Mix(G_Mix({}, lParams), tParams); //复制原来的参数，合并新的参数
         }
-        Router_Update(tPath, Router_LParams = tParams, Router_LLoc, replace, lQuery);
+        Router_Update(tPath, tParams, Router_LLoc, replace, lQuery);
     }
 
     /**
@@ -1956,9 +1955,9 @@ var Tmpl = function(text, data) {
   }
   return fn(1, data);
 };
-    var Updater_ContentReg = /\d+\u001d/g;
-var Updater_AttrReg = /([\w\-:]+)(?:=(["'])([\s\S]*?)\2)?/g;
-var Updater_UnescapeMap = {
+    var Partial_ContentReg = /\d+\u001d/g;
+var Partial_AttrReg = /([\w\-:]+)(?:=(["'])([\s\S]*?)\2)?/g;
+var Partial_UnescapeMap = {
     'amp': '&',
     'lt': '<',
     'gt': '>',
@@ -1966,21 +1965,18 @@ var Updater_UnescapeMap = {
     '#x27': '\'',
     '#x60': '`'
 };
-var Updater_UnescapeReg = /&([^;]+?);/g;
-var Updater_Unescape = function(m, name) {
-    return Updater_UnescapeMap[name] || m;
+var Partial_UnescapeReg = /&([^;]+?);/g;
+var Partial_Unescape = function(m, name) {
+    return Partial_UnescapeMap[name] || m;
 };
-var Updater_IsPrimitive = function(args) {
-    return !args || typeof args != Magix_StrObject;
-};
-var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, updateTmpl, viewId, currentVframe) {
+var Partial_UpdateNode = function(node, view, one, renderData, updateAttrs, updateTmpl, viewId) {
     var id = node.id || (node.id = G_Id());
 
     var hasMagixView, viewValue, vf;
     if (updateAttrs) {
         var attr = View_SetEventOwner(Tmpl(one.attr, renderData), viewId);
         var nowAttrs = {};
-        attr.replace(Updater_AttrReg, function(match, name, q, value) {
+        attr.replace(Partial_AttrReg, function(match, name, q, value) {
             nowAttrs[name] = value;
         });
         for (var i = one.attrs.length - 1, a, n, old, now, f; i >= 0; i--) {
@@ -1995,7 +1991,7 @@ var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, upda
                 now = a.b ? G_Has(nowAttrs, n) : nowAttrs[n] || '';
                 if (old != now) {
                     if (a.p) {
-                        if (a.q) now = now.replace(Updater_UnescapeReg, Updater_Unescape);
+                        if (a.q) now = now.replace(Partial_UnescapeReg, Partial_Unescape);
                         node[f || n] = now;
                     } else if (now) {
                         node.setAttribute(n, now);
@@ -2019,15 +2015,15 @@ var Updater_UpdateNode = function(node, view, one, renderData, updateAttrs, upda
         view.owner.mountVframe(id, viewValue);
     }
 };
-var Updater_UpdateDOM = function(host, updateFlags, renderData) {
-    var selfId = host.$i;
+var Partial_UpdateDOM = function(updater, changedKeys, renderData) {
+    var selfId = updater.$i;
     var vf = Vframe_Vframes[selfId];
-    var view = vf && vf.$v;
-    if (!view) return;
-    var tmplObject = view.tmpl;
+    var view = vf && vf.$v,
+        tmplObject;
+    if (!view || !(tmplObject = view.tmpl)) return;
     var tmpl = tmplObject.html;
     var list = tmplObject.subs;
-    if (host.$rd && updateFlags) {
+    if (updater.$rd && changedKeys) {
         var keys, one, updateTmpl, updateAttrs;
 
         for (var i = list.length - 1, update, q, mask, m; i >= 0; i--) { //keys
@@ -2040,7 +2036,7 @@ var Updater_UpdateDOM = function(host, updateFlags, renderData) {
             if (keys) {
                 q = keys.length;
                 while (--q >= 0) {
-                    if (G_Has(updateFlags, keys[q])) {
+                    if (G_Has(changedKeys, keys[q])) {
                         update = 0;
                         break;
                     }
@@ -2051,7 +2047,7 @@ var Updater_UpdateDOM = function(host, updateFlags, renderData) {
                 q = keys.length;
                 update = 0;
                 while (--q >= 0) {
-                    if (G_Has(updateFlags, keys[q])) {
+                    if (G_Has(changedKeys, keys[q])) {
                         update = 1;
                         if (!mask || (updateTmpl && updateAttrs)) {
                             updateTmpl = one.tmpl;
@@ -2067,7 +2063,7 @@ var Updater_UpdateDOM = function(host, updateFlags, renderData) {
                     var nodes = $(View_SetEventOwner(one.path, selfId));
                     q = 0;
                     while (q < nodes.length) {
-                        Updater_UpdateNode(nodes[q++], view, one, renderData, updateAttrs, updateTmpl, selfId, vf);
+                        Partial_UpdateNode(nodes[q++], view, one, renderData, updateAttrs, updateTmpl, selfId, vf);
                     }
                 }
             }
@@ -2086,17 +2082,20 @@ var Updater_UpdateDOM = function(host, updateFlags, renderData) {
                     var s = list[--x];
                     if (s.s) {
                         map[s.s] = s;
-                        s.tmpl = s.tmpl.replace(Updater_ContentReg, tmplment);
+                        s.tmpl = s.tmpl.replace(Partial_ContentReg, tmplment);
                         delete s.s;
                     }
                 }
             }
             map = list.$;
         }
-        host.$rd = 1;
-        var str = tmpl.replace(Updater_ContentReg, tmplment);
-        view.setHTML(host.$t, Tmpl(str, renderData));
+        updater.$rd = 1;
+        var str = tmpl.replace(Partial_ContentReg, tmplment);
+        view.setHTML(updater.$t, Tmpl(str, renderData));
     }
+};
+    var Updater_IsPrimitive = function(args) {
+    return !args || typeof args != Magix_StrObject;
 };
 /*
 function observe(o, fn) {
@@ -2211,7 +2210,7 @@ G_Mix(UP, {
         var me = this,
             data = me.$data,
             keys = me.$keys,
-            old, now  ;
+            old, now;
         
         for (var p in obj) {
             now = obj[p];
@@ -2246,7 +2245,7 @@ G_Mix(UP, {
         
         me.$keys = {};
         
-        Updater_UpdateDOM(me, keys, data);
+        Partial_UpdateDOM(me, keys, data); //render
         return me;
     },
     /**

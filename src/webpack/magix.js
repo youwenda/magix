@@ -158,11 +158,16 @@ module.exports = (function() {
         var Router_UpdateState = function(path, replace) {
             WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
         };
+        var Router_Popstate;
         var Router_Update = function(path, params, loc, replace) {
             path = G_ToUri(path, params);
             if (path != loc.srcQuery) {
                 Router_UpdateState(path, replace);
-                Router_Diff();
+                if (Router_Popstate) {
+                    Router_Popstate(1);
+                } else {
+                    Router_Diff();
+                }
             }
         };
         /*#if(modules.tipRouter){#*/
@@ -170,7 +175,7 @@ module.exports = (function() {
             var initialURL = Router_WinLoc.href;
             var lastHref = initialURL;
             var newHref, suspend;
-            $(G_WINDOW).on('popstate', function(e, resolve) {
+            $(G_WINDOW).on('popstate', Router_Popstate = function(f, e, resolve) {
                 newHref = Router_WinLoc.href;
                 var initPop = !Router_DidUpdate && newHref == initialURL;
                 Router_DidUpdate = 1;
@@ -185,7 +190,7 @@ module.exports = (function() {
                     resolve = function() {
                         e.p = 1;
                         suspend = G_EMPTY;
-                        Router_UpdateState(lastHref = newHref);
+                        if (!f) Router_UpdateState(lastHref = newHref);
                         Router_Diff();
                     };
                     e = {
@@ -273,6 +278,7 @@ module.exports = (function() {
     };
     Inc('../tmpl/body');
     Inc('../tmpl/tmpl');
+    Inc('../tmpl/partial');
     Inc('../tmpl/updater');
 
     Inc('../tmpl/view');

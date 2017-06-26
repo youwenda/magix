@@ -10,7 +10,6 @@ var Router_LLoc = {
     params: {},
     href: G_EMPTY
 };
-var Router_LParams;
 var Router_TrimHashReg = /(?:^.*\/\/[^\/]+|#.*$)/gi;
 var Router_TrimQueryReg = /^[^#]*#?!?/;
 var GetParam = function(key, params) {
@@ -135,7 +134,6 @@ var Router_Diff = function() {
     var location = Router_Parse();
     var changed = Router_GetChged(Router_LLoc, Router_LLoc = location);
     if (changed.a) {
-        Router_LParams = Router_LLoc[Router_PARAMS];
         Router.fire('changed', Router_LastChanged = changed.b);
     }
     return Router_LastChanged;
@@ -200,6 +198,7 @@ var Router = G_Mix({
         var tParams = temp[Router_PARAMS];
         var tPath = temp[Router_PATH];
         var lPath = Router_LLoc[Router_PATH]; //历史路径
+        var lParams = Router_LLoc[Router_PARAMS];
         var lQuery = Router_LLoc.query[Router_PARAMS];
         G_Mix(tParams, params); //把路径中解析出来的参数与用户传递的参数进行合并
 
@@ -210,11 +209,11 @@ var Router = G_Mix({
                     if (!G_Has(tParams, lPath)) tParams[lPath] = G_EMPTY;
                 }
             }
-        } else if (Router_LParams) { //只有参数，如:a=b&c=d
+        } else if (lParams) { //只有参数，如:a=b&c=d
             tPath = lPath; //使用历史路径
-            tParams = G_Mix(G_Mix({}, Router_LParams), tParams); //复制原来的参数，合并新的参数
+            tParams = G_Mix(G_Mix({}, lParams), tParams); //复制原来的参数，合并新的参数
         }
-        Router_Update(tPath, Router_LParams = tParams, Router_LLoc, replace, lQuery);
+        Router_Update(tPath, tParams, Router_LLoc, replace, lQuery);
     }
 
     /**

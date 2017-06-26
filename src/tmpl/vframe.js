@@ -274,7 +274,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             var capitalize = function(_, c) {
                 return c.toUpperCase();
             };
-            var vreg = /^[\w_\d]$/;
+            var vreg = /^[\w_\d]+$/;
             for (var i = attrs.length - 1, attr, name, value; i >= 0; i--) {
                 attr = attrs[i];
                 name = attr.name;
@@ -291,7 +291,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                             if (parent && vreg.test(value)) {
                                 value = parent.get(value);
                             } else {
-                                Magix_Cfg.error(ex);
+                                //Magix_Cfg.error(ex);
                             }
                         }
                     }

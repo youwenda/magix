@@ -8,7 +8,7 @@ let pkg = require('../package.json');
 let customize = require('./customize');
 
 let type = 'cmd,amd,kissy,webpack'; //打包kissy则type='kissy'
-let enableModules = 'magix,event,vframe,body,view,tmpl,updater,share,hasDefaultView,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base';
+let enableModules = 'magix,event,vframe,body,view,tmpl,partial,updater,share,hasDefaultView,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base';
 //coreModules='magix,event,vframe,body,view,tmpl,updater,hasDefaultView,viewInit,autoEndUpdate';
 //loaderModules='loader,magix,event,vframe';
 

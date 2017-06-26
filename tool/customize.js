@@ -19,6 +19,7 @@ let modules = {
     updaterSetState: 1, //updater是否由用户指定更新。即用户指定什么就更新什么，不管值有没有改变
     forceEdgeRouter: 1, //强制使用pushState
     serviceCombine: 1, //接口combine
+    partial: 1, //局部刷新
     updater: 1, //自动更新
     viewProtoMixins: 1, //支持mixins
     share: 1, //向子或孙view公开数据
@@ -82,7 +83,7 @@ module.exports = (options) => {
             }
             return '';
         });
-        let header = '\/\/\'#exclude(define,before)\';\r\n/*!' + pkg.version + ' Licensed MIT*/';
+        let header = '\/\/#exclude(define,before);\r\n/*!' + pkg.version + ' Licensed MIT*/';
         header += '\r\n/*\r\nauthor:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com\r\nloader:' + loaderType;
         header += '\r\nenables:' + enableModules;
         header += '\r\n\r\noptionals:' + others;
