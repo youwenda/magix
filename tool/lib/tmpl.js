@@ -37,6 +37,7 @@ var tmpl = function(text, data) {
     "print=function(){__p+=__j.call(arguments,'');};\n" + source + "return __p;\n";
   //console.log(source);
   try {
+    //console.log(source);
     render = new Function('modules', source);
   } catch (e) {
     e.source = source;

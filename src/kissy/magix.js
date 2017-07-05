@@ -4,6 +4,8 @@
  * @version edge
  **/
 KISSY.add('magix', function(S, SE, DOM) {
+    if (typeof DEBUG == 'undefined') DEBUG = true;
+
     var G_NOOP = S.noop;
     var $ = S.all;
     var G_Require = function(name, fn) {
@@ -24,8 +26,10 @@ KISSY.add('magix', function(S, SE, DOM) {
     };
 
 
+    Inc('../tmpl/safeguard');
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
+    Inc('../tmpl/state');
     /*#if(modules.router){#*/
     var Router_Edge;
     var G_IsFunction = S.isFunction;
@@ -40,9 +44,10 @@ KISSY.add('magix', function(S, SE, DOM) {
             Router_WinLoc.hash = path;
         }
     };
-    var Router_Update = function(path, params, loc, replace, lQuery) {
+    var Router_Update = function(path, params, loc, replace, silent, lQuery) {
         path = G_ToUri(path, params, lQuery);
         if (path != loc.srcHash) {
+            Router_Silent = silent;
             Router_UpdateHash(path, replace);
         }
     };
@@ -118,9 +123,10 @@ KISSY.add('magix', function(S, SE, DOM) {
             WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
         };
         var Router_Popstate;
-        var Router_Update = function(path, params, loc, replace) {
+        var Router_Update = function(path, params, loc, replace, silent) {
             path = G_ToUri(path, params);
             if (path != loc.srcQuery) {
+                Router_Silent = silent;
                 Router_UpdateState(path, replace);
                 if (Router_Popstate) {
                     Router_Popstate(1);
@@ -241,7 +247,6 @@ KISSY.add('magix', function(S, SE, DOM) {
     var G_Type = S.type;
     var G_Proxy = S.bind;
     var G_Now = S.now;
-
     /*#}#*/
     //!@vars service
     Inc('../tmpl/service');

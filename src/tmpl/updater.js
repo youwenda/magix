@@ -1,6 +1,3 @@
-var Updater_IsPrimitive = function(args) {
-    return !args || typeof args != Magix_StrObject;
-};
 /*
 function observe(o, fn) {
   function buildProxy(prefix, o) {
@@ -14,6 +11,29 @@ function observe(o, fn) {
         // return a new proxy if possible, add to prefix
         let out = target[property];
         if (out instanceof Object) {
+          return buildProxy(prefix + property + '.', out);
+        }
+        return out;  // primitive, ignore
+      },
+    });
+  }
+
+  return buildProxy('', o);
+}
+
+function observe(o, fn) {
+  function buildProxy(prefix, o) {
+    return new Proxy(o, {
+      set(target, property, value) {
+        console.log(property,prefix,o);
+        // same as before, but add prefix
+        //fn(prefix + property, value);
+        target[property] = value;
+      },
+      get(target, property) {
+        // return a new proxy if possible, add to prefix
+        let out = target[property];
+        if (target.hasOwnProperty(property)&& out instanceof Object) {
           return buildProxy(prefix + property + '.', out);
         }
         return out;  // primitive, ignore
@@ -115,17 +135,9 @@ G_Mix(UP, {
     set: function(obj) {
         var me = this,
             data = me.$data,
-            keys = me.$keys,
-            old, now;
+            keys = me.$keys;
         /*#if(modules.updaterSetState){#*/
-        for (var p in obj) {
-            now = obj[p];
-            old = data[p];
-            if (!Updater_IsPrimitive(now) || old != now) {
-                keys[p] = 1;
-            }
-            data[p] = now;
-        }
+        G_Set(obj, data, keys);
         /*#}else{#*/
         G_Mix(data, obj);
         /*#}#*/

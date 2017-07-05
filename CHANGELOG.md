@@ -1,3 +1,10 @@
+## 3.5.0
+1. 增加DEBUG，减少打包后的文件体积
+2. 增加数据保护，对于路由、bag中的数据为只读，不能回写
+3. 增加静默更新路由
+4. 增加State对象，与location类似，可存储任意数据。
+5. 改变原来的observe成observeLocation，因与observeState对应
+
 ## 3.4.7
 1. 修改提示路由在pushState的情况下，漏掉通过api修改url未提示的bug
 2. updater拆分出局部刷新实现，后期可以根据情况实现不同的渲染

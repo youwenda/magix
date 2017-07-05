@@ -94,17 +94,22 @@ var Vframe_RemoveVframe = function(id, fcc, vf) {
         /*#}#*/
     }
 };
-/*#if(modules.router){#*/
+/*#if(modules.router||modules.state){#*/
 var Vframe_UpdateTag;
 /**
  * 通知当前vframe，地址栏发生变化
  * @param {Vframe} vframe vframe对象
  * @private
  */
-var Vframe_Update = function(vframe, view) {
+var Vframe_Update = function(vframe, /*#if(modules.state){#*/ stateKeys, /*#}#*/ view) {
     if (vframe && vframe.$g != Vframe_UpdateTag && (view = vframe.$v) && view.$s > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
-
+        /*#if(modules.state&&modules.router){#*/
+        var isChanged = stateKeys ? State_IsObserveChanged(view.$os, stateKeys) : View_IsObserveChanged(view);
+        /*#}else if(modules.state){#*/
+        var isChanged = State_IsObserveChanged(view.$os, stateKeys);
+        /*#}else{#*/
         var isChanged = View_IsObserveChanged(view);
+        /*#}#*/
         /**
          * 事件对象
          * @type {Object}
@@ -138,7 +143,7 @@ var Vframe_Update = function(vframe, view) {
             i = 0;
         //console.log(me.id,cs);
         while (i < j) {
-            Vframe_Update(Vframe_Vframes[cs[i++]]);
+            Vframe_Update(Vframe_Vframes[cs[i++]] /*#if(modules.state){#*/ , stateKeys /*#}#*/ );
         }
     }
 };
@@ -148,14 +153,14 @@ var Vframe_Update = function(vframe, view) {
  * @param {Object} e.location G_WINDOW.location.href解析出来的对象
  * @private
  */
-var Vframe_NotifyLocationChange = function(e) {
+var Vframe_NotifyChange = function(e) {
     var vf = Vframe_Root(),
         view;
     if ((view = e.view)) {
         vf.mountView(view.to);
     } else {
         Vframe_UpdateTag = G_COUNTER++;
-        Vframe_Update(vf);
+        Vframe_Update(vf /*#if(modules.state){#*/ , e.keys /*#}#*/ );
     }
 };
 /*#}#*/
@@ -178,6 +183,14 @@ var Vframe_NotifyLocationChange = function(e) {
 var Vframe = function(id, pId, me) {
     me = this;
     me.id = id;
+    if (DEBUG) {
+        setTimeout(function() {
+            var parent = Vframe_Vframes[pId];
+            if (id != Magix_Cfg.rootId && (!pId || !parent || !parent.$c[id])) {
+                console.error('be careful! Avoid use new Magix.Vframe() outside');
+            }
+        }, 50);
+    }
     //me.vId=id+'_v';
     me.$c = {}; //childrenMap
     me.$cc = 0; //childrenCount
@@ -314,7 +327,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                         id: id
                     }, params);
                     me.$v = view;
-                    /*#if(modules.router){#*/
+                    /*#if(modules.router||modules.state){#*/
                     me.$g = Vframe_UpdateTag;
                     /*#}#*/
                     /*#if(!modules.loader){#*/
@@ -466,11 +479,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         /*#}#*/
         for (i = 0; i < vframes.length; i++) {
             vf = vframes[i];
-            /*#if(modules.morph){#*/
-            id = G_IdIt(vf);
-            /*#}else{#*/
             id = vf.id || (vf.id = G_Id());
-            /*#}#*/
             /*#if(modules.layerVframe){#*/
             if (!G_Has(subs, id)) {
                 /*#}#*/
@@ -482,11 +491,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 svfs = $(G_HashKey + id + ' [mx-view]');
                 for (j = svfs.length - 1; j >= 0; j--) {
                     subVf = svfs[j];
-                    /*#if(modules.morph){#*/
-                    id = G_IdIt(subVf);
-                    /*#}else{#*/
                     id = subVf.id || (subVf.id = G_Id());
-                    /*#}#*/
                     subs[id] = 1;
                 }
             }

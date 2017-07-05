@@ -106,8 +106,13 @@ G_Mix(Bag[G_PROTOTYPE], {
         }
         var type;
         if (hasDValue && (type = G_Type(dValue)) != G_Type(attrs)) {
-            Magix_Cfg.error(Error('type neq:' + key + ' is not a(n) ' + type));
+            if (DEBUG) {
+                Magix_Cfg.error(Error('type neq:' + key + ' is not a(n) ' + type));
+            }
             attrs = dValue;
+        }
+        if (DEBUG) {
+            attrs = Safeguard(attrs);
         }
         return attrs;
     },
@@ -305,6 +310,14 @@ var Service_Send = function(me, attrs, done, flag, save) {
 var Service = function() {
     var me = this;
     me.id = G_Id('s');
+    if (DEBUG) {
+        me.id = G_Id('\x1es');
+        setTimeout(function() {
+            if (!me.$c) {
+                console.warn('be careful! You should use view.capture to connect Service and View');
+            }
+        }, 1000);
+    }
     me.$q = [];
 };
 

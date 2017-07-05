@@ -2,6 +2,8 @@
     author:xinglie.lkf@taobao.com
  */
 define('magix', ['$'], function($) {
+    if (typeof DEBUG == 'undefined') DEBUG = true;
+
     var G_NOOP = function() {};
     /*#if(modules.hasDefaultView){#*/
     var G_DefaultView;
@@ -56,8 +58,11 @@ define('magix', ['$'], function($) {
             target: node
         });
     };
+
+    Inc('../tmpl/safeguard');
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
+    Inc('../tmpl/state');
     /*#if(modules.router){#*/
     var Router_Edge;
     var G_IsFunction = $.isFunction;
@@ -71,9 +76,10 @@ define('magix', ['$'], function($) {
             Router_WinLoc.hash = path;
         }
     };
-    var Router_Update = function(path, params, loc, replace, lQuery) {
+    var Router_Update = function(path, params, loc, replace, silent, lQuery) {
         path = G_ToUri(path, params, lQuery);
         if (path != loc.srcHash) {
+            Router_Silent = silent;
             Router_UpdateHash(path, replace);
         }
     };
@@ -149,9 +155,10 @@ define('magix', ['$'], function($) {
             WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
         };
         var Router_Popstate;
-        var Router_Update = function(path, params, loc, replace) {
+        var Router_Update = function(path, params, loc, replace, silent) {
             path = G_ToUri(path, params);
             if (path != loc.srcQuery) {
+                Router_Silent = silent;
                 Router_UpdateState(path, replace);
                 if (Router_Popstate) {
                     Router_Popstate(1);
@@ -269,7 +276,6 @@ define('magix', ['$'], function($) {
     Inc('../tmpl/tmpl');
     Inc('../tmpl/partial');
     Inc('../tmpl/updater');
-
     Inc('../tmpl/view');
     /*#if(modules.service){#*/
     var G_Type = $.type;

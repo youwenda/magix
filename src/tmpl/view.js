@@ -344,7 +344,7 @@ G_Mix(View, {
                             val.$m = 1;
                         }
                         temp[p] = val;
-                    } else if (old) {
+                    } else if (DEBUG && old) { //只在开发中提示
                         Magix_Cfg.error(Error('mixins duplicate:' + p));
                     } else {
                         temp[p] = val;
@@ -474,12 +474,12 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @example
      * return View.extend({
      *      init:function(){
-     *          this.observe('page,rows');//关注地址栏中的page rows2个参数的变化，当其中的任意一个改变时，才引起当前view的render被调用
-     *          this.observe(null,true);//关注path的变化
+     *          this.observeLocation('page,rows');//关注地址栏中的page rows2个参数的变化，当其中的任意一个改变时，才引起当前view的render被调用
+     *          this.observeLocation(null,true);//关注path的变化
      *          //也可以写成下面的形式
-     *          //this.observe('page,rows',true);
+     *          //this.observeLocation('page,rows',true);
      *          //也可以是对象的形式
-     *          this.observe({
+     *          this.observeLocation({
      *              path: true,
      *              params:['page','rows']
      *          });
@@ -492,7 +492,7 @@ G_Mix(G_Mix(ViewProto, Event), {
      *      }
      * });
      */
-    observe: function(params, isObservePath) {
+    observeLocation: function(params, isObservePath) {
         var me = this,
             loc, keys;
         loc = me.$l;
@@ -508,6 +508,11 @@ G_Mix(G_Mix(ViewProto, Event), {
         if (params) {
             loc.k = keys.concat((params + G_EMPTY).split(G_COMMA));
         }
+    },
+    /*#}#*/
+    /*#if(modules.state){#*/
+    observeState: function(keys) {
+        this.$os = (keys + '').split(',');
     },
     /*#}#*/
     /*#if(modules.resource){#*/
@@ -542,6 +547,13 @@ G_Mix(G_Mix(ViewProto, Event), {
                 x: destroyWhenCallRender
             };
             cache[key] = wrapObj;
+            //service托管检查
+            if (DEBUG && res && res.id.indexOf('\x1es') === 0) {
+                res.$c = 1;
+                if (!destroyWhenCallRender) {
+                    console.warn('be careful! May be you should set destroyWhenCallRender = true');
+                }
+            }
         } else {
             wrapObj = cache[key];
             res = wrapObj && wrapObj.e || res;

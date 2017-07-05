@@ -124,7 +124,7 @@ var Body_DOMEventProcessor = function(e) {
             arr = [];
             while ((info = names.shift())) {
                 if (!info.v) {
-                    Magix_Cfg.error(Error('bad ' + eventType + ':' + info.r));
+                    return Magix_Cfg.error(Error('bad ' + eventType + ':' + info.r));
                 }
                 /*#if(modules.layerVframe){#*/
                 if (!lastVfId) lastVfId = info.v;

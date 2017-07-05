@@ -29,6 +29,7 @@ let modules = {
     base: 1, //base模块
     style: 1, //是否有样式处理
     viewInit: 1, //init方法
+    safeguard: 1, //数据保护
     service: 1, //接口服务
     router: 1, //路由模块
     resource: 1, //资源管理
@@ -79,12 +80,13 @@ module.exports = (options) => {
         content = content.replace(incReg, function(match, name) {
             if (map[name]) {
                 let file = path.resolve(root, '../src/tmpl/' + name + '.js');
+                //console.log('file', file);
                 return fs.readFileSync(file) + '';
             }
             return '';
         });
         let header = '\/\/#exclude(define,before);\r\n/*!' + pkg.version + ' Licensed MIT*/';
-        header += '\r\n/*\r\nauthor:xinglie.lkf@alibaba-inc.com;kooboy_li@163.com\r\nloader:' + loaderType;
+        header += '\r\n/*\r\nauthor:kooboy_li@163.com\r\nloader:' + loaderType;
         header += '\r\nenables:' + enableModules;
         header += '\r\n\r\noptionals:' + others;
         header += '\r\n*/\r\n';

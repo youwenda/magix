@@ -44,9 +44,23 @@ var Magix_HasProp = Magix_Cfg.hasOwnProperty;
 var G_GetById = function(id) {
     return typeof id == Magix_StrObject ? id : G_DOCUMENT.getElementById(id);
 };
-/*#if(modules.morph){#*/
-var G_IdIt = function(node) {
-    return node.id || (node.id = G_Id());
+/*#if(modules.updater||modules.state){#*/
+var G_IsPrimitive = function(args) {
+    return !args || typeof args != Magix_StrObject;
+};
+var G_Set = function(newData, oldData, keys) {
+    var changed = 0,
+        now, old, p;
+    for (p in newData) {
+        now = newData[p];
+        old = oldData[p];
+        if (!G_IsPrimitive(now) || old != now) {
+            keys[p] = 1;
+            changed = 1;
+        }
+        oldData[p] = now;
+    }
+    return changed;
 };
 /*#}#*/
 var G_NodeIn = function(a, b, r) {
@@ -486,7 +500,10 @@ var Magix = {
             G_Mix(Magix_Cfg, cfg);
             /*#}#*/
             G_Require(Magix_Cfg.exts, function() {
-                Router.on('changed', Vframe_NotifyLocationChange);
+                Router.on('changed', Vframe_NotifyChange);
+                /*#if(modules.state){#*/
+                State.on('changed', Vframe_NotifyChange);
+                /*#}#*/
                 Router_Bind();
             });
             /*#if(modules.configIni){#*/
@@ -498,6 +515,9 @@ var Magix = {
         G_Mix(Magix_Cfg, cfg);
         G_Require(Magix_Cfg.exts, function() {
             Vframe_Root().mountView(Magix_Cfg.defaultView);
+            /*#if(modules.state){#*/
+            State.on('changed', Vframe_NotifyChange);
+            /*#}#*/
         });
     },
     /*#}#*/

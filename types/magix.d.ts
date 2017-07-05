@@ -209,6 +209,76 @@ declare module "magix" {
         set(data: object): void
     }
     /**
+     * Magix.State变化事件接口
+     */
+    interface IStateChangedEvent extends ITriggerEventDescriptor {
+        /**
+         * 包含哪些数据变化的集合对象
+         */
+        keys: {
+            [key: string]: 1
+        }
+    }
+    /**
+     * 状态接口
+     */
+    interface IState {
+        /**
+         * 从状态对象中获取数据
+         * @param key 数据key，如果未传递则返回整个状态对象
+         */
+        get<TReturnType>(key?: string): TReturnType
+        /**
+         * 设置数据
+         * @param data 数据对象
+         */
+        set(data: object): this
+
+        /**
+         * Magix.State中是否包含指定的key的数据
+         * @param key 数据key
+         */
+        has(key: string): boolean
+        /**
+         * 清理Magix.State中的数据，只能在view的mixins中使用，如 mixins:[Magix.State.clean("a,b")]
+         * @param keys 逗号分割的字符串
+         */
+        clean(keys: string): void
+        /**
+         * 检测数据变化，派发changed事件，通过set放入数据后需要显式调用该方法才会派发事件
+         * @param data 数据对象，如{a:20,b:30}
+         */
+        digest(data?: object): void
+
+        /**
+         * 绑定事件
+         * @param name 事件名称
+         * @param fn 事件处理函数
+         */
+        on(name: string, fn: (this: this, e?: ITriggerEventDescriptor) => void): void
+
+        /**
+         * 解除事件绑定
+         * @param name 事件名称
+         * @param fn 事件处理函数
+         */
+        off(name: string, fn?: Function): void
+
+        /**
+         * 派发事件
+         * @param name 事件名称
+         * @param data 事件参数
+         * @param remove 是否移除所有的事件监听
+         * @param lastToFirst 是否倒序派发列表中的监听
+         */
+        fire(name: string, data?: object, remove?: boolean, lastToFirst?: boolean): void
+
+        /**
+         * State中的数据发生变化时触发
+         */
+        onchanged: (this: this, e?: IStateChangedEvent) => void
+    }
+    /**
      * api注册信息接口
      */
     interface IServiceInterfaceMeta {
@@ -547,7 +617,10 @@ declare module "magix" {
         each<TResourceType, TOptionsType>(callback: (resource: TResourceType, options: TOptionsType, cache: this) => void, options?: TOptionsType): void
     }
 
-
+    /**
+     * 状态对象
+     */
+    const State: IState
     /**
      * 事件对象
      */
@@ -793,12 +866,18 @@ declare module "magix" {
          * @param html 待设置的html
          */
         setHTML(id: string, html: string): void
+
         /**
          * 监听地址栏的改变，如"/app/path?page=1&size=20"，其中"/app/path"为path,"page,size"为参数
          * @param parameters 监听地址栏中的参数，如"page,size"或["page","size"]表示监听page或size的改变
          * @param observePath 是否监听path的改变
          */
-        observe(parameters: string | string[], observePath?: boolean): void
+        observeLocation(parameters: string | string[], observePath?: boolean): void
+        /**
+         * 监听Magix.State中的数据变化
+         * @param keys 逗号分割的字符串
+         */
+        observeState(keys: string): void
         /**
          * 监听地址栏的改变，如"/app/path?page=1&size=20"，其中"/app/path"为path,"page,size"为参数
          * @param options 监听地址栏的对象，监听参数用params表示，监听path用path表示，如 {path:true,params:["page","size"]}
@@ -854,17 +933,6 @@ declare module "magix" {
          * @param hasChanged 是否显示提示消息的方法，返回true表示需要提示用户
          */
         leaveTip(msg: string, hasChanged: () => boolean): void
-        /**
-         * 向子或孙view公开数据
-         * @param key 公开的数据key
-         * @param data 公开的数据
-         */
-        share(key: string, data: any): void
-        /**
-         * 获取祖先view上公开的数据
-         * @param key 祖先view公开数据时的key
-         */
-        getShared<TReturnType>(key: string): TReturnType
 
         /**
          * 绑定事件

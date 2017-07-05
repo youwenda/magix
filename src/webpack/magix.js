@@ -1,4 +1,6 @@
 module.exports = (function() {
+    if (typeof DEBUG == 'undefined') DEBUG = true;
+
     var $ = require('$');
     var G_NOOP = function() {};
     var G_IsFunction = $.isFunction;
@@ -68,8 +70,10 @@ module.exports = (function() {
             target: node
         });
     };
+    Inc('../tmpl/safeguard');
     Inc('../tmpl/magix');
     Inc('../tmpl/event');
+    Inc('../tmpl/state');
     /*#if(modules.router){#*/
     var Router_Edge;
     /*#if(!modules.forceEdgeRouter){#*/
@@ -82,9 +86,10 @@ module.exports = (function() {
             Router_WinLoc.hash = path;
         }
     };
-    var Router_Update = function(path, params, loc, replace, lQuery) {
+    var Router_Update = function(path, params, loc, replace, silent, lQuery) {
         path = G_ToUri(path, params, lQuery);
         if (path != loc.srcHash) {
+            Router_Silent = silent;
             Router_UpdateHash(path, replace);
         }
     };
@@ -159,9 +164,10 @@ module.exports = (function() {
             WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
         };
         var Router_Popstate;
-        var Router_Update = function(path, params, loc, replace) {
+        var Router_Update = function(path, params, loc, replace, silent) {
             path = G_ToUri(path, params);
             if (path != loc.srcQuery) {
+                Router_Silent = silent;
                 Router_UpdateState(path, replace);
                 if (Router_Popstate) {
                     Router_Popstate(1);
@@ -280,7 +286,6 @@ module.exports = (function() {
     Inc('../tmpl/tmpl');
     Inc('../tmpl/partial');
     Inc('../tmpl/updater');
-
     Inc('../tmpl/view');
     /*#if(modules.service){#*/
     var G_Type = $.type;

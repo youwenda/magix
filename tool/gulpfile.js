@@ -8,7 +8,10 @@ let pkg = require('../package.json');
 let customize = require('./customize');
 
 let type = 'cmd,amd,kissy,webpack'; //打包kissy则type='kissy'
-let enableModules = 'magix,event,vframe,body,view,tmpl,partial,updater,share,hasDefaultView,autoEndUpdate,linkage,style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base';
+let enableModules = 'magix,event,vframe,body,view,tmpl,partial,updater,hasDefaultView,autoEndUpdate,linkage,style,viewInit,safeguard,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base,state';
+
+//mobile
+//let enableModules='core,autoEndUpdate,linkage,base,style,viewInit,resource,nodeAttachVframe,magix,event,vframe,body,view,partial,updater,tmpl,updaterSetState,mxViewAttr,layerVframe,state,safeguard';
 //coreModules='magix,event,vframe,body,view,tmpl,updater,hasDefaultView,viewInit,autoEndUpdate';
 //loaderModules='loader,magix,event,vframe';
 
@@ -29,13 +32,16 @@ gulp.task('compress', function() {
         gulp.src('../dist/' + t + '/magix-debug.js')
             .pipe(uglify({
                 compress: {
-                    drop_console: true
+                    drop_console: true,
+                    global_defs: {
+                        DEBUG: false
+                    }
                 },
                 output: {
                     ascii_only: true
                 }
             }))
-            .pipe(header('/*<%=ver%> Licensed MIT*/', {
+            .pipe(header('/*!<%=ver%> MIT kooboy_li@163.com*/', {
                 ver: pkg.version
             }))
             .pipe(rename('magix.js'))

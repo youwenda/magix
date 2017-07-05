@@ -5,6 +5,7 @@ var Router_HrefCache = new G_Cache();
 var Router_ChgdCache = new G_Cache();
 var Router_WinLoc = G_WINDOW.location;
 var Router_LastChanged;
+var Router_Silent = 0;
 var Router_LLoc = {
     query: {},
     params: {},
@@ -128,13 +129,22 @@ var Router_Parse = function(href) {
         Router_AttachViewAndPath(result);
         Router_HrefCache.set(href, result);
     }
+    if (DEBUG) {
+        result = Safeguard(result, {
+            path: 1
+        });
+    }
     return result;
 };
 var Router_Diff = function() {
     var location = Router_Parse();
     var changed = Router_GetChged(Router_LLoc, Router_LLoc = location);
-    if (changed.a) {
+    if (!Router_Silent && changed.a) {
         Router.fire('changed', Router_LastChanged = changed.b);
+    }
+    Router_Silent = 0;
+    if (DEBUG) {
+        Router_LastChanged = Safeguard(Router_LastChanged);
     }
     return Router_LastChanged;
 };
@@ -189,7 +199,7 @@ var Router = G_Mix({
      *
      * //凡是带path的修改地址栏，都会把原来地址栏中的参数丢弃
      */
-    to: function(pn, params, replace) {
+    to: function(pn, params, replace, silent) {
         if (!params && G_IsObject(pn)) {
             params = pn;
             pn = G_EMPTY;
@@ -213,7 +223,7 @@ var Router = G_Mix({
             tPath = lPath; //使用历史路径
             tParams = G_Mix(G_Mix({}, lParams), tParams); //复制原来的参数，合并新的参数
         }
-        Router_Update(tPath, tParams, Router_LLoc, replace, lQuery);
+        Router_Update(tPath, tParams, Router_LLoc, replace, silent, lQuery);
     }
 
     /**
