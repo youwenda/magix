@@ -1,6 +1,5 @@
 var Vframe_RootVframe;
 var Vframe_GlobalAlter;
-var Vframe_MxView = 'mx-view';
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
@@ -469,7 +468,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         var temp = [];
         for (i = vframes.length - 1; i >= 0; i--) {
             vf = vframes[i];
-            temp.push(vf.getAttribute(Vframe_MxView));
+            temp.push(vf.getAttribute('mx-view'));
         }
         G_Require(temp);
         /*#}#*/
@@ -485,7 +484,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                 /*#}#*/
                 if (!vf.$m) { //防止嵌套的情况下深层的view被反复实例化
                     vf.$m = 1;
-                    vfs.push([id, vf.getAttribute(Vframe_MxView)]);
+                    vfs.push([id, vf.getAttribute('mx-view')]);
                 }
                 /*#if(modules.layerVframe){#*/
                 svfs = $(G_HashKey + id + ' [mx-view]');

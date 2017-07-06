@@ -90,7 +90,7 @@ var State = G_Mix({
                 var sub = key ? key : path;
                 console.warn('be careful! You direct set "{Magix.State}.' + sub + '" a new value  You should call Magix.State.set() and Magix.State.digest() to notify other views {Magix.State} changed');
                 if (G_IsPrimitive(value) && !/\./.test(sub)) {
-                    console.warn('be careful! Never set a primitive value ' + JSON.stringify(value) + ' to "{Magix.State}.' + sub + '" This may will not trigger changed event');
+                    console.warn('be careful! Never set a primitive value ' + JSON.stringify(value) + ' to "{Magix.State}.' + sub + '" This may will not trigger "changed" event');
                 }
             });
         }

@@ -2,6 +2,9 @@ if (DEBUG) {
     if (window.Proxy) {
         var Safeguard = function(data, allows, getter, setter) {
             var build = function(prefix, o) {
+                if (o['\x1e_sf_\x1e']) {
+                    return o;
+                }
                 return new Proxy(o, {
                     set: function(target, property, value) {
                         if (!setter && (prefix || !G_Has(allows, property))) {
@@ -11,8 +14,12 @@ if (DEBUG) {
                         if (setter) {
                             setter(prefix + property, value);
                         }
+                        return true;
                     },
                     get: function(target, property) {
+                        if (property == '\x1e_sf_\x1e') {
+                            return true;
+                        }
                         var out = target[property];
                         if (!prefix && getter) {
                             getter(property);

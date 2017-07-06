@@ -12,7 +12,6 @@
         }
     3.事件支持嵌套，向上冒泡
  */
-var Body_ParentNode = 'parentNode';
 var Body_MagixPrefix = 'mx-';
 var Body_EvtInfoCache = new G_Cache(30, 10);
 var Body_EvtInfoReg = /(?:([\w\-]+)\u001e)?([^\(]+)\(([\s\S]*)?\)/;
@@ -51,7 +50,7 @@ var Body_FindVframeInfo = function(current, eventType) {
         selectorVfId = current.$v; //如果节点有缓存，则使用缓存
         if (!selectorVfId) { //先找最近的vframe
             vfs.push(begin);
-            while (begin != G_DOCBODY && (begin = begin[Body_ParentNode])) { //找最近的vframe,且节点上没有mx-autonomy属性
+            while (begin != G_DOCBODY && (begin = begin.parentNode)) { //找最近的vframe,且节点上没有mx-autonomy属性
                 if ((Vframe_Vframes[tempId = begin.id] || (tempId = begin.$v))) {
                     selectorVfId = tempId;
                     break;
@@ -74,7 +73,7 @@ var Body_FindVframeInfo = function(current, eventType) {
                     selectorObject = view.$so;
                     eventSelector = selectorObject[eventType];
                     for (tempId in eventSelector) {
-                        if (Body_TargetMatchSelector(current, tempId)) {
+                        if (G_TargetMatchSelector(current, tempId)) {
                             names.push({
                                 r: tempId,
                                 v: selectorVfId,
@@ -153,7 +152,7 @@ var Body_DOMEventProcessor = function(e) {
         } else {
             arr.push(current);
         }
-        current = current[Body_ParentNode] || G_DOCBODY;
+        current = current.parentNode || G_DOCBODY;
         // if (current.id == vId) { //经过vframe时，target为vframe节点
         //     e.target = current;
         // }
@@ -166,8 +165,8 @@ var Body_DOMEventProcessor = function(e) {
 var Body_DOMEventBind = function(type, searchSelector, remove) {
     var counter = Body_RootEvents[type] | 0;
     var offset = (remove ? -1 : 1);
-    if (!counter || (remove && counter == 1)) {
-        Body_DOMEventLibBind(G_DOCBODY, type, Body_DOMEventProcessor, remove);
+    if (!counter || remove === counter) { // remove=1  counter=1
+        G_DOMEventLibBind(G_DOCBODY, type, Body_DOMEventProcessor, remove);
     }
     Body_RootEvents[type] = counter + offset;
     if (searchSelector) { //记录需要搜索选择器的事件

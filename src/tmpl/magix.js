@@ -8,7 +8,9 @@ var G_WINDOW = window;
 var G_DOCUMENT = document;
 var G_DOC = $(G_DOCUMENT);
 var G_HashKey = '#';
+/*#if(modules.service||modules.updater){#*/
 var JSONStringify = JSON.stringify;
+/*#}#*/
 var G_DOCBODY; //initilize at vframe_root
 /*
     关于spliter
@@ -20,19 +22,18 @@ var G_PROTOTYPE = 'prototype';
 // var Magix_PathRelativeReg = /\/\.(?:\/|$)|\/[^\/]+?\/\.{2}(?:\/|$)|\/\/+|\.{2}\//; // ./|/x/../|(b)///
 // var Magix_PathTrimFileReg = /\/[^\/]*$/;
 // var Magix_ProtocalReg = /^(?:https?:)?\/\//i;
-var Magix_SLASH = '/';
 var Magix_PathTrimParamsReg = /[#?].*$/;
 var Magix_ParamsReg = /([^=&?\/#]+)=?([^&#?]*)/g;
 var Magix_IsParam = /(?!^)=|&/;
 var G_Id = function(prefix) {
     return (prefix || 'mx_') + G_COUNTER++;
 };
-/*#if(modules.hasDefaultView){#*/
+/*#if(modules.defaultView){#*/
 var MxGlobalView = G_Id();
 /*#}#*/
 var Magix_Cfg = {
     rootId: G_Id(),
-    /*#if(modules.hasDefaultView){#*/
+    /*#if(modules.defaultView){#*/
     defaultView: MxGlobalView,
     /*#}#*/
     error: function(e) {

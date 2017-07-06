@@ -8,12 +8,11 @@ let pkg = require('../package.json');
 let customize = require('./customize');
 
 let type = 'cmd,amd,kissy,webpack'; //打包kissy则type='kissy'
-let enableModules = 'magix,event,vframe,body,view,tmpl,partial,updater,hasDefaultView,autoEndUpdate,linkage,style,viewInit,safeguard,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base,state';
+let enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,updaterSetState,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,state';
 
+//let enableModules='';
 //mobile
-//let enableModules='core,autoEndUpdate,linkage,base,style,viewInit,resource,nodeAttachVframe,magix,event,vframe,body,view,partial,updater,tmpl,updaterSetState,mxViewAttr,layerVframe,state,safeguard';
-//coreModules='magix,event,vframe,body,view,tmpl,updater,hasDefaultView,viewInit,autoEndUpdate';
-//loaderModules='loader,magix,event,vframe';
+//let enableModules='defaultView,autoEndUpdate,linkage,base,style,viewInit,resource,nodeAttachVframe,updater,updaterSetState,mxViewAttr,layerVframe,state';
 
 gulp.task('combine', function() {
 

@@ -1,11 +1,11 @@
 //#exclude(define,before);
-/*!3.5.0 Licensed MIT*/
+/*!3.5.1 Licensed MIT*/
 /*
 author:kooboy_li@163.com
 loader:kissy
-enables:magix,event,vframe,body,view,tmpl,partial,updater,hasDefaultView,autoEndUpdate,linkage,style,viewInit,safeguard,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updaterSetState,viewProtoMixins,base,state
+enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,updaterSetState,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,state
 
-optionals:cnum,ceach,tipLockUrlRouter,edgeRouter,collectView,layerVframe,forceEdgeRouter,serviceCombine,share,mxViewAttr
+optionals:serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,share,mxViewAttr
 */
 /**
  * @fileOverview Magix全局对象
@@ -33,12 +33,27 @@ KISSY.add('magix', function(S, SE, DOM) {
             target: node
         });
     };
-
+    var G_TargetMatchSelector = DOM.test;
+    var G_DOMGlobalProcessor = function(e, d) {
+        d = this;
+        e.eventTarget = d.e;
+        G_ToTry(d.f, e, d.v);
+    };
+    var G_DOMEventLibBind = function(node, type, cb, remove, scope) {
+        if (scope) {
+            SE[(remove ? 'un' : G_EMPTY) + 'delegate'](node, type, cb, scope);
+        } else {
+            SE[remove ? 'detach' : Event_ON](node, type, cb, scope);
+        }
+    };
 
     if (DEBUG) {
     if (window.Proxy) {
         var Safeguard = function(data, allows, getter, setter) {
             var build = function(prefix, o) {
+                if (o['\x1e_sf_\x1e']) {
+                    return o;
+                }
                 return new Proxy(o, {
                     set: function(target, property, value) {
                         if (!setter && (prefix || !G_Has(allows, property))) {
@@ -48,8 +63,12 @@ KISSY.add('magix', function(S, SE, DOM) {
                         if (setter) {
                             setter(prefix + property, value);
                         }
+                        return true;
                     },
                     get: function(target, property) {
+                        if (property == '\x1e_sf_\x1e') {
+                            return true;
+                        }
                         var out = target[property];
                         if (!prefix && getter) {
                             getter(property);
@@ -82,7 +101,9 @@ var G_WINDOW = window;
 var G_DOCUMENT = document;
 var G_DOC = $(G_DOCUMENT);
 var G_HashKey = '#';
+
 var JSONStringify = JSON.stringify;
+
 var G_DOCBODY; //initilize at vframe_root
 /*
     关于spliter
@@ -94,7 +115,6 @@ var G_PROTOTYPE = 'prototype';
 // var Magix_PathRelativeReg = /\/\.(?:\/|$)|\/[^\/]+?\/\.{2}(?:\/|$)|\/\/+|\.{2}\//; // ./|/x/../|(b)///
 // var Magix_PathTrimFileReg = /\/[^\/]*$/;
 // var Magix_ProtocalReg = /^(?:https?:)?\/\//i;
-var Magix_SLASH = '/';
 var Magix_PathTrimParamsReg = /[#?].*$/;
 var Magix_ParamsReg = /([^=&?\/#]+)=?([^&#?]*)/g;
 var Magix_IsParam = /(?!^)=|&/;
@@ -879,6 +899,7 @@ var Event = {
     }
 };
 Magix.Event = Event;
+    
     var State_AppData = {};
 var State_AppDataKeyRef = {};
 var State_ChangedKeys = {};
@@ -971,7 +992,7 @@ var State = G_Mix({
                 var sub = key ? key : path;
                 console.warn('be careful! You direct set "{Magix.State}.' + sub + '" a new value  You should call Magix.State.set() and Magix.State.digest() to notify other views {Magix.State} changed');
                 if (G_IsPrimitive(value) && !/\./.test(sub)) {
-                    console.warn('be careful! Never set a primitive value ' + JSON.stringify(value) + ' to "{Magix.State}.' + sub + '" This may will not trigger changed event');
+                    console.warn('be careful! Never set a primitive value ' + JSON.stringify(value) + ' to "{Magix.State}.' + sub + '" This may will not trigger "changed" event');
                 }
             });
         }
@@ -1039,81 +1060,10 @@ var State = G_Mix({
 }, Event);
 Magix.State = State;
     
-    var Router_Edge;
+    
     var G_IsFunction = S.isFunction;
-    
-    var Win = S.one(G_WINDOW);
-    var Router_Hashbang = G_HashKey + '!';
-    var Router_UpdateHash = function(path, replace) {
-        path = Router_Hashbang + path;
-        if (replace) {
-            Router_WinLoc.replace(path);
-        } else {
-            Router_WinLoc.hash = path;
-        }
-    };
-    var Router_Update = function(path, params, loc, replace, silent, lQuery) {
-        path = G_ToUri(path, params, lQuery);
-        if (path != loc.srcHash) {
-            Router_Silent = silent;
-            Router_UpdateHash(path, replace);
-        }
-    };
-    
-    var Router_Bind = function() {
-        var lastHash = Router_Parse().srcHash;
-        var newHash, suspend;
-        Win.on('hashchange', function(e, resolve) {
-            if (suspend) {
-                
-                return;
-            }
-            newHash = Router_Parse().srcHash;
-            if (newHash != lastHash) {
-                resolve = function() {
-                    e.p = 1;
-                    lastHash = newHash;
-                    suspend = G_EMPTY;
-                    Router_UpdateHash(newHash);
-                    Router_Diff();
-                };
-                e = {
-                    reject: function() {
-                        e.p = 1;
-                        suspend = G_EMPTY;
-                        
-                        Router_UpdateHash(lastHash);
-                        
-                    },
-                    resolve: resolve,
-                    prevent: function() {
-                        suspend = 1;
-                        
-                    }
-                };
-                Router.fire('change', e);
-                if (!suspend && !e.p) {
-                    resolve();
-                }
-            }
-        });
-        G_WINDOW.onbeforeunload = function(e) {
-            e = e || G_WINDOW.event;
-            var te = {};
-            Router.fire('pageunload', te);
-            if (te.msg) {
-                if (e) e.returnValue = te.msg;
-                return te.msg;
-            }
-        };
-        Router_Diff();
-    };
-    
-    
-    
-    
-
-    var Router_PATH = 'path';
+    var Router_SLASH = '/';
+var Router_PATH = 'path';
 var Router_VIEW = 'view';
 var Router_PARAMS = 'params';
 var Router_HrefCache = new G_Cache();
@@ -1132,17 +1082,77 @@ var GetParam = function(key, params) {
     params = this[Router_PARAMS];
     return params[key] || G_EMPTY;
 };
-// var Router_IsParam = function(params, r, ps) {
-//     if (params) {
-//         ps = this[Router_PARAMS];
-//         params = (params + G_EMPTY).split(G_COMMA);
-//         for (var i = 0; i < params.length; i++) {
-//             r = G_Has(ps, params[i]);
-//             if (r) break;
-//         }
-//     }
-//     return r;
-// };
+var Router_Edge;
+
+var Router_Hashbang = G_HashKey + '!';
+var Router_UpdateHash = function(path, replace) {
+    path = Router_Hashbang + path;
+    if (replace) {
+        Router_WinLoc.replace(path);
+    } else {
+        Router_WinLoc.hash = path;
+    }
+};
+var Router_Update = function(path, params, loc, replace, silent, lQuery) {
+    path = G_ToUri(path, params, lQuery);
+    if (path != loc.srcHash) {
+        Router_Silent = silent;
+        Router_UpdateHash(path, replace);
+    }
+};
+
+var Router_Bind = function() {
+    var lastHash = Router_Parse().srcHash;
+    var newHash, suspend;
+    G_DOMEventLibBind(G_WINDOW, 'hashchange', function(e, loc, resolve) {
+        if (suspend) {
+            
+            return;
+        }
+        loc = Router_Parse();
+        newHash = loc.srcHash;
+        if (newHash != lastHash) {
+            resolve = function() {
+                e.p = 1;
+                lastHash = newHash;
+                suspend = G_EMPTY;
+                Router_UpdateHash(newHash);
+                Router_Diff();
+            };
+            e = {
+                reject: function() {
+                    e.p = 1;
+                    suspend = G_EMPTY;
+                    
+                    Router_UpdateHash(lastHash);
+                    
+                },
+                resolve: resolve,
+                prevent: function() {
+                    suspend = 1;
+                    
+                }
+            };
+            Router.fire('change', e);
+            if (!suspend && !e.p) {
+                resolve();
+            }
+        }
+    });
+    G_WINDOW.onbeforeunload = function(e) {
+        e = e || G_WINDOW.event;
+        var te = {};
+        Router.fire('pageunload', te);
+        if (te.msg) {
+            if (e) e.returnValue = te.msg;
+            return te.msg;
+        }
+    };
+    Router_Diff();
+};
+
+
+
 
 var Router_PNR_Routers, Router_PNR_UnmatchView, Router_PNR_IsFun,
     Router_PNR_DefaultView, Router_PNR_DefaultPath;
@@ -1152,7 +1162,7 @@ var Router_AttachViewAndPath = function(loc, view) {
         Router_PNR_Routers = Magix_Cfg.routes || {};
         Router_PNR_UnmatchView = Magix_Cfg.unmatchView;
         Router_PNR_DefaultView = Magix_Cfg.defaultView;
-        Router_PNR_DefaultPath = Magix_Cfg.defaultPath || Magix_SLASH;
+        Router_PNR_DefaultPath = Magix_Cfg.defaultPath || Router_SLASH;
         Router_PNR_IsFun = G_IsFunction(Router_PNR_Routers);
         if (!Router_PNR_IsFun && !Router_PNR_Routers[Router_PNR_DefaultPath]) {
             Router_PNR_Routers[Router_PNR_DefaultPath] = Router_PNR_DefaultView;
@@ -1352,9 +1362,9 @@ var Router = G_Mix({
 }, Event);
 Magix.Router = Router;
     
+    
     var Vframe_RootVframe;
 var Vframe_GlobalAlter;
-var Vframe_MxView = 'mx-view';
 var Vframe_NotifyCreated = function(vframe, mId, p) {
     if (!vframe.$d && !vframe.$h && vframe.$cc == vframe.$rc) { //childrenCount === readyCount
         if (!vframe.$cr) { //childrenCreated
@@ -1792,7 +1802,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             
                 if (!vf.$m) { //防止嵌套的情况下深层的view被反复实例化
                     vf.$m = 1;
-                    vfs.push([id, vf.getAttribute(Vframe_MxView)]);
+                    vfs.push([id, vf.getAttribute('mx-view')]);
                 }
                 
         }
@@ -1957,19 +1967,7 @@ Magix.Vframe = Vframe;
         return returned;
     };
     
-    var Body_TargetMatchSelector = DOM.test;
-    var Body_DOMGlobalProcessor = function(e, d) {
-        d = this;
-        e.eventTarget = d.e;
-        G_ToTry(d.f, e, d.v);
-    };
-    var Body_DOMEventLibBind = function(node, type, cb, remove, scope) {
-        if (scope) {
-            SE[(remove ? 'un' : G_EMPTY) + 'delegate'](node, type, cb, scope);
-        } else {
-            SE[remove ? 'detach' : Event_ON](node, type, cb, scope);
-        }
-    };
+
     /*
     dom event处理思路
 
@@ -1984,7 +1982,6 @@ Magix.Vframe = Vframe;
         }
     3.事件支持嵌套，向上冒泡
  */
-var Body_ParentNode = 'parentNode';
 var Body_MagixPrefix = 'mx-';
 var Body_EvtInfoCache = new G_Cache(30, 10);
 var Body_EvtInfoReg = /(?:([\w\-]+)\u001e)?([^\(]+)\(([\s\S]*)?\)/;
@@ -2023,7 +2020,7 @@ var Body_FindVframeInfo = function(current, eventType) {
         selectorVfId = current.$v; //如果节点有缓存，则使用缓存
         if (!selectorVfId) { //先找最近的vframe
             vfs.push(begin);
-            while (begin != G_DOCBODY && (begin = begin[Body_ParentNode])) { //找最近的vframe,且节点上没有mx-autonomy属性
+            while (begin != G_DOCBODY && (begin = begin.parentNode)) { //找最近的vframe,且节点上没有mx-autonomy属性
                 if ((Vframe_Vframes[tempId = begin.id] || (tempId = begin.$v))) {
                     selectorVfId = tempId;
                     break;
@@ -2044,7 +2041,7 @@ var Body_FindVframeInfo = function(current, eventType) {
                     selectorObject = view.$so;
                     eventSelector = selectorObject[eventType];
                     for (tempId in eventSelector) {
-                        if (Body_TargetMatchSelector(current, tempId)) {
+                        if (G_TargetMatchSelector(current, tempId)) {
                             names.push({
                                 r: tempId,
                                 v: selectorVfId,
@@ -2105,7 +2102,7 @@ var Body_DOMEventProcessor = function(e) {
         } else {
             arr.push(current);
         }
-        current = current[Body_ParentNode] || G_DOCBODY;
+        current = current.parentNode || G_DOCBODY;
         // if (current.id == vId) { //经过vframe时，target为vframe节点
         //     e.target = current;
         // }
@@ -2118,14 +2115,15 @@ var Body_DOMEventProcessor = function(e) {
 var Body_DOMEventBind = function(type, searchSelector, remove) {
     var counter = Body_RootEvents[type] | 0;
     var offset = (remove ? -1 : 1);
-    if (!counter || (remove && counter == 1)) {
-        Body_DOMEventLibBind(G_DOCBODY, type, Body_DOMEventProcessor, remove);
+    if (!counter || remove === counter) { // remove=1  counter=1
+        G_DOMEventLibBind(G_DOCBODY, type, Body_DOMEventProcessor, remove);
     }
     Body_RootEvents[type] = counter + offset;
     if (searchSelector) { //记录需要搜索选择器的事件
         Body_SearchSelectorEvents[type] = (Body_SearchSelectorEvents[type] | 0) + offset;
     }
 };
+    
     var Tmpl_EscapeSlashRegExp = /\\|'/g;
 var Tmpl_EscapeBreakReturnRegExp = /\r|\n/g;
 var Tmpl_Mathcer = /<%([@=!])?([\s\S]+?)%>|$/g;
@@ -2331,58 +2329,7 @@ var Partial_UpdateDOM = function(updater, changedKeys, renderData) {
         view.setHTML(updater.$t, Tmpl(str, renderData));
     }
 };
-    /*
-function observe(o, fn) {
-  function buildProxy(prefix, o) {
-    return new Proxy(o, {
-      set(target, property, value) {
-        // same as before, but add prefix
-        fn(prefix + property, value);
-        target[property] = value;
-      },
-      get(target, property) {
-        // return a new proxy if possible, add to prefix
-        let out = target[property];
-        if (out instanceof Object) {
-          return buildProxy(prefix + property + '.', out);
-        }
-        return out;  // primitive, ignore
-      },
-    });
-  }
-
-  return buildProxy('', o);
-}
-
-function observe(o, fn) {
-  function buildProxy(prefix, o) {
-    return new Proxy(o, {
-      set(target, property, value) {
-        console.log(property,prefix,o);
-        // same as before, but add prefix
-        //fn(prefix + property, value);
-        target[property] = value;
-      },
-      get(target, property) {
-        // return a new proxy if possible, add to prefix
-        let out = target[property];
-        if (target.hasOwnProperty(property)&& out instanceof Object) {
-          return buildProxy(prefix + property + '.', out);
-        }
-        return out;  // primitive, ignore
-      },
-    });
-  }
-
-  return buildProxy('', o);
-}
-
-let x = {'model': {name: 'Falcon'}};
-let p = observe(x, function(property, value) { console.info(property, value) });
-p.model.name = 'Commodore';
-
- */
-/**
+    /**
  * 使用mx-keys进行局部刷新的类
  * @constructor
  * @name Updater
@@ -2553,6 +2500,7 @@ G_Mix(UP, {
         }
     }
 });
+    
     var View_EvtMethodReg = /^(\$?)([^<]+?)<([^>]+)>$/;
 var View_ScopeReg = /\u001f/g;
 var View_SetEventOwner = function(str, id) {
@@ -2617,7 +2565,7 @@ var View_WrapRender = function(prop, fn, me) {
 var View_DelegateEvents = function(me, destroy) {
     var events = me.$eo; //eventsObject
     var selectorObject = me.$so;
-    var p, e, id = me.id;
+    var p, e;
     for (p in events) {
         Body_DOMEventBind(p, selectorObject[p], destroy);
     }
@@ -2625,7 +2573,7 @@ var View_DelegateEvents = function(me, destroy) {
     p = events.length;
     while (p--) {
         e = events[p];
-        Body_DOMEventLibBind(e.e, e.n, Body_DOMGlobalProcessor, destroy, {
+        G_DOMEventLibBind(e.e, e.n, G_DOMGlobalProcessor, destroy, {
             i: me.id,
             v: me,
             f: e.f,
@@ -3041,10 +2989,9 @@ G_Mix(G_Mix(ViewProto, Event), {
      */
     observeLocation: function(params, isObservePath) {
         var me = this,
-            loc, keys;
+            loc;
         loc = me.$l;
         loc.f = 1;
-        keys = loc.k;
         if (G_IsObject(params)) {
             isObservePath = params.path;
             params = params.params;
@@ -3053,13 +3000,13 @@ G_Mix(G_Mix(ViewProto, Event), {
         loc.p = isObservePath;
         //}
         if (params) {
-            loc.k = keys.concat((params + G_EMPTY).split(G_COMMA));
+            loc.k = (params + G_EMPTY).split(G_COMMA);
         }
     },
     
     
     observeState: function(keys) {
-        this.$os = (keys + '').split(',');
+        this.$os = (keys + G_EMPTY).split(G_COMMA);
     },
     
     
@@ -3095,7 +3042,7 @@ G_Mix(G_Mix(ViewProto, Event), {
             };
             cache[key] = wrapObj;
             //service托管检查
-            if (DEBUG && res && res.id.indexOf('\x1es') === 0) {
+            if (DEBUG && res && (res.id + G_EMPTY).indexOf('\x1es') === 0) {
                 res.$c = 1;
                 if (!destroyWhenCallRender) {
                     console.warn('be careful! May be you should set destroyWhenCallRender = true');
@@ -3242,8 +3189,6 @@ Magix.View = View;
     var G_Type = S.type;
     var G_Proxy = S.bind;
     var G_Now = S.now;
-    
-    //!@vars service
     /*
     一个请求send后，应该取消吗？
     参见xmlhttprequest的实现
@@ -3931,32 +3876,44 @@ Service.extend = function(sync, cacheMax, cacheBuffer) {
 };
 Magix.Service = Service;
     
-    var T_Extend = function(props, statics) {
-        var me = this;
-        var ctor = props && props.ctor;
-        var X = function() {
-            var t = this,
-                a = arguments;
-            me.apply(t, a);
-            if (ctor) ctor.apply(t, a);
-        };
-        X.extend = T_Extend;
-        return G_Extend(X, me, props, statics);
-    };
-    G_Mix(G_NOOP[G_PROTOTYPE], Event);
-    G_NOOP.extend = T_Extend;
-    /**
-     * 组件基类
-     * @name Base
-     * @constructor
-     * @borrows Event.fire as #fire
-     * @borrows Event.on as #on
-     * @borrows Event.off as #off
-     * @beta
-     * @module base
-     */
-    Magix.Base = G_NOOP;
     
+var T_Extend = function(props, statics) {
+    var me = this;
+    var ctor = props && props.ctor;
+    var X = function() {
+        var t = this,
+            a = arguments;
+        me.apply(t, a);
+        if (ctor) ctor.apply(t, a);
+    };
+    X.extend = T_Extend;
+    return G_Extend(X, me, props, statics);
+};
+G_Mix(G_NOOP[G_PROTOTYPE], Event);
+G_NOOP.extend = T_Extend;
+/**
+ * 组件基类
+ * @name Base
+ * @constructor
+ * @borrows Event.fire as #fire
+ * @borrows Event.on as #on
+ * @borrows Event.off as #off
+ * @beta
+ * @module base
+ * @example
+ * var T = Magix.Base.extend({
+ *     hi:function(){
+ *         this.fire('hi');
+ *     }
+ * });
+ * var t = new T();
+ * t.onhi=function(e){
+ *     console.log(e);
+ * };
+ * t.hi();
+ */
+Magix.Base = G_NOOP;
+
     
     S.add(MxGlobalView, function() {
         return View.extend(

@@ -62,7 +62,7 @@ var View_WrapRender = function(prop, fn, me) {
 var View_DelegateEvents = function(me, destroy) {
     var events = me.$eo; //eventsObject
     var selectorObject = me.$so;
-    var p, e, id = me.id;
+    var p, e;
     for (p in events) {
         Body_DOMEventBind(p, selectorObject[p], destroy);
     }
@@ -70,7 +70,7 @@ var View_DelegateEvents = function(me, destroy) {
     p = events.length;
     while (p--) {
         e = events[p];
-        Body_DOMEventLibBind(e.e, e.n, Body_DOMGlobalProcessor, destroy, {
+        G_DOMEventLibBind(e.e, e.n, G_DOMGlobalProcessor, destroy, {
             i: me.id,
             v: me,
             f: e.f,
@@ -494,10 +494,9 @@ G_Mix(G_Mix(ViewProto, Event), {
      */
     observeLocation: function(params, isObservePath) {
         var me = this,
-            loc, keys;
+            loc;
         loc = me.$l;
         loc.f = 1;
-        keys = loc.k;
         if (G_IsObject(params)) {
             isObservePath = params.path;
             params = params.params;
@@ -506,13 +505,13 @@ G_Mix(G_Mix(ViewProto, Event), {
         loc.p = isObservePath;
         //}
         if (params) {
-            loc.k = keys.concat((params + G_EMPTY).split(G_COMMA));
+            loc.k = (params + G_EMPTY).split(G_COMMA);
         }
     },
     /*#}#*/
     /*#if(modules.state){#*/
     observeState: function(keys) {
-        this.$os = (keys + '').split(',');
+        this.$os = (keys + G_EMPTY).split(G_COMMA);
     },
     /*#}#*/
     /*#if(modules.resource){#*/
@@ -548,7 +547,7 @@ G_Mix(G_Mix(ViewProto, Event), {
             };
             cache[key] = wrapObj;
             //service托管检查
-            if (DEBUG && res && res.id.indexOf('\x1es') === 0) {
+            if (DEBUG && res && (res.id + G_EMPTY).indexOf('\x1es') === 0) {
                 res.$c = 1;
                 if (!destroyWhenCallRender) {
                     console.warn('be careful! May be you should set destroyWhenCallRender = true');

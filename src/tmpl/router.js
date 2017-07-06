@@ -1,3 +1,4 @@
+var Router_SLASH = '/';
 var Router_PATH = 'path';
 var Router_VIEW = 'view';
 var Router_PARAMS = 'params';
@@ -17,17 +18,180 @@ var GetParam = function(key, params) {
     params = this[Router_PARAMS];
     return params[key] || G_EMPTY;
 };
-// var Router_IsParam = function(params, r, ps) {
-//     if (params) {
-//         ps = this[Router_PARAMS];
-//         params = (params + G_EMPTY).split(G_COMMA);
-//         for (var i = 0; i < params.length; i++) {
-//             r = G_Has(ps, params[i]);
-//             if (r) break;
-//         }
-//     }
-//     return r;
-// };
+var Router_Edge;
+/*#if(!modules.forceEdgeRouter){#*/
+var Router_Hashbang = G_HashKey + '!';
+var Router_UpdateHash = function(path, replace) {
+    path = Router_Hashbang + path;
+    if (replace) {
+        Router_WinLoc.replace(path);
+    } else {
+        Router_WinLoc.hash = path;
+    }
+};
+var Router_Update = function(path, params, loc, replace, silent, lQuery) {
+    path = G_ToUri(path, params, lQuery);
+    if (path != loc.srcHash) {
+        Router_Silent = silent;
+        Router_UpdateHash(path, replace);
+    }
+};
+/*#if(modules.tipRouter){#*/
+var Router_Bind = function() {
+    var lastHash = Router_Parse().srcHash;
+    var newHash, suspend;
+    G_DOMEventLibBind(G_WINDOW, 'hashchange', function(e, loc, resolve) {
+        if (suspend) {
+            /*#if(modules.tipLockUrlRouter){#*/
+            Router_UpdateHash(lastHash);
+            /*#}#*/
+            return;
+        }
+        loc = Router_Parse();
+        newHash = loc.srcHash;
+        if (newHash != lastHash) {
+            resolve = function() {
+                e.p = 1;
+                lastHash = newHash;
+                suspend = G_EMPTY;
+                Router_UpdateHash(newHash);
+                Router_Diff();
+            };
+            e = {
+                reject: function() {
+                    e.p = 1;
+                    suspend = G_EMPTY;
+                    /*#if(!modules.tipLockUrlRouter){#*/
+                    Router_UpdateHash(lastHash);
+                    /*#}#*/
+                },
+                resolve: resolve,
+                prevent: function() {
+                    suspend = 1;
+                    /*#if(modules.tipLockUrlRouter){#*/
+                    Router_UpdateHash(lastHash);
+                    /*#}#*/
+                }
+            };
+            Router.fire('change', e);
+            if (!suspend && !e.p) {
+                resolve();
+            }
+        }
+    });
+    G_WINDOW.onbeforeunload = function(e) {
+        e = e || G_WINDOW.event;
+        var te = {};
+        Router.fire('pageunload', te);
+        if (te.msg) {
+            if (e) e.returnValue = te.msg;
+            return te.msg;
+        }
+    };
+    Router_Diff();
+};
+/*#}else{#*/
+var Router_Bind = function() {
+    G_DOMEventLibBind(G_WINDOW, 'hashchange', Router_Diff);
+    Router_Diff();
+};
+/*#}#*/
+/*#}#*/
+/*#if(modules.edgeRouter||modules.forceEdgeRouter){#*/
+var WinHistory = G_WINDOW.history;
+/*#if(!modules.forceEdgeRouter){#*/
+if (WinHistory.pushState) {
+    /*#}#*/
+    Router_Edge = 1;
+    var Router_DidUpdate;
+    var Router_UpdateState = function(path, replace) {
+        WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
+    };
+    var Router_Popstate;
+    var Router_Update = function(path, params, loc, replace, silent) {
+        path = G_ToUri(path, params);
+        if (path != loc.srcQuery) {
+            Router_Silent = silent;
+            Router_UpdateState(path, replace);
+            if (Router_Popstate) {
+                Router_Popstate(1);
+            } else {
+                Router_Diff();
+            }
+        }
+    };
+    /*#if(modules.tipRouter){#*/
+    var Router_Bind = function() {
+        var initialURL = Router_WinLoc.href;
+        var lastHref = initialURL;
+        var newHref, suspend;
+        G_DOMEventLibBind(G_WINDOW, 'popstate', Router_Popstate = function(f, e, resolve) {
+            newHref = Router_WinLoc.href;
+            var initPop = !Router_DidUpdate && newHref == initialURL;
+            Router_DidUpdate = 1;
+            if (initPop) return;
+            if (suspend) {
+                /*#if(modules.tipLockUrlRouter){#*/
+                Router_UpdateState(lastHref);
+                /*#}#*/
+                return;
+            }
+            if (newHref != lastHref) {
+                resolve = function() {
+                    e.p = 1;
+                    suspend = G_EMPTY;
+                    if (!f) Router_UpdateState(lastHref = newHref);
+                    Router_Diff();
+                };
+                e = {
+                    reject: function() {
+                        suspend = G_EMPTY;
+                        e.p = 1;
+                        /*#if(!modules.tipLockUrlRouter){#*/
+                        Router_UpdateState(lastHref);
+                        /*#}#*/
+                    },
+                    resolve: resolve,
+                    prevent: function() {
+                        suspend = 1;
+                        /*#if(modules.tipLockUrlRouter){#*/
+                        Router_UpdateState(lastHref);
+                        /*#}#*/
+                    }
+                };
+                Router.fire('change', e);
+                if (!suspend && !e.p) {
+                    resolve();
+                }
+            }
+        });
+        G_WINDOW.onbeforeunload = function(e) {
+            e = e || G_WINDOW.event;
+            var te = {};
+            Router.fire('pageunload', te);
+            if (te.msg) {
+                if (e) e.returnValue = te.msg;
+                return te.msg;
+            }
+        };
+        Router_Diff();
+    };
+    /*#}else{#*/
+    var Router_Bind = function() {
+        var initialURL = Router_WinLoc.href;
+        G_DOMEventLibBind(G_WINDOW, 'popstate', function() {
+            var initPop = !Router_DidUpdate && Router_WinLoc.href == initialURL;
+            Router_DidUpdate = 1;
+            if (initPop) return;
+            Router_Diff();
+        });
+        Router_Diff();
+    };
+    /*#}#*/
+    /*#if(!modules.forceEdgeRouter){#*/
+}
+/*#}#*/
+/*#}#*/
 
 var Router_PNR_Routers, Router_PNR_UnmatchView, Router_PNR_IsFun,
     Router_PNR_DefaultView, Router_PNR_DefaultPath;
@@ -37,7 +201,7 @@ var Router_AttachViewAndPath = function(loc, view) {
         Router_PNR_Routers = Magix_Cfg.routes || {};
         Router_PNR_UnmatchView = Magix_Cfg.unmatchView;
         Router_PNR_DefaultView = Magix_Cfg.defaultView;
-        Router_PNR_DefaultPath = Magix_Cfg.defaultPath || Magix_SLASH;
+        Router_PNR_DefaultPath = Magix_Cfg.defaultPath || Router_SLASH;
         Router_PNR_IsFun = G_IsFunction(Router_PNR_Routers);
         if (!Router_PNR_IsFun && !Router_PNR_Routers[Router_PNR_DefaultPath]) {
             Router_PNR_Routers[Router_PNR_DefaultPath] = Router_PNR_DefaultView;
