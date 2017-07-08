@@ -38,20 +38,20 @@ KISSY.add('magix', function(S, SE, DOM) {
         }
     };
 
-    Inc('safeguard');
-    Inc('magix');
-    Inc('event');
+    Inc('../tmpl/safeguard');
+    Inc('../tmpl/magix');
+    Inc('../tmpl/event');
     /*#if(modules.state){#*/
-    Inc('state');
+    Inc('../tmpl/state');
     /*#}#*/
     /*#if(modules.router){#*/
     var G_IsFunction = S.isFunction;
-    Inc('router');
+    Inc('../tmpl/router');
     /*#}#*/
     /*#if(modules.mxViewAttr){#*/
     var G_Trim = S.trim;
     /*#}#*/
-    Inc('vframe');
+    Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe){#*/
     DOM[G_PROTOTYPE].invokeView = function() {
         var vf = this.prop('vframe'),
@@ -63,21 +63,21 @@ KISSY.add('magix', function(S, SE, DOM) {
     };
     /*#}#*/
 
-    Inc('body');
+    Inc('../tmpl/body');
     /*#if(modules.updater){#*/
-    Inc('tmpl');
-    Inc('partial');
-    Inc('updater');
+    Inc('../tmpl/tmpl');
+    Inc('../tmpl/partial');
+    Inc('../tmpl/updater');
     /*#}#*/
-    Inc('view');
+    Inc('../tmpl/view');
 
     /*#if(modules.service){#*/
     var G_Type = S.type;
     var G_Proxy = S.bind;
     var G_Now = S.now;
-    Inc('service');
+    Inc('../tmpl/service');
     /*#}#*/
-    Inc('base');
+    Inc('../tmpl/base');
     /*#if(modules.defaultView){#*/
     S.add(MxGlobalView, function() {
         return View.extend(

@@ -10,22 +10,22 @@ var Tmpl_Compiler = function(text) {
     index = offset + match.length;
 
     if (operate == "@") { //$$[$s]=$$.list1;
-      source += "'\n$s=$i();\n$p+=$s;\n$$[$s]=" + content + ";\n$p+='";
+      source += "'\n$s=$i();$p+=$s;$$[$s]=" + content + ";$p+='";
     } else if (operate == "=") {
-      source += "'+\n(($t=(" + content + "))==null?'':$e($t))+\n'";
+      source += "'+$e(" + content + ")+'";
     } else if (operate == "!") {
-      source += "'+\n(($t=(" + content + "))==null?'':$t)+\n'";
+      source += "'+" + content + "+'";
     } else if (content) {
-      source += "';\n" + content + "\n$p+='";
+      source += "';" + content + "\n$p+='";
     }
     // Adobe VMs need the match returned to produce the correct offset.
     return match;
   });
-  source += "';\n";
+  source += "';";
 
   // If a variable is not specified, place data values in local scope.
   //source = "with($mx){\n" + source + "}\n";
-  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){return (''+v).replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s,$eum={'!':'%21','\\'':'%27','(':'%28',')':'%29','*':'%2A'},$euf=function(m){return $eum[m]},$eur=/[!')(*]/g,$eu=function(v){return encodeURIComponent(v).replace($eur,$euf)};\n" + source + "return $p;\n";
+  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){return (''+v).replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s,$eum={'!':'%21','\\'':'%27','(':'%28',')':'%29','*':'%2A'},$euf=function(m){return $eum[m]},$eur=/[!')(*]/g,$eu=function(v){return encodeURIComponent(v).replace($eur,$euf)},$eqr=/[\\\\'\"]/g,$eq=function(v){return (''+v).replace($eqr,'\\\\$&')};" + source + "return $p";
   /*jshint evil: true*/
   return Function("$g", "$$", source);
 };

@@ -40,7 +40,7 @@ define('magix', ['$'], function(require) {
             fn();
         }
     };
-    Inc('extend');
+    Inc('../tmpl/extend');
     var G_IsObject = $.isPlainObject;
     var G_IsArray = $.isArray;
     var G_HTML = function(node, html) {
@@ -68,20 +68,20 @@ define('magix', ['$'], function(require) {
         }
     };
 
-    Inc('safeguard');
-    Inc('magix');
-    Inc('event');
+    Inc('../tmpl/safeguard');
+    Inc('../tmpl/magix');
+    Inc('../tmpl/event');
     /*#if(modules.state){#*/
-    Inc('state');
+    Inc('../tmpl/state');
     /*#}#*/
     /*#if(modules.router){#*/
     var G_IsFunction = $.isFunction;
-    Inc('router');
+    Inc('../tmpl/router');
     /*#}#*/
     /*#if(modules.mxViewAttr){#*/
     var G_Trim = $.trim;
     /*#}#*/
-    Inc('vframe');
+    Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe){#*/
     $.fn.invokeView = function() {
         var vf = this.prop('vframe'),
@@ -92,20 +92,20 @@ define('magix', ['$'], function(require) {
         return returned;
     };
     /*#}#*/
-    Inc('body');
+    Inc('../tmpl/body');
     /*#if(modules.updater){#*/
-    Inc('tmpl');
-    Inc('partial');
-    Inc('updater');
+    Inc('../tmpl/tmpl');
+    Inc('../tmpl/partial');
+    Inc('../tmpl/updater');
     /*#}#*/
-    Inc('view');
+    Inc('../tmpl/view');
     /*#if(modules.service){#*/
     var G_Type = $.type;
     var G_Proxy = $.proxy;
     var G_Now = $.now || Date.now;
 
-    Inc('service');
+    Inc('../tmpl/service');
     /*#}#*/
-    Inc('base');
+    Inc('../tmpl/base');
     return Magix;
 });

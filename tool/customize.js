@@ -54,7 +54,6 @@ let copyFile = (from, to, callback) => {
     fs.writeFileSync(to, content);
 };
 module.exports = (options) => {
-    let root = __dirname;
     let map = {};
     let others = [];
     let enableModules = options.enableModules;
@@ -74,15 +73,12 @@ module.exports = (options) => {
             others.push(p);
         }
     }
-    let incReg = new RegExp('Inc\\(\'(.+)\'\\);?', 'g');
+    let incReg = /Inc\((['"])(.+)\1\);*/g;
     copyFile(tmplFile, aimFile, function(content) {
-        content = content.replace(incReg, function(match, name) {
-            //if (map[name]) {
-            let file = path.resolve(root, '../src/tmpl/' + name + '.js');
-            //console.log('file', file);
+        let dir = path.dirname(tmplFile);
+        content = content.replace(incReg, function(match, q, name) {
+            let file = path.resolve(dir, name + '.js');
             return fs.readFileSync(file) + '';
-            //}
-            //return '';
         });
         let header = '\/\/#exclude(define,before);\r\n/*!' + pkg.version + ' Licensed MIT*/';
         header += '\r\n/*\r\nauthor:kooboy_li@163.com\r\nloader:' + loaderType;

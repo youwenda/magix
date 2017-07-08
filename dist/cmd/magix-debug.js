@@ -1,5 +1,5 @@
 //#exclude(define,before);
-/*!3.5.1 Licensed MIT*/
+/*!3.5.2 Licensed MIT*/
 /*
 author:kooboy_li@163.com
 loader:cmd
@@ -943,7 +943,8 @@ if (DEBUG) {
     var State_DataWhereSet = {};
 }
 
-var State_IsObserveChanged = function(oKeys, keys, r) {
+var State_IsObserveChanged = function(view, keys, r) {
+    var oKeys = view.$os;
     if (oKeys) {
         for (var i = oKeys.length - 1; i > -1; i--) {
             var ok = oKeys[i];
@@ -1502,7 +1503,7 @@ var Vframe_UpdateTag;
 var Vframe_Update = function(vframe,  stateKeys,  view) {
     if (vframe && vframe.$g != Vframe_UpdateTag && (view = vframe.$v) && view.$s > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
         
-        var isChanged = stateKeys ? State_IsObserveChanged(view.$os, stateKeys) : View_IsObserveChanged(view);
+        var isChanged = stateKeys ? State_IsObserveChanged(view, stateKeys) : View_IsObserveChanged(view);
         
         /**
          * 事件对象
@@ -2169,22 +2170,22 @@ var Tmpl_Compiler = function(text) {
     index = offset + match.length;
 
     if (operate == "@") { //$$[$s]=$$.list1;
-      source += "'\n$s=$i();\n$p+=$s;\n$$[$s]=" + content + ";\n$p+='";
+      source += "'\n$s=$i();$p+=$s;$$[$s]=" + content + ";$p+='";
     } else if (operate == "=") {
-      source += "'+\n(($t=(" + content + "))==null?'':$e($t))+\n'";
+      source += "'+$e(" + content + ")+'";
     } else if (operate == "!") {
-      source += "'+\n(($t=(" + content + "))==null?'':$t)+\n'";
+      source += "'+" + content + "+'";
     } else if (content) {
-      source += "';\n" + content + "\n$p+='";
+      source += "';" + content + "\n$p+='";
     }
     // Adobe VMs need the match returned to produce the correct offset.
     return match;
   });
-  source += "';\n";
+  source += "';";
 
   // If a variable is not specified, place data values in local scope.
   //source = "with($mx){\n" + source + "}\n";
-  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){return (''+v).replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s,$eum={'!':'%21','\\'':'%27','(':'%28',')':'%29','*':'%2A'},$euf=function(m){return $eum[m]},$eur=/[!')(*]/g,$eu=function(v){return encodeURIComponent(v).replace($eur,$euf)};\n" + source + "return $p;\n";
+  source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\\'':'&#x27;','`':'&#x60;'},$er=/[&<>\"'`]/g,$ef=function(m){return $em[m]},$e=function(v){return (''+v).replace($er,$ef)},$i=function(){return '" + G_SPLITER + "'+$g++},$s,$eum={'!':'%21','\\'':'%27','(':'%28',')':'%29','*':'%2A'},$euf=function(m){return $eum[m]},$eur=/[!')(*]/g,$eu=function(v){return encodeURIComponent(v).replace($eur,$euf)},$eqr=/[\\\\'\"]/g,$eq=function(v){return (''+v).replace($eqr,'\\\\$&')};" + source + "return $p";
   /*jshint evil: true*/
   return Function("$g", "$$", source);
 };

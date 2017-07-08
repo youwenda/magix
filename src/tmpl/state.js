@@ -7,7 +7,8 @@ if (DEBUG) {
     var State_DataWhereSet = {};
 }
 /*#}#*/
-var State_IsObserveChanged = function(oKeys, keys, r) {
+var State_IsObserveChanged = function(view, keys, r) {
+    var oKeys = view.$os;
     if (oKeys) {
         for (var i = oKeys.length - 1; i > -1; i--) {
             var ok = oKeys[i];

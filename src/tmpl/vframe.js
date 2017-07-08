@@ -103,9 +103,9 @@ var Vframe_UpdateTag;
 var Vframe_Update = function(vframe, /*#if(modules.state){#*/ stateKeys, /*#}#*/ view) {
     if (vframe && vframe.$g != Vframe_UpdateTag && (view = vframe.$v) && view.$s > 0) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
         /*#if(modules.state&&modules.router){#*/
-        var isChanged = stateKeys ? State_IsObserveChanged(view.$os, stateKeys) : View_IsObserveChanged(view);
+        var isChanged = stateKeys ? State_IsObserveChanged(view, stateKeys) : View_IsObserveChanged(view);
         /*#}else if(modules.state){#*/
-        var isChanged = State_IsObserveChanged(view.$os, stateKeys);
+        var isChanged = State_IsObserveChanged(view, stateKeys);
         /*#}else{#*/
         var isChanged = View_IsObserveChanged(view);
         /*#}#*/
