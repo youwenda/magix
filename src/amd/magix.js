@@ -3,8 +3,11 @@
  */
 define('magix', ['$'], function($) {
     if (typeof DEBUG == 'undefined') DEBUG = true;
-
+    var G_IsObject = $.isPlainObject;
+    var G_IsArray = $.isArray;
     var G_NOOP = function() {};
+    Inc('../tmpl/variable');
+    Inc('../tmpl/cache');
     /*#if(modules.defaultView){#*/
     var G_DefaultView;
     /*#}#*/
@@ -39,8 +42,6 @@ define('magix', ['$'], function($) {
         }
     };
     Inc('../tmpl/extend');
-    var G_IsObject = $.isPlainObject;
-    var G_IsArray = $.isArray;
     var G_HTML = function(node, html) {
         $(node).html(html);
         G_DOC.triggerHandler({
@@ -73,7 +74,7 @@ define('magix', ['$'], function($) {
     Inc('../tmpl/state');
     /*#}#*/
     /*#if(modules.router){#*/
-    var G_IsFunction = $.isFunction;
+    //var G_IsFunction = $.isFunction;
     Inc('../tmpl/router');
     /*#}#*/
     /*#if(modules.mxViewAttr){#*/
@@ -93,6 +94,16 @@ define('magix', ['$'], function($) {
     Inc('../tmpl/body');
     /*#if(modules.updater){#*/
     Inc('../tmpl/tmpl');
+    /*#if(modules.updaterIncrement){#*/
+    Inc('../tmpl/increment');
+    var Updater_Increment = function(node, html) {
+        Increment(node, html);
+        G_DOC.triggerHandler({
+            type: 'htmlchange',
+            target: node
+        });
+    };
+    /*#}#*/
     Inc('../tmpl/partial');
     Inc('../tmpl/updater');
     /*#}#*/

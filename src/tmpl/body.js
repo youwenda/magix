@@ -14,7 +14,23 @@
  */
 var Body_MagixPrefix = 'mx-';
 var Body_EvtInfoCache = new G_Cache(30, 10);
-var Body_EvtInfoReg = /(?:([\w\-]+)\u001e)?([^\(]+)\(([\s\S]*)?\)/;
+/*#if(modules.eventShortCtrl){#*/
+var Body_EvtInfoReg = /(?:([\w\-]+)\x1e)?([^(<]+)(?:<(\w+)>)?\(([\s\S]*)?\)/;
+var WEvent = {
+    prevent: function(e) {
+        e.preventDefault();
+    },
+    stop: function(e) {
+        e.stopPropagation();
+    },
+    halt: function(e) {
+        this.prevent(e);
+        this.stop(e);
+    }
+};
+/*#}else{#*/
+var Body_EvtInfoReg = /(?:([\w\-]+)\x1e)?([^(]+)\(([\s\S]*)?\)/;
+/*#}#*/
 var Body_RootEvents = {};
 var Body_SearchSelectorEvents = {};
 var Body_FindVframeInfo = function(current, eventType) {
@@ -28,22 +44,39 @@ var Body_FindVframeInfo = function(current, eventType) {
         match = Body_EvtInfoCache.get(info);
         if (!match) {
             match = info.match(Body_EvtInfoReg) || G_EMPTY_ARRAY;
+            /*#if(modules.eventShortCtrl){#*/
+            match = {
+                v: match[1],
+                n: match[2],
+                e: match[3],
+                i: match[4]
+            };
+            /*#}else{#*/
             match = {
                 v: match[1],
                 n: match[2],
                 i: match[3]
             };
+            /*#}#*/
             /*jshint evil: true*/
             match.p = match.i && G_ToTry(Function('return ' + match.i));
             Body_EvtInfoCache.set(info, match);
         }
-        names.push(match = {
+        match = {
             r: info,
             //如果事件已经存在处理的vframe或节点上通过mx-owner指定处理的vframe
             v: match.v /*#if(modules.mxViewAttr){#*/ || current.getAttribute('mx-owner') /*#}#*/ ,
             p: match.p,
+            i: match.i,
+            /*#if(modules.eventShortCtrl){#*/
+            e: match.e,
+            /*#}#*/
             n: match.n
-        });
+        };
+        if (DEBUG) {
+            match = Safeguard(match);
+        }
+        names.push(match);
     }
     //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件里
     if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
@@ -68,8 +101,7 @@ var Body_FindVframeInfo = function(current, eventType) {
             /*#}#*/
             do {
                 vf = Vframe_Vframes[selectorVfId];
-                view = vf.$v;
-                if (view) {
+                if (vf && (view = vf.$v)) {
                     selectorObject = view.$so;
                     eventSelector = selectorObject[eventType];
                     for (tempId in eventSelector) {
@@ -101,7 +133,7 @@ var Body_FindVframeInfo = function(current, eventType) {
                     }
                 }
             }
-            while ((selectorVfId = vf.pId));
+            while (vf && (selectorVfId = vf.pId));
         }
     }
     return names;
@@ -116,6 +148,9 @@ var Body_DOMEventProcessor = function(e) {
     var vframe, view, name, fn;
     /*#if(modules.layerVframe){#*/
     var lastVfId;
+    /*#}#*/
+    /*#if(modules.updater){#*/
+    var params;
     /*#}#*/
     while (current != G_DOCBODY && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点,考虑在向上遍历的过程中，节点被删除，所以需要判断nodeType,主要是IE
         names = Body_FindVframeInfo(current, eventType);
@@ -133,14 +168,46 @@ var Body_DOMEventProcessor = function(e) {
                     break;
                 }
                 /*#}#*/
+                /*#if(modules.eventShortCtrl){#*/
+                if (info.e && WEvent[info.e]) {
+                    WEvent[info.e](e);
+                }
+                /*#}#*/
                 vframe = Vframe_Vframes[info.v];
                 view = vframe && vframe.$v;
-                name = info.n + G_SPLITER + eventType;
-                fn = view[name];
-                if (fn) {
-                    e.eventTarget = current;
-                    e.params = info.p || {};
-                    G_ToTry(fn, e, view);
+                if (view) {
+                    name = info.n + G_SPLITER + eventType;
+                    fn = view[name];
+                    if (fn) {
+                        e.eventTarget = current;
+                        /*#if(modules.updater){#*/
+                        params = info.p || {};
+                        if (info.i && info.i.indexOf(G_SPLITER) > 0) {
+                            GSet_Params(view.$u, params, params = {});
+                            if (DEBUG) {
+                                params = Safeguard(params);
+                            }
+                        }
+                        e[G_PARAMS] = params;
+                        /*#}else{#*/
+                        e[G_PARAMS] = info.p || {};
+                        /*#}#*/
+                        G_ToTry(fn, e, view);
+                    }
+                    if (DEBUG) {
+                        if (!fn) { //检测为什么找不到处理函数
+                            if (name.charAt(0) == '\u001f') {
+                                console.error('use view.setHTML　to update ui or use view.wrapEvent to wrap your html');
+                            } else {
+                                console.error('can not find event processor:' + info.n + '<' + eventType + '> from view:' + vframe.path);
+                            }
+                        }
+                    }
+                }
+                if (DEBUG) {
+                    if (!view) {
+                        console.error('can not find vframe:' + info.v);
+                    }
                 }
             }
         }

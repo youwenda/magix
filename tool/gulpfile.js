@@ -8,7 +8,7 @@ let pkg = require('../package.json');
 let customize = require('./customize');
 
 let type = 'cmd,amd,kissy,webpack'; //打包kissy则type='kissy'
-let enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,updaterSetState,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,state';
+let enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,updaterSetState,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,state,updateTitleRouter,urlRewriteRouter';
 
 //let enableModules='';
 //mobile

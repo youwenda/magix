@@ -1,8 +1,8 @@
 /*#if(modules.base){#*/
-var T_Extend = function(props, statics) {
+var T_Extend = function (props, statics) {
     var me = this;
     var ctor = props && props.ctor;
-    var X = function() {
+    var X = function () {
         var t = this,
             a = arguments;
         me.apply(t, a);

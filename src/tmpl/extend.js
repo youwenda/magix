@@ -1,5 +1,5 @@
-var T = function() {};
-var G_Extend = function(ctor, base, props, statics, cProto) {
+var T = function () { };
+var G_Extend = function (ctor, base, props, statics, cProto) {
     //bProto.constructor = base;
     T[G_PROTOTYPE] = base[G_PROTOTYPE];
     cProto = new T();

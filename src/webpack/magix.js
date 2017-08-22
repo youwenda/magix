@@ -1,9 +1,12 @@
 module.exports = (function() {
     if (typeof DEBUG == 'undefined') DEBUG = true;
-
     var $ = require('$');
+    var G_IsObject = $.isPlainObject;
+    var G_IsArray = $.isArray;
     var G_NOOP = function() {};
-    var G_IsFunction = $.isFunction;
+    Inc('../tmpl/variable');
+    Inc('../tmpl/cache');
+    //var G_IsFunction = $.isFunction;
     /*#if(modules.defaultView){#*/
     var coreDefaultView;
     /*#}#*/
@@ -51,8 +54,6 @@ module.exports = (function() {
         checkCount();
     };
     Inc('../tmpl/extend');
-    var G_IsObject = $.isPlainObject;
-    var G_IsArray = $.isArray;
     var G_HTML = function(node, html) {
         $(node).html(html);
         G_DOC.triggerHandler({
@@ -106,6 +107,16 @@ module.exports = (function() {
     Inc('../tmpl/body');
     /*#if(modules.updater){#*/
     Inc('../tmpl/tmpl');
+    /*#if(modules.updaterIncrement){#*/
+    Inc('../tmpl/increment');
+    var Updater_Increment = function(node, html) {
+        Increment(node, html);
+        G_DOC.triggerHandler({
+            type: 'htmlchange',
+            target: node
+        });
+    };
+    /*#}#*/
     Inc('../tmpl/partial');
     Inc('../tmpl/updater');
     /*#}#*/

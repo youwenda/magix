@@ -1,5 +1,5 @@
 var View_EvtMethodReg = /^(\$?)([^<]+?)<([^>]+)>$/;
-var View_ScopeReg = /\u001f/g;
+var View_ScopeReg = /\x1f/g;
 var View_SetEventOwner = function(str, id) {
     return (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
 };
@@ -55,7 +55,11 @@ var View_WrapRender = function(prop, fn, me) {
             /*#if(modules.resource){#*/
             View_DestroyAllResources(me);
             /*#}#*/
+            /*#if(!modules.keepHTML){#*/
             G_ToTry(fn, G_Slice.call(arguments), me);
+            /*#}else{#*/
+            fn.apply(me, G_Slice.call(arguments));
+            /*#}#*/
         }
     };
 };
@@ -92,12 +96,45 @@ var View_Globals = {
  */
 var View_Prepare = function(oView) {
     if (!oView[G_SPLITER]) { //只处理一次
-        oView[G_SPLITER] = 1;
+        oView[G_SPLITER] = /*#if(modules.viewProtoMixins){#*/ [] /*#}else{#*/ 1 /*#}#*/ ;
         var prop = oView[G_PROTOTYPE],
             currentFn, matches, selectorOrCallback, events, eventsObject = {},
             eventsList = [],
             selectorObject = {},
-            node, isSelector, p, item, mask;
+            node, isSelector, p, item, mask /*#if(modules.viewProtoMixins){#*/ , temp = {} /*#}#*/ ;
+
+        /*#if(modules.viewProtoMixins){#*/
+        matches = prop.mixins;
+        item = 0;
+        if (matches) {
+            mask = matches.length;
+            while (item < mask) {
+                node = matches[item++];
+                for (p in node) {
+                    currentFn = node[p];
+                    selectorOrCallback = temp[p];
+                    if (p == 'ctor') {
+                        oView[G_SPLITER].push(currentFn);
+                        continue;
+                    } else if (View_EvtMethodReg.test(p)) {
+                        if (selectorOrCallback) {
+                            currentFn = processMixinsSameEvent(selectorOrCallback, currentFn);
+                        } else {
+                            currentFn.$m = 1;
+                        }
+                    } else if (DEBUG && selectorOrCallback) { //只在开发中提示
+                        Magix_Cfg.error(Error('mixins duplicate:' + p));
+                    }
+                    temp[p] = currentFn;
+                }
+            }
+            for (p in temp) {
+                if (!G_Has(prop, p)) {
+                    prop[p] = temp[p];
+                }
+            }
+        }
+        /*#}#*/
         for (p in prop) {
             currentFn = prop[p];
             matches = p.match(View_EvtMethodReg);
@@ -153,6 +190,9 @@ var View_Prepare = function(oView) {
         prop.$so = selectorObject;
         prop.$t = !!prop.tmpl;
     }
+    /*#if(modules.viewProtoMixins){#*/
+    return oView[G_SPLITER];
+    /*#}#*/
 };
 /*#if(modules.router){#*/
 var View_IsParamsChanged = function(params, ps, r) {
@@ -170,7 +210,7 @@ var View_IsObserveChanged = function(view) {
             res = Router_LastChanged[Router_PATH];
         }
         if (!res) {
-            res = View_IsParamsChanged(loc.k, Router_LastChanged[Router_PARAMS]);
+            res = View_IsParamsChanged(loc.k, Router_LastChanged[G_PARAMS]);
         }
         // if (res && loc.c) {
         //     loc.c.call(view);
@@ -230,7 +270,7 @@ var View = function(ops, me) {
     /*#}#*/
     me.$s = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     /*#if(modules.updater){#*/
-    me.updater = new Updater(me.id);
+    me.updater = me.$u = new Updater(me.id);
     /*#}#*/
     /*#if(modules.viewMerge){#*/
     G_ToTry(View_Ctors, ops, me);
@@ -315,46 +355,14 @@ G_Mix(View, {
         var ctors = [];
         if (ctor) ctors.push(ctor);
         /*#}#*/
-        var NView = function(a, b) {
+        var NView = function(a, b /*#if(modules.viewProtoMixins){#*/ , c /*#}#*/ ) {
             me.call(this, a, b);
             /*#if(modules.viewProtoMixins){#*/
-            G_ToTry(ctors, b, this);
+            G_ToTry(ctors.concat(c), b, this);
             /*#}else{#*/
             if (ctor) ctor.call(this, b);
             /*#}#*/
         };
-        /*#if(modules.viewProtoMixins){#*/
-        var mixins = props.mixins;
-        if (mixins) {
-            var c = mixins.length,
-                i = 0,
-                o, temp = {},
-                p, val, old;
-            while (i < c) {
-                o = mixins[i++];
-                for (p in o) {
-                    val = o[p];
-                    old = temp[p];
-                    if (p == 'ctor') {
-                        ctors.push(val);
-                    } else if (View_EvtMethodReg.test(p)) {
-                        if (old) {
-                            val = processMixinsSameEvent(old, val);
-                        } else {
-                            val.$m = 1;
-                        }
-                        temp[p] = val;
-                    } else if (DEBUG && old) { //只在开发中提示
-                        Magix_Cfg.error(Error('mixins duplicate:' + p));
-                    } else {
-                        temp[p] = val;
-                    }
-                }
-            }
-
-            props = G_Mix(temp, props);
-        }
-        /*#}#*/
         NView.extend = me.extend;
         return G_Extend(NView, me, props, statics);
     }
@@ -499,7 +507,7 @@ G_Mix(G_Mix(ViewProto, Event), {
         loc.f = 1;
         if (G_IsObject(params)) {
             isObservePath = params.path;
-            params = params.params;
+            params = params[G_PARAMS];
         }
         //if (isObservePath) {
         loc.p = isObservePath;
@@ -510,6 +518,10 @@ G_Mix(G_Mix(ViewProto, Event), {
     },
     /*#}#*/
     /*#if(modules.state){#*/
+    /**
+     * 监视Magix.State中的数据变化
+     * @param  {String|Array} keys 数据对象的key
+     */
     observeState: function(keys) {
         this.$os = (keys + G_EMPTY).split(G_COMMA);
     },
@@ -550,7 +562,7 @@ G_Mix(G_Mix(ViewProto, Event), {
             if (DEBUG && res && (res.id + G_EMPTY).indexOf('\x1es') === 0) {
                 res.$c = 1;
                 if (!destroyWhenCallRender) {
-                    console.warn('be careful! May be you should set destroyWhenCallRender = true');
+                    console.warn('beware! May be you should set destroyWhenCallRender = true');
                 }
             }
         } else {

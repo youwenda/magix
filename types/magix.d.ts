@@ -144,7 +144,7 @@ declare module "magix" {
          * 把结果渲染到某个节点上，默认是当前view所在的节点
          * @param id dom节点id
          */
-        to(id: string): this
+        to(id: string): void
 
         /**
          * 获取设置的数据，当key未传递时，返回整个数据对象
@@ -155,7 +155,7 @@ declare module "magix" {
          * 设置数据
          * @param data 数据对象，如{a:20,b:30}
          */
-        set(data?: { [key: string]: any }): this
+        set(data?: { [key: string]: any }): void
 
         /**
          * 通过path获取值，path形如"data.list.2.name"字符串
@@ -167,12 +167,12 @@ declare module "magix" {
          * 检测数据变化，更新界面，放入数据后需要显式调用该方法才可以把数据更新到界面
          * @param data 数据对象，如{a:20,b:30}
          */
-        digest(data?: { [key: string]: any }): this
+        digest(data?: { [key: string]: any }): void
 
         /**
          * 获取当前数据状态的快照，配合altered方法可获得数据是否有变化
          */
-        snapshot(): this
+        snapshot(): void
 
         /**
          * 检测数据是否有变动
@@ -233,12 +233,6 @@ declare module "magix" {
          * @param data 数据对象
          */
         set(data: object): this
-
-        /**
-         * Magix.State中是否包含指定的key的数据
-         * @param key 数据key
-         */
-        has(key: string): boolean
         /**
          * 清理Magix.State中的数据，只能在view的mixins中使用，如 mixins:[Magix.State.clean("a,b")]
          * @param keys 逗号分割的字符串
@@ -385,14 +379,17 @@ declare module "magix" {
          * @param path 路径字符串
          * @param params 参数对象
          * @param replace 是否替换当前的历史记录
+         * @param silent 是否是静默更新，不触发change事件
          */
-        to(path: string, params: object, replace?: boolean): void
+        to(path: string, params: object, replace?: boolean, silent?: boolean): void
 
         /**
          * 导航到新的地址
          * @param params 参数对象
+         * @param replace 是否替换当前的历史记录
+         * @param silent 是否是静默更新，不触发change事件
          */
-        to(params: object): void
+        to(params: object, empty?: any, replace?: boolean, silent?: boolean): void
 
         /**
          * 绑定事件
@@ -879,11 +876,6 @@ declare module "magix" {
          */
         observeState(keys: string): void
         /**
-         * 监听地址栏的改变，如"/app/path?page=1&size=20"，其中"/app/path"为path,"page,size"为参数
-         * @param options 监听地址栏的对象，监听参数用params表示，监听path用path表示，如 {path:true,params:["page","size"]}
-         */
-        observe(options: IViewObserveUrl): void
-        /**
          * 包装mx-event事件，比如把mx-click="test({key:'field'})" 包装成 mx-click="magix_vf_root^test({key:'field})"，以方便识别交由哪个view处理
          * @param tmpl 模板字符串
          */
@@ -933,7 +925,70 @@ declare module "magix" {
          * @param hasChanged 是否显示提示消息的方法，返回true表示需要提示用户
          */
         leaveTip(msg: string, hasChanged: () => boolean): void
+        /**
+         * 获取数据，this.updater.get的快捷方式
+         * @param key 获取数据的key，如果未提供侧返回整个数据对象
+         */
+        getData(key?: string): any
+        /**
+         * 设置数据，this.updater.set的快捷方式
+         * @param data 数据对象
+         */
+        setData(data: object): void
+        /**
+         * 整理数据并更新界面，this.updater.digest的快捷方式
+         * @param data 数据对象
+         */
+        digestData(data?: object): void
+        /**
+         * 当前数据的快照，this.updater.snapshot的快捷方式
+         */
+        snapshotData(): void
+        /**
+         * 获取当前数据相比于上一次的snapshotData时是否有修改，this.updater.altered的快捷方式
+         */
+        dataAltered(): boolean
 
+        /**
+         * 获取状态数据，Magix.State.get的快捷方式
+         * @param key 获取数据的key，如果未提供由是整个state数据对象
+         */
+        getState(key?: string): any
+
+        /**
+         * 设置state数据，Magix.State.set的快捷方式
+         * @param data 数据对象
+         */
+        setState(data: object): void
+        /**
+         * 整理state数据，如果有变化则触发change事件，Magix.State.digest的快捷方式
+         * @param data 数据对象
+         */
+        digestState(data?: object): void
+
+        /**
+         * 获取location对象，Magix.Router.parse的快捷方式
+         * @param href 可选的url字符串
+         */
+        getLocation(href?: string): IRouterParse
+
+        /**
+         * 导航到新的地址，Magix.Router.to的快捷方式
+         * @param path 路径字符串
+         * @param params 参数对象
+         * @param replace 是否替换当前的历史记录
+         * @param silent 是否是静默更新，不触发change事件
+         */
+        toLocation(path: string, params: object, replace?: boolean, silent?: boolean): void
+
+        /**
+         * 导航到新的地址，Magix.Router.to的快捷方式
+         * @param params 参数对象
+         * @param empty 任意为空的对象，如'',0,null等
+         * @param replace 是否替换当前的历史记录
+         * @param silent 是否是静默更新，不触发change事件
+         */
+        toLocation(params: object, empty?: any, replace?: boolean, silent?: boolean): void
         /**
          * 绑定事件
          * @param name 事件名称

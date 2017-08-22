@@ -15,7 +15,7 @@ var Event = {
      * @param {Boolean} [remove] 事件触发完成后是否移除这个事件的所有监听
      * @param {Boolean} [lastToFirst] 是否从后向前触发事件的监听列表
      */
-    fire: function(name, data, remove, lastToFirst) {
+    fire: function (name, data, remove, lastToFirst) {
         var key = G_SPLITER + name,
             me = this,
             list = me[key],
@@ -59,7 +59,7 @@ var Event = {
      * T.fire('done',{data:'test'});
      * T.fire('done',{data:'test2'});
      */
-    on: function(name, fn) {
+    on: function (name, fn) {
         var me = this;
         var key = G_SPLITER + name;
         var list = me[key] || (me[key] = []);
@@ -72,7 +72,7 @@ var Event = {
      * @param {String} name 事件名称
      * @param {Function} [fn] 事件处理函数
      */
-    off: function(name, fn) {
+    off: function (name, fn) {
         var key = G_SPLITER + name,
             me = this,
             list = me[key],

@@ -7,8 +7,12 @@ if (DEBUG) {
                 }
                 return new Proxy(o, {
                     set: function(target, property, value) {
-                        if (!setter && (prefix || !G_Has(allows, property))) {
-                            throw new Error('avoid writeback for:' + prefix + property + ' value:' + value + ' more info: https://github.com/thx/magix/issues/38');
+                        if (!setter &&
+                            !G_Has(allows, property) &&
+                            (!prefix || !G_Has(allows, prefix.slice(0, -1)))) {
+                            setTimeout(function() {
+                                throw new Error('avoid writeback,key: ' + prefix + property + ' value:' + value + ' more info: https://github.com/thx/magix/issues/38');
+                            }, 0);
                         }
                         target[property] = value;
                         if (setter) {

@@ -8,6 +8,7 @@ let modules = {
     style: 1, //是否有样式处理
 
     updater: 1, //自动更新
+    updaterIncrement: 1, //增量更新
     updaterSetState: 1, //updater是否由用户指定更新。即用户指定什么就更新什么，不管值有没有改变
 
     service: 1, //接口服务
@@ -18,6 +19,8 @@ let modules = {
     tipLockUrlRouter: 1, //锁定url功能
     edgeRouter: 1, //使用pushState
     forceEdgeRouter: 1, //强制使用pushState
+    urlRewriteRouter: 1, //url重写
+    updateTitleRouter: 1, //支持更新document.title
 
     state: 1, //状态
     cnum: 1, //Cache num
@@ -35,7 +38,9 @@ let modules = {
     configIni: 1, //是否有ini配置文件
     nodeAttachVframe: 1, //节点上挂vframe对象
     mxViewAttr: 1, //支持服务端直出
-    viewMerge: 1 //view是否提供merge方法供扩展原型链对象
+    viewMerge: 1, //view是否提供merge方法供扩展原型链对象
+    keepHTML: 1, //保留html
+    eventShortCtrl: 1 //是否提供事件的简洁处理，如mx-click="noGo<prevent>()";
 };
 
 let copyFile = (from, to, callback) => {

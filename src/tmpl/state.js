@@ -7,10 +7,10 @@ if (DEBUG) {
     var State_DataWhereSet = {};
 }
 /*#}#*/
-var State_IsObserveChanged = function(view, keys, r) {
+var State_IsObserveChanged = function (view, keys, r) {
     var oKeys = view.$os;
     if (oKeys) {
-        for (var i = oKeys.length - 1; i > -1; i--) {
+        for (var i = oKeys.length; i--;) {
             var ok = oKeys[i];
             r = G_Has(keys, ok);
             if (r) break;
@@ -18,8 +18,8 @@ var State_IsObserveChanged = function(view, keys, r) {
     }
     return r;
 };
-var SetupKeysRef = function(keys) {
-    keys = (keys + '').split(',');
+var SetupKeysRef = function (keys) {
+    keys = (keys + G_EMPTY).split(',');
     for (var i = 0, key; i < keys.length; i++) {
         key = keys[i];
         if (G_Has(State_AppDataKeyRef, key)) {
@@ -30,7 +30,7 @@ var SetupKeysRef = function(keys) {
     }
     return keys;
 };
-var TeardownKeysRef = function(keys) {
+var TeardownKeysRef = function (keys) {
     for (var i = 0, key, v; i < keys.length; i++) {
         key = keys[i];
         if (G_Has(State_AppDataKeyRef, key)) {
@@ -49,9 +49,9 @@ var TeardownKeysRef = function(keys) {
 };
 /*#if(modules.router){#*/
 if (DEBUG) {
-    setTimeout(function() {
-        Router.on('changed', function() {
-            setTimeout(function() {
+    setTimeout(function () {
+        Router.on('changed', function () {
+            setTimeout(function () {
                 var keys = [];
                 var cls = [];
                 for (var p in State_DataWhereSet) {
@@ -61,7 +61,7 @@ if (DEBUG) {
                     }
                 }
                 if (keys.length) {
-                    console.warn('be careful! Remember to clean ' + keys + ' in {Magix.State}   Clean use view.mixins like mixins:[Magix.State.clean("' + cls + '")]');
+                    console.warn('beware! Remember to clean ' + keys + ' in {Magix.State}   Clean use view.mixins like mixins:[Magix.State.clean("' + cls + '")]');
                 }
             }, 200);
         });
@@ -69,35 +69,35 @@ if (DEBUG) {
 }
 /*#}#*/
 var State = G_Mix({
-    get: function(key) {
+    get: function (key) {
         var r = key ? State_AppData[key] : State_AppData;
         if (DEBUG) {
             /*#if(modules.router){#*/
             if (key) {
                 var loc = Router.parse();
                 if (G_Has(State_DataWhereSet, key) && State_DataWhereSet[key] != loc.path) {
-                    console.warn('be careful! You get state:"{Magix.State}.' + key + '" where it set by page:' + State_DataWhereSet[key]);
+                    console.warn('beware! You get state:"{Magix.State}.' + key + '" where it set by page:' + State_DataWhereSet[key]);
                 }
             }
             /*#}#*/
-            r = Safeguard(r, null, function(dataKey) {
+            r = Safeguard(r, null, function (dataKey) {
                 /*#if(modules.router){#*/
                 var loc = Router.parse();
                 if (G_Has(State_DataWhereSet, dataKey) && State_DataWhereSet[dataKey] != loc.path) {
-                    console.warn('be careful! You get state:"{Magix.State}.' + dataKey + '" where it set by page:' + State_DataWhereSet[dataKey]);
+                    console.warn('beware! You get state:"{Magix.State}.' + dataKey + '" where it set by page:' + State_DataWhereSet[dataKey]);
                 }
                 /*#}#*/
-            }, function(path, value) {
+            }, function (path, value) {
                 var sub = key ? key : path;
-                console.warn('be careful! You direct set "{Magix.State}.' + sub + '" a new value  You should call Magix.State.set() and Magix.State.digest() to notify other views {Magix.State} changed');
+                console.warn('beware! You direct set "{Magix.State}.' + sub + '" a new value  You should call Magix.State.set() and Magix.State.digest() to notify other views {Magix.State} changed');
                 if (G_IsPrimitive(value) && !/\./.test(sub)) {
-                    console.warn('be careful! Never set a primitive value ' + JSON.stringify(value) + ' to "{Magix.State}.' + sub + '" This may will not trigger "changed" event');
+                    console.warn('beware! Never set a primitive value ' + JSON.stringify(value) + ' to "{Magix.State}.' + sub + '" This may will not trigger "changed" event');
                 }
             });
         }
         return r;
     },
-    set: function(data) {
+    set: function (data) {
         State_DataIsChanged = G_Set(data, State_AppData, State_ChangedKeys) || State_DataIsChanged;
         /*#if(modules.router){#*/
         if (DEBUG) {
@@ -109,10 +109,7 @@ var State = G_Mix({
         /*#}#*/
         return this;
     },
-    has: function(key) {
-        return G_Has(State_AppData, key);
-    },
-    digest: function(data) {
+    digest: function (data) {
         if (data) {
             State.set(data);
         }
@@ -124,10 +121,10 @@ var State = G_Mix({
             State_ChangedKeys = {};
         }
     },
-    clean: function(keys) {
+    clean: function (keys) {
         if (DEBUG) {
             var called = false;
-            setTimeout(function() {
+            setTimeout(function () {
                 if (!called) {
                     throw new Error('Magix.State.clean only used in View.mixins like mixins:[Magix.State.clean("p1,p2,p3")]');
                 }
@@ -136,21 +133,21 @@ var State = G_Mix({
         if (DEBUG) {
             return {
                 '\x1e': keys,
-                ctor: function() {
+                ctor: function () {
                     var me = this;
                     called = true;
                     keys = SetupKeysRef(keys);
-                    me.on('destroy', function() {
+                    me.on('destroy', function () {
                         TeardownKeysRef(keys);
                     });
                 }
             };
         }
         return {
-            ctor: function() {
+            ctor: function () {
                 var me = this;
                 keys = SetupKeysRef(keys);
-                me.on('destroy', function() {
+                me.on('destroy', function () {
                     TeardownKeysRef(keys);
                 });
             }

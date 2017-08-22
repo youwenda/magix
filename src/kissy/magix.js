@@ -8,6 +8,10 @@ KISSY.add('magix', function(S, SE, DOM) {
 
     var G_NOOP = S.noop;
     var $ = S.all;
+    var G_IsObject = S.isObject;
+    var G_IsArray = S.isArray;
+    Inc('../tmpl/variable');
+    Inc('../tmpl/cache');
     var G_Require = function(name, fn) {
         S.use(name && (name + G_EMPTY), function(S) {
             if (fn) {
@@ -16,8 +20,6 @@ KISSY.add('magix', function(S, SE, DOM) {
         });
     };
     var G_Extend = S.extend;
-    var G_IsObject = S.isObject;
-    var G_IsArray = S.isArray;
     var G_HTML = function(node, html) {
         S.one(node).html(html);
         G_DOC.fireHandler('htmlchange', {
@@ -45,7 +47,7 @@ KISSY.add('magix', function(S, SE, DOM) {
     Inc('../tmpl/state');
     /*#}#*/
     /*#if(modules.router){#*/
-    var G_IsFunction = S.isFunction;
+    //var G_IsFunction = S.isFunction;
     Inc('../tmpl/router');
     /*#}#*/
     /*#if(modules.mxViewAttr){#*/
@@ -66,6 +68,15 @@ KISSY.add('magix', function(S, SE, DOM) {
     Inc('../tmpl/body');
     /*#if(modules.updater){#*/
     Inc('../tmpl/tmpl');
+    /*#if(modules.updaterIncrement){#*/
+    Inc('../tmpl/increment');
+    var Updater_Increment = function(node, html) {
+        Increment(node, html);
+        G_DOC.fireHandler('htmlchange', {
+            target: node
+        });
+    };
+    /*#}#*/
     Inc('../tmpl/partial');
     Inc('../tmpl/updater');
     /*#}#*/

@@ -6,13 +6,14 @@
  * @beta
  * @module updater
  * @param {String} viewId Magix.View对象Id
- * @property {Object} $data 存放数据的对象
  */
 var Updater = function(viewId) {
     var me = this;
     me.$i = viewId;
     me.$t = viewId;
-    me.$data = {};
+    me.$data = {
+        '\x1e': 1
+    };
     /*#if(modules.updaterSetState){#*/
     me.$keys = {};
     /*#}else{#*/

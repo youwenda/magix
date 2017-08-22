@@ -75,7 +75,7 @@ G_Mix(Bag[G_PROTOTYPE], {
      */
     get: function(key, dValue, udfd) {
         var me = this;
-        var alen = arguments.length;
+        //var alen = arguments.length;
         /*
             目前只处理了key中不包含.的情况，如果key中包含.则下面的简单的通过split('.')的方案就不行了，需要改为：
 
@@ -91,10 +91,10 @@ G_Mix(Bag[G_PROTOTYPE], {
 
             或者key本身就是数组
          */
-        var hasDValue = alen >= 2;
+        var hasDValue = dValue != udfd;
         var $attrs = me.$;
         var attrs = $attrs;
-        if (alen) {
+        if (key) {
             var tks = G_IsArray(key) ? G_Slice.call(key) : (key + G_EMPTY).split('.'),
                 tk;
             while ((tk = tks.shift()) && attrs) {
@@ -111,7 +111,7 @@ G_Mix(Bag[G_PROTOTYPE], {
             }
             attrs = dValue;
         }
-        if (DEBUG) {
+        if (DEBUG && me.$m && me.$m.k) { //缓存中的接口不让修改数据
             attrs = Safeguard(attrs);
         }
         return attrs;
@@ -314,7 +314,7 @@ var Service = function() {
         me.id = G_Id('\x1es');
         setTimeout(function() {
             if (!me.$c) {
-                console.warn('be careful! You should use view.capture to connect Service and View');
+                console.warn('beware! You should use view.capture to connect Service and View');
             }
         }, 1000);
     }
@@ -517,7 +517,7 @@ var Service_Manager = G_Mix({
         if (!G_IsArray(attrs)) {
             attrs = [attrs];
         }
-        for (var i = attrs.length - 1, bag, name; i > -1; i--) {
+        for (var i = attrs.length, bag, name; i--;) {
             bag = attrs[i];
             if (bag) {
                 name = bag.name;
