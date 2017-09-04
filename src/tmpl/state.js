@@ -7,7 +7,7 @@ if (DEBUG) {
     var State_DataWhereSet = {};
 }
 /*#}#*/
-var State_IsObserveChanged = function (view, keys, r) {
+var State_IsObserveChanged = function(view, keys, r) {
     var oKeys = view.$os;
     if (oKeys) {
         for (var i = oKeys.length; i--;) {
@@ -18,7 +18,7 @@ var State_IsObserveChanged = function (view, keys, r) {
     }
     return r;
 };
-var SetupKeysRef = function (keys) {
+var SetupKeysRef = function(keys) {
     keys = (keys + G_EMPTY).split(',');
     for (var i = 0, key; i < keys.length; i++) {
         key = keys[i];
@@ -30,7 +30,7 @@ var SetupKeysRef = function (keys) {
     }
     return keys;
 };
-var TeardownKeysRef = function (keys) {
+var TeardownKeysRef = function(keys) {
     for (var i = 0, key, v; i < keys.length; i++) {
         key = keys[i];
         if (G_Has(State_AppDataKeyRef, key)) {
@@ -49,9 +49,9 @@ var TeardownKeysRef = function (keys) {
 };
 /*#if(modules.router){#*/
 if (DEBUG) {
-    setTimeout(function () {
-        Router.on('changed', function () {
-            setTimeout(function () {
+    setTimeout(function() {
+        Router.on('changed', function() {
+            setTimeout(function() {
                 var keys = [];
                 var cls = [];
                 for (var p in State_DataWhereSet) {
@@ -68,8 +68,26 @@ if (DEBUG) {
     }, 0);
 }
 /*#}#*/
+/**
+ * 可观察的内存数据对象
+ * @name State
+ * @namespace
+ * @borrows Event.on as on
+ * @borrows Event.fire as fire
+ * @borrows Event.off as off
+ * @beta
+ * @module router
+ */
 var State = G_Mix({
-    get: function (key) {
+    /**
+     * @lends State
+     */
+    /**
+     * 从Magix.State中获取数据
+     * @param {String} [key] 数据key
+     * @return {Object}
+     */
+    get: function(key) {
         var r = key ? State_AppData[key] : State_AppData;
         if (DEBUG) {
             /*#if(modules.router){#*/
@@ -80,14 +98,14 @@ var State = G_Mix({
                 }
             }
             /*#}#*/
-            r = Safeguard(r, null, function (dataKey) {
+            r = Safeguard(r, null, function(dataKey) {
                 /*#if(modules.router){#*/
                 var loc = Router.parse();
                 if (G_Has(State_DataWhereSet, dataKey) && State_DataWhereSet[dataKey] != loc.path) {
                     console.warn('beware! You get state:"{Magix.State}.' + dataKey + '" where it set by page:' + State_DataWhereSet[dataKey]);
                 }
                 /*#}#*/
-            }, function (path, value) {
+            }, function(path, value) {
                 var sub = key ? key : path;
                 console.warn('beware! You direct set "{Magix.State}.' + sub + '" a new value  You should call Magix.State.set() and Magix.State.digest() to notify other views {Magix.State} changed');
                 if (G_IsPrimitive(value) && !/\./.test(sub)) {
@@ -97,7 +115,11 @@ var State = G_Mix({
         }
         return r;
     },
-    set: function (data) {
+    /**
+     * 设置数据
+     * @param {Object} data 数据对象
+     */
+    set: function(data) {
         State_DataIsChanged = G_Set(data, State_AppData, State_ChangedKeys) || State_DataIsChanged;
         /*#if(modules.router){#*/
         if (DEBUG) {
@@ -109,7 +131,11 @@ var State = G_Mix({
         /*#}#*/
         return this;
     },
-    digest: function (data) {
+    /**
+     * 检测数据变化，如果有变化则派发changed事件
+     * @param  {Object} data 数据对象
+     */
+    digest: function(data) {
         if (data) {
             State.set(data);
         }
@@ -121,10 +147,14 @@ var State = G_Mix({
             State_ChangedKeys = {};
         }
     },
-    clean: function (keys) {
+    /**
+     * 清除数据，该方法需要与view绑定，写在view的mixins中，如mixins:[Magix.Sate.clean('user,permission')]
+     * @param  {String} keys 数据key
+     */
+    clean: function(keys) {
         if (DEBUG) {
             var called = false;
-            setTimeout(function () {
+            setTimeout(function() {
                 if (!called) {
                     throw new Error('Magix.State.clean only used in View.mixins like mixins:[Magix.State.clean("p1,p2,p3")]');
                 }
@@ -133,25 +163,32 @@ var State = G_Mix({
         if (DEBUG) {
             return {
                 '\x1e': keys,
-                ctor: function () {
+                ctor: function() {
                     var me = this;
                     called = true;
                     keys = SetupKeysRef(keys);
-                    me.on('destroy', function () {
+                    me.on('destroy', function() {
                         TeardownKeysRef(keys);
                     });
                 }
             };
         }
         return {
-            ctor: function () {
+            ctor: function() {
                 var me = this;
                 keys = SetupKeysRef(keys);
-                me.on('destroy', function () {
+                me.on('destroy', function() {
                     TeardownKeysRef(keys);
                 });
             }
         };
     }
+    /**
+     * 当State中的数据有改变化后触发
+     * @name State.changed
+     * @event
+     * @param {Object} e 事件对象
+     * @param {Object} e.keys  包含哪些数据变化的key集合
+     */
 }, Event);
 Magix.State = State;

@@ -275,7 +275,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             parent = parent && parent.$v;
             parent = parent && parent.$u;
             if (parent && viewPath.indexOf(G_SPLITER) > 0) {
-                GSet_Params(parent, params, params);
+                GSet_Params(parent, params, params, node);
             }
             /*#if(modules.mxViewAttr){#*/
             var attrs = node.attributes;
@@ -357,7 +357,8 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
     unmountView: function( /*keepPreHTML*/ ) {
         var me = this;
         var view = me.$v,
-            node, reset;
+            node, reset,
+            vfId = me.id;
         /*#if(modules.linkage){#*/
         me.$il = []; //invokeList 销毁当前view时，连同调用列表一起销毁
         /*#}#*/
@@ -365,7 +366,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             if (!Vframe_GlobalAlter) {
                 reset = 1;
                 Vframe_GlobalAlter = {
-                    id: me.id
+                    id: vfId
                 };
             }
             me.$d = 1; //用于标记当前vframe处于view销毁状态，在当前vframe上再调用unmountZone时不派发created事件
@@ -383,10 +384,10 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             }
             view.$s--;
             view.owner = G_NULL;
-            node = G_GetById(me.id);
+            node = G_GetById(vfId);
             if (node && me.$a /*&&!keepPreHTML*/ ) { //如果view本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且view有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即view安装前什么样，销毁后把节点恢复到安装前的情况
                 /*#if(!modules.keepHTML){#*/
-                G_HTML(node, me.$t);
+                G_HTML(node, me.$t, vfId);
                 /*#}#*/
             }
 
@@ -607,7 +608,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
         } else {
             o = list[key = G_SPLITER + name];
             if (o) {
-                o.r = args == o.a; //参数一样，则忽略上次的
+                o.r = args === o.a; //参数一样，则忽略上次的
             }
             o = {
                 n: name,

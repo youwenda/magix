@@ -112,11 +112,21 @@ var G_Has = function(owner, prop) {
     return owner && Magix_HasProp.call(owner, prop); //false 0 G_NULL '' undefined
 };
 /*#if(modules.updater){#*/
-var GSet_Params = function(updater, oldParams, newParams) {
+var hyphenateRE = /(?=[^-])([A-Z])/g;
+var hyphenate = function(str) {
+    return str
+        .replace(hyphenateRE, '-$1')
+        .toLowerCase();
+};
+var GSet_Params = function(updater, oldParams, newParams, node) {
     var p, val;
     for (p in oldParams) {
         val = oldParams[p];
-        newParams[p] = (val + G_EMPTY).charAt(0) == G_SPLITER ? updater.get(val) : val;
+        if (node && node.getAttribute('view-' + hyphenate(p)) === G_NULL) {
+            delete newParams[p];
+        } else {
+            newParams[p] = (val + G_EMPTY).charAt(0) == G_SPLITER ? updater.get(val) : val;
+        }
     }
 };
 /*#}#*/

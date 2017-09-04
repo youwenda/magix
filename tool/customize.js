@@ -40,7 +40,8 @@ let modules = {
     mxViewAttr: 1, //支持服务端直出
     viewMerge: 1, //view是否提供merge方法供扩展原型链对象
     keepHTML: 1, //保留html
-    eventShortCtrl: 1 //是否提供事件的简洁处理，如mx-click="noGo<prevent>()";
+    eventShortCtrl: 1, //是否提供事件的简洁处理，如mx-click="noGo<prevent>()";
+    eventEnterLeave: 1 //事件的enter与leave
 };
 
 let copyFile = (from, to, callback) => {

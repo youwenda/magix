@@ -43,11 +43,17 @@ define('magix', ['$'], function(require) {
             fn();
         }
     };
+    var G_Define = function(mId, value) {
+        define(mId, function() {
+            return value;
+        });
+    };
     Inc('../tmpl/extend');
-    var G_HTML = function(node, html) {
+    var G_HTML = function(node, html, vId) {
         $(node).html(html);
         G_DOC.triggerHandler({
             type: 'htmlchange',
+            vId: vId,
             target: node
         });
     };
@@ -58,6 +64,25 @@ define('magix', ['$'], function(require) {
         e.eventTarget = d.e;
         G_ToTry(d.f, e, d.v);
     };
+    /*#if(modules.eventEnterLeave){#*/
+    var Specials = {
+        mouseenter: 1,
+        mouseleave: 1,
+        pointerenter: 1,
+        pointerleave: 1
+    };
+    var G_DOMEventLibBind = function(node, type, cb, remove, scope, selector) {
+        if (scope) {
+            type += '.' + scope.i;
+        }
+        selector = Specials[type] === 1 ? '[mx-' + type + ']' : G_EMPTY;
+        if (remove) {
+            $(node).off(type, selector, cb);
+        } else {
+            $(node).on(type, selector, scope, cb);
+        }
+    };
+    /*#}else{#*/
     var G_DOMEventLibBind = function(node, type, cb, remove, scope) {
         if (scope) {
             type += '.' + scope.i;
@@ -68,6 +93,7 @@ define('magix', ['$'], function(require) {
             $(node).on(type, scope, cb);
         }
     };
+    /*#}#*/
 
     Inc('../tmpl/safeguard');
     Inc('../tmpl/magix');
@@ -84,13 +110,23 @@ define('magix', ['$'], function(require) {
     /*#}#*/
     Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe){#*/
-    $.fn.invokeView = function() {
-        var vf = this.prop('vframe'),
-            returned;
-        if (vf) {
-            returned = vf.invoke.apply(vf, arguments);
+    $.fn.invokeView = function(name, args) {
+        var l = this.length;
+        if (l) {
+            var e = this[0];
+            var vf = e.vframe;
+            if (args === undefined) {
+                return vf && vf.invoke(name);
+            } else {
+                for (var i = 0; i < l; i++) {
+                    e = this[i];
+                    vf = e.vframe;
+                    if (vf) {
+                        vf.invoke(name, args);
+                    }
+                }
+            }
         }
-        return returned;
     };
     /*#}#*/
     Inc('../tmpl/body');
@@ -98,9 +134,10 @@ define('magix', ['$'], function(require) {
     Inc('../tmpl/tmpl');
     /*#if(modules.updaterIncrement){#*/
     Inc('../tmpl/increment');
-    var Updater_Increment = function(node, html) {
+    var Updater_Increment = function(node, html, vId) {
         Increment(node, html);
         G_DOC.triggerHandler({
+            vId: vId,
             type: 'htmlchange',
             target: node
         });

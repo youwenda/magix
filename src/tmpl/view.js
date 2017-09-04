@@ -585,14 +585,6 @@ G_Mix(G_Mix(ViewProto, Event), {
     /*#}#*/
     /*#if(modules.tipRouter){#*/
     /**
-     * 离开提示实现
-     * @param  {String} msg 提示消息
-     * @param  {Object} e 事件对象
-     */
-    //leaveConfirm: function(msg, e) {
-    //
-    //},
-    /**
      * 离开提示
      * @param  {String} msg 提示消息
      * @param  {Function} fn 是否提示的回调
@@ -706,11 +698,11 @@ G_Mix(G_Mix(ViewProto, Event), {
      */
     setHTML: function(id, html) {
         var me = this,
-            n;
+            n, i = me.id;
         me.beginUpdate(id);
         if (me.$s > 0) {
             n = G_GetById(id);
-            if (n) G_HTML(n, View_SetEventOwner(html, me.id));
+            if (n) G_HTML(n, View_SetEventOwner(html, i), i);
         }
         me.endUpdate(id);
     }

@@ -1,8 +1,7 @@
-
 var Magix_PathToObjCache = new G_Cache();
 //var Magix_PathCache = new G_Cache();
 var Magix_ParamsObjectTemp;
-var Magix_ParamsFn = function (match, name, value) {
+var Magix_ParamsFn = function(match, name, value) {
     try {
         value = decodeURIComponent(value);
     } catch (e) {
@@ -57,7 +56,7 @@ var Magix_ParamsFn = function (match, name, value) {
  * var obj = Magix.parseUri('/xxx/?a=b&c=d');
  * // obj = {path:'/xxx/',params:{a:'b',c:'d'}}
  */
-var G_ParseUri = function (path) {
+var G_ParseUri = function(path) {
     //把形如 /xxx/?a=b&c=d 转换成对象 {path:'/xxx/',params:{a:'b',c:'d'}}
     //1. /xxx/a.b.c.html?a=b&c=d  path /xxx/a.b.c.html
     //2. /xxx/?a=b&c=d  path /xxx/
@@ -112,7 +111,7 @@ var G_ParseUri = function (path) {
  *
  * // str == /xxx/?a=&c=2
  */
-var G_ToUri = function (path, params, keo) {
+var G_ToUri = function(path, params, keo) {
     var arr = [];
     var v, p, f;
     for (p in params) {
@@ -127,7 +126,7 @@ var G_ToUri = function (path, params, keo) {
     }
     return path;
 };
-var G_ToMap = function (list, key) {
+var G_ToMap = function(list, key) {
     var i, e, map = {},
         l;
     if (list && (l = list.length)) {
@@ -138,7 +137,7 @@ var G_ToMap = function (list, key) {
     }
     return map;
 };
-var G_Keys = Object.keys || function (obj, keys, p) {
+var G_Keys = Object.keys || function(obj, keys, p) {
     keys = [];
     for (p in obj) {
         if (G_Has(obj, p)) {
@@ -188,7 +187,7 @@ var Magix = {
      *
      * console.log(Magix.config('user'));
      */
-    config: function (cfg, r) {
+    config: function(cfg, r) {
         r = Magix_Cfg;
         if (cfg) {
             if (G_IsObject(cfg)) {
@@ -212,14 +211,14 @@ var Magix = {
      *
      */
     /*#if(modules.router){#*/
-    boot: function (cfg) {
+    boot: function(cfg) {
         G_Mix(Magix_Cfg, cfg); //先放到配置信息中，供ini文件中使用
         /*#if(modules.configIni){#*/
-        G_Require(Magix_Cfg.ini, function (I) {
+        G_Require(Magix_Cfg.ini, function(I) {
             G_Mix(Magix_Cfg, I);
             G_Mix(Magix_Cfg, cfg);
             /*#}#*/
-            G_Require(Magix_Cfg.exts, function () {
+            G_Require(Magix_Cfg.exts, function() {
                 Router.on('changed', Vframe_NotifyChange);
                 /*#if(modules.state){#*/
                 State.on('changed', Vframe_NotifyChange);
@@ -231,9 +230,9 @@ var Magix = {
         /*#}#*/
     },
     /*#}else{#*/
-    boot: function (cfg) {
+    boot: function(cfg) {
         G_Mix(Magix_Cfg, cfg);
-        G_Require(Magix_Cfg.exts, function () {
+        G_Require(Magix_Cfg.exts, function() {
             Vframe_Root().mountView(Magix_Cfg.defaultView);
             /*#if(modules.state){#*/
             State.on('changed', Vframe_NotifyChange);
@@ -476,5 +475,16 @@ var Magix = {
      * // id maybe mx-7
      */
     guid: G_Id,
-    Cache: G_Cache
+    Cache: G_Cache,
+    /**
+     * 获取模块，调用如requirejs或seajs的require的实现
+     * @function
+     */
+    use: G_Require,
+    /**
+     * 定义一个模块
+     * @param {string} moduleId 模块id
+     * @param {any} value 值
+     */
+    define: G_Define
 };

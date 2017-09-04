@@ -1,3 +1,12 @@
+## 3.6.0
+1. 完善注释文档
+2. 局部更新view时不反复触发created事件
+3. htmlchange增加vId，指示是从哪个view触发的html变化
+4. 非兼容升级：view参数传递时，需要判断属性中是否有该名称的属性
+5. 修改webpack版本下的G_IsFunction函数
+6. 增强invokeView方法
+7. 开放require及define方法，以便更好的跨类库
+
 ## 3.5.3
 1. 增加事件的检测，DEBUG模式下提示开发者相应的解决方案
 2. 增加改变路径修改网页title的功能

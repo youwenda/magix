@@ -19,11 +19,17 @@ KISSY.add('magix', function(S, SE, DOM) {
             }
         });
     };
+    var G_Define = function(mId, value) {
+        S.add(mId, function() {
+            return value;
+        });
+    };
     var G_Extend = S.extend;
-    var G_HTML = function(node, html) {
+    var G_HTML = function(node, html, vId) {
         S.one(node).html(html);
         G_DOC.fireHandler('htmlchange', {
-            target: node
+            target: node,
+            vId: vId
         });
     };
     var G_TargetMatchSelector = DOM.test;
@@ -32,6 +38,22 @@ KISSY.add('magix', function(S, SE, DOM) {
         e.eventTarget = d.e;
         G_ToTry(d.f, e, d.v);
     };
+    /*#if(modules.eventEnterLeave){#*/
+    var Specials = {
+        mouseenter: 1,
+        mouseleave: 1,
+        pointerenter: 1,
+        pointerleave: 1
+    };
+    var G_DOMEventLibBind = function(node, type, cb, remove, scope, selector) {
+        selector = Specials[type] === 1 ? '[mx-' + type + ']' : G_EMPTY;
+        if (scope || selector) {
+            SE[(remove ? 'un' : G_EMPTY) + 'delegate'](node, type, selector, cb, scope);
+        } else {
+            SE[remove ? 'detach' : Event_ON](node, type, cb, scope);
+        }
+    };
+    /*#}else{#*/
     var G_DOMEventLibBind = function(node, type, cb, remove, scope) {
         if (scope) {
             SE[(remove ? 'un' : G_EMPTY) + 'delegate'](node, type, cb, scope);
@@ -39,6 +61,7 @@ KISSY.add('magix', function(S, SE, DOM) {
             SE[remove ? 'detach' : Event_ON](node, type, cb, scope);
         }
     };
+    /*#}#*/
 
     Inc('../tmpl/safeguard');
     Inc('../tmpl/magix');
@@ -55,13 +78,23 @@ KISSY.add('magix', function(S, SE, DOM) {
     /*#}#*/
     Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe){#*/
-    DOM[G_PROTOTYPE].invokeView = function() {
-        var vf = this.prop('vframe'),
-            returned;
-        if (vf) {
-            returned = vf.invoke.apply(vf, arguments);
+    DOM[G_PROTOTYPE].invokeView = function(name, args) {
+        var l = this.length;
+        if (l) {
+            var e = this[0];
+            var vf = e.vframe;
+            if (args === undefined) {
+                return vf && vf.invoke(name);
+            } else {
+                for (var i = 0; i < l; i++) {
+                    e = this[i];
+                    vf = e.vframe;
+                    if (vf) {
+                        vf.invoke(name, args);
+                    }
+                }
+            }
         }
-        return returned;
     };
     /*#}#*/
 
@@ -70,10 +103,11 @@ KISSY.add('magix', function(S, SE, DOM) {
     Inc('../tmpl/tmpl');
     /*#if(modules.updaterIncrement){#*/
     Inc('../tmpl/increment');
-    var Updater_Increment = function(node, html) {
+    var Updater_Increment = function(node, html, vId) {
         Increment(node, html);
         G_DOC.fireHandler('htmlchange', {
-            target: node
+            target: node,
+            vId: vId
         });
     };
     /*#}#*/
