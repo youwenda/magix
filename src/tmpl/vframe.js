@@ -275,7 +275,7 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
             parent = parent && parent.$v;
             parent = parent && parent.$u;
             if (parent && viewPath.indexOf(G_SPLITER) > 0) {
-                GSet_Params(parent, params, params, node);
+                GSet_Params(parent, params, params);
             }
             /*#if(modules.mxViewAttr){#*/
             var attrs = node.attributes;
@@ -292,8 +292,8 @@ G_Mix(G_Mix(Vframe[G_PROTOTYPE], Event), {
                     if (value.slice(0, 3) == '<%@' && value.slice(-2) == '%>') {
                         try {
                             var temp = parent.$data;
-                            Tmpl(value, temp);
-                            value = temp[G_SPLITER + '1'];
+                            var str = Tmpl(value, temp);
+                            value = temp[str];
                         } catch (ex) {
                             value = G_Trim(value.slice(3, -2));
                             if (parent && vreg.test(value)) {

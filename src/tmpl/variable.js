@@ -20,13 +20,14 @@ var G_SPLITER = '\x1e';
 var Magix_StrObject = 'object';
 var G_PROTOTYPE = 'prototype';
 var G_PARAMS = 'params';
+var G_PATH = 'path';
 // var Magix_PathRelativeReg = /\/\.(?:\/|$)|\/[^\/]+?\/\.{2}(?:\/|$)|\/\/+|\.{2}\//; // ./|/x/../|(b)///
 // var Magix_PathTrimFileReg = /\/[^\/]*$/;
 // var Magix_ProtocalReg = /^(?:https?:)?\/\//i;
 var Magix_PathTrimParamsReg = /[#?].*$/;
 var Magix_ParamsReg = /([^=&?\/#]+)=?([^&#?]*)/g;
 var Magix_IsParam = /(?!^)=|&/;
-var G_Id = function(prefix) {
+var G_Id = function (prefix) {
     return (prefix || 'mx_') + G_COUNTER++;
 };
 /*#if(modules.defaultView){#*/
@@ -37,20 +38,20 @@ var Magix_Cfg = {
     /*#if(modules.defaultView){#*/
     defaultView: MxGlobalView,
     /*#}#*/
-    error: function(e) {
+    error: function (e) {
         throw e;
     }
 };
 var Magix_HasProp = Magix_Cfg.hasOwnProperty;
 
-var G_GetById = function(id) {
+var G_GetById = function (id) {
     return typeof id == Magix_StrObject ? id : G_DOCUMENT.getElementById(id);
 };
 /*#if(modules.updater||modules.state){#*/
-var G_IsPrimitive = function(args) {
+var G_IsPrimitive = function (args) {
     return !args || typeof args != Magix_StrObject;
 };
-var G_Set = function(newData, oldData, keys) {
+var G_Set = function (newData, oldData, keys) {
     var changed = 0,
         now, old, p;
     for (p in newData) {
@@ -65,7 +66,7 @@ var G_Set = function(newData, oldData, keys) {
     return changed;
 };
 /*#}#*/
-var G_NodeIn = function(a, b, r) {
+var G_NodeIn = function (a, b, r) {
     a = G_GetById(a);
     b = G_GetById(b);
     if (a && b) {
@@ -73,19 +74,19 @@ var G_NodeIn = function(a, b, r) {
         if (!r) {
             try {
                 r = b.contains ? b.contains(a) : b.compareDocumentPosition(a) & 16;
-            } catch (e) {}
+            } catch (e) { }
         }
     }
     return r;
 };
-var G_Mix = Object.assign || function(aim, src, p) {
+var G_Mix = Object.assign || function (aim, src, p) {
     for (p in src) {
         aim[p] = src[p];
     }
     return aim;
 };
 /*#if(modules.style){#*/
-var View_ApplyStyle = function(key, css) {
+var View_ApplyStyle = function (key, css) {
     if (css && !View_ApplyStyle[key]) {
         View_ApplyStyle[key] = 1;
         $('head').append('<style>' + css + '</style>');
@@ -93,7 +94,7 @@ var View_ApplyStyle = function(key, css) {
 };
 /*#}#*/
 
-var G_ToTry = function(fns, args, context, i, r, e) {
+var G_ToTry = function (fns, args, context, i, r, e) {
     args = args || G_EMPTY_ARRAY;
     if (!G_IsArray(fns)) fns = [fns];
     if (!G_IsArray(args)) args = [args];
@@ -108,25 +109,15 @@ var G_ToTry = function(fns, args, context, i, r, e) {
     return r;
 };
 
-var G_Has = function(owner, prop) {
+var G_Has = function (owner, prop) {
     return owner && Magix_HasProp.call(owner, prop); //false 0 G_NULL '' undefined
 };
 /*#if(modules.updater){#*/
-var hyphenateRE = /(?=[^-])([A-Z])/g;
-var hyphenate = function(str) {
-    return str
-        .replace(hyphenateRE, '-$1')
-        .toLowerCase();
-};
-var GSet_Params = function(updater, oldParams, newParams, node) {
+var GSet_Params = function (updater, oldParams, newParams) {
     var p, val;
     for (p in oldParams) {
         val = oldParams[p];
-        if (node && node.getAttribute('view-' + hyphenate(p)) === G_NULL) {
-            delete newParams[p];
-        } else {
-            newParams[p] = (val + G_EMPTY).charAt(0) == G_SPLITER ? updater.get(val) : val;
-        }
+        newParams[p] = (val + G_EMPTY).charAt(0) == G_SPLITER ? updater.get(val) : val;
     }
 };
 /*#}#*/

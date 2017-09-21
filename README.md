@@ -17,7 +17,10 @@ Magix配套的[离线编译工具](https://github.com/thx/magix-combine)帮你�
 [Magix 遵循 MIT 协议](https://opensource.org/licenses/MIT)
 
 ## 文档
-[magix-doc3](https://thx.github.io/magix-doc3)
+[magix-api](http://thx.github.io/magix/#!/api)
+
+## 组件
+[magix-components](http://thx.github.io/magix/#!/components)
 
 ## 示例项目
 [magix-project](https://github.com/thx/magix-project) 集成常见组件及开发中的功能，seajs+jquery

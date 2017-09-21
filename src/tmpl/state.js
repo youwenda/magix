@@ -148,6 +148,13 @@ var State = G_Mix({
         }
     },
     /**
+     * 获取当前数据与上一次数据有哪些变化
+     * @return {Object}
+     */
+    diff: function() {
+        return State_ChangedKeys;
+    },
+    /**
      * 清除数据，该方法需要与view绑定，写在view的mixins中，如mixins:[Magix.Sate.clean('user,permission')]
      * @param  {String} keys 数据key
      */

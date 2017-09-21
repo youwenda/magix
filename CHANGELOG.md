@@ -1,3 +1,12 @@
+## 3.7.0
+1. 支持类做为`mixin`
+2. 修复`body`中查询结果不能设置`vframeId`的问题
+3. `State`增加`diff`方法
+4. 增加`htmlchanged`事件
+5. 解析事件参数时，传递当前节点做为`this`的指向
+6. 不兼容的事件`htmlchange`升级
+7. 修复当删除某个`boolean`属性时，未更新节点属性的`bug`
+
 ## 3.6.0
 1. 完善注释文档
 2. 局部更新view时不反复触发created事件

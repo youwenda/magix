@@ -2,7 +2,7 @@
   "name": "magix",
   "version": "3.0.0",
   "devDependencies": {
-    "gulp": "~3.8.11",
+    "gulp": "^3.9.1",
     "gulp-rename": "^1.2.2",
     "gulp-uglify": "^1.2.0",
     "typescript": "^2.4.1"

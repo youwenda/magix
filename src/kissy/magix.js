@@ -26,9 +26,11 @@ KISSY.add('magix', function(S, SE, DOM) {
     };
     var G_Extend = S.extend;
     var G_HTML = function(node, html, vId) {
-        S.one(node).html(html);
         G_DOC.fireHandler('htmlchange', {
-            target: node,
+            vId: vId
+        });
+        S.one(node).html(html);
+        G_DOC.fireHandler('htmlchanged', {
             vId: vId
         });
     };

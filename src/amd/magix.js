@@ -48,11 +48,14 @@ define('magix', ['$'], function($) {
     };
     Inc('../tmpl/extend');
     var G_HTML = function(node, html, vId) {
-        $(node).html(html);
         G_DOC.triggerHandler({
             type: 'htmlchange',
-            vId: vId,
-            target: node
+            vId: vId
+        });
+        $(node).html(html);
+        G_DOC.triggerHandler({
+            type: 'htmlchanged',
+            vId: vId
         });
     };
 

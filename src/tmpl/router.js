@@ -1,4 +1,3 @@
-var Router_PATH = 'path';
 var Router_VIEW = 'view';
 var Router_HrefCache = new G_Cache();
 var Router_ChgdCache = new G_Cache();
@@ -199,7 +198,7 @@ var Router_PNR_Routers, Router_PNR_UnmatchView, /*Router_PNR_IsFun,*/
 var Router_PNR_Rewrite;
 /*#}#*/
 /*#if(modules.updateTitleRouter){#*/
-var DefaultTitle = document.title;
+var DefaultTitle = G_DOCUMENT.title;
 /*#}#*/
 var Router_AttachViewAndPath = function(loc, view) {
     if (!Router_PNR_Routers) {
@@ -220,9 +219,9 @@ var Router_AttachViewAndPath = function(loc, view) {
     }
     if (!loc[Router_VIEW]) {
         /*#if(modules.forceEdgeRouter){#*/
-        var path = loc.query[Router_PATH] || Router_PNR_DefaultPath;
+        var path = loc.query[G_PATH] || Router_PNR_DefaultPath;
         /*#}else{#*/
-        var path = loc.hash[Router_PATH] || (Router_Edge && loc.query[Router_PATH]) || Router_PNR_DefaultPath;
+        var path = loc.hash[G_PATH] || (Router_Edge && loc.query[G_PATH]) || Router_PNR_DefaultPath;
         /*#}#*/
 
         /*#if(modules.urlRewriteRouter){#*/
@@ -236,7 +235,7 @@ var Router_AttachViewAndPath = function(loc, view) {
         //} else {
         view = Router_PNR_Routers[path] || Router_PNR_UnmatchView || Router_PNR_DefaultView;
         //}
-        loc[Router_PATH] = path;
+        loc[G_PATH] = path;
         loc[Router_VIEW] = view;
         /*#if(modules.updateTitleRouter){#*/
         if (G_IsObject(view)) {
@@ -264,12 +263,12 @@ var Router_GetChged = function(oldLocation, newLocation) {
             force: !oKey //是否强制触发的changed，对于首次加载会强制触发一次
         };
         //result[Router_VIEW] = to;
-        //result[Router_PATH] = to;
+        //result[G_PATH] = to;
         result[G_PARAMS] = rps = {};
 
         var oldParams = oldLocation[G_PARAMS],
             newParams = newLocation[G_PARAMS];
-        var tArr = [Router_PATH, Router_VIEW].concat(G_Keys(oldParams), G_Keys(newParams)),
+        var tArr = [G_PATH, Router_VIEW].concat(G_Keys(oldParams), G_Keys(newParams)),
             idx, key;
         for (idx = tArr.length; idx--;) {
             key = tArr[idx];
@@ -333,7 +332,7 @@ var Router_Diff = function() {
         /*#if(modules.updateTitleRouter){#*/
         Router_LastChanged = changed.b;
         if (Router_LastChanged.path) {
-            document.title = location.title || DefaultTitle;
+            G_DOCUMENT.title = location.title || DefaultTitle;
         }
         /*#}#*/
         Router.fire('changed', /*#if(modules.updateTitleRouter){#*/ Router_LastChanged /*#}else{#*/ Router_LastChanged = changed.b /*#}#*/ );
@@ -402,8 +401,8 @@ var Router = G_Mix({
         }
         var temp = G_ParseUri(pn);
         var tParams = temp[G_PARAMS];
-        var tPath = temp[Router_PATH];
-        var lPath = Router_LLoc[Router_PATH]; //历史路径
+        var tPath = temp[G_PATH];
+        var lPath = Router_LLoc[G_PATH]; //历史路径
         var lParams = Router_LLoc[G_PARAMS];
         var lQuery = Router_LLoc.query[G_PARAMS];
         G_Mix(tParams, params); //把路径中解析出来的参数与用户传递的参数进行合并

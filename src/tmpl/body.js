@@ -59,7 +59,7 @@ var Body_FindVframeInfo = function(current, eventType) {
             };
             /*#}#*/
             /*jshint evil: true*/
-            match.p = match.i && G_ToTry(Function('return ' + match.i));
+            match.p = match.i && G_ToTry(Function('return ' + match.i), G_EMPTY_ARRAY, current);
             Body_EvtInfoCache.set(info, match);
         }
         match = {
@@ -74,7 +74,9 @@ var Body_FindVframeInfo = function(current, eventType) {
             n: match.n
         };
         if (DEBUG) {
-            match = Safeguard(match);
+            match = Safeguard(match, {
+                v: 1
+            });
         }
         names.push(match);
     }
@@ -152,7 +154,7 @@ var Body_DOMEventProcessor = function(e) {
     /*#if(modules.updater){#*/
     var params;
     /*#}#*/
-    while (current != G_DOCBODY && current.nodeType == 1) { //找事件附近有mx-[a-z]+事件的DOM节点,考虑在向上遍历的过程中，节点被删除，所以需要判断nodeType,主要是IE
+    while (current != G_DOCBODY) { //找事件附近有mx-[a-z]+事件的DOM节点,考虑在向上遍历的过程中，节点被删除，所以需要判断nodeType,主要是IE
         names = Body_FindVframeInfo(current, eventType);
         if (names.length) {
             arr = [];
@@ -205,7 +207,7 @@ var Body_DOMEventProcessor = function(e) {
                     }
                 }
                 if (DEBUG) {
-                    if (!view) {
+                    if (!view && view !== 0) { //销毁
                         console.error('can not find vframe:' + info.v);
                     }
                 }

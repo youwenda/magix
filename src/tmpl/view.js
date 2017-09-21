@@ -122,7 +122,7 @@ var View_Prepare = function(oView) {
                         } else {
                             currentFn.$m = 1;
                         }
-                    } else if (DEBUG && selectorOrCallback) { //只在开发中提示
+                    } else if (DEBUG && selectorOrCallback && p != 'extend' && p != G_SPLITER) { //只在开发中提示
                         Magix_Cfg.error(Error('mixins duplicate:' + p));
                     }
                     temp[p] = currentFn;
@@ -207,7 +207,7 @@ var View_IsObserveChanged = function(view) {
     var res;
     if (loc.f) {
         if (loc.p) {
-            res = Router_LastChanged[Router_PATH];
+            res = Router_LastChanged[G_PATH];
         }
         if (!res) {
             res = View_IsParamsChanged(loc.k, Router_LastChanged[G_PARAMS]);
