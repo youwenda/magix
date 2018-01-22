@@ -1,5 +1,6 @@
 let path = require('path');
 let fs = require('fs');
+let rs = require('./lib/rs');
 let tmpl = require('./lib/tmpl');
 var pkg = require('../package.json');
 let sep = path.sep;
@@ -9,7 +10,6 @@ let modules = {
 
     updater: 1, //自动更新
     updaterIncrement: 1, //增量更新
-    updaterSetState: 1, //updater是否由用户指定更新。即用户指定什么就更新什么，不管值有没有改变
 
     service: 1, //接口服务
     serviceCombine: 1, //接口combine
@@ -40,10 +40,30 @@ let modules = {
     mxViewAttr: 1, //支持服务端直出
     viewMerge: 1, //view是否提供merge方法供扩展原型链对象
     keepHTML: 1, //保留html
-    eventShortCtrl: 1, //是否提供事件的简洁处理，如mx-click="noGo<prevent>()";
-    eventEnterLeave: 1 //事件的enter与leave
+    eventEnterLeave: 1, //事件的enter与leave
+    naked: 1//原生实现
 };
-
+rs.map({
+    '@{vframe#view.entity}': '$v',
+    '@{view#selector.events.object}': '$so',
+    '@{view#shared.data}': '$sd',
+    '@{view#events.object}': '$eo',
+    '@{view#events.list}': '$el',
+    '@{view#observe.router}': '$l',
+    '@{view#observe.state}': '$os',
+    '@{vframe#children.created}': '$cr',
+    '@{vframe#children.altered}': '$ca',
+    '@{service#meta}': '$m',
+    '@{vframe#children}': '$c',
+    '@{vframe#children.count}': '$cc',
+    '@{vframe#children.ready.count}': '$rc',
+    '@{view#resource}': '$r',
+    '@{service#cache}': '$c',
+    '@{service#send}': '$s',
+    '@{vframe#mounted}': '$m',
+    '@{updater#keys}': '$k',
+    '@{updater#data.changed}': '$c'
+});
 let copyFile = (from, to, callback) => {
     let folders = path.dirname(to).split(sep);
     let p = '';
@@ -59,14 +79,14 @@ let copyFile = (from, to, callback) => {
     }
     fs.writeFileSync(to, content);
 };
-module.exports = (options) => {
+module.exports = (options, es3) => {
     let map = {};
     let others = [];
     let enableModules = options.enableModules;
     let loaderType = options.loaderType || 'unknown';
     let tmplFile = options.tmplFile;
     let aimFile = options.aimFile;
-    enableModules.split(',').forEach(function(m) {
+    enableModules.split(',').forEach(function (m) {
         m = m.trim();
         map[m] = 1;
         if (m == 'service') {
@@ -80,17 +100,24 @@ module.exports = (options) => {
         }
     }
     let incReg = /Inc\((['"])(.+)\1\);*/g;
-    copyFile(tmplFile, aimFile, function(content) {
+    copyFile(tmplFile, aimFile, content => {
         let dir = path.dirname(tmplFile);
-        content = content.replace(incReg, function(match, q, name) {
+        content = content.replace(incReg, (match, q, name) => {
             let file = path.resolve(dir, name + '.js');
             return fs.readFileSync(file) + '';
         });
-        let header = '\/\/#exclude(define,before);\r\n/*!' + pkg.version + ' Licensed MIT*/';
+        let header = '\/\/#snippet;\r\n\/\/#uncheck = jsThis,jsLoop;\r\n\/\/#exclude = loader,allProcessor;\r\n/*!' + pkg.version + ' Licensed MIT*/';
         header += '\r\n/*\r\nauthor:kooboy_li@163.com\r\nloader:' + loaderType;
         header += '\r\nenables:' + Object.keys(map);
         header += '\r\n\r\noptionals:' + others;
         header += '\r\n*/\r\n';
-        return tmpl(header + content, map);
+        if (es3) {
+            map.es3 = true;
+        }
+        map[loaderType] = true;
+        if (loaderType == 'module') {
+            map.naked = true;
+        }
+        return rs.process(tmpl(header + content, map));
     });
 };

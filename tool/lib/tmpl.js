@@ -1,7 +1,7 @@
-var tmpl = function(text, data) {
+var tmpl = function (text, data) {
   var settings, render, noMatch, matcher, index, source, escaper, escapes, template;
 
-  matcher =/\/\*#=([\s\S]+?)#\*\/|\/\*#([\s\S]+?)#\*\/|$/g;
+  matcher = /\/\*#=([\s\S]+?)#\*\/|\/\*#([\s\S]+?)#\*\/|$/g;
 
   index = 0;
   source = "__p+='";
@@ -16,8 +16,8 @@ var tmpl = function(text, data) {
     '\u2029': 'u2029'
   };
 
-  text.replace(matcher, function(match, interpolate, evaluate, offset) {
-    source += text.slice(index, offset).replace(escaper, function(match) {
+  text.replace(matcher, function (match, interpolate, evaluate, offset) {
+    source += text.slice(index, offset).replace(escaper, function (match) {
       return '\\' + escapes[match];
     });
 
@@ -25,7 +25,7 @@ var tmpl = function(text, data) {
       source += "'+\n((__t=(" + interpolate + "))==null?'':__t)+\n'";
 
     if (evaluate)
-      source += "';\n" + evaluate + "\n__p+='";
+      source += "';$expr='" + evaluate + "'\n" + evaluate + "\n__p+='";
 
     index = offset + match.length;
     return match;
@@ -33,21 +33,24 @@ var tmpl = function(text, data) {
 
   source += "';\n";
   //source = 'with(obj||{}){\n' + source + '}\n';
-  source = "var __t,__p='',__j=Array.prototype.join," +
-    "print=function(){__p+=__j.call(arguments,'');};\n" + source + "return __p;\n";
+  source = "var __t,__p='',__j=Array.prototype.join,$expr=''," +
+    "print=function(){__p+=__j.call(arguments,'');};\ntry{" + source + "return __p;}catch(e){console.log('eeeeeeee',e);$throw(e,$expr) }\n";
   //console.log(source);
   try {
     //console.log(source);
-    render = new Function('modules', source);
+    render = new Function('modules', '$throw', source);
   } catch (e) {
     e.source = source;
+    //console.log('xxxxxxxx',e);
     throw e;
   }
 
   if (data)
-    return render(data);
+    return render(data, expr => {
+      console.log('aaaaaaaaaa',expr);
+    });
 
-  template = function(data) {
+  template = function (data) {
     return render.call(this, data);
   };
 
