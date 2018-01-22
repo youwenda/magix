@@ -1,30 +1,24 @@
 if (DEBUG) {
+    var Safeguard;
     if (window.Proxy) {
-        var Safeguard = function(data, allows, getter, setter) {
-            var build = function(prefix, o) {
+        Safeguard = (data, getter, setter) => {
+            let build = (prefix, o) => {
                 if (o['\x1e_sf_\x1e']) {
                     return o;
                 }
                 return new Proxy(o, {
-                    set: function(target, property, value) {
-                        if (!setter &&
-                            !G_Has(allows, property) &&
-                            (!prefix || !G_Has(allows, prefix.slice(0, -1)))) {
-                            setTimeout(function() {
-                                throw new Error('avoid writeback,key: ' + prefix + property + ' value:' + value + ' more info: https://github.com/thx/magix/issues/38');
-                            }, 0);
-                        }
+                    set(target, property, value) {
                         target[property] = value;
                         if (setter) {
                             setter(prefix + property, value);
                         }
                         return true;
                     },
-                    get: function(target, property) {
+                    get(target, property) {
                         if (property == '\x1e_sf_\x1e') {
                             return true;
                         }
-                        var out = target[property];
+                        let out = target[property];
                         if (!prefix && getter) {
                             getter(property);
                         }
@@ -41,8 +35,6 @@ if (DEBUG) {
             return build('', data);
         };
     } else {
-        var Safeguard = function(data) {
-            return data;
-        };
+        Safeguard = data => data;
     }
 }

@@ -4,85 +4,69 @@
     性能和低资源占用高于一切，在不特别影响编程体验的情况下，向性能和资源妥协
 
     1.所有事件代理到body上
-    2.优先使用原生冒泡事件，使用mouseover+view.inside代替mouseenter
+    2.优先使用原生冒泡事件，使用mouseover+Magix.inside代替mouseenter
         'over<mouseover>':function(e){
-            if(!Magix.inside(e.relatedTarget,e.current)){
+            if(!Magix.inside(e.relatedTarget,e.eventTarget)){
                 //enter
             }
         }
     3.事件支持嵌套，向上冒泡
+    4.如果同一节点上同时绑定了mx-event和选择器事件，如
+        <div data-menu="true" mx-click="clickMenu()"></div>
+
+        'clickMenu<click>'(e){
+            console.log('direct',e);
+        },
+        '$div[data-menu="true"]<click>'(e){
+            console.log('selector',e);
+        }
+
+        那么先派发mx-event绑定的事件再派发选择器绑定的事件
+
+        如果要停止选择器上的事件派发，请调用e.stopImmediatePropagation()
+
+    5.在当前view根节点上绑定事件，目前只能使用选择器绑定，如
+        '$<click>'(e){
+            console.log('view root click',e);
+        }
  */
-var Body_MagixPrefix = 'mx-';
-var Body_EvtInfoCache = new G_Cache(30, 10);
-/*#if(modules.eventShortCtrl){#*/
-var Body_EvtInfoReg = /(?:([\w\-]+)\x1e)?([^(<]+)(?:<(\w+)>)?\(([\s\S]*)?\)/;
-var WEvent = {
-    prevent: function(e) {
-        e.preventDefault();
-    },
-    stop: function(e) {
-        e.stopPropagation();
-    },
-    halt: function(e) {
-        this.prevent(e);
-        this.stop(e);
-    }
-};
-/*#}else{#*/
-var Body_EvtInfoReg = /(?:([\w\-]+)\x1e)?([^(]+)\(([\s\S]*)?\)/;
-/*#}#*/
-var Body_RootEvents = {};
-var Body_SearchSelectorEvents = {};
-var Body_FindVframeInfo = function(current, eventType) {
-    var vf, tempId, selectorObject, eventSelector, names = [],
+let Body_EvtInfoCache = new G_Cache(30, 10);
+let Body_EvtInfoReg = /(?:([\w\-]+)\x1e)?([^(]+)\(([\s\S]*)?\)/;
+let Body_RootEvents = {};
+let Body_SearchSelectorEvents = {};
+let Body_FindVframeInfo = (current, eventType) => {
+    let vf, tempId, selectorObject, eventSelector, eventInfos = [],
         begin = current,
-        info = current.getAttribute(Body_MagixPrefix + eventType),
+        info = current.getAttribute(`mx-${eventType}`),
         match, view,
         vfs = [],
-        selectorVfId;
+        selectorVfId,
+        backtrace = 0;
     if (info) {
         match = Body_EvtInfoCache.get(info);
         if (!match) {
             match = info.match(Body_EvtInfoReg) || G_EMPTY_ARRAY;
-            /*#if(modules.eventShortCtrl){#*/
-            match = {
-                v: match[1],
-                n: match[2],
-                e: match[3],
-                i: match[4]
-            };
-            /*#}else{#*/
             match = {
                 v: match[1],
                 n: match[2],
                 i: match[3]
             };
-            /*#}#*/
             /*jshint evil: true*/
-            match.p = match.i && G_ToTry(Function('return ' + match.i), G_EMPTY_ARRAY, current);
+            match.p = match.i && G_ToTry(Function(`return ${match.i}`), G_EMPTY_ARRAY, current);
             Body_EvtInfoCache.set(info, match);
         }
         match = {
-            r: info,
-            //如果事件已经存在处理的vframe或节点上通过mx-owner指定处理的vframe
-            v: match.v /*#if(modules.mxViewAttr){#*/ || current.getAttribute('mx-owner') /*#}#*/ ,
-            p: match.p,
-            i: match.i,
-            /*#if(modules.eventShortCtrl){#*/
-            e: match.e,
+            ...match,
+            /*#if(modules.mxViewAttr){#*/
+            v: match.v || current.getAttribute('mx-owner'),
             /*#}#*/
-            n: match.n
+            r: info
         };
-        if (DEBUG) {
-            match = Safeguard(match, {
-                v: 1
-            });
-        }
-        names.push(match);
+        eventInfos.push(match);
     }
     //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件里
     if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
-        selectorVfId = current.$v; //如果节点有缓存，则使用缓存
+        selectorVfId = current['@{body#vframe.id}']; //如果节点有缓存，则使用缓存
         if (!selectorVfId) { //先找最近的vframe
             vfs.push(begin);
             while (begin != G_DOCBODY && (begin = begin.parentNode)) { //找最近的vframe,且节点上没有mx-autonomy属性
@@ -95,145 +79,144 @@ var Body_FindVframeInfo = function(current, eventType) {
         }
 
         if (selectorVfId) { //从最近的vframe向上查找带有选择器事件的view
-            while ((info = vfs.pop())) {
-                info.$v = selectorVfId;
+            for (info of vfs) {
+                info['@{body#vframe.id}'] = selectorVfId;
             }
             /*#if(modules.layerVframe){#*/
-            var findParent = match && !match.v;
+            let findParent = match && !match.v;
             /*#}#*/
+            begin = current.id;
+            if (Vframe_Vframes[begin]) {
+                backtrace = selectorVfId = begin;
+            }
             do {
                 vf = Vframe_Vframes[selectorVfId];
-                if (vf && (view = vf.$v)) {
-                    selectorObject = view.$so;
+                if (vf && (view = vf['@{vframe#view.entity}'])) {
+                    selectorObject = view['@{view#selector.events.object}'];
                     eventSelector = selectorObject[eventType];
                     for (tempId in eventSelector) {
-                        if (G_TargetMatchSelector(current, tempId)) {
-                            names.push({
-                                r: tempId,
-                                v: selectorVfId,
-                                n: tempId
-                            });
+                        selectorObject = {
+                            r: tempId,
+                            v: selectorVfId,
+                            n: tempId
+                        };
+                        if (tempId) {
+                            if (G_TargetMatchSelector(current, tempId)) {
+                                eventInfos.push(selectorObject);
+                            }
+                        } else if (backtrace) {
+                            eventInfos.unshift(selectorObject);
                         }
                     }
                     //防止跨view选中，到带模板的view时就中止或未指定
                     /*#if(modules.layerVframe){#*/
                     if (findParent) {
                         if (match.v) {
-                            var matchInfo = G_Mix({}, match);
-                            matchInfo.v = selectorVfId;
-                            names.push(matchInfo);
+                            eventInfos.push({ ...match, v: selectorVfId });
                         } else {
                             match.v = selectorVfId;
                         }
                     }
                     /*#}#*/
-                    if (view.$t) {
+                    if (view['@{view#template.object}'] && !backtrace) {
                         /*#if(!modules.layerVframe){#*/
                         if (match && !match.v) match.v = selectorVfId;
                         /*#}#*/
                         break; //带界面的中止
                     }
+                    backtrace = 0;
                 }
             }
             while (vf && (selectorVfId = vf.pId));
         }
     }
-    return names;
+    return eventInfos;
 };
 
-var Body_DOMEventProcessor = function(e) {
-    var current = e.target;
-    var eventType = e.type;
-    var info, names;
-    var ignore;
-    var arr = [];
-    var vframe, view, name, fn;
-    /*#if(modules.layerVframe){#*/
-    var lastVfId;
-    /*#}#*/
+let Body_DOMEventProcessor = domEvent => {
+    let { target, type } = domEvent;
+    let eventInfos;
+    let ignore;
+    let arr = [];
+    let vframe, view, eventName, fn;
+    let lastVfId;
     /*#if(modules.updater){#*/
-    var params;
+    let params;
     /*#}#*/
-    while (current != G_DOCBODY) { //找事件附近有mx-[a-z]+事件的DOM节点,考虑在向上遍历的过程中，节点被删除，所以需要判断nodeType,主要是IE
-        names = Body_FindVframeInfo(current, eventType);
-        if (names.length) {
+    while (target != G_DOCBODY) { //找事件附近有mx-[a-z]+事件的DOM节点,考虑在向上遍历的过程中，节点被删除，所以需要判断nodeType,主要是IE
+        eventInfos = Body_FindVframeInfo(target, type);
+        if (eventInfos.length) {
             arr = [];
-            while ((info = names.shift())) {
-                if (!info.v) {
-                    return Magix_Cfg.error(Error('bad ' + eventType + ':' + info.r));
+            for (let { v, r, n, p, i } of eventInfos) {
+                if (!v && DEBUG) {
+                    return Magix_Cfg.error(Error(`bad ${type}:${r}`));
                 }
-                /*#if(modules.layerVframe){#*/
-                if (!lastVfId) lastVfId = info.v;
-                /*#}#*/
-                /*#if(modules.layerVframe){#*/
-                if (lastVfId != info.v && e.isPropagationStopped()) {
-                    break;
+                if (lastVfId != v) {
+                    if (lastVfId && domEvent.isPropagationStopped()) {
+                        break;
+                    }
+                    lastVfId = v;
                 }
-                /*#}#*/
-                /*#if(modules.eventShortCtrl){#*/
-                if (info.e && WEvent[info.e]) {
-                    WEvent[info.e](e);
-                }
-                /*#}#*/
-                vframe = Vframe_Vframes[info.v];
-                view = vframe && vframe.$v;
+                vframe = Vframe_Vframes[v];
+                view = vframe && vframe['@{vframe#view.entity}'];
                 if (view) {
-                    name = info.n + G_SPLITER + eventType;
-                    fn = view[name];
+                    eventName = n + G_SPLITER + type;
+                    fn = view[eventName];
                     if (fn) {
-                        e.eventTarget = current;
+                        domEvent.eventTarget = target;
                         /*#if(modules.updater){#*/
-                        params = info.p || {};
-                        if (info.i && info.i.indexOf(G_SPLITER) > 0) {
-                            GSet_Params(view.$u, params, params = {});
+                        params = p || {};
+                        if (i && i.indexOf(G_SPLITER) > 0) {
+                            GSet_Params(view['@{view#updater}']['@{updater#data}'], params, params = {});
                             if (DEBUG) {
                                 params = Safeguard(params);
                             }
                         }
-                        e[G_PARAMS] = params;
+                        domEvent[G_PARAMS] = params;
                         /*#}else{#*/
-                        e[G_PARAMS] = info.p || {};
+                        domEvent[G_PARAMS] = p || {};
                         /*#}#*/
-                        G_ToTry(fn, e, view);
+                        G_ToTry(fn, domEvent, view);
+
+                        if (domEvent.isImmediatePropagationStopped()) {
+                            break;
+                        }
                     }
                     if (DEBUG) {
                         if (!fn) { //检测为什么找不到处理函数
-                            if (name.charAt(0) == '\u001f') {
-                                console.error('use view.setHTML　to update ui or use view.wrapEvent to wrap your html');
+                            if (eventName[0] == '\u001f') {
+                                console.error('use view.wrapEvent wrap your html');
                             } else {
-                                console.error('can not find event processor:' + info.n + '<' + eventType + '> from view:' + vframe.path);
+                                console.error('can not find event processor:' + n + '<' + type + '> from view:' + vframe.path);
                             }
                         }
                     }
                 }
                 if (DEBUG) {
                     if (!view && view !== 0) { //销毁
-                        console.error('can not find vframe:' + info.v);
+                        console.error('can not find vframe:' + v);
                     }
                 }
             }
         }
         /*|| e.mxStop */
-        if ((ignore = current.$) &&
-            ignore[eventType] ||
-            e.isPropagationStopped()) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
+        if ((ignore = target.$) &&
+            ignore[type] ||
+            domEvent.isPropagationStopped()) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
             break;
         } else {
-            arr.push(current);
+            arr.push(target);
         }
-        current = current.parentNode || G_DOCBODY;
-        // if (current.id == vId) { //经过vframe时，target为vframe节点
-        //     e.target = current;
-        // }
+        target = target.parentNode || G_DOCBODY;
     }
-    while ((current = arr.pop())) {
-        ignore = current.$ || (current.$ = {});
-        ignore[eventType] = 1;
+    for (target of arr) {
+        ignore = target.$ || (target.$ = {});
+        ignore[type] = 1;
     }
 };
-var Body_DOMEventBind = function(type, searchSelector, remove) {
-    var counter = Body_RootEvents[type] | 0;
-    var offset = (remove ? -1 : 1);
+let Body_DOMEventBind = (type, searchSelector, remove) => {
+    let counter = Body_RootEvents[type] | 0;
+    let offset = (remove ? -1 : 1);
     if (!counter || remove === counter) { // remove=1  counter=1
         G_DOMEventLibBind(G_DOCBODY, type, Body_DOMEventProcessor, remove);
     }

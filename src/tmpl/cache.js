@@ -1,6 +1,4 @@
-var Magix_CacheSort = function (a, b) {
-    return /*#if(modules.cnum){#*/ b.n - a.n || /*#}#*/ b.f - a.f || b.t - a.t;
-};
+let Magix_CacheSort = (a, b) =>  /*#if(modules.cnum){#*/ b.n - a.n || /*#}#*/ b.f - a.f || b.t - a.t;
 /**
  * Magix.Cache 类
  * @name Cache
@@ -9,22 +7,22 @@ var Magix_CacheSort = function (a, b) {
  * @param {Integer} [buffer] 缓冲区大小，默认5
  * @param {Function} [remove] 当缓存的元素被删除时调用
  * @example
- * var c = new Magix.cache(5,2);//创建一个可缓存5个，且缓存区为2个的缓存对象
+ * let c = new Magix.cache(5,2);//创建一个可缓存5个，且缓存区为2个的缓存对象
  * c.set('key1',{});//缓存
  * c.get('key1');//获取
  * c.del('key1');//删除
  * c.has('key1');//判断
  * //注意：缓存通常配合其它方法使用，在Magix中，对路径的解析等使用了缓存。在使用缓存优化性能时，可以达到节省CPU和内存的双赢效果
  */
-var G_Cache = function (max, buffer, remove, me) {
+let G_Cache = function (max, buffer, remove, me) {
     me = this;
     me.c = [];
-    me.b = buffer | 0 || 5; //buffer先取整，如果为0则再默认5
+    me.b = buffer || 5; //buffer先取整，如果为0则再默认5
     me.x = me.b + (max || 20);
     me.r = remove;
 };
 
-G_Mix(G_Cache[G_PROTOTYPE], {
+G_Assign(G_Cache[G_PROTOTYPE], {
     /**
      * @lends Cache#
      */
@@ -33,10 +31,10 @@ G_Mix(G_Cache[G_PROTOTYPE], {
      * @param  {String} key
      * @return {Object} 初始设置的缓存对象
      */
-    get: function (key) {
-        var me = this;
-        var c = me.c;
-        var r = c[G_SPLITER + key];
+    get(key) {
+        let me = this;
+        let c = me.c;
+        let r = c[G_SPLITER + key];
         if (r) {
             r.f++;
             r.t = G_COUNTER++;
@@ -54,14 +52,14 @@ G_Mix(G_Cache[G_PROTOTYPE], {
      * @beta
      * @module cnum
      */
-    num: function (key, increase) {
-        var me = this,
+    num(key, increase) {
+        let me = this,
             c = me.c,
-            k = G_SPLITER + key;
+            k = G_SPLITER + key, o;
         if (increase && !c[k]) {
-            me.set(key, G_NULL);
+            me.set(key, 0);
         }
-        var o = c[k];
+        o = c[k];
         if (o) {
             if (increase) {
                 o.n++;
@@ -80,11 +78,11 @@ G_Mix(G_Cache[G_PROTOTYPE], {
      * @beta
      * @module ceach|service
      */
-    each: function (cb, ops, me, c, i) {
+    each(cb, ops, me, c, i) {
         me = this;
         c = me.c;
-        for (i = c.length; i--;) {
-            cb(c[i].v, ops, me);
+        for (i of c) {
+            cb(i.v, ops, me);
         }
     },
     /*#}#*/
@@ -93,13 +91,13 @@ G_Mix(G_Cache[G_PROTOTYPE], {
      * @param {String} key 缓存的key
      * @param {Object} value 缓存的对象
      */
-    set: function (okey, value) {
-        var me = this;
-        var c = me.c;
+    set(okey, value) {
+        let me = this;
+        let c = me.c;
 
-        var key = G_SPLITER + okey;
-        var r = c[key];
-        var t = me.b,
+        let key = G_SPLITER + okey;
+        let r = c[key];
+        let t = me.b,
             f;
         if (!r) {
             if (c.length >= me.x) {
@@ -144,10 +142,10 @@ G_Mix(G_Cache[G_PROTOTYPE], {
      * 删除缓存
      * @param  {String} key 缓存key
      */
-    del: function (k) {
+    del(k) {
         k = G_SPLITER + k;
-        var c = this.c;
-        var r = c[k],
+        let c = this.c;
+        let r = c[k],
             m = this.r;
         if (r) {
             r.f = -1;
@@ -163,7 +161,7 @@ G_Mix(G_Cache[G_PROTOTYPE], {
      * @param  {String} key 缓存key
      * @return {Boolean}
      */
-    has: function (k) {
+    has(k) {
         return G_Has(this.c, G_SPLITER + k);
     }
 });

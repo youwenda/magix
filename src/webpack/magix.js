@@ -1,17 +1,16 @@
-module.exports = (function() {
-    if (typeof DEBUG == 'undefined') DEBUG = true;
-    var $ = require('$');
-    var G_IsObject = $.isPlainObject;
-    var G_IsArray = $.isArray;
-    var G_NOOP = function() {};
+module.exports = (() => {
+    if (typeof DEBUG == 'undefined') window.DEBUG = true;
+    let $ = require('$');
+    let G_IsObject = $.isPlainObject;
+    let G_IsArray = $.isArray;
     Inc('../tmpl/variable');
     Inc('../tmpl/cache');
-    var G_IsFunction = $.isFunction;
+    let G_IsFunction = $.isFunction;
     /*#if(modules.defaultView){#*/
-    var coreDefaultView;
+    let coreDefaultView;
     /*#}#*/
-    var G_Require = function(name, fn) {
-        var views = Magix_Cfg.views || G_NOOP;
+    let G_Require = (name, fn) => {
+        let views = Magix_Cfg.views || G_NOOP;
         /*#if(modules.defaultView){#*/
         if (!views[MxGlobalView]) views[MxGlobalView] = coreDefaultView;
         /*#}#*/
@@ -21,16 +20,16 @@ module.exports = (function() {
         if (!G_IsArray(name)) {
             name = [name];
         }
-        var results = [],
+        let results = [],
             view;
-        var promiseCount = 0;
-        var checkCount = function() {
+        let promiseCount = 0;
+        let checkCount = () => {
             if (!promiseCount) {
                 fn.apply(Magix, results);
             }
         };
-        var promise = function(p, idx, fn) {
-            fn = function(v) {
+        let promise = (p, idx, fn) => {
+            fn = v => {
                 if (!results[idx]) {
                     promiseCount--;
                     results[idx] = v;
@@ -42,7 +41,7 @@ module.exports = (function() {
                 p.then(fn);
             }
         };
-        for (var i = 0; i < name.length; i++) {
+        for (let i = 0; i < name.length; i++) {
             view = views[name[i]];
             if (G_IsFunction(view) && !view.extend) {
                 promiseCount++;
@@ -53,41 +52,26 @@ module.exports = (function() {
         }
         checkCount();
     };
-    var G_Define = function(mId, value) {
-        var views = Magix_Cfg.views || G_NOOP;
-        views[mId] = value;
-    };
     Inc('../tmpl/extend');
-    var G_HTML = function(node, html, vId) {
-        G_DOC.triggerHandler({
-            type: 'htmlchange',
-            vId: vId
-        });
-        $(node).html(html);
-        G_DOC.triggerHandler({
-            type: 'htmlchanged',
-            vId: vId
-        });
-    };
-    var G_SelectorEngine = $.find || $.zepto;
-    var G_TargetMatchSelector = G_SelectorEngine.matchesSelector || G_SelectorEngine.matches;
-    var G_DOMGlobalProcessor = function(e, d) {
+    let G_SelectorEngine = $.find || $.zepto;
+    let G_TargetMatchSelector = G_SelectorEngine.matchesSelector || G_SelectorEngine.matches;
+    let G_DOMGlobalProcessor = (e, d) => {
         d = e.data;
         e.eventTarget = d.e;
         G_ToTry(d.f, e, d.v);
     };
     /*#if(modules.eventEnterLeave){#*/
-    var Specials = {
+    let Specials = {
         mouseenter: 1,
         mouseleave: 1,
         pointerenter: 1,
         pointerleave: 1
     };
-    var G_DOMEventLibBind = function(node, type, cb, remove, scope, selector) {
+    let G_DOMEventLibBind = (node, type, cb, remove, scope, selector) => {
         if (scope) {
-            type += '.' + scope.i;
+            type += `.${scope.i}`;
         }
-        selector = Specials[type] === 1 ? '[mx-' + type + ']' : G_EMPTY;
+        selector = Specials[type] === 1 ? `[mx-${type}]` : G_EMPTY;
         if (remove) {
             $(node).off(type, selector, cb);
         } else {
@@ -95,9 +79,9 @@ module.exports = (function() {
         }
     };
     /*#}else{#*/
-    var G_DOMEventLibBind = function(node, type, cb, remove, scope) {
+    let G_DOMEventLibBind = (node, type, cb, remove, scope) => {
         if (scope) {
-            type += '.' + scope.i;
+            type += `.${scope.i}`;
         }
         if (remove) {
             $(node).off(type, cb);
@@ -118,20 +102,19 @@ module.exports = (function() {
     Inc('../tmpl/router');
     /*#}#*/
     /*#if(modules.mxViewAttr){#*/
-    var G_Trim = $.trim;
+    let G_Trim = $.trim;
     /*#}#*/
     Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe){#*/
-    $.fn.invokeView = function(name, args) {
-        var l = this.length;
+    $.fn.invokeView = function (name, args) {
+        let l = this.length;
         if (l) {
-            var e = this[0];
-            var vf = e.vframe;
+            let e = this[0];
+            let vf = e.vframe;
             if (args === undefined) {
                 return vf && vf.invoke(name);
             } else {
-                for (var i = 0; i < l; i++) {
-                    e = this[i];
+                for (e of this) {
                     vf = e.vframe;
                     if (vf) {
                         vf.invoke(name, args);
@@ -147,23 +130,15 @@ module.exports = (function() {
     Inc('../tmpl/tmpl');
     /*#if(modules.updaterIncrement){#*/
     Inc('../tmpl/increment');
-    var Updater_Increment = function(node, html, vId) {
-        Increment(node, html);
-        G_DOC.triggerHandler({
-            type: 'htmlchange',
-            target: node,
-            vId: vId
-        });
-    };
-    /*#}#*/
+    /*#}else{#*/
     Inc('../tmpl/partial');
+    /*#}#*/
     Inc('../tmpl/updater');
     /*#}#*/
     Inc('../tmpl/view');
     /*#if(modules.service){#*/
-    var G_Type = $.type;
-    var G_Proxy = $.proxy;
-    var G_Now = $.now || Date.now;
+    let G_Type = $.type;
+    let G_Now = $.now || Date.now;
     Inc('../tmpl/service');
     /*#}#*/
     Inc('../tmpl/base');
@@ -171,7 +146,7 @@ module.exports = (function() {
     coreDefaultView = View.extend(
         /*#if(!modules.autoEndUpdate){#*/
         {
-            render: function() {
+            render() {
                 this.endUpdate();
             }
         }

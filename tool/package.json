@@ -1,6 +1,7 @@
 {
-  "name": "magix",
+  "name": "magix-build",
   "version": "3.0.0",
+  "private": true,
   "devDependencies": {
     "gulp": "^3.9.1",
     "gulp-rename": "^1.2.2",

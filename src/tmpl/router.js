@@ -1,32 +1,32 @@
-var Router_VIEW = 'view';
-var Router_HrefCache = new G_Cache();
-var Router_ChgdCache = new G_Cache();
-var Router_WinLoc = G_WINDOW.location;
-var Router_LastChanged;
-var Router_Silent = 0;
-var Router_LLoc = {
+let Router_VIEW = 'view';
+let Router_HrefCache = new G_Cache();
+let Router_ChgdCache = new G_Cache();
+let Router_WinLoc = G_WINDOW.location;
+let Router_LastChanged;
+let Router_Silent = 0;
+let Router_LLoc = {
     query: {},
     params: {},
     href: G_EMPTY
 };
-var Router_TrimHashReg = /(?:^.*\/\/[^\/]+|#.*$)/gi;
-var Router_TrimQueryReg = /^[^#]*#?!?/;
-var GetParam = function(key, params) {
+let Router_TrimHashReg = /(?:^.*\/\/[^\/]+|#.*$)/gi;
+let Router_TrimQueryReg = /^[^#]*#?!?/;
+let GetParam = function (key, params) {
     params = this[G_PARAMS];
     return params[key] || G_EMPTY;
 };
-var Router_Edge;
+let Router_Edge = 0;
 /*#if(!modules.forceEdgeRouter){#*/
-var Router_Hashbang = G_HashKey + '!';
-var Router_UpdateHash = function(path, replace) {
-    path = Router_Hashbang + path;
+let Router_Hashbang = G_HashKey + '!';
+let Router_UpdateHash = (path, replace) => {
+    path = `${Router_Hashbang}${path}`;
     if (replace) {
         Router_WinLoc.replace(path);
     } else {
         Router_WinLoc.hash = path;
     }
 };
-var Router_Update = function(path, params, loc, replace, silent, lQuery) {
+let Router_Update = (path, params, loc, replace, silent, lQuery) => {
     path = G_ToUri(path, params, lQuery);
     if (path != loc.srcHash) {
         Router_Silent = silent;
@@ -34,10 +34,10 @@ var Router_Update = function(path, params, loc, replace, silent, lQuery) {
     }
 };
 /*#if(modules.tipRouter){#*/
-var Router_Bind = function() {
-    var lastHash = Router_Parse().srcHash;
-    var newHash, suspend;
-    G_DOMEventLibBind(G_WINDOW, 'hashchange', function(e, loc, resolve) {
+let Router_Bind = () => {
+    let lastHash = Router_Parse().srcHash;
+    let newHash, suspend;
+    G_DOMEventLibBind(G_WINDOW, 'hashchange', (e, loc, resolve) => {
         if (suspend) {
             /*#if(modules.tipLockUrlRouter){#*/
             Router_UpdateHash(lastHash);
@@ -47,7 +47,7 @@ var Router_Bind = function() {
         loc = Router_Parse();
         newHash = loc.srcHash;
         if (newHash != lastHash) {
-            resolve = function() {
+            resolve = () => {
                 e.p = 1;
                 lastHash = newHash;
                 suspend = G_EMPTY;
@@ -55,15 +55,15 @@ var Router_Bind = function() {
                 Router_Diff();
             };
             e = {
-                reject: function() {
+                reject() {
                     e.p = 1;
                     suspend = G_EMPTY;
                     /*#if(!modules.tipLockUrlRouter){#*/
                     Router_UpdateHash(lastHash);
                     /*#}#*/
                 },
-                resolve: resolve,
-                prevent: function() {
+                resolve,
+                prevent() {
                     suspend = 1;
                     /*#if(modules.tipLockUrlRouter){#*/
                     Router_UpdateHash(lastHash);
@@ -76,7 +76,7 @@ var Router_Bind = function() {
             }
         }
     });
-    G_WINDOW.onbeforeunload = function(e, te, msg) {
+    G_WINDOW.onbeforeunload = (e, te, msg) => {
         e = e || G_WINDOW.event;
         te = {};
         Router.fire('pageunload', te);
@@ -88,24 +88,22 @@ var Router_Bind = function() {
     Router_Diff();
 };
 /*#}else{#*/
-var Router_Bind = function() {
+let Router_Bind = () => {
     G_DOMEventLibBind(G_WINDOW, 'hashchange', Router_Diff);
     Router_Diff();
 };
 /*#}#*/
 /*#}#*/
 /*#if(modules.edgeRouter||modules.forceEdgeRouter){#*/
-var WinHistory = G_WINDOW.history;
+let WinHistory = G_WINDOW.history;
 /*#if(!modules.forceEdgeRouter){#*/
 if (WinHistory.pushState) {
     /*#}#*/
     Router_Edge = 1;
-    var Router_DidUpdate;
-    var Router_UpdateState = function(path, replace) {
-        WinHistory[replace ? 'replaceState' : 'pushState'](G_NULL, G_NULL, path);
-    };
-    var Router_Popstate;
-    var Router_Update = function(path, params, loc, replace, silent) {
+    let Router_DidUpdate;
+    let Router_UpdateState = (path, replace) => WinHistory[replace ? 'replaceState' : 'pushState'](G_EMPTY, G_EMPTY, path);
+    let Router_Popstate;
+    let Router_Update = (path, params, loc, replace, silent) => {
         path = G_ToUri(path, params);
         if (path != loc.srcQuery) {
             Router_Silent = silent;
@@ -118,13 +116,13 @@ if (WinHistory.pushState) {
         }
     };
     /*#if(modules.tipRouter){#*/
-    var Router_Bind = function() {
-        var initialURL = Router_WinLoc.href;
-        var lastHref = initialURL;
-        var newHref, suspend;
-        G_DOMEventLibBind(G_WINDOW, 'popstate', Router_Popstate = function(f, e, resolve) {
+    let Router_Bind = () => {
+        let initialURL = Router_WinLoc.href;
+        let lastHref = initialURL;
+        let newHref, suspend;
+        G_DOMEventLibBind(G_WINDOW, 'popstate', Router_Popstate = (f, e, resolve) => {
             newHref = Router_WinLoc.href;
-            var initPop = !Router_DidUpdate && newHref == initialURL;
+            let initPop = !Router_DidUpdate && newHref == initialURL;
             Router_DidUpdate = 1;
             if (initPop) return;
             if (suspend) {
@@ -134,7 +132,7 @@ if (WinHistory.pushState) {
                 return;
             }
             if (newHref != lastHref) {
-                resolve = function() {
+                resolve = () => {
                     e.p = 1;
                     suspend = G_EMPTY;
                     lastHref = newHref;
@@ -142,15 +140,15 @@ if (WinHistory.pushState) {
                     Router_Diff();
                 };
                 e = {
-                    reject: function() {
+                    reject() {
                         suspend = G_EMPTY;
                         e.p = 1;
                         /*#if(!modules.tipLockUrlRouter){#*/
                         Router_UpdateState(lastHref);
                         /*#}#*/
                     },
-                    resolve: resolve,
-                    prevent: function() {
+                    resolve,
+                    prevent() {
                         suspend = 1;
                         /*#if(modules.tipLockUrlRouter){#*/
                         Router_UpdateState(lastHref);
@@ -163,7 +161,7 @@ if (WinHistory.pushState) {
                 }
             }
         });
-        G_WINDOW.onbeforeunload = function(e, te, msg) {
+        G_WINDOW.onbeforeunload = (e, te, msg) => {
             e = e || G_WINDOW.event;
             te = {};
             Router.fire('pageunload', te);
@@ -175,10 +173,10 @@ if (WinHistory.pushState) {
         Router_Diff();
     };
     /*#}else{#*/
-    var Router_Bind = function() {
-        var initialURL = Router_WinLoc.href;
-        G_DOMEventLibBind(G_WINDOW, 'popstate', function() {
-            var initPop = !Router_DidUpdate && Router_WinLoc.href == initialURL;
+    let Router_Bind = () => {
+        let initialURL = Router_WinLoc.href;
+        G_DOMEventLibBind(G_WINDOW, 'popstate', () => {
+            let initPop = !Router_DidUpdate && Router_WinLoc.href == initialURL;
             Router_DidUpdate = 1;
             if (initPop) return;
             Router_Diff();
@@ -191,16 +189,16 @@ if (WinHistory.pushState) {
 /*#}#*/
 /*#}#*/
 
-var Router_PNR_Routers, Router_PNR_UnmatchView, /*Router_PNR_IsFun,*/
+let Router_PNR_Routers, Router_PNR_UnmatchView, /*Router_PNR_IsFun,*/
     Router_PNR_DefaultView, Router_PNR_DefaultPath;
 
 /*#if(modules.urlRewriteRouter){#*/
-var Router_PNR_Rewrite;
+let Router_PNR_Rewrite;
 /*#}#*/
 /*#if(modules.updateTitleRouter){#*/
-var DefaultTitle = G_DOCUMENT.title;
+let DefaultTitle = G_DOCUMENT.title;
 /*#}#*/
-var Router_AttachViewAndPath = function(loc, view) {
+let Router_AttachViewAndPath = (loc, view) => {
     if (!Router_PNR_Routers) {
         Router_PNR_Routers = Magix_Cfg.routes || {};
         Router_PNR_UnmatchView = Magix_Cfg.unmatchView;
@@ -219,9 +217,9 @@ var Router_AttachViewAndPath = function(loc, view) {
     }
     if (!loc[Router_VIEW]) {
         /*#if(modules.forceEdgeRouter){#*/
-        var path = loc.query[G_PATH] || Router_PNR_DefaultPath;
+        let path = loc.query[G_PATH] || Router_PNR_DefaultPath;
         /*#}else{#*/
-        var path = loc.hash[G_PATH] || (Router_Edge && loc.query[G_PATH]) || Router_PNR_DefaultPath;
+        let path = loc.hash[G_PATH] || (Router_Edge && loc.query[G_PATH]) || Router_PNR_DefaultPath;
         /*#}#*/
 
         /*#if(modules.urlRewriteRouter){#*/
@@ -244,49 +242,48 @@ var Router_AttachViewAndPath = function(loc, view) {
                     console.error(path, ' config missing view!', view);
                 }
             }
-            G_Mix(loc, view);
+            G_Assign(loc, view);
         }
         /*#}#*/
     }
 };
 
-var Router_GetChged = function(oldLocation, newLocation) {
-    var oKey = oldLocation.href;
-    var nKey = newLocation.href;
-    var tKey = oKey + G_SPLITER + nKey;
-    var result = Router_ChgdCache.get(tKey);
+let Router_GetChged = (oldLocation, newLocation) => {
+    let oKey = oldLocation.href;
+    let nKey = newLocation.href;
+    let tKey = oKey + G_SPLITER + nKey;
+    let result = Router_ChgdCache.get(tKey);
     if (!result) {
-        var hasChanged, from, to, rps;
+        let hasChanged, rps;
         result = {
+            params: rps = {},
             //isParam: Router_IsParam,
             //location: newLocation,
             force: !oKey //是否强制触发的changed，对于首次加载会强制触发一次
         };
-        //result[Router_VIEW] = to;
-        //result[G_PATH] = to;
-        result[G_PARAMS] = rps = {};
-
-        var oldParams = oldLocation[G_PARAMS],
-            newParams = newLocation[G_PARAMS];
-        var tArr = [G_PATH, Router_VIEW].concat(G_Keys(oldParams), G_Keys(newParams)),
-            idx, key;
-        for (idx = tArr.length; idx--;) {
-            key = tArr[idx];
-            if (idx == 1) {
-                oldParams = oldLocation;
-                newParams = newLocation;
-                rps = result;
-            }
-            from = oldParams[key];
-            to = newParams[key];
+        let oldParams = oldLocation[G_PARAMS],
+            newParams = newLocation[G_PARAMS],
+            tArr = G_Keys(oldParams).concat(G_Keys(newParams)),
+            key;
+        let setDiff = key => {
+            let from = oldParams[key],
+                to = newParams[key];
             if (from != to) {
                 rps[key] = {
-                    from: from,
-                    to: to
+                    from,
+                    to
                 };
                 hasChanged = 1;
             }
+        };
+        for (key of tArr) {
+            setDiff(key);
         }
+        oldParams = oldLocation;
+        newParams = newLocation;
+        rps = result;
+        setDiff(G_PATH);
+        setDiff(Router_VIEW);
         Router_ChgdCache.set(tKey, result = {
             a: hasChanged,
             b: result
@@ -294,28 +291,28 @@ var Router_GetChged = function(oldLocation, newLocation) {
     }
     return result;
 };
-var Router_Parse = function(href) {
+let Router_Parse = href => {
     href = href || Router_WinLoc.href;
 
-    var result = Router_HrefCache.get(href),
-        query, hash, queryObj, hashObj, params;
+    let result = Router_HrefCache.get(href),
+        srcQuery, srcHash, query, hash, params;
     if (!result) {
-        query = href.replace(Router_TrimHashReg, G_EMPTY);
-        hash = href.replace(Router_TrimQueryReg, G_EMPTY);
-        queryObj = G_ParseUri(query);
-        hashObj = G_ParseUri(hash);
-        params = G_Mix({}, queryObj[G_PARAMS]);
-        /*#if(!modules.forceEdgeRouter){#*/
-        G_Mix(params, hashObj[G_PARAMS]);
-        /*#}#*/
+        srcQuery = href.replace(Router_TrimHashReg, G_EMPTY);
+        srcHash = href.replace(Router_TrimQueryReg, G_EMPTY);
+        query = G_ParseUri(srcQuery);
+        hash = G_ParseUri(srcHash);
+        params = {
+            ...query[G_PARAMS]
+            /*#if(!modules.forceEdgeRouter){#*/, ...hash[G_PARAMS]/*#}#*/
+        };
         result = {
             get: GetParam,
-            href: href,
-            srcQuery: query,
-            srcHash: hash,
-            query: queryObj,
-            hash: hashObj,
-            params: params
+            href,
+            srcQuery,
+            srcHash,
+            query,
+            hash,
+            params
         };
         Router_AttachViewAndPath(result);
         Router_HrefCache.set(href, result);
@@ -325,17 +322,17 @@ var Router_Parse = function(href) {
     }
     return result;
 };
-var Router_Diff = function() {
-    var location = Router_Parse();
-    var changed = Router_GetChged(Router_LLoc, Router_LLoc = location);
+let Router_Diff = () => {
+    let location = Router_Parse();
+    let changed = Router_GetChged(Router_LLoc, Router_LLoc = location);
     if (!Router_Silent && changed.a) {
         /*#if(modules.updateTitleRouter){#*/
         Router_LastChanged = changed.b;
-        if (Router_LastChanged.path) {
+        if (Router_LastChanged[G_PATH]) {
             G_DOCUMENT.title = location.title || DefaultTitle;
         }
         /*#}#*/
-        Router.fire('changed', /*#if(modules.updateTitleRouter){#*/ Router_LastChanged /*#}else{#*/ Router_LastChanged = changed.b /*#}#*/ );
+        Router.fire('changed', /*#if(modules.updateTitleRouter){#*/ Router_LastChanged /*#}else{#*/ Router_LastChanged = changed.b /*#}#*/);
     }
     Router_Silent = 0;
     if (DEBUG) {
@@ -343,8 +340,8 @@ var Router_Diff = function() {
     }
     return Router_LastChanged;
 };
-//var PathTrimFileParamsReg=/(\/)?[^\/]*[=#]$/;//).replace(,'$1').replace(,EMPTY);
-//var PathTrimSearch=/\?.*$/;
+//let PathTrimFileParamsReg=/(\/)?[^\/]*[=#]$/;//).replace(,'$1').replace(,EMPTY);
+//let PathTrimSearch=/\?.*$/;
 /**
  * 路由对象，操作URL
  * @name Router
@@ -355,7 +352,7 @@ var Router_Diff = function() {
  * @beta
  * @module router
  */
-var Router = G_Mix({
+let Router = {
     /**
      * @lends Router
      */
@@ -368,7 +365,7 @@ var Router = G_Mix({
     /**
      * 根据location.href路由并派发相应的事件,同时返回当前href与上一个href差异对象
      * @example
-     * var diff = Magix.Router.diff();
+     * let diff = Magix.Router.diff();
      * if(diff.params.page || diff.params.rows){
      *     console.log('page or rows changed');
      * }
@@ -380,7 +377,7 @@ var Router = G_Mix({
      * @param {String|Object} [params] 参数对象
      * @param {Boolean} [replace] 是否替换当前历史记录
      * @example
-     * var R = Magix.Router;
+     * let R = Magix.Router;
      * R.to('/list?page=2&rows=20');//改变path和相关的参数，地址栏上的其它参数会进行丢弃，不会保留
      * R.to('page=2&rows=20');//只修改参数，地址栏上的其它参数会保留
      * R.to({//通过对象修改参数，地址栏上的其它参数会保留
@@ -394,18 +391,18 @@ var Router = G_Mix({
      *
      * //凡是带path的修改地址栏，都会把原来地址栏中的参数丢弃
      */
-    to: function(pn, params, replace, silent) {
+    to(pn, params, replace, silent) {
         if (!params && G_IsObject(pn)) {
             params = pn;
             pn = G_EMPTY;
         }
-        var temp = G_ParseUri(pn);
-        var tParams = temp[G_PARAMS];
-        var tPath = temp[G_PATH];
-        var lPath = Router_LLoc[G_PATH]; //历史路径
-        var lParams = Router_LLoc[G_PARAMS];
-        var lQuery = Router_LLoc.query[G_PARAMS];
-        G_Mix(tParams, params); //把路径中解析出来的参数与用户传递的参数进行合并
+        let temp = G_ParseUri(pn);
+        let tParams = temp[G_PARAMS];
+        let tPath = temp[G_PATH];
+        let lPath = Router_LLoc[G_PATH]; //历史路径
+        let lParams = Router_LLoc[G_PARAMS];
+        let lQuery = Router_LLoc.query[G_PARAMS];
+        G_Assign(tParams, params); //把路径中解析出来的参数与用户传递的参数进行合并
 
         if (tPath) { //设置路径带参数的形式，如:/abc?q=b&c=e或不带参数 /abc
             //tPath = G_Path(lPath, tPath);
@@ -416,10 +413,11 @@ var Router = G_Mix({
             }
         } else if (lParams) { //只有参数，如:a=b&c=d
             tPath = lPath; //使用历史路径
-            tParams = G_Mix(G_Mix({}, lParams), tParams); //复制原来的参数，合并新的参数
+            tParams = { ...lParams, ...tParams }; //复制原来的参数，合并新的参数
         }
         Router_Update(tPath, tParams, Router_LLoc, replace, silent, lQuery);
-    }
+    },
+    ...MEvent
 
     /**
      * 当location.href有改变化后触发
@@ -431,5 +429,5 @@ var Router = G_Mix({
      * @param {Object} e.params 如果参数发生改变时，记录从(from)什么值变成(to)什么值的对象
      * @param {Boolean} e.force 标识是否是第一次强制触发的changed，对于首次加载完Magix，会强制触发一次changed
      */
-}, Event);
+};
 Magix.Router = Router;

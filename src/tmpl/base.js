@@ -1,18 +1,16 @@
 /*#if(modules.base){#*/
-var T_Extend = function (props, statics) {
-    var me = this;
-    var ctor = props && props.ctor;
-    var X = function () {
-        var t = this,
-            a = arguments;
+G_Assign(G_NOOP[G_PROTOTYPE], MEvent);
+G_NOOP.extend = function extend(props, statics) {
+    let me = this;
+    let ctor = props && props.ctor;
+    let X = function (...a) {
+        let t = this;
         me.apply(t, a);
         if (ctor) ctor.apply(t, a);
     };
-    X.extend = T_Extend;
+    X.extend = extend;
     return G_Extend(X, me, props, statics);
 };
-G_Mix(G_NOOP[G_PROTOTYPE], Event);
-G_NOOP.extend = T_Extend;
 /**
  * 组件基类
  * @name Base
@@ -23,12 +21,12 @@ G_NOOP.extend = T_Extend;
  * @beta
  * @module base
  * @example
- * var T = Magix.Base.extend({
+ * let T = Magix.Base.extend({
  *     hi:function(){
  *         this.fire('hi');
  *     }
  * });
- * var t = new T();
+ * let t = new T();
  * t.onhi=function(e){
  *     console.log(e);
  * };

@@ -1,46 +1,71 @@
-var Tmpl_EscapeSlashRegExp = /\\|'/g;
-var Tmpl_EscapeBreakReturnRegExp = /\r|\n/g;
-var Tmpl_Mathcer = /<%([@=!])?([\s\S]*?)%>|$/g;
-var Tmpl_Compiler = function(text) {
+let Tmpl_EscapeSlashRegExp = /\\|'/g;
+let Tmpl_EscapeBreakReturnRegExp = /\r|\n/g;
+let Tmpl_Mathcer = /<%([@=!])?([\s\S]*?)%>|$/g;
+let Tmpl_Compiler = text => {
     // Compile the template source, escaping string literals appropriately.
-    var index = 0;
-    var source = "$p+='";
-    text.replace(Tmpl_Mathcer, function(match, operate, content, offset) {
+    let index = 0;
+    let source = "$p+='";
+    text.replace(Tmpl_Mathcer, (match, operate, content, offset) => {
         source += text.slice(index, offset).replace(Tmpl_EscapeSlashRegExp, "\\$&").replace(Tmpl_EscapeBreakReturnRegExp, "\\n");
         index = offset + match.length;
         if (DEBUG) {
-            var expr = text.slice(index - match.length, index).replace(/\${2}\./, "").replace(Tmpl_EscapeSlashRegExp, "\\$&").replace(Tmpl_EscapeBreakReturnRegExp, "\\n");
+            let expr = text.slice(index - match.length + 2 + (operate ? 1 : 0), index - 2);
+            let artReg = /^'(\d+)\x11([^\x11]+)\x11'$/;
+            let artM = expr.match(artReg);
+            let art = '';
+            let line = -1;
+            if (artM) {
+                expr = expr.replace(artReg, '');
+                art = artM[2];
+                line = artM[1];
+            } else {
+                expr = expr.replace(Tmpl_EscapeSlashRegExp, "\\$&").replace(Tmpl_EscapeBreakReturnRegExp, "\\n");
+            }
             if (operate == "@") {
-                source += "';$expr='" + expr + "';$p+=$i(" + content + ");$p+='";
+                source += "';$expr='<%" + operate + expr + "%>';$p+=$i(" + content + ");$p+='";
             } else if (operate == "=") {
-                source += "'+($expr='" + expr + "',$e(" + content + "))+'";
+                source += "'+($expr='<%" + operate + expr + "%>',$e(" + content + "))+'";
             } else if (operate == "!") {
-                source += "'+($expr='" + expr + "',$n(" + content + "))+'";
+                source += "'+($expr='<%" + operate + expr + "%>',$n(" + content + "))+'";
             } else if (content) {
-                source += "';$expr='" + expr + "';" + content + ";$p+='";
+                if (line > -1) {
+                    source += "';$art='" + art + "';$line=" + line + ";";
+                } else {
+                    source += "';";
+                }
+                source += "$expr='<%" + expr + "%>';" + content + ";$p+='";
             }
         } else {
             if (operate == "@") {
-                source += "';$p+=$i(" + content + ");$p+='";
+                source += `';$p+=$i(${content});$p+='`;
             } else if (operate == "=") {
-                source += "'+$e(" + content + ")+'";
+                source += `'+$e(${content})+'`;
             } else if (operate == "!") {
-                source += "'+$n(" + content + ")+'";
+                source += `'+$n(${content})+'`;
             } else if (content) {
-                source += "';" + content + ";$p+='";
+                source += `';${content};$p+='`;
             }
         }
         // Adobe VMs need the match returned to produce the correct offset.
         return match;
     });
     source += "';";
+    /*#if(modules.es3){#*/
 
     if (DEBUG) {
-        source = "var $expr;try{" + source + "}catch(ex){$throw(ex,$expr)}";
+        source = "var $expr,$art,$line;try{" + source + "}catch(ex){$throw(ex,$expr,$art,$line)}";
     }
-    // If a variable is not specified, place data values in local scope.
-    //source = "with($mx){\n" + source + "}\n";
-    source = "var $t,$p='',$em={'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&#34;','\\'':'&#39;','`':'&#96;'},$er=/[&<>\"'`]/g,$n=function(v){return v==null?'':''+v},$ef=function(m){return $em[m]},$e=function(v){return $n(v).replace($er,$ef)},$i=function(v,k,f){for(f=$$[$g];--f;)if($$[k=$g+f]===v)return k;$$[k=$g+$$[$g]++]=v;return k},$um={'!':'%21','\\'':'%27','(':'%28',')':'%29','*':'%2A'},$uf=function(m){return $um[m]},$uq=/[!')(*]/g,$eu=function(v){return encodeURIComponent($n(v)).replace($uq,$uf)},$qr=/[\\\\'\"]/g,$eq=function(v){return $n(v).replace($qr,'\\\\$&')};" + source + "return $p";
+
+    source = "var $t,$p='',$em={'&':'amp','<':'lt','>':'gt','\"':'#34','\\'':'#39','`':'#96'},$er=/[&<>\"'`]/g,$n=function(v){return v==null?'':''+v},$ef=function(m){return '&'+$em[m]+';'},$e=function(v){return $n(v).replace($er,$ef)},$i=function(v,k,f){for(f=$$[$g];--f;)if($$[k=$g+f]===v)return k;$$[k=$g+$$[$g]++]=v;return k},$um={'!':'%21','\\'':'%27','(':'%28',')':'%29','*':'%2A'},$uf=function(m){return $um[m]},$uq=/[!')(*]/g,$eu=function(v){return encodeURIComponent($n(v)).replace($uq,$uf)},$qr=/[\\\\'\"]/g,$eq=function(v){return $n(v).replace($qr,'\\\\$&')};" + source + "return $p";
+
+    /*#}else{#*/
+    if (DEBUG) {
+        source = "let $expr,$art,$line;try{" + source + "}catch(ex){$throw(ex,$expr,$art,$line)}";
+    }
+
+    source = `let $t,$p='',$em={'&':'amp','<':'lt','>':'gt','"':'#34','\\'':'#39','\`':'#96'},$er=/[&<>"'\`]/g,$n=v=>v==null?'':''+v,$ef=m=>'&'+$em[m]+';',$e=v=>$n(v).replace($er,$ef),$i=(v,k,f)=>{for(f=$$[$g];--f;)if($$[k=$g+f]===v)return k;$$[k=$g+$$[$g]++]=v;return k},$um={'!':'%21','\\'':'%27','(':'%28',')':'%29','*':'%2A'},$uf=m=>$um[m],$uq=/[!')(*]/g,$eu=v=>encodeURIComponent($n(v)).replace($uq,$uf),$qr=/[\\\\'"]/g,$eq=v=>$n(v).replace($qr,'\\\\$&');${source}return $p`;
+    /*#}#*/
+    //console.log(source);
     if (DEBUG) {
         /*jshint evil: true*/
         return Function("$g", "$$", "$throw", source);
@@ -48,30 +73,23 @@ var Tmpl_Compiler = function(text) {
     /*jshint evil: true*/
     return Function("$g", "$$", source);
 };
-var Tmpl_Cache = new G_Cache();
-var Tmpl = function(text, data) {
-    var fn = Tmpl_Cache.get(text);
+let Tmpl_Cache = new G_Cache();
+let Tmpl = (text, data, file) => {
+    let fn = Tmpl_Cache.get(text);
     if (!fn) {
         fn = Tmpl_Compiler(text);
         Tmpl_Cache.set(text, fn);
     }
-    return fn.call(data, G_SPLITER, data);
-};
-if (DEBUG) {
-    var Tmpl = function(text, data, file) {
-        var fn = Tmpl_Cache.get(text);
-        if (!fn) {
-            fn = Tmpl_Compiler(text);
-            Tmpl_Cache.set(text, fn);
-        }
-        return fn.call(data, G_SPLITER, data, function(ex, expr) {
-            setTimeout(function() {
+    if (DEBUG) {
+        return fn(G_SPLITER, data, (ex, expr, art, line) => {
+            setTimeout(() => {
                 if (file) {
-                    throw "tmpl exec error:" + ex.message + "\r\n\texpr " + expr + "\r\n\tfile " + file;
+                    throw `render view error: ${ex.message || ex}${art ? `\r\n\tsrc art: {{${art}}}\t\n\tat line: ${line}` : ''}\r\n\t${art ? 'translate to:' : 'expr:'} ${expr}\r\n\tat file: ${file}`;
                 } else {
-                    throw new Error("tmpl exec error:" + ex.message + "\r\n\texpr " + expr);
+                    throw new Error(`render view error: ${ex.message || ex}\r\n\texpr: ${expr}`);
                 }
             }, 0);
         });
-    };
-}
+    }
+    return fn(G_SPLITER, data);
+};

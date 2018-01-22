@@ -4,25 +4,23 @@
 /*!3.8.0 Licensed MIT*/
 /*
 author:kooboy_li@163.com
-loader:kissy
+loader:module
 enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,updaterSetState,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterIncrement
 
 optionals:serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,share,mxViewAttr,keepHTML,eventEnterLeave,naked
 */
-KISSY.add('magix', (S, SE, DOM) => {
-    if (typeof DEBUG == 'undefined') window.DEBUG = true;
-    let $ = S.all;
-    let G_IsObject = S.isObject;
-    let G_IsArray = S.isArray;
-    let G_COUNTER = 0;
+if (typeof DEBUG == 'undefined') window.DEBUG = true;
+let G_Type = (type) => o => Object.prototype.toString.call(o).slice(8, -1) == type;
+let G_IsObject = G_Type('Object');
+let G_IsArray = G_Type('Array');
+
+let G_COUNTER = 0;
 let G_EMPTY = '';
 let G_EMPTY_ARRAY = [];
 let G_COMMA = ',';
 let G_NULL = null;
 let G_WINDOW = window;
 let G_DOCUMENT = document;
-
-let G_DOC = $(G_DOCUMENT);
 
 let Timeout = G_WINDOW.setTimeout;
 let G_HashKey = '#';
@@ -97,7 +95,8 @@ let { assign: G_Assign, keys: G_Keys, hasOwnProperty: Magix_HasProp } = Object;
 
 
 
-let Header = $('head');
+let Header = document.head;
+let Temp = document.createElement('div');
 
 let View_ApplyStyle = (key, css) => {
     if (DEBUG && G_IsArray(key)) {
@@ -110,10 +109,12 @@ let View_ApplyStyle = (key, css) => {
         View_ApplyStyle[key] = 1;
         if (DEBUG) {
             
-            Header.append(`<style id="${key}">${css}`);
+            Temp.innerHTML = `<style id="${key}">${css}`;
+            Header.appendChild(Temp.firstChild);
             
         } else {
-            Header.append(`<style>${css}`);
+            Temp.innerHTML = `<style>${css}`;
+            Header.appendChild(Temp.firstChild);
             
         }
     }
@@ -157,7 +158,7 @@ let G_TryStringify = (data, uri, params) => {
     }
 };
 
-    let Magix_CacheSort = (a, b) =>   b.f - a.f || b.t - a.t;
+let Magix_CacheSort = (a, b) =>   b.f - a.f || b.t - a.t;
 /**
  * Magix.Cache 类
  * @name Cache
@@ -285,31 +286,157 @@ G_Assign(G_Cache[G_PROTOTYPE], {
         return G_Has(this.c, G_SPLITER + k);
     }
 });
-    let G_Require = (name, fn) => {
-        S.use(name && (name + G_EMPTY), (S, ...args) => {
-            if (fn) {
-                fn.apply(S, args);
+
+let G_DefaultView;
+
+let G_Require = (name, fn) => {
+    if (name) {
+        
+        if (MxGlobalView == name) {
+            if (!G_DefaultView) {
+                G_DefaultView = View.extend(
+                    
+                );
             }
-        });
-    };
-    let G_Extend = S.extend;
-    let G_TargetMatchSelector = DOM.test;
-    let G_DOMGlobalProcessor = function (e, d) {
-        d = this;
-        e.eventTarget = d.e;
-        G_ToTry(d.f, e, d.v);
-    };
-    
-    let G_DOMEventLibBind = (node, type, cb, remove, scope) => {
-        if (scope) {
-            SE[`${remove ? 'un' : G_EMPTY}delegate`](node, type, cb, scope);
+            fn(G_DefaultView);
         } else {
-            SE[remove ? 'detach' : 'on'](node, type, cb, scope);
+            let a = [], n, c = 0;
+            if (!G_IsArray(name)) name = [name];
+            let check = i => {
+                return v => {
+                    a[i] = v.default;
+                    c++;
+                    if (c == a.length) {
+                        fn(...a);
+                    }
+                };
+            };
+            let paths = Magix_Cfg.paths;
+            for (let i = name.length, f, s, p; i--;) {
+                f = name[i];
+                s = f.indexOf('/');
+                if (s > -1) {
+                    p = f.slice(0, s);
+                    f = f.slice(s + 1);
+                    f = (paths[p] || `unset/${p}/path/`) + f;
+                }
+                if (!f.endsWith('.js')) {
+                    f += '.js';
+                }
+                import(f).then(check(i));
+            }
+            
+        }
+        
+    } else {
+        fn();
+    }
+};
+let T = function () { };
+let G_Extend = (ctor, base, props, statics, cProto) => {
+    //bProto.constructor = base;
+    T[G_PROTOTYPE] = base[G_PROTOTYPE];
+    cProto = new T();
+    G_Assign(cProto, props);
+    G_Assign(ctor, statics);
+    cProto.constructor = ctor;
+    ctor[G_PROTOTYPE] = cProto;
+    return ctor;
+};
+
+let $ = selector => G_DOCUMENT.querySelectorAll(selector);
+let G_Trigger = (element, type, data) => {
+    let e = G_DOCUMENT.createEvent('Events');
+    e.initEvent(type, true, true);
+    for (let p in data) {
+        e[p] = data[p];
+    }
+    element.dispatchEvent(e);
+};
+let G_TargetMatchSelector = (element, selector) => {
+    if (!selector || !element || element.nodeType !== 1) return 0;
+    let matchesSelector = element.webkitMatchesSelector || element.mozMatchesSelector ||
+        element.oMatchesSelector || element.matchesSelector;
+    return matchesSelector.call(element, selector);
+};
+let G_MxId = e => e._mx || (e._mx = G_Id('e'));
+let G_EventHandlers = {};
+let returnTrue = () => true,
+    returnFalse = () => false,
+    eventMethods = {
+        preventDefault: 'isDefaultPrevented',
+        stopImmediatePropagation: 'isImmediatePropagationStopped',
+        stopPropagation: 'isPropagationStopped'
+    };
+
+let G_EventCompatible = e => {
+    if (!e.isDefaultPrevented) {
+        for (let key in eventMethods) {
+            let value = eventMethods[key];
+            let src = e[key];
+            e[key] = (...a) => {
+                e[value] = returnTrue;
+                return src && src.apply(e, a);
+            };
+            e[value] = returnFalse;
+        }
+        if (e.defaultPrevented !== undefined ? e.defaultPrevented :
+            'returnValue' in e ? e.returnValue === false :
+                e.getPreventDefault && e.getPreventDefault())
+            e.isDefaultPrevented = returnTrue;
+    }
+    return e;
+};
+let G_AddEvent = (element, type, data, fn) => {
+    let id = G_MxId(element);
+    let collections = G_EventHandlers[id] || (G_EventHandlers[id] = []);
+    let h = {
+        '$a': data && data.i,
+        '$b': fn,
+        '$d': type,
+        '$e'(e) {
+            e = G_EventCompatible(e);
+            if (e.isImmediatePropagationStopped()) return;
+            fn.call(element, e, data);
         }
     };
-    
-
-    if (DEBUG) {
+    collections.push(h);
+    element.addEventListener(type, h['$e'], false);
+};
+let G_RemoveEvent = (element, type, data, cb) => {
+    let id = G_MxId(element);
+    let collections = G_EventHandlers[id];
+    if (collections) {
+        let found;
+        for (let c, i = collections.length; i--;) {
+            c = collections[i];
+            if (c['$d'] == type && c['$b'] === cb) {
+                let cd = c['$a'];
+                if (!data || (data && data.i == cd)) {
+                    found = c;
+                    collections.splice(i, 1);
+                    break;
+                }
+            }
+        }
+        if (found) {
+            element.removeEventListener(type, found['$e'], false);
+        }
+    }
+};
+let G_DOMGlobalProcessor = (e, d) => {
+    //d = e.data;
+    e.eventTarget = d.e;
+    G_ToTry(d.f, e, d.v);
+};
+let G_DOMEventLibBind = (node, type, cb, remove, scope) => {
+    if (remove) {
+        G_RemoveEvent(node, type, scope, cb);
+    } else {
+        G_AddEvent(node, type, scope, cb);
+    }
+};
+if (DEBUG) {
     var Safeguard;
     if (window.Proxy) {
         Safeguard = (data, getter, setter) => {
@@ -349,7 +476,7 @@ G_Assign(G_Cache[G_PROTOTYPE], {
         Safeguard = data => data;
     }
 }
-    let Magix_PathToObjCache = new G_Cache();
+let Magix_PathToObjCache = new G_Cache();
 //let Magix_PathCache = new G_Cache();
 let Magix_ParamsObjectTemp;
 let Magix_ParamsFn = (match, name, value) => {
@@ -807,7 +934,7 @@ let Magix = {
     use: G_Require,
     Cache: G_Cache
 };
-    /**
+/**
  * 多播事件对象
  * @name Event
  * @namespace
@@ -901,8 +1028,8 @@ let MEvent = {
     }
 };
 Magix.Event = MEvent;
-    
-    let State_AppData = {};
+
+let State_AppData = {};
 let State_AppDataKeyRef = {};
 let State_ChangedKeys = {};
 let State_DataIsChanged = 0;
@@ -1094,10 +1221,10 @@ let State = {
      */
 };
 Magix.State = State;
-    
-    
-    //let G_IsFunction = S.isFunction;
-    let Router_VIEW = 'view';
+
+
+//let G_IsFunction = $.isFunction;
+let Router_VIEW = 'view';
 let Router_HrefCache = new G_Cache();
 let Router_ChgdCache = new G_Cache();
 let Router_WinLoc = G_WINDOW.location;
@@ -1426,9 +1553,8 @@ let Router = {
      */
 };
 Magix.Router = Router;
-    
-    
-    let Vframe_RootVframe;
+
+let Vframe_RootVframe;
 let Vframe_GlobalAlter;
 let Vframe_NotifyCreated = vframe => {
     if (!vframe['$a'] && !vframe['$b'] && vframe['$cc'] == vframe['$rc']) { //childrenCount === readyCount
@@ -1790,7 +1916,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
             if (node && me['$h'] /*&&!keepPreHTML*/) { //如果$v本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且$v有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即$v安装前什么样，销毁后把节点恢复到安装前的情况
                 
                 
-                $(node).html(me['$i']);
+                node.innerHTML = me['$i'];
                 
                 
             }
@@ -2041,27 +2167,7 @@ Magix.Vframe = Vframe;
  *
  *      fca firstChildrenAlter  fcc firstChildrenCreated
  */
-    
-    DOM[G_PROTOTYPE].invokeView = function (name, args) {
-        let l = this.length;
-        if (l) {
-            let e = this[0];
-            let vf = e.vframe;
-            if (args === undefined) {
-                return vf && vf.invoke(name);
-            } else {
-                for (e of this) {
-                    vf = e.vframe;
-                    if (vf) {
-                        vf.invoke(name, args);
-                    }
-                }
-            }
-        }
-    };
-    
-
-    /*
+/*
     dom event处理思路
 
     性能和低资源占用高于一切，在不特别影响编程体验的情况下，向性能和资源妥协
@@ -2274,8 +2380,8 @@ let Body_DOMEventBind = (type, searchSelector, remove) => {
         Body_SearchSelectorEvents[type] = (Body_SearchSelectorEvents[type] | 0) + offset;
     }
 };
-    
-    let Tmpl_EscapeSlashRegExp = /\\|'/g;
+
+let Tmpl_EscapeSlashRegExp = /\\|'/g;
 let Tmpl_EscapeBreakReturnRegExp = /\r|\n/g;
 let Tmpl_Mathcer = /<%([@=!])?([\s\S]*?)%>|$/g;
 let Tmpl_Compiler = text => {
@@ -2362,8 +2468,8 @@ let Tmpl = (text, data, file) => {
     }
     return fn(G_SPLITER, data);
 };
-    
-    /*
+
+/*
 2017.8.1
     直接应用节点对比方案，需要解决以下问题
     1.　view销毁问题，节点是边对比边销毁或新增，期望是view先统一销毁，然后再统一渲染
@@ -2720,7 +2826,7 @@ let I_UpdateDOM = (updater, data, changed, keys) => {
             if (ref.c) {
                 view.endUpdate(selfId);
                 
-                G_DOC.fire('htmlchanged', {
+                G_Trigger(G_DOCUMENT, 'htmlchanged', {
                     vId: selfId
                 });
                 
@@ -2730,8 +2836,170 @@ let I_UpdateDOM = (updater, data, changed, keys) => {
         console.timeEnd('[increment time:' + selfId + ']');
     }
 };
-    
-    /**
+
+let Partial_ContentReg = /\d+\x1d/g;
+let Partial_AttrReg = /([\w\-]+)(?:="([\s\S]*?)")?/g;
+let Partial_UnescapeMap = {
+    'amp': '&',
+    'lt': '<',
+    'gt': '>',
+    '#34': '"',
+    '#39': '\'',
+    '#96': '`'
+};
+let Partial_UnescapeReg = /&([^;]+);/g;
+let Partial_Unescape = (m, name) => Partial_UnescapeMap[name] || m;
+
+let Partial_UpdateNode = (node, view, one,
+    renderData, updateAttrs, updateTmpl, viewId, ref, file) => {
+    if (node) {
+        let id = node.id || (node.id = G_Id()), params;
+        let hasMagixView, viewValue, vf = Vframe_Vframes[viewId];
+        if (updateAttrs) {
+            let attr = View_SetEventOwner(DEBUG ? Tmpl(one.attr, renderData, file) : Tmpl(one.attr, renderData), viewId),
+                nowAttrs = {}, a, n, old, now, exist, f;
+            attr.replace(Partial_AttrReg, (match, name, value) => nowAttrs[name] = value);
+            for (a of one.attrs) {
+                n = a.n;
+                f = a.f;
+                if (a.v) {
+                    hasMagixView = 1;
+                    viewValue = nowAttrs[n];
+                } else {
+                    exist = G_Has(nowAttrs, n);
+                    old = a.p ? node[f || n] : node.getAttribute(n);
+                    now = a.b ? exist : nowAttrs[n] || G_EMPTY;
+                    if (old !== now) {
+                        ref.c = 1;
+                        if (a.p) {
+                            //decode html
+                            if (a.q) now.replace(Partial_UnescapeReg, Partial_Unescape);
+                            node[f || n] = now;
+                        } else if (exist) {
+                            node.setAttribute(n, now);
+                        } else {
+                            node.removeAttribute(n);
+                        }
+                    }
+                }
+            }
+        }
+        if (hasMagixView) {
+            vf.unmountVframe(id, viewValue);
+        }
+        if (updateTmpl) {
+            view.beginUpdate(id);
+            if (DEBUG) {
+                params = View_SetEventOwner(Tmpl(one.tmpl, renderData, file), viewId);
+            } else {
+                params = View_SetEventOwner(Tmpl(one.tmpl, renderData), viewId);
+            }
+            $(node).html(params);
+            ref.push(id);
+        }
+        if (hasMagixView && viewValue) {
+            vf.mountVframe(id, viewValue);
+        }
+    }
+};
+let Partial_UpdateDOM = (updater, changedKeys, renderData) => {
+    let selfId = updater['$b'];
+    let vf = Vframe_Vframes[selfId];
+    let view = vf && vf['$v'],
+        tmplObject;
+    if (!view || view['$a'] < 1 || !(tmplObject = view['$e'])) return;
+    console.time('[partial time:' + selfId + ']');
+    let tmpl = tmplObject.html;
+    let list = tmplObject.subs;
+    let ref = [];
+    if (updater['$e'] && changedKeys) {
+        let keys, one, updateTmpl, updateAttrs, update, q, mask, m;
+        //view.fire('update');
+        for (one of list) { //keys
+            updateTmpl = 0;
+            updateAttrs = 0;
+            update = 1;
+            mask = one.mask;
+            keys = one.pKeys;
+            if (keys) {
+                for (q of keys) {
+                    if (G_Has(changedKeys, q)) {
+                        update = 0;
+                        break;
+                    }
+                }
+            }
+            if (update) {
+                update = 0;
+                keys = one.keys;
+                for (q = keys.length; q--;) {
+                    if (G_Has(changedKeys, keys[q])) {
+                        update = 1;
+                        if (!mask || (updateTmpl && updateAttrs)) {
+                            updateTmpl = one.tmpl;
+                            updateAttrs = one.attr;
+                            break;
+                        }
+                        m = mask[q];
+                        updateTmpl = updateTmpl || m & 1;
+                        updateAttrs = updateAttrs || m & 2;
+                    }
+                }
+                if (update) {
+                    keys = $(View_SetEventOwner(one[G_PATH], selfId));
+                    for (q of keys) {
+                        if (DEBUG) {
+                            Partial_UpdateNode(q, view, one, renderData, updateAttrs, updateTmpl, selfId, ref, tmplObject.file);
+                        } else {
+                            Partial_UpdateNode(q, view, one, renderData, updateAttrs, updateTmpl, selfId, ref);
+                        }
+                    }
+                }
+            }
+        }
+        //view.fire('updated');
+    } else if (!updater['$e']) {
+        if (DEBUG) {
+            if (!tmpl && !list) {
+                throw new Error('you need check tmpl:' + JSON.stringify(view.tmpl));
+            }
+        }
+        if (!tmplObject[G_SPLITER]) {
+            tmplObject[G_SPLITER] = 1;
+            let tmplment = guid => tmplment[guid].tmpl,
+                x, s;
+            for (x = list.length; x--;) {
+                s = list[x];
+                if (s.s) {
+                    tmplment[s.s] = s;
+                    s.tmpl = s.tmpl.replace(Partial_ContentReg, tmplment);
+                }
+            }
+            tmpl = tmplObject.html = tmpl.replace(Partial_ContentReg, tmplment);
+        }
+        updater['$e'] = 1;
+        vf = G_GetById(updater['$f']);
+        if (DEBUG) {
+            Partial_UpdateNode(vf, view, { tmpl }, renderData, 0, 1, selfId, ref, tmplObject.file);
+        } else {
+            Partial_UpdateNode(vf, view, { tmpl }, renderData, 0, 1, selfId, ref);
+        }
+    }
+    list = ref.length;
+    if (list) {
+        for (vf = 0; vf < list;) {
+            view.endUpdate(ref[vf], ++vf < list);
+        }
+        
+        G_Trigger(G_DOCUMENT, 'htmlchanged', {
+            vId: selfId
+        });
+        
+    }
+    view.fire('domready');
+    console.timeEnd('[partial time:' + selfId + ']');
+};
+/**
  * 使用mx-keys进行局部刷新的类
  * @constructor
  * @name Updater
@@ -2900,8 +3168,8 @@ G_Assign(Updater[G_PROTOTYPE], {
         }
     }
 });
-    
-    let View_EvtMethodReg = /^(\$?)([^<]*)<([^>]+)>$/;
+
+let View_EvtMethodReg = /^(\$?)([^<]*)<([^>]+)>$/;
 let View_ScopeReg = /\x1f/g;
 let View_SetEventOwner = (str, id) => (str + G_EMPTY).replace(View_ScopeReg, id);
 
@@ -3581,10 +3849,8 @@ G_Assign(ViewProto, MEvent, {
 });
 Magix.View = View;
 
-    
-    let G_Type = S.type;
-    let G_Now = S.now;
-    /*
+let G_Now = Date.now;
+/*
     一个请求send后，应该取消吗？
     参见xmlhttprequest的实现
         https://chromium.googlesource.com/chromium/blink/+/master/Source/core
@@ -4262,8 +4528,8 @@ Service.extend = (sync, cacheMax, cacheBuffer) => {
     return G_Extend(NService, Service, G_NULL, Service_Manager);
 };
 Magix.Service = Service;
-    
-    
+
+
 G_Assign(G_NOOP[G_PROTOTYPE], MEvent);
 G_NOOP.extend = function extend(props, statics) {
     let me = this;
@@ -4299,14 +4565,5 @@ G_NOOP.extend = function extend(props, statics) {
  */
 Magix.Base = G_NOOP;
 
-    
-    S.add(MxGlobalView, () => {
-        return View.extend(
-            
-        );
-    });
-    
-    return Magix;
-}, {
-        requires: ['event', 'node', 'dom']
-    });
+Magix.trigger = G_Trigger;
+export default Magix;

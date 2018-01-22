@@ -7,29 +7,32 @@
  * @module updater
  * @param {String} viewId Magix.View对象Id
  */
-var Updater = function(viewId) {
-    var me = this;
-    me.$i = viewId;
-    me.$t = viewId;
-    me.$data = {
-        '\x1e': 1
-    };
-    /*#if(modules.updaterSetState){#*/
-    me.$keys = {};
-    /*#}else{#*/
-    me.$json = {};
+let Updater = function (viewId) {
+    let me = this;
+    me['@{updater#view.id}'] = viewId;
+    /*#if(!modules.updaterIncrement){#*/
+    me['@{updater#render.id}'] = viewId;
     /*#}#*/
+    /*#if(modules.updaterIncrement){#*/
+    me['@{updater#data.changed}'] = 1;
+    /*#}#*/
+    me['@{updater#data}'] = {
+        vId: viewId,
+        [G_SPLITER]: 1
+    };
+    me['@{updater#keys}'] = {};
 };
-var UP = Updater.prototype;
-G_Mix(UP, {
+G_Assign(Updater[G_PROTOTYPE], {
     /**
      * @lends Updater#
      */
-    to: function(id, me) {
+    /*#if(!modules.updaterIncrement){#*/
+    to(id, me) {
         me = this;
-        me.$t = id;
+        me['@{updater#render.id}'] = id;
         return me;
     },
+    /*#}#*/
     /**
      * 获取放入的数据
      * @param  {String} [key] key
@@ -45,8 +48,8 @@ G_Mix(UP, {
      *     console.log(this.updater.get('a'));
      * }
      */
-    get: function(key) {
-        var result = this.$data;
+    get(key, result) {
+        result = this['@{updater#data}'];
         if (key) {
             result = result[key];
         }
@@ -57,16 +60,16 @@ G_Mix(UP, {
      * @param  {String} path 点分割的路径
      * @return {Object}
      */
-    gain: function(path) {
-        var result = this.$data;
-        var ps = path.split('.'),
+    /*gain: function (path) {
+        let result = this.$d;
+        let ps = path.split('.'),
             temp;
         while (result && ps.length) {
             temp = ps.shift();
             result = result[temp];
         }
         return result;
-    },
+    },*/
     /**
      * 获取放入的数据
      * @param  {Object} obj 待放入的数据
@@ -82,15 +85,15 @@ G_Mix(UP, {
      *     console.log(this.updater.get('a'));
      * }
      */
-    set: function(obj) {
-        var me = this,
-            data = me.$data,
-            keys = me.$keys;
-        /*#if(modules.updaterSetState){#*/
-        G_Set(obj, data, keys);
-        /*#}else{#*/
-        G_Mix(data, obj);
-        /*#}#*/
+    set(obj) {
+        let me = this, { '@{upater#data}': data, '@{updater#keys}': keys } = me;
+        if (obj) {
+            /*#if(modules.updaterIncrement){#*/
+            me['@{updater#data.changed}'] = G_Set(obj, data, keys) || me['@{updater#data.changed}'];
+            /*#}else{#*/
+            G_Set(obj, data, keys);
+            /*#}#*/
+        }
         return me;
     },
     /**
@@ -103,38 +106,21 @@ G_Mix(UP, {
      *     }).digest();
      * }
      */
-    digest: function(data) {
-        var me = this;
-        if (data) {
-            me.set(data);
-        }
-        data = me.$data;
-        /*#if(modules.updaterSetState){#*/
-        var keys = me.$keys;
+    digest(data, keys/*#if(modules.updaterIncrement){#*/, changed/*#}#*/) {
+        let me = this;
+        me.set(data);
+        data = me['@{updater#data}'];
+        keys = me['@{updater#keys}'];
+        /*#if(modules.updaterIncrement){#*/
+        changed = me['@{updater#data.changed}'];
+        me['@{updater#data.changed}'] = 0;
+        /*#}#*/
+        me['@{updater#keys}'] = {};
+        /*#if(modules.updaterIncrement){#*/
+        I_UpdateDOM(me, data, changed, keys);
         /*#}else{#*/
-        var keys = {};
-        var json = me.$json;
-        var val, key, valJSON, lchange;
-        for (key in data) {
-            val = data[key];
-            lchange = 0;
-            valJSON = JSONStringify(val);
-            if (!G_Has(json, key)) {
-                json[key] = valJSON;
-                lchange = 1;
-            } else {
-                lchange = valJSON != json[key];
-                json[key] = valJSON;
-            }
-            if (lchange) {
-                keys[key] = 1;
-            }
-        }
-        /*#}#*/
-        /*#if(modules.updaterSetState){#*/
-        me.$keys = {};
-        /*#}#*/
         Partial_UpdateDOM(me, keys, data); //render
+        /*#}#*/
         return me;
     },
     /**
@@ -159,9 +145,9 @@ G_Mix(UP, {
      *     console.log(this.updater.altered()); //false
      * }
      */
-    snapshot: function() {
-        var me = this;
-        me.$ss = JSONStringify(me.$data);
+    snapshot() {
+        let me = this;
+        me['@{updater#data.string}'] = JSONStringify(me['@{updater#data}']);
         return me;
     },
     /**
@@ -186,10 +172,10 @@ G_Mix(UP, {
      *     console.log(this.updater.altered()); //false
      * }
      */
-    altered: function() {
-        var me = this;
-        if (me.$ss) {
-            return me.$ss != JSONStringify(me.$data);
+    altered() {
+        let me = this;
+        if (me['@{updater#data.string}']) {
+            return me['@{updater#data.string}'] != JSONStringify(me['@{updater#data}']);
         }
     }
 });

@@ -1,3 +1,18 @@
+## 3.8.0
+1. 默认`es6`语法
+2. 增加模板对象的检测
+3. 完善事件的传播停止，支持向`view`的根节点绑定事件
+4. 明确同一节点事件的直接绑定与选择器绑定先后执行顺序
+5. `vframe`对象增加缓存
+6. 移除`eventShortCtrl`打包项
+7. 修正在`vframe`销毁时，应从节点上移除相应的标识
+8. 修正、完善`d.ts`文件
+9. `inside`返回`boolean`
+10. 移除`view`上的`prerender rendered`事件，使用`domready`代替
+11. `document`增加`attrschange attrschanged`事件
+12. 精简`dom`操作相关的代码，删除闭合标签，浏览器会自动处理
+13. 调整`dom diff`，不包含子节点的`vframe`销毁时不移除`dom`
+
 ## 3.7.0
 1. 支持类做为`mixin`
 2. 修复`body`中查询结果不能设置`vframeId`的问题

@@ -3,10 +3,9 @@
  * @name Event
  * @namespace
  */
-var Event_ON = 'on';
-var Event = {
+let MEvent = {
     /**
-     * @lends Event
+     * @lends MEvent
      */
     /**
      * 触发事件
@@ -15,8 +14,8 @@ var Event = {
      * @param {Boolean} [remove] 事件触发完成后是否移除这个事件的所有监听
      * @param {Boolean} [lastToFirst] 是否从后向前触发事件的监听列表
      */
-    fire: function (name, data, remove, lastToFirst) {
-        var key = G_SPLITER + name,
+    fire(name, data, remove, lastToFirst) {
+        let key = G_SPLITER + name,
             me = this,
             list = me[key],
             end, len, idx, t;
@@ -38,7 +37,7 @@ var Event = {
                 }
             }
         }
-        list = me[Event_ON + name];
+        list = me[`on${name}`];
         if (list) G_ToTry(list, data, me);
         if (remove) me.off(name);
     },
@@ -47,7 +46,7 @@ var Event = {
      * @param {String} name 事件名称
      * @param {Function} fn 事件处理函数
      * @example
-     * var T = Magix.mix({},Magix.Event);
+     * let T = Magix.mix({},Magix.Event);
      * T.on('done',function(e){
      *     alert(1);
      * });
@@ -59,12 +58,12 @@ var Event = {
      * T.fire('done',{data:'test'});
      * T.fire('done',{data:'test2'});
      */
-    on: function (name, fn) {
-        var me = this;
-        var key = G_SPLITER + name;
-        var list = me[key] || (me[key] = []);
+    on(name, f) {
+        let me = this;
+        let key = G_SPLITER + name;
+        let list = me[key] || (me[key] = []);
         list.push({
-            f: fn
+            f
         });
     },
     /**
@@ -72,16 +71,14 @@ var Event = {
      * @param {String} name 事件名称
      * @param {Function} [fn] 事件处理函数
      */
-    off: function (name, fn) {
-        var key = G_SPLITER + name,
+    off(name, fn) {
+        let key = G_SPLITER + name,
             me = this,
             list = me[key],
-            i, t;
+            t;
         if (fn) {
             if (list) {
-                i = list.length;
-                while (i--) {
-                    t = list[i];
+                for (t of list) {
                     if (t.f == fn) {
                         t.f = G_EMPTY;
                         break;
@@ -90,8 +87,8 @@ var Event = {
             }
         } else {
             delete me[key];
-            delete me[Event_ON + name];
+            delete me[`on${name}`];
         }
     }
 };
-Magix.Event = Event;
+Magix.Event = MEvent;

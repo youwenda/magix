@@ -1,7 +1,7 @@
-var Magix_PathToObjCache = new G_Cache();
-//var Magix_PathCache = new G_Cache();
-var Magix_ParamsObjectTemp;
-var Magix_ParamsFn = function(match, name, value) {
+let Magix_PathToObjCache = new G_Cache();
+//let Magix_PathCache = new G_Cache();
+let Magix_ParamsObjectTemp;
+let Magix_ParamsFn = (match, name, value) => {
     try {
         value = decodeURIComponent(value);
     } catch (e) {
@@ -21,13 +21,13 @@ var Magix_ParamsFn = function(match, name, value) {
  * http://www.a.com/a/b.html?a=b#!/home?e=f   ./../  => http://www.a.com/
  * //g.cn/a.html
  */
-/*var G_Path = function(url, part) {
-    var key = url + G_SPLITER + part;
-    var result = Magix_PathCache.get(key),
+/*let G_Path = function(url, part) {
+    let key = url + G_SPLITER + part;
+    let result = Magix_PathCache.get(key),
         domain = G_EMPTY,
         idx;
     if (!Magix_PathCache.has(key)) { //有可能结果为空，url='' path='';
-        var m = url.match(Magix_ProtocalReg);
+        let m = url.match(Magix_ProtocalReg);
         if (m) {
             idx = url.indexOf(Magix_SLASH, m[0].length);
             if (idx < 0) idx = url.length;
@@ -53,10 +53,10 @@ var Magix_ParamsFn = function(match, name, value) {
  * @param  {String} path 路径字符串
  * @return {Object} 解析后的对象
  * @example
- * var obj = Magix.parseUri('/xxx/?a=b&c=d');
+ * let obj = Magix.parseUri('/xxx/?a=b&c=d');
  * // obj = {path:'/xxx/',params:{a:'b',c:'d'}}
  */
-var G_ParseUri = function(path) {
+let G_ParseUri = path => {
     //把形如 /xxx/?a=b&c=d 转换成对象 {path:'/xxx/',params:{a:'b',c:'d'}}
     //1. /xxx/a.b.c.html?a=b&c=d  path /xxx/a.b.c.html
     //2. /xxx/?a=b&c=d  path /xxx/
@@ -73,7 +73,7 @@ var G_ParseUri = function(path) {
     //13. =abc            => path '=abc'
     //14. ab=             => path '' params:{ab:''}
     //15. a&b             => path '' params:{a:'',b:''}
-    var r = Magix_PathToObjCache.get(path),
+    let r = Magix_PathToObjCache.get(path),
         pathname;
     if (!r) {
         Magix_ParamsObjectTemp = {};
@@ -87,7 +87,7 @@ var G_ParseUri = function(path) {
     }
     return {
         path: r.a,
-        params: G_Mix({}, r.b)
+        params: { ...r.b }
     };
 };
 /**
@@ -97,23 +97,22 @@ var G_ParseUri = function(path) {
  * @param {Object} [keo] 保留空白值的对象
  * @return {String} 字符串路径
  * @example
- * var str = Magix.toUri('/xxx/',{a:'b',c:'d'});
+ * let str = Magix.toUri('/xxx/',{a:'b',c:'d'});
  * // str == /xxx/?a=b&c=d
  *
- * var str = Magix.toUri('/xxx/',{a:'',c:2});
+ * let str = Magix.toUri('/xxx/',{a:'',c:2});
  *
  * // str == /xxx/?a=&c=2
  *
- * var str = Magix.toUri('/xxx/',{a:'',c:2},{c:1});
+ * let str = Magix.toUri('/xxx/',{a:'',c:2},{c:1});
  *
  * // str == /xxx/?c=2
- * var str = Magix.toUri('/xxx/',{a:'',c:2},{a:1,c:1});
+ * let str = Magix.toUri('/xxx/',{a:'',c:2},{a:1,c:1});
  *
  * // str == /xxx/?a=&c=2
  */
-var G_ToUri = function(path, params, keo) {
-    var arr = [];
-    var v, p, f;
+let G_ToUri = (path, params, keo) => {
+    let arr = [], v, p, f;
     for (p in params) {
         v = params[p] + G_EMPTY;
         if (!keo || v || G_Has(keo, p)) {
@@ -126,32 +125,22 @@ var G_ToUri = function(path, params, keo) {
     }
     return path;
 };
-var G_ToMap = function(list, key) {
-    var i, e, map = {},
+let G_ToMap = (list, key) => {
+    let e, map = {},
         l;
-    if (list && (l = list.length)) {
-        for (i = 0; i < l; i++) {
-            e = list[i];
+    if (list) {
+        for (e of list) {
             map[(key && e) ? e[key] : e] = key ? e : (map[e] | 0) + 1; //对于简单数组，采用累加的方式，以方便知道有多少个相同的元素
         }
     }
     return map;
-};
-var G_Keys = Object.keys || function(obj, keys, p) {
-    keys = [];
-    for (p in obj) {
-        if (G_Has(obj, p)) {
-            keys.push(p);
-        }
-    }
-    return keys;
 };
 /**
  * Magix对象，提供常用方法
  * @name Magix
  * @namespace
  */
-var Magix = {
+let Magix = {
     /**
      * @lends Magix
      */
@@ -176,7 +165,7 @@ var Magix = {
      * });
      *
      *
-     * var config = Magix.config();
+     * let config = Magix.config();
      *
      * console.log(config.rootId);
      *
@@ -187,11 +176,11 @@ var Magix = {
      *
      * console.log(Magix.config('user'));
      */
-    config: function(cfg, r) {
+    config(cfg, r) {
         r = Magix_Cfg;
         if (cfg) {
             if (G_IsObject(cfg)) {
-                r = G_Mix(r, cfg);
+                r = G_Assign(r, cfg);
             } else {
                 r = r[cfg];
             }
@@ -211,14 +200,13 @@ var Magix = {
      *
      */
     /*#if(modules.router){#*/
-    boot: function(cfg) {
-        G_Mix(Magix_Cfg, cfg); //先放到配置信息中，供ini文件中使用
+    boot(cfg) {
+        G_Assign(Magix_Cfg, cfg); //先放到配置信息中，供ini文件中使用
         /*#if(modules.configIni){#*/
-        G_Require(Magix_Cfg.ini, function(I) {
-            G_Mix(Magix_Cfg, I);
-            G_Mix(Magix_Cfg, cfg);
+        G_Require(Magix_Cfg.ini, I => {
+            G_Assign(Magix_Cfg, I, cfg);
             /*#}#*/
-            G_Require(Magix_Cfg.exts, function() {
+            G_Require(Magix_Cfg.exts, () => {
                 Router.on('changed', Vframe_NotifyChange);
                 /*#if(modules.state){#*/
                 State.on('changed', Vframe_NotifyChange);
@@ -230,9 +218,9 @@ var Magix = {
         /*#}#*/
     },
     /*#}else{#*/
-    boot: function(cfg) {
-        G_Mix(Magix_Cfg, cfg);
-        G_Require(Magix_Cfg.exts, function() {
+    boot(cfg) {
+        G_Assign(Magix_Cfg, cfg);
+        G_Require(Magix_Cfg.exts, () => {
             Vframe_Root().mountView(Magix_Cfg.defaultView);
             /*#if(modules.state){#*/
             State.on('changed', Vframe_NotifyChange);
@@ -246,10 +234,10 @@ var Magix = {
      * @param  {String} [key]  以数组中对象的哪个key的value做为hash的key
      * @return {Object}
      * @example
-     * var map = Magix.toMap([1,2,3,5,6]);
+     * let map = Magix.toMap([1,2,3,5,6]);
      * //=> {1:1,2:1,3:1,4:1,5:1,6:1}
      *
-     * var map = Magix.toMap([{id:20},{id:30},{id:40}],'id');
+     * let map = Magix.toMap([{id:20},{id:30},{id:40}],'id');
      * //=>{20:{id:20},30:{id:30},40:{id:40}}
      *
      * console.log(map['30']);//=> {id:30}
@@ -264,19 +252,19 @@ var Magix = {
      * @param  {Object} [context] 在待执行的方法内部，this的指向
      * @return {Object} 返回执行的最后一个方法的返回值
      * @example
-     * var result = Magix.toTry(function(){
+     * let result = Magix.toTry(function(){
      *     return true
      * });
      *
      * // result == true
      *
-     * var result = Magix.toTry(function(){
+     * let result = Magix.toTry(function(){
      *     throw new Error('test');
      * });
      *
      * // result == undefined
      *
-     * var result = Magix.toTry([function(){
+     * let result = Magix.toTry([function(){
      *     throw new Error('test');
      * },function(){
      *     return true;
@@ -292,15 +280,15 @@ var Magix = {
      *     }
      * });
      *
-     * var result = Magix.toTry(function(a1,a2){
+     * let result = Magix.toTry(function(a1,a2){
      *     return a1 + a2;
      * },[1,2]);
      *
      * // result == 3
-     * var o={
+     * let o={
      *     title:'test'
      * };
-     * var result = Magix.toTry(function(){
+     * let result = Magix.toTry(function(){
      *     return this.title;
      * },null,o);
      *
@@ -315,17 +303,17 @@ var Magix = {
      * @param {Object} [keo] 保留空白值的对象
      * @return {String} 字符串路径
      * @example
-     * var str = Magix.toUrl('/xxx/',{a:'b',c:'d'});
+     * let str = Magix.toUrl('/xxx/',{a:'b',c:'d'});
      * // str == /xxx/?a=b&c=d
      *
-     * var str = Magix.toUrl('/xxx/',{a:'',c:2});
+     * let str = Magix.toUrl('/xxx/',{a:'',c:2});
      *
      * // str==/xxx/?a=&c=2
      *
-     * var str = Magix.toUrl('/xxx/',{a:'',c:2},{c:1});
+     * let str = Magix.toUrl('/xxx/',{a:'',c:2},{c:1});
      *
      * // str == /xxx/?c=2
-     * var str = Magix.toUrl('/xxx/',{a:'',c:2},{a:1,c:1});
+     * let str = Magix.toUrl('/xxx/',{a:'',c:2},{a:1,c:1});
      *
      * // str == /xxx/?a=&c=2
      */
@@ -336,7 +324,7 @@ var Magix = {
      * @param  {String} path 路径字符串
      * @return {Object} 解析后的对象
      * @example
-     * var obj = Magix.parseUrl('/xxx/?a=b&c=d');
+     * let obj = Magix.parseUrl('/xxx/?a=b&c=d');
      * // obj = {path:'/xxx/',params:{a:'b',c:'d'}}
      */
     parseUrl: G_ParseUri,
@@ -359,10 +347,10 @@ var Magix = {
      * @param  {Object} aim    要mix的目标对象
      * @param  {Object} src    mix的来源对象
      * @example
-     * var o1={
+     * let o1={
      *     a:10
      * };
-     * var o2={
+     * let o2={
      *     b:20,
      *     c:30
      * };
@@ -372,14 +360,14 @@ var Magix = {
      *
      * @return {Object}
      */
-    mix: G_Mix,
+    mix: G_Assign,
     /**
      * 检测某个对象是否拥有某个属性
      * @function
      * @param  {Object}  owner 检测对象
      * @param  {String}  prop  属性
      * @example
-     * var obj={
+     * let obj={
      *     key1:undefined,
      *     key2:0
      * }
@@ -399,12 +387,12 @@ var Magix = {
      * @beta
      * @module linkage|router
      * @example
-     * var o = {
+     * let o = {
      *     a:1,
      *     b:2,
      *     test:3
      * };
-     * var keys = Magix.keys(o);
+     * let keys = Magix.keys(o);
      *
      * // keys == ['a','b','test']
      * @return {Array}
@@ -416,18 +404,18 @@ var Magix = {
      * @param {String|HTMLElement} node节点或节点id
      * @param {String|HTMLElement} container 容器
      * @example
-     * var root = $('html');
-     * var body = $('body');
+     * let root = $('html');
+     * let body = $('body');
      *
-     * var r = Magix.inside(body[0],root[0]);
+     * let r = Magix.inside(body[0],root[0]);
      *
      * // r == true
      *
-     * var r = Magix.inside(root[0],body[0]);
+     * let r = Magix.inside(root[0],body[0]);
      *
      * // r == false
      *
-     * var r = Magix.inside(root[0],root[0]);
+     * let r = Magix.inside(root[0],root[0]);
      *
      * // r == true
      *
@@ -442,7 +430,7 @@ var Magix = {
      * // html
      * // <div id="root"></div>
      *
-     * var node = Magix.node('root');
+     * let node = Magix.node('root');
      *
      * // node => div[id='root']
      *
@@ -471,20 +459,10 @@ var Magix = {
      * @return {String}
      * @example
      *
-     * var id = Magix.guid('mx-');
+     * let id = Magix.guid('mx-');
      * // id maybe mx-7
      */
     guid: G_Id,
-    Cache: G_Cache,
-    /**
-     * 获取模块，调用如requirejs或seajs的require的实现
-     * @function
-     */
     use: G_Require,
-    /**
-     * 定义一个模块
-     * @param {string} moduleId 模块id
-     * @param {any} value 值
-     */
-    define: G_Define
+    Cache: G_Cache
 };

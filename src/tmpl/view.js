@@ -1,27 +1,25 @@
-var View_EvtMethodReg = /^(\$?)([^<]+?)<([^>]+)>$/;
-var View_ScopeReg = /\x1f/g;
-var View_SetEventOwner = function(str, id) {
-    return (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
-};
+let View_EvtMethodReg = /^(\$?)([^<]*)<([^>]+)>$/;
+let View_ScopeReg = /\x1f/g;
+let View_SetEventOwner = (str, id) => (str + G_EMPTY).replace(View_ScopeReg, id);
 /*#if(modules.viewProtoMixins){#*/
-var processMixinsSameEvent = function(exist, additional, temp) {
-    if (exist.$l) {
+let processMixinsSameEvent = (exist, additional, temp) => {
+    if (exist['@{view#list}']) {
         temp = exist;
     } else {
-        temp = function(e) {
-            G_ToTry(temp.$l, e, this);
+        temp = function (e) {
+            G_ToTry(temp['@{view#list}'], e, this);
         };
-        temp.$l = [exist];
-        temp.$m = 1;
+        temp['@{view#list}'] = [exist];
+        temp['@{view#is.mixin}'] = 1;
     }
-    temp.$l = temp.$l.concat(additional.$l || additional);
+    temp['@{view#list}'] = temp['@{view#list}'].concat(additional['@{view#list}'] || additional);
     return temp;
 };
 /*#}#*/
-//var View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
+//let View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
 /*#if(modules.resource){#*/
-var View_DestroyAllResources = function(me, lastly) {
-    var cache = me.$r, //reources
+let View_DestroyAllResources = (me, lastly) => {
+    let cache = me['@{view#resource}'], //reources
         p, c;
     for (p in cache) {
         c = cache[p];
@@ -30,11 +28,11 @@ var View_DestroyAllResources = function(me, lastly) {
         }
     }
 };
-var View_DestroyResource = function(cache, key, callDestroy, old) {
-    var o = cache[key],
+let View_DestroyResource = (cache, key, callDestroy, old) => {
+    let o = cache[key],
         fn, res;
     if (o && o != old) {
-        //var processed=false;
+        //let processed=false;
         res = o.e; //entity
         fn = res.destroy;
         if (fn && callDestroy) {
@@ -45,37 +43,32 @@ var View_DestroyResource = function(cache, key, callDestroy, old) {
     return res;
 };
 /*#}#*/
-var View_WrapRender = function(prop, fn, me) {
-    fn = prop.render;
-    prop.render = function() {
+let View_WrapMethod = (prop, fName, short, fn, me) => {
+    fn = prop[fName];
+    prop[fName] = prop[short] = function (...args) {
         me = this;
-        if (me.$s > 0) { //signature
-            me.$s++;
+        if (me['@{view#sign}'] > 0) { //signature
+            me['@{view#sign}']++;
             me.fire('rendercall');
             /*#if(modules.resource){#*/
             View_DestroyAllResources(me);
             /*#}#*/
             /*#if(!modules.keepHTML){#*/
-            G_ToTry(fn, G_Slice.call(arguments), me);
+            G_ToTry(fn, args, me);
             /*#}else{#*/
-            fn.apply(me, G_Slice.call(arguments));
+            fn.apply(me, args);
             /*#}#*/
         }
     };
 };
-var View_DelegateEvents = function(me, destroy) {
-    var events = me.$eo; //eventsObject
-    var selectorObject = me.$so;
-    var p, e;
-    for (p in events) {
-        Body_DOMEventBind(p, selectorObject[p], destroy);
+let View_DelegateEvents = (me, destroy) => {
+    let e, { '@{view#events.object}': eo, '@{view#selector.events.object}': so, '@{view#events.list}': el, id } = me; //eventsObject
+    for (e in eo) {
+        Body_DOMEventBind(e, so[e], destroy);
     }
-    events = me.$el; //eventsList
-    p = events.length;
-    while (p--) {
-        e = events[p];
+    for (e of el) {
         G_DOMEventLibBind(e.e, e.n, G_DOMGlobalProcessor, destroy, {
-            i: me.id,
+            i: id,
             v: me,
             f: e.f,
             e: e.e
@@ -83,9 +76,9 @@ var View_DelegateEvents = function(me, destroy) {
     }
 };
 /*#if(modules.viewMerge){#*/
-var View_Ctors = [];
+let View_Ctors = [];
 /*#}#*/
-var View_Globals = {
+let View_Globals = {
     win: G_WINDOW,
     doc: G_DOCUMENT
 };
@@ -94,22 +87,19 @@ var View_Globals = {
  * @param  {View} oView view子类
  * @param  {Vom} vom vom
  */
-var View_Prepare = function(oView) {
+let View_Prepare = oView => {
     if (!oView[G_SPLITER]) { //只处理一次
-        oView[G_SPLITER] = /*#if(modules.viewProtoMixins){#*/ [] /*#}else{#*/ 1 /*#}#*/ ;
-        var prop = oView[G_PROTOTYPE],
+        oView[G_SPLITER] = /*#if(modules.viewProtoMixins){#*/[] /*#}else{#*/ 1 /*#}#*/;
+        let prop = oView[G_PROTOTYPE],
             currentFn, matches, selectorOrCallback, events, eventsObject = {},
             eventsList = [],
             selectorObject = {},
-            node, isSelector, p, item, mask /*#if(modules.viewProtoMixins){#*/ , temp = {} /*#}#*/ ;
+            node, isSelector, p, item, mask /*#if(modules.viewProtoMixins){#*/, temp = {} /*#}#*/;
 
         /*#if(modules.viewProtoMixins){#*/
         matches = prop.mixins;
-        item = 0;
         if (matches) {
-            mask = matches.length;
-            while (item < mask) {
-                node = matches[item++];
+            for (node of matches) {
                 for (p in node) {
                     currentFn = node[p];
                     selectorOrCallback = temp[p];
@@ -120,7 +110,7 @@ var View_Prepare = function(oView) {
                         if (selectorOrCallback) {
                             currentFn = processMixinsSameEvent(selectorOrCallback, currentFn);
                         } else {
-                            currentFn.$m = 1;
+                            currentFn['@{view#is.mixin}'] = 1;
                         }
                     } else if (DEBUG && selectorOrCallback && p != 'extend' && p != G_SPLITER) { //只在开发中提示
                         Magix_Cfg.error(Error('mixins duplicate:' + p));
@@ -139,10 +129,9 @@ var View_Prepare = function(oView) {
             currentFn = prop[p];
             matches = p.match(View_EvtMethodReg);
             if (matches) {
-                isSelector = matches[1];
-                selectorOrCallback = matches[2];
-                events = matches[3].split(G_COMMA);
-                while ((item = events.pop())) {
+                [, isSelector, selectorOrCallback, events] = matches;
+                events = events.split(G_COMMA);
+                for (item of events) {
                     node = View_Globals[selectorOrCallback];
                     mask = 1;
                     if (isSelector) {
@@ -168,8 +157,8 @@ var View_Prepare = function(oView) {
                     //for in 就近遍历，如果有则忽略
                     if (!node) { //未设置过
                         prop[item] = currentFn;
-                    } else if (node.$m) { //现有的方法是mixins上的
-                        if (currentFn.$m) { //2者都是mixins上的事件，则合并
+                    } else if (node['@{view#is.mixin}']) { //现有的方法是mixins上的
+                        if (currentFn['@{view#is.mixin}']) { //2者都是mixins上的事件，则合并
                             prop[item] = processMixinsSameEvent(node, currentFn);
                         } else if (G_Has(prop, p)) { //currentFn方法不是mixin上的，也不是继承来的，在当前view上，优先级最高
                             prop[item] = currentFn;
@@ -184,33 +173,31 @@ var View_Prepare = function(oView) {
             }
         }
         //console.log(prop);
-        View_WrapRender(prop);
-        prop.$eo = eventsObject;
-        prop.$el = eventsList;
-        prop.$so = selectorObject;
-        prop.$t = !!prop.tmpl;
+        View_WrapMethod(prop, 'render', '@{view#render.short}');
+        prop['@{view#events.object}'] = eventsObject;
+        prop['@{view#events.list}'] = eventsList;
+        prop['@{view#selector.events.object}'] = selectorObject;
+        prop['@{view#template.object}'] = prop.tmpl;
+        prop['@{view#assign.fn}'] = prop.assign;
     }
     /*#if(modules.viewProtoMixins){#*/
     return oView[G_SPLITER];
     /*#}#*/
 };
 /*#if(modules.router){#*/
-var View_IsParamsChanged = function(params, ps, r) {
-    for (var i = 0; i < params.length; i++) {
-        r = G_Has(ps, params[i]);
-        if (r) break;
-    }
-    return r;
-};
-var View_IsObserveChanged = function(view) {
-    var loc = view.$l;
-    var res;
+let View_IsObserveChanged = view => {
+    let loc = view['@{view#observe.router}'];
+    let res, i, params;
     if (loc.f) {
         if (loc.p) {
             res = Router_LastChanged[G_PATH];
         }
-        if (!res) {
-            res = View_IsParamsChanged(loc.k, Router_LastChanged[G_PARAMS]);
+        if (!res && loc.k) {
+            params = Router_LastChanged[G_PARAMS];
+            for (i of loc.k) {
+                res = G_Has(params, i);
+                if (res) break;
+            }
         }
         // if (res && loc.c) {
         //     loc.c.call(view);
@@ -257,27 +244,27 @@ var View_IsObserveChanged = function(view) {
  */
 
 
-var View = function(ops, me) {
+let View = function (ops, me) {
     me = this;
-    G_Mix(me, ops);
+    G_Assign(me, ops);
     /*#if(modules.router){#*/
-    me.$l = {
+    me['@{view#observe.router}'] = {
         k: []
     };
     /*#}#*/
     /*#if(modules.resource){#*/
-    me.$r = {};
+    me['@{view#resource}'] = {};
     /*#}#*/
-    me.$s = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
+    me['@{view#sign}'] = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     /*#if(modules.updater){#*/
-    me.updater = me.$u = new Updater(me.id);
+    me.updater = me['@{view#updater}'] = new Updater(me.id);
     /*#}#*/
     /*#if(modules.viewMerge){#*/
     G_ToTry(View_Ctors, ops, me);
     /*#}#*/
 };
-var ViewProto = View[G_PROTOTYPE];
-G_Mix(View, {
+let ViewProto = View[G_PROTOTYPE];
+G_Assign(View, {
     /**
      * @lends View
      */
@@ -286,7 +273,7 @@ G_Mix(View, {
      * @param  {Object} props 扩展到原型上的方法
      * @example
      * define('app/tview',function(require){
-     *     var Magix = require('magix');
+     *     let Magix = require('magix');
      *     Magix.View.merge({
      *         ctor:function(){
      *             this.$attr='test';
@@ -311,10 +298,15 @@ G_Mix(View, {
      *
      */
     /*#if(modules.viewMerge){#*/
-    merge: function(props, ctor) {
-        ctor = props && props.ctor;
-        if (ctor) View_Ctors.push(ctor);
-        G_Mix(ViewProto, props);
+    merge(...args) {
+        let prop, ctor;
+        for (prop of args) {
+            ctor = prop && prop.ctor;
+            if (ctor) {
+                View_Ctors.push(ctor);
+            }
+            G_Assign(ViewProto, prop);
+        }
     },
     /*#}#*/
     /**
@@ -324,8 +316,8 @@ G_Mix(View, {
      * @param {Array} [props.mixins] mix到当前原型链上的方法对象，该对象可以有一个ctor方法用于初始化
      * @param  {Object} [statics] 静态对象或方法
      * @example
-     * var Magix = require('magix');
-     * var Sortable = {
+     * let Magix = require('magix');
+     * let Sortable = {
      *     ctor: function() {
      *         console.log('sortable ctor');
      *         //this==当前mix Sortable的view对象
@@ -347,15 +339,15 @@ G_Mix(View, {
      *     }
      * });
      */
-    extend: function(props, statics) {
-        var me = this;
+    extend(props, statics) {
+        let me = this;
         props = props || {};
-        var ctor = props.ctor;
+        let ctor = props.ctor;
         /*#if(modules.viewProtoMixins){#*/
-        var ctors = [];
+        let ctors = [];
         if (ctor) ctors.push(ctor);
         /*#}#*/
-        var NView = function(a, b /*#if(modules.viewProtoMixins){#*/ , c /*#}#*/ ) {
+        let NView = function (a, b /*#if(modules.viewProtoMixins){#*/, c /*#}#*/) {
             me.call(this, a, b);
             /*#if(modules.viewProtoMixins){#*/
             G_ToTry(ctors.concat(c), b, this);
@@ -367,15 +359,10 @@ G_Mix(View, {
         return G_Extend(NView, me, props, statics);
     }
 });
-G_Mix(G_Mix(ViewProto, Event), {
+G_Assign(ViewProto, MEvent, {
     /**
      * @lends View#
      */
-    /**
-     * 渲染view，供最终view开发者覆盖
-     * @function
-     */
-    render: G_NOOP,
     /*#if(modules.viewInit){#*/
     /**
      * 初始化调用的方法
@@ -397,52 +384,62 @@ G_Mix(G_Mix(ViewProto, Event), {
      *         S.one(G_HashKey+e.currentId).remove();
      *     },
      *     'addNode&lt;click&gt;':function(e){
-     *         var tmpl='&lt;div mx-click="del"&gt;delete&lt;/div&gt;';
+     *         let tmpl='&lt;div mx-click="del"&gt;delete&lt;/div&gt;';
      *         //因为tmpl中有mx-click，因此需要下面这行代码进行处理一次
      *         tmpl=this.wrapEvent(tmpl);
      *         S.one(G_HashKey+e.currentId).append(tmpl);
      *     }
      * });
      */
-    wrapEvent: View_SetEventOwner,
+    wrapEvent(html) {
+        return View_SetEventOwner(html, this.id);
+    },
     /**
      * 通知当前view即将开始进行html的更新
      * @param {String} [id] 哪块区域需要更新，默认整个view
      */
-    beginUpdate: function(id, me) {
+    beginUpdate(id, me) {
         me = this;
-        if (me.$s > 0 && me.$p) {
+        if (me['@{view#sign}'] > 0 && me['@{view#rendered}']) {
             me.owner.unmountZone(id, 1);
-            me.fire('prerender', {
+            /*me.fire('prerender', {
                 id: id
-            });
+            });*/
         }
     },
     /**
      * 通知当前view结束html的更新
      * @param {String} [id] 哪块区域结束更新，默认整个view
      */
-    endUpdate: function(id, me /*#if(modules.linkage){#*/ , o, f /*#}#*/ ) {
+    endUpdate(id, inner, me /*#if(modules.linkage){#*/, o, f /*#}#*/) {
         me = this;
-        if (me.$s > 0) {
+        if (me['@{view#sign}'] > 0) {
             id = id || me.id;
-            me.fire('rendered', {
-                id: id
-            });
-            /*#if(modules.linkage){#*/
-            f = me.$p;
-            /*#}#*/
-            me.$p = 1;
+            /*me.fire('rendered', {
+                id
+            });*/
+            if (inner) {
+                f = inner;
+            } else {
+                /*#if(modules.linkage){#*/
+                f = me['@{view#rendered}'];
+                /*#}#*/
+                me['@{view#rendered}'] = 1;
+            }
             /*#if(modules.linkage){#*/
             o = me.owner;
-            o.mountZone(id);
+            o.mountZone(id, inner);
             if (!f) {
-                setTimeout(me.wrapAsync(function() {
+                /*#if(modules.es3){#*/
+                Timeout(me.wrapAsync(() => {
                     Vframe_RunInvokes(o);
                 }), 0);
+                /*#}else{#*/
+                Timeout(me.wrapAsync(Vframe_RunInvokes), 0, o);
+                /*#}#*/
             }
             /*#}else{#*/
-            me.owner.mountZone(id);
+            me.owner.mountZone(id, inner);
             /*#}#*/
         }
     },
@@ -463,12 +460,12 @@ G_Mix(G_Mix(ViewProto, Event), {
      * // (该示例中最好的做法是在view销毁时清除setTimeout，
      * // 但有时候你很难控制回调的执行，比如JSONP，所以最好包装一次)
      */
-    wrapAsync: function(fn, context) {
-        var me = this;
-        var sign = me.$s;
-        return function() {
-            if (sign > 0 && sign == me.$s) {
-                if (fn) fn.apply(context || me, arguments);
+    wrapAsync(fn, context) {
+        let me = this;
+        let sign = me['@{view#sign}'];
+        return (...a) => {
+            if (sign > 0 && sign == me['@{view#sign}']) {
+                return fn.apply(context || me, a);
             }
         };
     },
@@ -493,20 +490,20 @@ G_Mix(G_Mix(ViewProto, Event), {
      *          });
      *      },
      *      render:function(){
-     *          var loc=Magix.Router.parse();
+     *          let loc=Magix.Router.parse();
      *          console.log(loc);//获取地址解析出的对象
-     *          var diff=Magix.Router.diff();
+     *          let diff=Magix.Router.diff();
      *          console.log(diff);//获取当前地址与上一个地址差异对象
      *      }
      * });
      */
-    observeLocation: function(params, isObservePath) {
-        var me = this,
+    observeLocation(params, isObservePath) {
+        let me = this,
             loc;
-        loc = me.$l;
+        loc = me['@{view#observe.router}'];
         loc.f = 1;
         if (G_IsObject(params)) {
-            isObservePath = params.path;
+            isObservePath = params[G_PATH];
             params = params[G_PARAMS];
         }
         //if (isObservePath) {
@@ -522,8 +519,8 @@ G_Mix(G_Mix(ViewProto, Event), {
      * 监视Magix.State中的数据变化
      * @param  {String|Array} keys 数据对象的key
      */
-    observeState: function(keys) {
-        this.$os = (keys + G_EMPTY).split(G_COMMA);
+    observeState(keys) {
+        this['@{view#observe.state}'] = (keys + G_EMPTY).split(G_COMMA);
     },
     /*#}#*/
     /*#if(modules.resource){#*/
@@ -538,36 +535,35 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @example
      * View.extend({
      *     render: function(){
-     *         var me = this;
-     *         var dropdown = new Dropdown();
+     *         let me = this;
+     *         let dropdown = new Dropdown();
      *
      *         me.capture('dropdown',dropdown,true);
      *     },
      *     getTest: function(){
-     *         var dd = me.capture('dropdown');
+     *         let dd = me.capture('dropdown');
      *         console.log(dd);
      *     }
      * });
      */
-    capture: function(key, res, destroyWhenCallRender, cache, wrapObj) {
-        cache = this.$r;
+    capture(key, res, destroyWhenCallRender, cache) {
+        cache = this['@{view#resource}'];
         if (res) {
             View_DestroyResource(cache, key, 1, res);
-            wrapObj = {
+            cache[key] = {
                 e: res,
                 x: destroyWhenCallRender
             };
-            cache[key] = wrapObj;
             //service托管检查
             if (DEBUG && res && (res.id + G_EMPTY).indexOf('\x1es') === 0) {
-                res.$c = 1;
+                res['@{service#captured}'] = 1;
                 if (!destroyWhenCallRender) {
                     console.warn('beware! May be you should set destroyWhenCallRender = true');
                 }
             }
         } else {
-            wrapObj = cache[key];
-            res = wrapObj && wrapObj.e || res;
+            cache = cache[key];
+            res = cache && cache.e;
         }
         return res;
     },
@@ -579,8 +575,8 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @beta
      * @module resource
      */
-    release: function(key, destroy) {
-        return View_DestroyResource(this.$r, key, destroy);
+    release(key, destroy) {
+        return View_DestroyResource(this['@{view#resource}'], key, destroy);
     },
     /*#}#*/
     /*#if(modules.tipRouter){#*/
@@ -591,7 +587,7 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @beta
      * @module tipRouter
      * @example
-     * var Magix = require('magix');
+     * let Magix = require('magix');
      * module.exports = Magix.View.extend({
      *     init:function(){
      *         this.leaveTip('页面数据未保存，确认离开吗？',function(){
@@ -600,10 +596,10 @@ G_Mix(G_Mix(ViewProto, Event), {
      *     }
      * });
      */
-    leaveTip: function(msg, fn) {
-        var me = this;
-        var changeListener = function(e) {
-            var flag = 'a', // a for router change
+    leaveTip(msg, fn) {
+        let me = this;
+        let changeListener = e => {
+            let flag = 'a', // a for router change
                 v = 'b'; // b for viewunload change
             if (e.type != 'change') {
                 flag = 'b';
@@ -615,10 +611,10 @@ G_Mix(G_Mix(ViewProto, Event), {
             } else if (fn()) {
                 e.prevent();
                 changeListener[v] = 1;
-                me.leaveConfirm(msg, function() {
+                me.leaveConfirm(msg, () => {
                     changeListener[v] = 0;
                     e.resolve();
-                }, function() {
+                }, () => {
                     changeListener[v] = 0;
                     e.reject();
                 });
@@ -626,7 +622,7 @@ G_Mix(G_Mix(ViewProto, Event), {
                 e.resolve();
             }
         };
-        var unloadListener = function(e) {
+        let unloadListener = e => {
             if (fn()) {
                 e.msg = msg;
             }
@@ -634,7 +630,7 @@ G_Mix(G_Mix(ViewProto, Event), {
         Router.on('change', changeListener);
         Router.on('pageunload', unloadListener);
         me.on('unload', changeListener);
-        me.on('destroy', function() {
+        me.on('destroy', () => {
             Router.off('change', changeListener);
             Router.off('pageunload', unloadListener);
         });
@@ -648,12 +644,12 @@ G_Mix(G_Mix(ViewProto, Event), {
      * @beta
      * @module share
      */
-    share: function(key, data) {
-        var me = this;
-        if (!me.$sd) {
-            me.$sd = {};
+    share(key, data) {
+        let me = this;
+        if (!me['@{view#shared.data}']) {
+            me['@{view#shared.data}'] = {};
         }
-        me.$sd[key] = data;
+        me['@{view#shared.data}'][key] = data;
     },
     /**
      * 获取祖先view上公开的数据
@@ -668,20 +664,20 @@ G_Mix(G_Mix(ViewProto, Event), {
      * }
      * //子view
      * render:function(){
-     *     var d=this.getShared('x');
+     *     let d=this.getShared('x');
      * }
      */
-    getShared: function(key) {
-        var me = this;
-        var sd = me.$sd;
-        var exist;
+    getShared(key) {
+        let me = this;
+        let sd = me['@{view#shared.data}'];
+        let exist;
         if (sd) {
             exist = G_Has(sd, key);
             if (exist) {
                 return sd[key];
             }
         }
-        var vf = me.owner.parent();
+        let vf = me.owner.parent();
         if (vf) {
             return vf.invoke('getShared', key);
         }
@@ -696,32 +692,34 @@ G_Mix(G_Mix(ViewProto, Event), {
      *     this.setHTML(this.id,this.tmpl);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
      * }
      */
-    setHTML: function(id, html) {
-        var me = this,
+    /*
+        Q:为什么删除setHTML?
+        A:统一使用updater更新界面。
+        关于api的分级，高层api更内聚，一个api完成很多功能。方便开发者，但不灵活。
+        底层api职责更单一，一个api只完成一个功能，灵活，但不方便开发者
+        更新界面来讲，updater是一个高层api，但是有些功能却无法完成，如把view当成壳子或容器渲染第三方的组件，组件什么时间加载完成、渲染、更新了dom、如何通知magix等，这些问题在updater中是无解的，而setHTML这个api又不够底层，同样也无法完成一些功能，所以这个api食之无味，故删除
+     */
+    /*setHTML(id, html) {
+        let me = this,
             n, i = me.id;
         me.beginUpdate(id);
-        if (me.$s > 0) {
+        if (me['@{view#sign}'] > 0) {
             n = G_GetById(id);
             if (n) G_HTML(n, View_SetEventOwner(html, i), i);
         }
         me.endUpdate(id);
-    }
-
-
+        me.fire('domready');
+    }*/
     /**
-     * 当view调用setHTML刷新前触发
-     * @name View#prerender
-     * @event
-     * @param {Object} e
-     * @param {String} e.id 指示哪块区域要进行更新
+     * 渲染view，供最终view开发者覆盖
+     * @function
      */
-
+    render: G_NOOP
     /**
-     * 每次调用setHTML更新view内容完成后触发
-     * @name View#rendered
+     * 当前view的dom就绪后触发
+     * @name View#domready
      * @event
      * @param {Object} e view 完成渲染后触发
-     * @param {String} e.id 指示哪块区域完成的渲染
      */
 
     /**

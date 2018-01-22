@@ -1,17 +1,13 @@
-/*
-    author:xinglie.lkf@taobao.com
- */
-define('magix', ['$'], function($) {
-    if (typeof DEBUG == 'undefined') DEBUG = true;
-    var G_IsObject = $.isPlainObject;
-    var G_IsArray = $.isArray;
-    var G_NOOP = function() {};
+define('magix', ['$'], $ => {
+    if (typeof DEBUG == 'undefined') window.DEBUG = true;
+    let G_IsObject = $.isPlainObject;
+    let G_IsArray = $.isArray;
     Inc('../tmpl/variable');
     Inc('../tmpl/cache');
     /*#if(modules.defaultView){#*/
-    var G_DefaultView;
+    let G_DefaultView;
     /*#}#*/
-    var G_Require = function(name, fn) {
+    let G_Require = (name, fn) => {
         if (name) {
             /*#if(modules.defaultView){#*/
             if (MxGlobalView == name) {
@@ -19,7 +15,7 @@ define('magix', ['$'], function($) {
                     G_DefaultView = View.extend(
                         /*#if(!modules.autoEndUpdate){#*/
                         {
-                            render: function() {
+                            render() {
                                 this.endUpdate();
                             }
                         }
@@ -41,43 +37,27 @@ define('magix', ['$'], function($) {
             fn();
         }
     };
-    var G_Define = function(mId, value) {
-        define(mId, function() {
-            return value;
-        });
-    };
     Inc('../tmpl/extend');
-    var G_HTML = function(node, html, vId) {
-        G_DOC.triggerHandler({
-            type: 'htmlchange',
-            vId: vId
-        });
-        $(node).html(html);
-        G_DOC.triggerHandler({
-            type: 'htmlchanged',
-            vId: vId
-        });
-    };
 
-    var G_SelectorEngine = $.find || $.zepto;
-    var G_TargetMatchSelector = G_SelectorEngine.matchesSelector || G_SelectorEngine.matches;
-    var G_DOMGlobalProcessor = function(e, d) {
+    let G_SelectorEngine = $.find || $.zepto;
+    let G_TargetMatchSelector = G_SelectorEngine.matchesSelector || G_SelectorEngine.matches;
+    let G_DOMGlobalProcessor = (e, d) => {
         d = e.data;
         e.eventTarget = d.e;
         G_ToTry(d.f, e, d.v);
     };
     /*#if(modules.eventEnterLeave){#*/
-    var Specials = {
+    let Specials = {
         mouseenter: 1,
         mouseleave: 1,
         pointerenter: 1,
         pointerleave: 1
     };
-    var G_DOMEventLibBind = function(node, type, cb, remove, scope, selector) {
+    let G_DOMEventLibBind = (node, type, cb, remove, scope, selector) => {
         if (scope) {
-            type += '.' + scope.i;
+            type += `.${scope.i}`;
         }
-        selector = Specials[type] === 1 ? '[mx-' + type + ']' : G_EMPTY;
+        selector = Specials[type] === 1 ? `[mx-${type}]` : G_EMPTY;
         if (remove) {
             $(node).off(type, selector, cb);
         } else {
@@ -85,9 +65,9 @@ define('magix', ['$'], function($) {
         }
     };
     /*#}else{#*/
-    var G_DOMEventLibBind = function(node, type, cb, remove, scope) {
+    let G_DOMEventLibBind = (node, type, cb, remove, scope) => {
         if (scope) {
-            type += '.' + scope.i;
+            type += `.${scope.i}`;
         }
         if (remove) {
             $(node).off(type, cb);
@@ -103,24 +83,23 @@ define('magix', ['$'], function($) {
     Inc('../tmpl/state');
     /*#}#*/
     /*#if(modules.router){#*/
-    //var G_IsFunction = $.isFunction;
+    //let G_IsFunction = $.isFunction;
     Inc('../tmpl/router');
     /*#}#*/
     /*#if(modules.mxViewAttr){#*/
-    var G_Trim = $.trim;
+    let G_Trim = $.trim;
     /*#}#*/
     Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe){#*/
-    $.fn.invokeView = function(name, args) {
-        var l = this.length;
+    $.fn.invokeView = function (name, args) {
+        let l = this.length;
         if (l) {
-            var e = this[0];
-            var vf = e.vframe;
+            let e = this[0];
+            let vf = e.vframe;
             if (args === undefined) {
                 return vf && vf.invoke(name);
             } else {
-                for (var i = 0; i < l; i++) {
-                    e = this[i];
+                for (let e of this) {
                     vf = e.vframe;
                     if (vf) {
                         vf.invoke(name, args);
@@ -135,23 +114,15 @@ define('magix', ['$'], function($) {
     Inc('../tmpl/tmpl');
     /*#if(modules.updaterIncrement){#*/
     Inc('../tmpl/increment');
-    var Updater_Increment = function(node, html, vId) {
-        Increment(node, html);
-        G_DOC.triggerHandler({
-            vId: vId,
-            type: 'htmlchange',
-            target: node
-        });
-    };
-    /*#}#*/
+    /*#}else{#*/
     Inc('../tmpl/partial');
+    /*#}#*/
     Inc('../tmpl/updater');
     /*#}#*/
     Inc('../tmpl/view');
     /*#if(modules.service){#*/
-    var G_Type = $.type;
-    var G_Proxy = $.proxy;
-    var G_Now = $.now || Date.now;
+    let G_Type = $.type;
+    let G_Now = $.now || Date.now;
     Inc('../tmpl/service');
     /*#}#*/
     Inc('../tmpl/base');
