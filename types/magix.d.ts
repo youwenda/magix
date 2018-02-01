@@ -148,6 +148,11 @@ declare namespace Magix {
      * view更新器接口
      */
     interface Updater {
+        /**
+         * 把结果渲染到某个节点上，默认是当前view所在的节点
+         * @param id dom节点id
+         */
+        to(id: string): void
 
         /**
          * 获取设置的数据，当key未传递时，返回整个数据对象
@@ -523,7 +528,7 @@ declare namespace Magix {
          * @param props 原型方法或属性的对象
          * @param statics 静态方法或属性的对象
          */
-        extend<TProps=null, TStatics =null>(props?: TExtendPropertyDescriptor<TProps & BasePrototype>, statics?: TStatics): this & TStatics
+        extend<TProps=null, TStatics =object>(props?: TExtendPropertyDescriptor<TProps & BasePrototype>, statics?: TStatics): this & TStatics
         /**
          * 原型
          */
@@ -643,6 +648,13 @@ declare namespace Magix {
          */
         readonly prototype: VframePrototype
     }
+    interface IncrementDiff {
+        node: HTMLElement,
+        deep: boolean
+        data: boolean
+        html: boolean
+        keys: object
+    }
     /**
      * view类原型
      */
@@ -685,7 +697,7 @@ declare namespace Magix {
          * @param id 设置html的节点id
          * @param html 待设置的html
          */
-        setHTML(id: string, html: string): void
+        assign(data: object, options?: IncrementDiff): boolean
 
         /**
          * 监听地址栏的改变，如"/app/path?page=1&size=20"，其中"/app/path"为path,"page,size"为参数
@@ -784,7 +796,7 @@ declare namespace Magix {
          * @param props 包含可选的init和render方法的对象
          * @param statics 静态方法或属性的对象
          */
-        extend<TProps=null, TStatics =null>(props?: TExtendPropertyDescriptor<TProps & ViewPrototype>, statics?: TStatics): this & TStatics
+        extend<TProps=null, TStatics =object>(props?: TExtendPropertyDescriptor<TProps & ViewPrototype>, statics?: TStatics): this & TStatics
         /**
          * 扩展到Magix.View原型上的对象
          * @param props 包含可选的ctor方法的对象

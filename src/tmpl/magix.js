@@ -1,4 +1,5 @@
 let Magix_PathToObjCache = new G_Cache();
+let Magix_Booted = 0;
 //let Magix_PathCache = new G_Cache();
 let Magix_ParamsObjectTemp;
 let Magix_ParamsFn = (match, name, value) => {
@@ -211,6 +212,7 @@ let Magix = {
                 /*#if(modules.state){#*/
                 State.on('changed', Vframe_NotifyChange);
                 /*#}#*/
+                Magix_Booted = 1;
                 Router_Bind();
             });
             /*#if(modules.configIni){#*/
@@ -464,5 +466,6 @@ let Magix = {
      */
     guid: G_Id,
     use: G_Require,
-    Cache: G_Cache
+    Cache: G_Cache,
+    nodeId: IdIt
 };

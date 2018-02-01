@@ -1,7 +1,16 @@
 if (DEBUG) {
     var Safeguard;
     if (window.Proxy) {
+        let ProxiesPool = new Map();
         Safeguard = (data, getter, setter) => {
+            if (G_IsPrimitive(data)) {
+                return data;
+            }
+            let key = getter + '\x01' + setter;
+            let cached = ProxiesPool.get(data);
+            if (cached && 　cached.key == key) {
+                return cached.entity;
+            }
             let build = (prefix, o) => {
                 if (o['\x1e_sf_\x1e']) {
                     return o;
@@ -29,10 +38,12 @@ if (DEBUG) {
                     }
                 });
             };
-            if (G_IsPrimitive(data)) {
-                return data;
-            }
-            return build('', data);
+            let entity = build('', data);
+            ProxiesPool.set(data, {
+                key,
+                entity
+            });
+            return entity;
         };
     } else {
         Safeguard = data => data;

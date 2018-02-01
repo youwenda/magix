@@ -87,7 +87,7 @@ let State = {
         let r = key ? State_AppData[key] : State_AppData;
         if (DEBUG) {
             /*#if(modules.router){#*/
-            if (key) {
+            if (key && Magix_Booted) {
                 let loc = Router.parse();
                 if (G_Has(State_DataWhereSet, key) && State_DataWhereSet[key] != loc.path) {
                     console.warn('beware! You get state:"{Magix.State}.' + key + '" where it set by page:' + State_DataWhereSet[key]);
@@ -96,9 +96,11 @@ let State = {
             /*#}#*/
             r = Safeguard(r, dataKey => {
                 /*#if(modules.router){#*/
-                let loc = Router.parse();
-                if (G_Has(State_DataWhereSet, dataKey) && State_DataWhereSet[dataKey] != loc.path) {
-                    console.warn('beware! You get state:"{Magix.State}.' + dataKey + '" where it set by page:' + State_DataWhereSet[dataKey]);
+                if (Magix_Booted) {
+                    let loc = Router.parse();
+                    if (G_Has(State_DataWhereSet, dataKey) && State_DataWhereSet[dataKey] != loc.path) {
+                        console.warn('beware! You get state:"{Magix.State}.' + dataKey + '" where it set by page:' + State_DataWhereSet[dataKey]);
+                    }
                 }
                 /*#}#*/
             }, (path, value) => {
@@ -118,7 +120,7 @@ let State = {
     set(data) {
         State_DataIsChanged = G_Set(data, State_AppData, State_ChangedKeys) || State_DataIsChanged;
         /*#if(modules.router){#*/
-        if (DEBUG) {
+        if (DEBUG && Magix_Booted) {
             let loc = Router.parse();
             for (let p in data) {
                 State_DataWhereSet[p] = loc.path;

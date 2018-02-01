@@ -14,7 +14,7 @@ let Partial_Unescape = (m, name) => Partial_UnescapeMap[name] || m;
 let Partial_UpdateNode = (node, view, one,
     renderData, updateAttrs, updateTmpl, viewId, ref, file) => {
     if (node) {
-        let id = node.id || (node.id = G_Id()), params;
+        let id = IdIt(node), params;
         let hasMagixView, viewValue, vf = Vframe_Vframes[viewId];
         if (updateAttrs) {
             let attr = View_SetEventOwner(DEBUG ? Tmpl(one.attr, renderData, file) : Tmpl(one.attr, renderData), viewId),

@@ -314,8 +314,10 @@ let Router_Parse = href => {
             hash,
             params
         };
-        Router_AttachViewAndPath(result);
-        Router_HrefCache.set(href, result);
+        if (Magix_Booted) {
+            Router_AttachViewAndPath(result);
+            Router_HrefCache.set(href, result);
+        }
     }
     if (DEBUG) {
         result = Safeguard(result);

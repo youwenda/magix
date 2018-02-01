@@ -8,7 +8,7 @@
     "typescript": "^2.6.2"
   },
   "dependencies": {
-    "gulp-header": "^1.8.8",
+    "gulp-header": "^2.0.1",
     "gulp-uglify": "^3.0.0",
     "gulp-uglify-es": "^1.0.0",
     "gulp-uglify-es-scoped": "1.0.0"

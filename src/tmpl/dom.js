@@ -26,6 +26,7 @@
 
 //https://github.com/DylanPiercey/set-dom/blob/master/src/index.js
 //https://github.com/patrick-steele-idem/morphdom
+let I_SVGNS = 'http://www.w3.org/2000/svg';
 let I_WrapMap = {
 
     // Support: IE <=9 only
@@ -40,6 +41,7 @@ let I_WrapMap = {
     td: [3, '<table><tbody><tr>'],
     area: [1, '<map>'],
     param: [1, '<object>'],
+    g: [1, `<svg xmlns="${I_SVGNS}">`],
     all: [0, '']
 };
 
@@ -54,19 +56,18 @@ let I_Base = I_Doc.createElement('base');
 I_Base.href = G_DOCUMENT.location.href;
 I_Doc.head.appendChild(I_Base);
 
-let I_IdIt = n => n.id || (n.id = G_Id());
 let I_UnmountVframs = (vf, n) => {
-    let id = I_IdIt(n);
+    let id = IdIt(n);
     if (vf['@{vframe#children}'][id]) {
         vf.unmountVframe(id, 1);
     } else {
         vf.unmountZone(id, 1);
     }
 };
-let I_GetNode = html => {
+let I_GetNode = (html, node) => {
     let tmp = I_Doc.createElement('div');
     // Deserialize a standard representation
-    let tag = (I_RTagName.exec(html) || [0, ''])[1].toLowerCase();
+    let tag = I_SVGNS == node.namespaceURI ? 'g' : (I_RTagName.exec(html) || [0, ''])[1].toLowerCase();
     let wrap = I_WrapMap[tag] || I_WrapMap.all;
     tmp.innerHTML = wrap[1] + html;
 
@@ -79,21 +80,15 @@ let I_GetNode = html => {
 };
 //https://github.com/patrick-steele-idem/morphdom/blob/master/src/specialElHandlers.js
 let I_Specials = {
-    INPUT: [{
-        a: 'defaultValue',
-        b: 'value'
-    }, {
-        a: 'defaultChecked',
-        b: 'checked'
-    }, {
-        a: 'disabled'
-    }, {
-        a: 'readonly'
-    }],
-    OPTION: [{ a: 'selected' }]
+    INPUT: ['value', 'checked', 'disabled', 'readonly'],
+    OPTION: ['selected']
 };
 I_Specials.TEXTAREA = I_Specials.INPUT;
-let I_SetAttributes = (oldNode, newNode, ref, mxNode) => {
+let I_PartialAttrs = {
+    'style': 1,
+    'id': 1
+};
+let I_SetAttributes = (oldNode, newNode, ref, mxNode, flags) => {
     let a, b, i, ns, s;
     let oldAttributes = oldNode.attributes,
         newAttributes = newNode.attributes,
@@ -101,43 +96,49 @@ let I_SetAttributes = (oldNode, newNode, ref, mxNode) => {
     let specials = I_Specials[nodeName];
     if (specials) {
         for (s of specials) {
-            if (oldNode[s.a] != newNode[s.a]) {
-                i = s.b || s.a;
-                oldNode[i] = newNode[i];
+            if (oldNode[s] != newNode[s]) {//浏览器必须激活
+                oldNode[s] = newNode[s];
             }
         }
     }
     // Remove old attributes.
     for (i = oldAttributes.length; i--;) {
         a = oldAttributes[i];
-        ns = a.namespaceURI;
         s = a.localName;
-        b = newAttributes.getNamedItemNS(ns, s);
-        if (!b && (!mxNode || s != 'id')) {
-            oldAttributes.removeNamedItemNS(ns, s);
+        if (!flags || !G_Has(flags, s)) {
+            ns = a.namespaceURI;
+            b = newAttributes.getNamedItemNS(ns, s);
+            if (!b && (!mxNode || s != 'id')) {
+                if (s == 'id' && oldNode['@{node#auto.id}']) {
+                    oldNode['@{node#auto.id}'] = 0;
+                }
+                oldAttributes.removeNamedItemNS(ns, s);
+            }
         }
     }
 
     // Set new attributes.
     for (i = newAttributes.length; i--;) {
         a = newAttributes[i];
-        ns = a.namespaceURI;
         s = a.localName;
-        b = oldAttributes.getNamedItemNS(ns, s);
-        lazySetId = mxNode && s == 'id';
-        if (lazySetId) {
-            nodeName = a.value;
-            a.value = '';
-        }
-        if (!b) {
-            // Add a new attribute.
-            newAttributes.removeNamedItemNS(ns, s);
-            oldAttributes.setNamedItemNS(a);
-            if (lazySetId) ref.d.push([a, nodeName]);
-        } else if (b.value !== a.value) {
-            // Update existing attribute.
-            b.value = a.value;
-            if (lazySetId) ref.d.push([b, nodeName]);
+        if (flags != I_PartialAttrs || !G_Has(flags, s)) {
+            ns = a.namespaceURI;
+            b = oldAttributes.getNamedItemNS(ns, s);
+            lazySetId = mxNode && s == 'id';
+            if (lazySetId) {
+                nodeName = a.value;
+                a.value = '';
+            }
+            if (!b) {
+                // Add a new attribute.
+                newAttributes.removeNamedItemNS(ns, s);
+                oldAttributes.setNamedItemNS(a);
+                if (lazySetId) ref.d.push([a, nodeName]);
+            } else if (b.value !== a.value) {
+                // Update existing attribute.
+                b.value = a.value;
+                if (lazySetId) ref.d.push([b, nodeName]);
+            }
         }
     }
 };
@@ -152,7 +153,7 @@ let I_SetChildNodes = (oldParent, newParent, ref, vf, data, keys) => {
         tempOld = oldNode;
         nodeKey = tempOld.id;
         oldNode = oldNode.nextSibling;
-        if (nodeKey) {
+        if (nodeKey && !tempOld['@{node#auto.id}']) {
             keyedNodes[nodeKey] = tempOld;
         }
     }
@@ -173,13 +174,16 @@ let I_SetChildNodes = (oldParent, newParent, ref, vf, data, keys) => {
             I_SetNode(foundNode, tempNew, oldParent, ref, vf, data, keys);
         } else if (oldNode) {
             nodeKey = oldNode.id;
-            if (keyedNodes[nodeKey]) {
-                delete keyedNodes[nodeKey];
-            }
             tempOld = oldNode;
             oldNode = oldNode.nextSibling;
-            // Otherwise we diff the two non-keyed nodes.
-            I_SetNode(tempOld, tempNew, oldParent, ref, vf, data, keys);
+            if (nodeKey && keyedNodes[nodeKey]) {
+                extra++;
+                // If the old child had a key we skip over it until the end.
+                oldParent.insertBefore(tempNew, tempOld);
+            } else {
+                // Otherwise we diff the two non-keyed nodes.
+                I_SetNode(tempOld, tempNew, oldParent, ref, vf, data, keys);
+            }
         } else {
             // Finally if there was no old node we add the new node.
             oldParent.appendChild(tempNew);
@@ -217,8 +221,8 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                     newHTML = newNode.innerHTML;
                 let updateAttribute, updateChildren, unmountOld,
                     oldVf = Vframe_Vframes[oldNode.id],
-                    view, uri, params, oldDataStringify, newDataStringify,
-                    dataChanged, htmlChanged, deep;
+                    view, uri, params, htmlChanged, deep/*, 
+                    oldDataStringify, newDataStringify,dataChanged*/;
                 /*
                     如果存在新旧view，则考虑路径一致，避免渲染的问题
                  */
@@ -229,7 +233,7 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                     2.　是否有引用传递的数据，如果有则使用json.stringify来比较数据是否变化
                         细节：循环引用的数据序列化时会出错，如果出错，则全新渲染
                     */
-                    oldDataStringify = oldVf['@{vframe#data.stringify}'];
+                    //oldDataStringify = oldVf['@{vframe#data.stringify}'];
                     view = oldVf['@{vframe#view.entity}'];
                     uri = G_ParseUri(newMxView);
                     params = uri[G_PARAMS];
@@ -237,43 +241,42 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                     if (newMxView.indexOf(G_SPLITER) > -1) {
                         GSet_Params(data, params, params);
                     }
-                    newDataStringify = G_TryStringify(data, uri);
-                    dataChanged = oldDataStringify != newDataStringify;
+                    //newDataStringify = G_TryStringify(data, uri);
+                    //dataChanged = oldDataStringify != newDataStringify;
                     htmlChanged = newHTML != oldVf['@{vframe#template}'];
                     deep = !view['@{view#template.object}'];//无模板的组件深入比较子节点
-                    if (!oldDataStringify ||//数据无法stringify
-                        deep ||//无模板的组件
-                        htmlChanged ||//innerHTML有变化
-                        dataChanged) {//新旧stringify出的值不一样
-                        //如果新旧是同一类型的view且有assign方法，则调用组件的方法进行更新
-                        if (oldVf['@{vframe#view.path}'] == uri[G_PATH] &&
-                            view['@{view#assign.fn}']) {
-                            if (dataChanged) oldNode.setAttribute(G_MX_VIEW, newMxView);
-                            //更新属性
-                            oldVf['@{vframe#template}'] = newHTML;
-                            oldVf['@{vframe#data.stringify}'] = newDataStringify;
-                            oldVf[G_PATH] = newMxView;//update ref
-                            //如果需要更新，则进行更新的操作
-                            newDataStringify = {
-                                keys,
-                                node: newNode,
-                                deep,
-                                data: dataChanged,
-                                html: htmlChanged
-                            };
-                            if (G_ToTry(view['@{view#assign.fn}'], [params, newDataStringify], view)) {
-                                view['@{view#render.short}']();
-                            }
-                            //默认当一个组件有assign方法时，由该方法及该view上的render方法完成当前区域内的节点更新
-                            //而对于不渲染界面的控制类型的组件来讲，它本身更新后，有可能需要继续由magix更新内部的子节点，此时通过deep参数控制
-                            updateChildren = newDataStringify.deep;
-                        } else {
-                            //否则自动更新，销毁旧的，更新子节点
-                            unmountOld = 1;
-                            updateChildren = 1;
-                            updateAttribute = 1;
+                    // if (deep ||//无模板的组件
+                    //   htmlChanged //||//innerHTML有变化
+                    //!oldDataStringify ||//数据无法stringify
+                    //dataChanged) {//新旧stringify出的值不一样
+                    //如果新旧是同一类型的view且有assign方法，则调用组件的方法进行更新
+                    if (oldVf['@{vframe#view.path}'] == uri[G_PATH] &&
+                        view['@{view#assign.fn}']) {
+                        oldVf['@{vframe#template}'] = newHTML;
+                        //oldVf['@{vframe#data.stringify}'] = newDataStringify;
+                        oldVf[G_PATH] = newMxView;//update ref
+                        //如果需要更新，则进行更新的操作
+                        uri = {
+                            keys,
+                            node: newNode,
+                            deep,
+                            //data: dataChanged,
+                            html: htmlChanged
+                        };
+                        I_SetAttributes(oldNode, newNode, ref, 1, I_PartialAttrs);
+                        if (G_ToTry(view['@{view#assign.fn}'], [params, uri], view)) {
+                            view['@{view#render.short}']();
                         }
+                        //默认当一个组件有assign方法时，由该方法及该view上的render方法完成当前区域内的节点更新
+                        //而对于不渲染界面的控制类型的组件来讲，它本身更新后，有可能需要继续由magix更新内部的子节点，此时通过deep参数控制
+                        updateChildren = uri.deep;
+                    } else {
+                        //否则自动更新，销毁旧的，更新子节点
+                        unmountOld = 1;
+                        updateChildren = 1;
+                        updateAttribute = 1;
                     }
+                    //}
                 } else {
                     updateAttribute = 1;
                     updateChildren = 1;
@@ -283,7 +286,7 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                     oldVf.unmountVframe(0, 1);
                 }
                 if (updateAttribute) {
-                    I_SetAttributes(oldNode, newNode, ref, unmountOld);
+                    I_SetAttributes(oldNode, newNode, ref, oldVf && newMxView);
                 }
                 // Update all children (and subchildren).
                 if (updateChildren) {
@@ -325,30 +328,10 @@ let I_UpdateDOM = (updater, data, changed, keys) => {
         node = G_GetById(selfId),
         tmpl, html, x;
     if (view && view['@{view#sign}'] > 0 && (tmpl = view['@{view#template.object}'])) {
-        console.time('[increment time:' + selfId + ']');
-        if (!tmpl[G_SPLITER]) {
-            tmpl[G_SPLITER] = 1;
-            let tmplment = guid => tmplment[guid].tmpl,
-                s, list = tmpl.subs;
-            if (list) {//该处兼容html片断的拆分
-                for (x = list.length; x--;) {
-                    s = list[x];
-                    if (s.s) {
-                        tmplment[s.s] = s;
-                        s.tmpl = s.tmpl.replace(I_ContentReg, tmplment);
-                    }
-                }
-                tmpl.html = tmpl.html.replace(I_ContentReg, tmplment);
-            }
-        }
+        console.time('[dom time:' + selfId + ']');
         if (changed) {
-            if (DEBUG) {
-                html = View_SetEventOwner(Tmpl(tmpl.html, data, tmpl.file), selfId);
-            } else {
-                html = View_SetEventOwner(Tmpl(tmpl.html, data), selfId);
-            }
-
-            I_SetChildNodes(node, I_GetNode(html), ref, vf, data, keys);
+            html = View_SetEventOwner(tmpl(G_SPLITER, data), selfId);
+            I_SetChildNodes(node, I_GetNode(html, node), ref, vf, data, keys);
             for (x of ref.d) {
                 x[0].value = x[1];
             }
@@ -371,6 +354,6 @@ let I_UpdateDOM = (updater, data, changed, keys) => {
             }
         }
         view.fire('domready');
-        console.timeEnd('[increment time:' + selfId + ']');
+        console.timeEnd('[dom time:' + selfId + ']');
     }
 };

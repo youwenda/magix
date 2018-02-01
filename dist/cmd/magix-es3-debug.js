@@ -1,13 +1,13 @@
 //#snippet;
 //#uncheck = jsThis,jsLoop;
 //#exclude = loader,allProcessor;
-/*!3.8.0 Licensed MIT*/
+/*!3.8.1 Licensed MIT*/
 /*
 author:kooboy_li@163.com
 loader:cmd
-enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,updaterSetState,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterIncrement
+enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,updaterSetState,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterVDOM,updaterDOM
 
-optionals:serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,share,mxViewAttr,keepHTML,eventEnterLeave,naked
+optionals:serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,share,mxViewAttr,keepHTML,eventEnterLeave,naked,vdom
 */
 define('magix', ['$'], function (require) {
     if (typeof DEBUG == 'undefined')
@@ -119,6 +119,7 @@ define('magix', ['$'], function (require) {
             }
         }
     };
+    var IdIt = function (n) { return n.id || (n.id = G_Id()); };
     var G_ToTry = function (fns, args, context, r, e) {
         args = args || G_EMPTY_ARRAY;
         if (!G_IsArray(fns))
@@ -346,7 +347,16 @@ define('magix', ['$'], function (require) {
     if (DEBUG) {
         var Safeguard;
         if (window.Proxy) {
+            var ProxiesPool_1 = new Map();
             Safeguard = function (data, getter, setter) {
+                if (G_IsPrimitive(data)) {
+                    return data;
+                }
+                var key = getter + '\x01' + setter;
+                var cached = ProxiesPool_1.get(data);
+                if (cached && cached.key == key) {
+                    return cached.entity;
+                }
                 var build = function (prefix, o) {
                     if (o['\x1e_sf_\x1e']) {
                         return o;
@@ -374,10 +384,12 @@ define('magix', ['$'], function (require) {
                         }
                     });
                 };
-                if (G_IsPrimitive(data)) {
-                    return data;
-                }
-                return build('', data);
+                var entity = build('', data);
+                ProxiesPool_1.set(data, {
+                    key: key,
+                    entity: entity
+                });
+                return entity;
             };
         }
         else {
@@ -385,6 +397,7 @@ define('magix', ['$'], function (require) {
         }
     }
     var Magix_PathToObjCache = new G_Cache();
+    var Magix_Booted = 0;
     //let Magix_PathCache = new G_Cache();
     var Magix_ParamsObjectTemp;
     var Magix_ParamsFn = function (match, name, value) {
@@ -591,6 +604,7 @@ define('magix', ['$'], function (require) {
                 G_Require(Magix_Cfg.exts, function () {
                     Router.on('changed', Vframe_NotifyChange);
                     State.on('changed', Vframe_NotifyChange);
+                    Magix_Booted = 1;
                     Router_Bind();
                 });
             });
@@ -829,7 +843,8 @@ define('magix', ['$'], function (require) {
          */
         guid: G_Id,
         use: G_Require,
-        Cache: G_Cache
+        Cache: G_Cache,
+        nodeId: IdIt
     };
     /**
  * 多播事件对象
@@ -1013,16 +1028,18 @@ define('magix', ['$'], function (require) {
         get: function (key) {
             var r = key ? State_AppData[key] : State_AppData;
             if (DEBUG) {
-                if (key) {
+                if (key && Magix_Booted) {
                     var loc = Router.parse();
                     if (G_Has(State_DataWhereSet, key) && State_DataWhereSet[key] != loc.path) {
                         console.warn('beware! You get state:"{Magix.State}.' + key + '" where it set by page:' + State_DataWhereSet[key]);
                     }
                 }
                 r = Safeguard(r, function (dataKey) {
-                    var loc = Router.parse();
-                    if (G_Has(State_DataWhereSet, dataKey) && State_DataWhereSet[dataKey] != loc.path) {
-                        console.warn('beware! You get state:"{Magix.State}.' + dataKey + '" where it set by page:' + State_DataWhereSet[dataKey]);
+                    if (Magix_Booted) {
+                        var loc = Router.parse();
+                        if (G_Has(State_DataWhereSet, dataKey) && State_DataWhereSet[dataKey] != loc.path) {
+                            console.warn('beware! You get state:"{Magix.State}.' + dataKey + '" where it set by page:' + State_DataWhereSet[dataKey]);
+                        }
                     }
                 }, function (path, value) {
                     var sub = key ? key : path;
@@ -1040,7 +1057,7 @@ define('magix', ['$'], function (require) {
          */
         set: function (data) {
             State_DataIsChanged = G_Set(data, State_AppData, State_ChangedKeys) || State_DataIsChanged;
-            if (DEBUG) {
+            if (DEBUG && Magix_Booted) {
                 var loc = Router.parse();
                 for (var p in data) {
                     State_DataWhereSet[p] = loc.path;
@@ -1290,8 +1307,10 @@ define('magix', ['$'], function (require) {
                 hash: hash,
                 params: params
             };
-            Router_AttachViewAndPath(result);
-            Router_HrefCache.set(href, result);
+            if (Magix_Booted) {
+                Router_AttachViewAndPath(result);
+                Router_HrefCache.set(href, result);
+            }
         }
         if (DEBUG) {
             result = Safeguard(result);
@@ -1490,7 +1509,7 @@ define('magix', ['$'], function (require) {
             });
             id = G_GetById(id);
             if (id)
-                id['$m'] = id.vframe = 0;
+                id['$a'] = id.vframe = 0;
         }
     };
     var Vframe_UpdateTag = 0;
@@ -1659,7 +1678,7 @@ define('magix', ['$'], function (require) {
                 if (viewPath.indexOf(G_SPLITER) > 0) {
                     GSet_Params(parentVf, params, params);
                 }
-                me['$j'] = G_TryStringify(parentVf, po);
+                //me['$j'] = G_TryStringify(parentVf, po);
                 me['$n'] = po[G_PATH];
                 G_Assign(params, viewInitParams);
                 G_Require(view, function (TView) {
@@ -1668,20 +1687,29 @@ define('magix', ['$'], function (require) {
                             return Magix_Cfg.error(Error("id:" + id + " cannot load:" + view));
                         }
                         ctors = View_Prepare(TView);
-                        view = new TView({
-                            owner: me,
-                            id: id
-                        }, params, ctors);
+                        view = new TView(id, me, params, ctors);
                         if (DEBUG) {
                             var viewProto_1 = TView.prototype;
+                            var importantProps_1 = {
+                                id: 1,
+                                updater: 1,
+                                owner: 1,
+                                '$l': 1,
+                                '$r': 1,
+                                '$a': 1,
+                                '$d': 1
+                            };
                             for (var p in view) {
                                 if (G_Has(view, p) && viewProto_1[p]) {
-                                    throw new Error("avoid write " + p + " to view " + view.id + " at " + viewPath + "!");
+                                    throw new Error("avoid write " + p + " at file " + viewPath + "!");
                                 }
                             }
-                            view = Safeguard(view, null, function (key) {
-                                if (G_Has(viewProto_1, key)) {
-                                    throw new Error("avoid write " + key + " to view " + view.id + " at " + viewPath + "!");
+                            view = Safeguard(view, null, function (key, value) {
+                                if (G_Has(viewProto_1, key) ||
+                                    (G_Has(importantProps_1, key) &&
+                                        (key != '$a' || !isFinite(value)) &&
+                                        (key != 'owner' || value !== 0))) {
+                                    throw new Error("avoid write " + key + " at file " + viewPath + "!");
                                 }
                             });
                         }
@@ -1810,9 +1838,9 @@ define('magix', ['$'], function (require) {
             //me.unmountZone(zoneId, 1); 不去清理，详情见：https://github.com/thx/magix/issues/27
             for (var _i = 0, vframes_1 = vframes; _i < vframes_1.length; _i++) {
                 vf = vframes_1[_i];
-                id = vf.id || (vf.id = G_Id());
-                if (!vf['$m']) {
-                    vf['$m'] = 1;
+                id = IdIt(vf);
+                if (!vf['$a']) {
+                    vf['$a'] = 1;
                     vfs.push([id, vf.getAttribute(G_MX_VIEW)]);
                 }
             }
@@ -2145,6 +2173,9 @@ define('magix', ['$'], function (require) {
                             }
                         }
                     }
+                    else {
+                        domEvent.stopPropagation();
+                    }
                     if (DEBUG) {
                         if (!view && view !== 0) {
                             console.error('can not find vframe:' + v);
@@ -2180,153 +2211,131 @@ define('magix', ['$'], function (require) {
             Body_SearchSelectorEvents[type] = (Body_SearchSelectorEvents[type] | 0) + offset;
         }
     };
-    var Tmpl_EscapeSlashRegExp = /\\|'/g;
-    var Tmpl_EscapeBreakReturnRegExp = /\r|\n/g;
-    var Tmpl_Mathcer = /<%([@=!])?([\s\S]*?)%>|$/g;
-    var Tmpl_Compiler = function (text) {
-        // Compile the template source, escaping string literals appropriately.
-        var index = 0;
-        var source = "$p+='";
-        text.replace(Tmpl_Mathcer, function (match, operate, content, offset) {
-            source += text.slice(index, offset).replace(Tmpl_EscapeSlashRegExp, "\\$&").replace(Tmpl_EscapeBreakReturnRegExp, "\\n");
-            index = offset + match.length;
-            if (DEBUG) {
-                var expr = text.slice(index - match.length + 2 + (operate ? 1 : 0), index - 2);
-                var artReg = /^'(\d+)\x11([^\x11]+)\x11'$/;
-                var artM = expr.match(artReg);
-                var art = '';
-                var line = -1;
-                if (artM) {
-                    expr = expr.replace(artReg, '');
-                    art = artM[2];
-                    line = artM[1];
+    var V_Specials = {
+        input_value: 1,
+        input_checked: 1,
+        input_disabled: 1,
+        input_readonly: 1,
+        textarea_value: 1,
+        textarea_checked: 1,
+        textarea_disabled: 1,
+        textarea_readonly: 1,
+        option_selected: 1
+    };
+    var VSelfClose = {
+        area: 1,
+        br: 1,
+        col: 1,
+        embed: 1,
+        hr: 1,
+        img: 1,
+        input: 1,
+        param: 1,
+        source: 1,
+        track: 1,
+        wbr: 1
+    };
+    var V_TEXT_NODE = 3;
+    var V_SVGNS = 'http://www.w3.org/2000/svg';
+    var V_OpenReg = /^<([a-z\d]+)((?:\s+[-A-Za-z\d_]+(?:="[^"]*")?)*)\s*(\/?)>/, V_AttrReg = /([-A-Za-z\d_]+)(?:="([^"]*)")?/g, V_CloseReg = /^<\/[a-z\d+]+>/;
+    var VDOM = function (input) {
+        var count = input.length, current = 0, last = 0, chars, currentParent = {
+            'a': [],
+            'b': input
+        }, index, temp, match, tag, attrs, unary, stack = [{
+                'c': currentParent
+            }], em, amap, text, id, getAttrs = function (tag, attr) {
+            attr.replace(V_AttrReg, function (m, key, value) {
+                if (key == 'id')
+                    id = value;
+                attrs.push({
+                    'd': key,
+                    'e': V_Specials[tag + '_' + key],
+                    'f': value
+                });
+                amap[key] = value;
+            });
+        };
+        while (current < count) {
+            chars = 1;
+            temp = input.slice(current);
+            if (temp.indexOf('</') == 0) {
+                match = temp.match(V_CloseReg);
+                if (match) {
+                    currentParent = stack.pop();
+                    em = currentParent['c'];
+                    attrs = input.slice(currentParent['g'], current);
+                    if (em['h'] == 'textarea') {
+                        em['i'].push({
+                            'd': 'value',
+                            'f': attrs,
+                            'e': 1
+                        });
+                        em['j'].value = attrs;
+                        em['a'] = G_EMPTY_ARRAY;
+                    }
+                    else {
+                        em['b'] = attrs;
+                    }
+                    currentParent = stack[stack.length - 1]['c'];
+                    current += match[0].length;
+                    chars = 0;
+                }
+            }
+            else if (temp[0] == '<') {
+                match = temp.match(V_OpenReg);
+                if (match) {
+                    tag = match[1];
+                    unary = match[3] || VSelfClose[tag];
+                    attrs = [];
+                    amap = {};
+                    id = '';
+                    getAttrs(tag, match[2]);
+                    em = {
+                        'k': id,
+                        'h': tag,
+                        'i': attrs,
+                        'j': amap,
+                        'a': []
+                    };
+                    current += match[0].length;
+                    currentParent['a'].push(em);
+                    if (!unary) {
+                        stack.push({
+                            'c': em,
+                            'g': current
+                        });
+                        currentParent = em;
+                    }
+                    chars = 0;
+                }
+            }
+            if (chars) {
+                index = temp.indexOf('<');
+                if (index < 0) {
+                    text = temp;
                 }
                 else {
-                    expr = expr.replace(Tmpl_EscapeSlashRegExp, "\\$&").replace(Tmpl_EscapeBreakReturnRegExp, "\\n");
+                    text = temp.substring(0, index);
                 }
-                if (operate == "@") {
-                    source += "';$expr='<%" + operate + expr + "%>';$p+=$i(" + content + ");$p+='";
-                }
-                else if (operate == "=") {
-                    source += "'+($expr='<%" + operate + expr + "%>',$e(" + content + "))+'";
-                }
-                else if (operate == "!") {
-                    source += "'+($expr='<%" + operate + expr + "%>',$n(" + content + "))+'";
-                }
-                else if (content) {
-                    if (line > -1) {
-                        source += "';$art='" + art + "';$line=" + line + ";";
-                    }
-                    else {
-                        source += "';";
-                    }
-                    source += "$expr='<%" + expr + "%>';" + content + ";$p+='";
-                }
+                current += text.length;
+                em = {
+                    'h': V_TEXT_NODE,
+                    'b': text
+                };
+                currentParent['a'].push(em);
             }
-            else {
-                if (operate == "@") {
-                    source += "';$p+=$i(" + content + ");$p+='";
+            if (DEBUG) {
+                if (last == current) {
+                    throw new Error('bad input:' + temp);
                 }
-                else if (operate == "=") {
-                    source += "'+$e(" + content + ")+'";
-                }
-                else if (operate == "!") {
-                    source += "'+$n(" + content + ")+'";
-                }
-                else if (content) {
-                    source += "';" + content + ";$p+='";
-                }
+                last = current;
             }
-            // Adobe VMs need the match returned to produce the correct offset.
-            return match;
-        });
-        source += "';";
-        if (DEBUG) {
-            source = "var $expr,$art,$line;try{" + source + "}catch(ex){$throw(ex,$expr,$art,$line)}";
         }
-        source = "var $t,$p='',$em={'&':'amp','<':'lt','>':'gt','\"':'#34','\\'':'#39','`':'#96'},$er=/[&<>\"'`]/g,$n=function(v){return v==null?'':''+v},$ef=function(m){return '&'+$em[m]+';'},$e=function(v){return $n(v).replace($er,$ef)},$i=function(v,k,f){for(f=$$[$g];--f;)if($$[k=$g+f]===v)return k;$$[k=$g+$$[$g]++]=v;return k},$um={'!':'%21','\\'':'%27','(':'%28',')':'%29','*':'%2A'},$uf=function(m){return $um[m]},$uq=/[!')(*]/g,$eu=function(v){return encodeURIComponent($n(v)).replace($uq,$uf)},$qr=/[\\\\'\"]/g,$eq=function(v){return $n(v).replace($qr,'\\\\$&')};" + source + "return $p";
-        //console.log(source);
-        if (DEBUG) {
-            /*jshint evil: true*/
-            return Function("$g", "$$", "$throw", source);
-        }
-        /*jshint evil: true*/
-        return Function("$g", "$$", source);
+        return currentParent;
     };
-    var Tmpl_Cache = new G_Cache();
-    var Tmpl = function (text, data, file) {
-        var fn = Tmpl_Cache.get(text);
-        if (!fn) {
-            fn = Tmpl_Compiler(text);
-            Tmpl_Cache.set(text, fn);
-        }
-        if (DEBUG) {
-            return fn(G_SPLITER, data, function (ex, expr, art, line) {
-                setTimeout(function () {
-                    if (file) {
-                        throw "render view error: " + (ex.message || ex) + (art ? "\r\n\tsrc art: {{" + art + "}}\t\n\tat line: " + line : '') + "\r\n\t" + (art ? 'translate to:' : 'expr:') + " " + expr + "\r\n\tat file: " + file;
-                    }
-                    else {
-                        throw new Error("render view error: " + (ex.message || ex) + "\r\n\texpr: " + expr);
-                    }
-                }, 0);
-            });
-        }
-        return fn(G_SPLITER, data);
-    };
-    /*
-2017.8.1
-    直接应用节点对比方案，需要解决以下问题
-    1.　view销毁问题，节点是边对比边销毁或新增，期望是view先统一销毁，然后再统一渲染
-    2.　需要识别view内的节点变化，如
-        <div mx-viwe="app/view">
-            <%for(let i=0;i<count;i++){%>
-                <span><%=i%></span>
-            <%}%>
-        </div>
-        从外层的div看，并没有变化，但是内部的节点发生了变化，该view仍然需要销毁
-2018.1.10
-    组件情况：
-    1. 组件带模板，最常见的情况
-    2. 组件带模板，还有可能访问dom节点，如<mx-dropdown><i value="1">星期一</i></mx-dropdown>
-    3. 组件没有模板
-    
-
-    组件前后数据是否一致，通过JSON.stringify序列化比较
-    比较组件节点内的html片断是否变化
-
-    渲染情况：
-    1.　通过标签渲染
-    2.　动态渲染
- */
-    //https://github.com/DylanPiercey/set-dom/blob/master/src/index.js
-    //https://github.com/patrick-steele-idem/morphdom
-    var I_WrapMap = {
-        // Support: IE <=9 only
-        option: [1, '<select multiple>'],
-        // XHTML parsers do not magically insert elements in the
-        // same way that tag soup parsers do. So we cannot shorten
-        // this by omitting <tbody> or other required elements.
-        thead: [1, '<table>'],
-        col: [2, '<table><colgroup>'],
-        tr: [2, '<table><tbody>'],
-        td: [3, '<table><tbody><tr>'],
-        area: [1, '<map>'],
-        param: [1, '<object>'],
-        all: [0, '']
-    };
-    var I_RTagName = /<([a-z][^\/\0>\x20\t\r\n\f]+)/i;
-    // Support: IE <=9 only
-    I_WrapMap.optgroup = I_WrapMap.option;
-    I_WrapMap.tbody = I_WrapMap.tfoot = I_WrapMap.colgroup = I_WrapMap.caption = I_WrapMap.thead;
-    I_WrapMap.th = I_WrapMap.td;
-    var I_Doc = G_DOCUMENT.implementation.createHTMLDocument(G_EMPTY);
-    var I_Base = I_Doc.createElement('base');
-    I_Base.href = G_DOCUMENT.location.href;
-    I_Doc.head.appendChild(I_Base);
-    var I_IdIt = function (n) { return n.id || (n.id = G_Id()); };
-    var I_UnmountVframs = function (vf, n) {
-        var id = I_IdIt(n);
+    var V_UnmountVframs = function (vf, n) {
+        var id = IdIt(n);
         if (vf['$c'][id]) {
             vf.unmountVframe(id, 1);
         }
@@ -2334,289 +2343,251 @@ define('magix', ['$'], function (require) {
             vf.unmountZone(id, 1);
         }
     };
-    var I_GetNode = function (html) {
-        var tmp = I_Doc.createElement('div');
-        // Deserialize a standard representation
-        var tag = (I_RTagName.exec(html) || [0, ''])[1].toLowerCase();
-        var wrap = I_WrapMap[tag] || I_WrapMap.all;
-        tmp.innerHTML = wrap[1] + html;
-        // Descend through wrappers to the right content
-        var j = wrap[0];
-        while (j--) {
-            tmp = tmp.lastChild;
-        }
-        return tmp;
-    };
-    //https://github.com/patrick-steele-idem/morphdom/blob/master/src/specialElHandlers.js
-    var I_Specials = {
-        INPUT: [{
-                a: 'defaultValue',
-                b: 'value'
-            }, {
-                a: 'defaultChecked',
-                b: 'checked'
-            }, {
-                a: 'disabled'
-            }, {
-                a: 'readonly'
-            }],
-        OPTION: [{ a: 'selected' }]
-    };
-    I_Specials.TEXTAREA = I_Specials.INPUT;
-    var I_SetAttributes = function (oldNode, newNode, ref, mxNode) {
-        var a, b, i, ns, s;
-        var oldAttributes = oldNode.attributes, newAttributes = newNode.attributes, nodeName = oldNode.nodeName, lazySetId;
-        var specials = I_Specials[nodeName];
-        if (specials) {
-            for (var _i = 0, specials_1 = specials; _i < specials_1.length; _i++) {
-                s = specials_1[_i];
-                if (oldNode[s.a] != newNode[s.a]) {
-                    i = s.b || s.a;
-                    oldNode[i] = newNode[i];
+    var V_SetAttributes = function (oldNode, lastVDOM, newVDOM, ref) {
+        var c, key, value;
+        for (var _i = 0, _a = lastVDOM['i']; _i < _a.length; _i++) {
+            c = _a[_i];
+            key = c['d'];
+            if (!G_Has(newVDOM['j'], key)) {
+                if (c['e']) {
+                    if (key == 'value') {
+                        oldNode.value = '';
+                    }
+                    else {
+                        oldNode[key] = false;
+                    }
                 }
-            }
-        }
-        // Remove old attributes.
-        for (i = oldAttributes.length; i--;) {
-            a = oldAttributes[i];
-            ns = a.namespaceURI;
-            s = a.localName;
-            b = newAttributes.getNamedItemNS(ns, s);
-            if (!b && (!mxNode || s != 'id')) {
-                oldAttributes.removeNamedItemNS(ns, s);
-            }
-        }
-        // Set new attributes.
-        for (i = newAttributes.length; i--;) {
-            a = newAttributes[i];
-            ns = a.namespaceURI;
-            s = a.localName;
-            b = oldAttributes.getNamedItemNS(ns, s);
-            lazySetId = mxNode && s == 'id';
-            if (lazySetId) {
-                nodeName = a.value;
-                a.value = '';
-            }
-            if (!b) {
-                // Add a new attribute.
-                newAttributes.removeNamedItemNS(ns, s);
-                oldAttributes.setNamedItemNS(a);
-                if (lazySetId)
-                    ref.d.push([a, nodeName]);
-            }
-            else if (b.value !== a.value) {
-                // Update existing attribute.
-                b.value = a.value;
-                if (lazySetId)
-                    ref.d.push([b, nodeName]);
-            }
-        }
-    };
-    var I_SetChildNodes = function (oldParent, newParent, ref, vf, data, keys) {
-        var oldNode = oldParent.firstChild;
-        var newNode = newParent.firstChild;
-        var tempNew, tempOld, extra = 0, nodeKey, foundNode, keyedNodes = {};
-        // Extract keyed nodes from previous children and keep track of total count.
-        while (oldNode) {
-            extra++;
-            tempOld = oldNode;
-            nodeKey = tempOld.id;
-            oldNode = oldNode.nextSibling;
-            if (nodeKey) {
-                keyedNodes[nodeKey] = tempOld;
-            }
-        }
-        oldNode = oldParent.firstChild;
-        while (newNode) {
-            extra--;
-            tempNew = newNode;
-            newNode = newNode.nextSibling;
-            if ((nodeKey = tempNew.id) && (foundNode = keyedNodes[nodeKey])) {
-                delete keyedNodes[nodeKey];
-                // If we have a key and it existed before we move the previous node to the new position if needed and diff it.
-                if (foundNode !== oldNode) {
-                    oldParent.insertBefore(foundNode, oldNode);
+                else if (key == 'id') {
+                    ref.d.push([oldNode, '']);
                 }
                 else {
-                    oldNode = oldNode.nextSibling;
+                    oldNode.removeAttribute(key);
                 }
-                I_SetNode(foundNode, tempNew, oldParent, ref, vf, data, keys);
             }
-            else if (oldNode) {
-                nodeKey = oldNode.id;
-                if (keyedNodes[nodeKey]) {
-                    delete keyedNodes[nodeKey];
+        }
+        for (var _b = 0, _c = newVDOM['i']; _b < _c.length; _b++) {
+            c = _c[_b];
+            key = c['d'];
+            value = c['f'];
+            //旧值与新值不相等
+            if (lastVDOM['j'][key] != value) {
+                if (c['e']) {
+                    if (key == 'value') {
+                        oldNode.value = value;
+                    }
+                    else {
+                        oldNode[key] = true;
+                    }
                 }
-                tempOld = oldNode;
-                oldNode = oldNode.nextSibling;
-                // Otherwise we diff the two non-keyed nodes.
-                I_SetNode(tempOld, tempNew, oldParent, ref, vf, data, keys);
+                else if (key == 'id') {
+                    ref.d.push([oldNode, value]);
+                }
+                else {
+                    oldNode.setAttribute(key, value);
+                }
+            }
+        }
+    };
+    var V_CreateNode = function (vnode, owner, ref, t, c, key, value, ns, tag) {
+        tag = vnode['h'];
+        if (tag == V_TEXT_NODE) {
+            return G_DOCUMENT.createTextNode(vnode['b']);
+        }
+        ns = tag == 'svg' ? V_SVGNS : owner.namespaceURI;
+        t = G_DOCUMENT.createElementNS(ns, tag);
+        t.innerHTML = vnode['b'];
+        for (var _i = 0, _a = vnode['i']; _i < _a.length; _i++) {
+            c = _a[_i];
+            key = c['d'];
+            value = c['f'];
+            if (c['e']) {
+                if (key == 'value') {
+                    t.value = value;
+                }
+                else {
+                    t[key] = true;
+                }
+            }
+            else if (key == 'id') {
+                ref.d.push([t, value]);
             }
             else {
-                // Finally if there was no old node we add the new node.
-                oldParent.appendChild(tempNew);
+                t.setAttribute(key, value);
+            }
+        }
+        return t;
+    };
+    var V_SetChildNodes = function (realNode, lastVDOM, newVDOM, ref, vframe, data, keys) {
+        var oldCount, newCount, i, j, oldChildren, newChildren, oc, nc, oldNode, nodes = realNode.childNodes, id, foundNode, orn, ovn, keyedNodes = {};
+        if (!lastVDOM) {
+            ref.c = 1;
+            realNode.innerHTML = newVDOM['b'];
+        }
+        else {
+            oldChildren = lastVDOM['a'];
+            oldCount = oldChildren.length;
+            newChildren = newVDOM['a'];
+            newCount = newChildren.length;
+            for (i = 0; i < oldCount; i++) {
+                oc = oldChildren[i];
+                id = oc['k'];
+                if (id) {
+                    keyedNodes[id] = {
+                        'l': nodes[i],
+                        'm': oc
+                    };
+                }
+            }
+            for (i = 0; i < newCount; i++) {
+                oc = oldChildren[i];
+                nc = newChildren[i];
+                id = nc['k'];
+                if ((foundNode = keyedNodes[id])) {
+                    orn = foundNode['l'];
+                    ovn = foundNode['m'];
+                    if (orn != nodes[i]) {
+                        oldChildren.splice(i, 0, oc = ovn); //移动虚拟dom
+                        for (j = oldChildren.length; j--;) {
+                            if (oldChildren[j]['k'] == id) {
+                                oldChildren.splice(j, 1);
+                                break;
+                            }
+                        }
+                        realNode.insertBefore(orn, nodes[i]);
+                    }
+                    V_SetNode(nodes[i], realNode, oc, nc, ref, vframe, data, keys);
+                }
+                else if (oc) {
+                    if (keyedNodes[oc['k']]) {
+                        oldChildren.splice(i, 0, nc); //插入一个占位符，在接下来的比较中才能一一对应
+                        oldCount++;
+                        realNode.insertBefore(V_CreateNode(nc, realNode, ref), nodes[i]);
+                    }
+                    else {
+                        V_SetNode(nodes[i], realNode, oc, nc, ref, vframe, data, keys);
+                    }
+                }
+                else {
+                    realNode.appendChild(V_CreateNode(nc, realNode, ref));
+                }
+            }
+            for (i = newCount; i < oldCount; i++) {
+                oldNode = realNode.lastChild; //删除多余的旧节点
+                V_UnmountVframs(vframe, oldNode);
+                realNode.removeChild(oldNode);
                 ref.c = 1;
             }
         }
-        // Remove old keyed nodes.
-        for (nodeKey in keyedNodes) {
-            extra--;
-            tempOld = keyedNodes[nodeKey];
-            I_UnmountVframs(vf, tempOld);
-            oldParent.removeChild(tempOld);
-            ref.c = 1;
-        }
-        // If we have any remaining unkeyed nodes remove them from the end.
-        while (--extra >= 0) {
-            tempOld = oldParent.lastChild;
-            I_UnmountVframs(vf, tempOld);
-            oldParent.removeChild(tempOld);
-            ref.c = 1;
-        }
     };
-    var I_SetNode = function (oldNode, newNode, oldParent, ref, vf, data, keys) {
-        if (oldNode.nodeType === newNode.nodeType) {
-            // Handle regular element node updates.
-            if (oldNode.nodeType === 1) {
-                // Update the elements attributes / tagName.
-                if (oldNode.nodeName === newNode.nodeName) {
-                    // If we have the same nodename then we can directly update the attributes.
-                    var newMxView = newNode.getAttribute(G_MX_VIEW), newHTML = newNode.innerHTML;
-                    var updateAttribute = void 0, updateChildren = void 0, unmountOld = void 0, oldVf = Vframe_Vframes[oldNode.id], view = void 0, uri = void 0, params = void 0, oldDataStringify = void 0, newDataStringify = void 0, dataChanged = void 0, htmlChanged = void 0, deep = void 0;
-                    /*
-                        如果存在新旧view，则考虑路径一致，避免渲染的问题
-                     */
-                    if (newMxView && oldVf) {
-                        /*
-                        新旧两个view路径相同，则需要考虑
-                        1.　没有模板的view，可能依赖dom节点，所以要销毁旧的，渲染子节点
-                        2.　是否有引用传递的数据，如果有则使用json.stringify来比较数据是否变化
-                            细节：循环引用的数据序列化时会出错，如果出错，则全新渲染
-                        */
-                        oldDataStringify = oldVf['$j'];
-                        view = oldVf['$v'];
-                        uri = G_ParseUri(newMxView);
-                        params = uri[G_PARAMS];
-                        //处理引用赋值
-                        if (newMxView.indexOf(G_SPLITER) > -1) {
-                            GSet_Params(data, params, params);
-                        }
-                        newDataStringify = G_TryStringify(data, uri);
-                        dataChanged = oldDataStringify != newDataStringify;
-                        htmlChanged = newHTML != oldVf['$i'];
-                        deep = !view['$e']; //无模板的组件深入比较子节点
-                        if (!oldDataStringify || //数据无法stringify
-                            deep || //无模板的组件
-                            htmlChanged || //innerHTML有变化
-                            dataChanged) {
-                            //如果新旧是同一类型的view且有assign方法，则调用组件的方法进行更新
-                            if (oldVf['$n'] == uri[G_PATH] &&
-                                view['$g']) {
-                                if (dataChanged)
-                                    oldNode.setAttribute(G_MX_VIEW, newMxView);
-                                //更新属性
-                                oldVf['$i'] = newHTML;
-                                oldVf['$j'] = newDataStringify;
-                                oldVf[G_PATH] = newMxView; //update ref
-                                //如果需要更新，则进行更新的操作
-                                newDataStringify = {
-                                    keys: keys,
-                                    node: newNode,
-                                    deep: deep,
-                                    data: dataChanged,
-                                    html: htmlChanged
-                                };
-                                if (G_ToTry(view['$g'], [params, newDataStringify], view)) {
-                                    view['$b']();
-                                }
-                                //默认当一个组件有assign方法时，由该方法及该view上的render方法完成当前区域内的节点更新
-                                //而对于不渲染界面的控制类型的组件来讲，它本身更新后，有可能需要继续由magix更新内部的子节点，此时通过deep参数控制
-                                updateChildren = newDataStringify.deep;
-                            }
-                            else {
-                                //否则自动更新，销毁旧的，更新子节点
-                                unmountOld = 1;
-                                updateChildren = 1;
-                                updateAttribute = 1;
-                            }
-                        }
-                    }
-                    else {
-                        updateAttribute = 1;
-                        updateChildren = 1;
-                        unmountOld = oldVf;
-                    }
-                    if (unmountOld) {
-                        oldVf.unmountVframe(0, 1);
-                    }
-                    if (updateAttribute) {
-                        I_SetAttributes(oldNode, newNode, ref, unmountOld);
-                    }
-                    // Update all children (and subchildren).
-                    if (updateChildren) {
-                        ref.c = 1;
-                        I_SetChildNodes(oldNode, newNode, ref, vf, data, keys);
-                    }
-                }
-                else {
-                    // Otherwise clone the new node to use as the existing node.
-                    //let newPrev = newNode.cloneNode();
-                    // Copy over all existing children from the original node.
-                    //while (oldNode.firstChild) newPrev.appendChild(oldNode.firstChild);
-                    // Replace the original node with the new one with the right tag.
-                    I_UnmountVframs(vf, oldNode);
-                    oldParent.replaceChild(newNode, oldNode);
-                    ref.c = 1;
+    var V_SetNode = function (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys) {
+        if (lastVDOM['h'] == newVDOM['h']) {
+            if (lastVDOM['h'] == V_TEXT_NODE) {
+                if (lastVDOM['b'] != newVDOM['b']) {
+                    realNode.nodeValue = newVDOM['b'];
                 }
             }
             else {
-                // Handle other types of node updates (text/comments/etc).
-                // If both are the same type of node we can update directly.
-                if (oldNode.nodeValue !== newNode.nodeValue) {
-                    oldNode.nodeValue = newNode.nodeValue;
+                var newMxView = newVDOM['j'][G_MX_VIEW], newHTML = newVDOM['b'];
+                var updateAttribute = void 0, updateChildren = void 0, unmountOld = void 0, oldVf = Vframe_Vframes[realNode.id], view = void 0, uri = void 0, params = void 0, htmlChanged = void 0, deep = void 0 /*,
+                    oldDataStringify, newDataStringify,dataChanged*/;
+                /*
+                    如果存在新旧view，则考虑路径一致，避免渲染的问题
+                 */
+                if (newMxView && oldVf) {
+                    /*
+                    新旧两个view路径相同，则需要考虑
+                    1.　没有模板的view，可能依赖dom节点，所以要销毁旧的，渲染子节点
+                    2.　是否有引用传递的数据，如果有则使用json.stringify来比较数据是否变化
+                        细节：循环引用的数据序列化时会出错，如果出错，则全新渲染
+                    */
+                    //oldDataStringify = oldVf['$j'];
+                    view = oldVf['$v'];
+                    uri = G_ParseUri(newMxView);
+                    params = uri[G_PARAMS];
+                    //处理引用赋值
+                    if (newMxView.indexOf(G_SPLITER) > -1) {
+                        GSet_Params(data, params, params);
+                    }
+                    //newDataStringify = G_TryStringify(data, uri);
+                    //dataChanged = oldDataStringify != newDataStringify;
+                    htmlChanged = newHTML != oldVf['$i'];
+                    deep = !view['$e']; //无模板的组件深入比较子节点
+                    // if (deep ||//无模板的组件
+                    //   htmlChanged //||//innerHTML有变化
+                    //!oldDataStringify ||//数据无法stringify
+                    //dataChanged) {//新旧stringify出的值不一样
+                    //如果新旧是同一类型的view且有assign方法，则调用组件的方法进行更新
+                    if (oldVf['$n'] == uri[G_PATH] &&
+                        view['$g']) {
+                        oldVf['$i'] = newHTML;
+                        //oldVf['$j'] = newDataStringify;
+                        oldVf[G_PATH] = newMxView; //update ref
+                        //如果需要更新，则进行更新的操作
+                        uri = {
+                            keys: keys,
+                            inner: newHTML,
+                            deep: deep,
+                            //data: dataChanged,
+                            html: htmlChanged
+                        };
+                        V_SetAttributes(realNode, lastVDOM, newVDOM, ref);
+                        if (G_ToTry(view['$g'], [params, uri], view)) {
+                            view['$b']();
+                        }
+                        //默认当一个组件有assign方法时，由该方法及该view上的render方法完成当前区域内的节点更新
+                        //而对于不渲染界面的控制类型的组件来讲，它本身更新后，有可能需要继续由magix更新内部的子节点，此时通过deep参数控制
+                        updateChildren = uri.deep;
+                    }
+                    else {
+                        //否则自动更新，销毁旧的，更新子节点
+                        unmountOld = 1;
+                        updateChildren = 1;
+                        updateAttribute = 1;
+                    }
+                    //}
+                }
+                else {
+                    updateAttribute = 1;
+                    updateChildren = 1;
+                    unmountOld = oldVf;
+                }
+                if (unmountOld) {
+                    oldVf.unmountVframe(0, 1);
+                }
+                if (updateAttribute) {
+                    V_SetAttributes(realNode, lastVDOM, newVDOM, ref);
+                }
+                // Update all children (and subchildren).
+                //自闭合标签不再检测子节点
+                if (updateChildren && !VSelfClose[newVDOM['h']]) {
                     ref.c = 1;
+                    V_SetChildNodes(realNode, lastVDOM, newVDOM, ref, vframe, data, keys);
                 }
             }
         }
         else {
-            // we have to replace the node.
-            I_UnmountVframs(vf, oldNode);
-            oldParent.replaceChild(newNode, oldNode);
+            V_UnmountVframs(vframe, realNode);
+            oldParent.replaceChild(V_CreateNode(newVDOM, oldParent, ref), realNode);
             ref.c = 1;
         }
     };
-    var I_ContentReg = /\d+\x1d/g;
-    var I_UpdateDOM = function (updater, data, changed, keys) {
+    var V_ContentReg = /\d+\x1d/g;
+    var V_UpdateDOM = function (updater, data, changed, keys) {
         var selfId = updater['$b'];
         var vf = Vframe_Vframes[selfId];
-        var view = vf && vf['$v'], ref = { d: [] }, node = G_GetById(selfId), tmpl, html, x;
+        var view = vf && vf['$v'], ref = { d: [] }, node = G_GetById(selfId), tmpl, html, x, vdom;
         if (view && view['$a'] > 0 && (tmpl = view['$e'])) {
-            console.time('[increment time:' + selfId + ']');
-            if (!tmpl[G_SPLITER]) {
-                tmpl[G_SPLITER] = 1;
-                var tmplment_1 = function (guid) { return tmplment_1[guid].tmpl; }, s = void 0, list = tmpl.subs;
-                if (list) {
-                    for (x = list.length; x--;) {
-                        s = list[x];
-                        if (s.s) {
-                            tmplment_1[s.s] = s;
-                            s.tmpl = s.tmpl.replace(I_ContentReg, tmplment_1);
-                        }
-                    }
-                    tmpl.html = tmpl.html.replace(I_ContentReg, tmplment_1);
-                }
-            }
+            console.time('[vdom time:' + selfId + ']');
             if (changed) {
-                if (DEBUG) {
-                    html = View_SetEventOwner(Tmpl(tmpl.html, data, tmpl.file), selfId);
-                }
-                else {
-                    html = View_SetEventOwner(Tmpl(tmpl.html, data), selfId);
-                }
-                I_SetChildNodes(node, I_GetNode(html), ref, vf, data, keys);
+                console.time('[vdom html to vdom:' + selfId + ']');
+                html = View_SetEventOwner(tmpl(G_SPLITER, data), selfId);
+                vdom = VDOM(html);
+                console.timeEnd('[vdom html to vdom:' + selfId + ']');
+                V_SetChildNodes(node, updater['$d'], vdom, ref, vf, data, keys);
+                updater['$d'] = vdom;
                 for (var _i = 0, _a = ref.d; _i < _a.length; _i++) {
                     x = _a[_i];
-                    x[0].value = x[1];
+                    x[0].id = x[1];
                 }
                 if (ref.c) {
                     view.endUpdate(selfId);
@@ -2627,7 +2598,7 @@ define('magix', ['$'], function (require) {
                 }
             }
             view.fire('domready');
-            console.timeEnd('[increment time:' + selfId + ']');
+            console.timeEnd('[vdom time:' + selfId + ']');
         }
     };
     /**
@@ -2732,7 +2703,7 @@ define('magix', ['$'], function (require) {
             changed = me['$c'];
             me['$c'] = 0;
             me['$k'] = {};
-            I_UpdateDOM(me, data, changed, keys);
+            V_UpdateDOM(me, data, changed, keys);
             return me;
         },
         /**
@@ -2759,7 +2730,7 @@ define('magix', ['$'], function (require) {
          */
         snapshot: function () {
             var me = this;
-            me['$d'] = JSONStringify(me['$a']);
+            me['$e'] = JSONStringify(me['$a']);
             return me;
         },
         /**
@@ -2786,8 +2757,8 @@ define('magix', ['$'], function (require) {
          */
         altered: function () {
             var me = this;
-            if (me['$d']) {
-                return me['$d'] != JSONStringify(me['$a']);
+            if (me['$e']) {
+                return me['$e'] != JSONStringify(me['$a']);
             }
         }
     });
@@ -3020,9 +2991,10 @@ define('magix', ['$'], function (require) {
      *      alert(e.type);//可通过type识别是哪种事件类型
      *  }
      */
-    var View = function (ops, me) {
+    var View = function (id, owner, ops, me) {
         me = this;
-        G_Assign(me, ops);
+        me.owner = owner;
+        me.id = id;
         me['$l'] = {
             k: []
         };
@@ -3117,8 +3089,8 @@ define('magix', ['$'], function (require) {
             var ctors = [];
             if (ctor)
                 ctors.push(ctor);
-            var NView = function (a, b, c) {
-                me.call(this, a, b);
+            var NView = function (d, a, b, c) {
+                me.call(this, d, a, b);
                 G_ToTry(ctors.concat(c), b, this);
             };
             NView.extend = me.extend;

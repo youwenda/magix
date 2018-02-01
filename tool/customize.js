@@ -9,7 +9,8 @@ let modules = {
     style: 1, //是否有样式处理
 
     updater: 1, //自动更新
-    updaterIncrement: 1, //增量更新
+    updaterDOM: 1, //dom增量更新
+    updaterVDOM: 1,//v-dom增量更新
 
     service: 1, //接口服务
     serviceCombine: 1, //接口combine
@@ -41,7 +42,8 @@ let modules = {
     viewMerge: 1, //view是否提供merge方法供扩展原型链对象
     keepHTML: 1, //保留html
     eventEnterLeave: 1, //事件的enter与leave
-    naked: 1//原生实现
+    naked: 1,//原生实现
+    vdom: 1//虚拟dom
 };
 rs.map({
     '@{vframe#view.entity}': '$v',

@@ -191,6 +191,8 @@ let Body_DOMEventProcessor = domEvent => {
                             }
                         }
                     }
+                } else {//如果处于删除中的事件触发，则停止事件的传播
+                    domEvent.stopPropagation();
                 }
                 if (DEBUG) {
                     if (!view && view !== 0) { //销毁

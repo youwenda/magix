@@ -49,7 +49,12 @@ module.exports = {
     },
     process(tmpl) {
         tmpl = tmpl.replace(revisableReg, m => {
-            return md5(m, m.split('#')[0], '$');
+            let prefix = '$';
+            let start = m.charAt(2);
+            if (start == '~') {
+                prefix = '';
+            }
+            return md5(m, m.split('#')[0], prefix);
         });
         //console.log(cache,userCache);
         return tmpl;

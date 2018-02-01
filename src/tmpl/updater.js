@@ -10,10 +10,10 @@
 let Updater = function (viewId) {
     let me = this;
     me['@{updater#view.id}'] = viewId;
-    /*#if(!modules.updaterIncrement){#*/
+    /*#if(!modules.updaterDOM&&!modules.updaterVDOM){#*/
     me['@{updater#render.id}'] = viewId;
     /*#}#*/
-    /*#if(modules.updaterIncrement){#*/
+    /*#if(modules.updaterDOM||modules.updaterVDOM){#*/
     me['@{updater#data.changed}'] = 1;
     /*#}#*/
     me['@{updater#data}'] = {
@@ -26,7 +26,7 @@ G_Assign(Updater[G_PROTOTYPE], {
     /**
      * @lends Updater#
      */
-    /*#if(!modules.updaterIncrement){#*/
+    /*#if(!modules.updaterDOM&&!modules.updaterVDOM){#*/
     to(id, me) {
         me = this;
         me['@{updater#render.id}'] = id;
@@ -88,7 +88,7 @@ G_Assign(Updater[G_PROTOTYPE], {
     set(obj) {
         let me = this, { '@{upater#data}': data, '@{updater#keys}': keys } = me;
         if (obj) {
-            /*#if(modules.updaterIncrement){#*/
+            /*#if(modules.updaterDOM||modules.updaterVDOM){#*/
             me['@{updater#data.changed}'] = G_Set(obj, data, keys) || me['@{updater#data.changed}'];
             /*#}else{#*/
             G_Set(obj, data, keys);
@@ -106,17 +106,19 @@ G_Assign(Updater[G_PROTOTYPE], {
      *     }).digest();
      * }
      */
-    digest(data, keys/*#if(modules.updaterIncrement){#*/, changed/*#}#*/) {
+    digest(data, keys/*#if(modules.updaterDOM||modules.updaterVDOM){#*/, changed/*#}#*/) {
         let me = this;
         me.set(data);
         data = me['@{updater#data}'];
         keys = me['@{updater#keys}'];
-        /*#if(modules.updaterIncrement){#*/
+        /*#if(modules.updaterDOM||modules.updaterVDOM){#*/
         changed = me['@{updater#data.changed}'];
         me['@{updater#data.changed}'] = 0;
         /*#}#*/
         me['@{updater#keys}'] = {};
-        /*#if(modules.updaterIncrement){#*/
+        /*#if(modules.updaterVDOM){#*/
+        V_UpdateDOM(me, data, changed, keys);
+        /*#}else if(modules.updaterDOM){#*/
         I_UpdateDOM(me, data, changed, keys);
         /*#}else{#*/
         Partial_UpdateDOM(me, keys, data); //render

@@ -74,11 +74,16 @@ Inc('../tmpl/router');
 Inc('../tmpl/vframe');
 Inc('../tmpl/body');
 /*#if(modules.updater){#*/
+/*#if(!modules.updaterVDOM&&!modules.updaterDOM){#*/
 Inc('../tmpl/tmpl');
-/*#if(modules.updaterIncrement){#*/
-Inc('../tmpl/increment');
 /*#}#*/
+/*#if(modules.updaterVDOM){#*/
+Inc('../tmpl/vdom');
+/*#}else if(modules.updaterDOM){#*/
+Inc('../tmpl/dom');
+/*#}else{#*/
 Inc('../tmpl/partial');
+/*#}#*/
 Inc('../tmpl/updater');
 /*#}#*/
 Inc('../tmpl/view');

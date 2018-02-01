@@ -244,9 +244,10 @@ let View_IsObserveChanged = view => {
  */
 
 
-let View = function (ops, me) {
+let View = function (id, owner, ops, me) {
     me = this;
-    G_Assign(me, ops);
+    me.owner = owner;
+    me.id = id;
     /*#if(modules.router){#*/
     me['@{view#observe.router}'] = {
         k: []
@@ -347,8 +348,8 @@ G_Assign(View, {
         let ctors = [];
         if (ctor) ctors.push(ctor);
         /*#}#*/
-        let NView = function (a, b /*#if(modules.viewProtoMixins){#*/, c /*#}#*/) {
-            me.call(this, a, b);
+        let NView = function (d, a, b /*#if(modules.viewProtoMixins){#*/, c /*#}#*/) {
+            me.call(this, d, a, b);
             /*#if(modules.viewProtoMixins){#*/
             G_ToTry(ctors.concat(c), b, this);
             /*#}else{#*/

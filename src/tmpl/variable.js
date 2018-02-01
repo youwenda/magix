@@ -131,7 +131,7 @@ let View_ApplyStyle = (key, css) => {
     }
 };
 /*#}#*/
-
+let IdIt = n => n.id || (/*#if(!modules.updaterVDOM){#*/n['@{node#auto.id}'] = 1, /*#}#*/n.id = G_Id());
 let G_ToTry = (fns, args, context, r, e) => {
     args = args || G_EMPTY_ARRAY;
     if (!G_IsArray(fns)) fns = [fns];
@@ -156,7 +156,7 @@ let GSet_Params = (data, oldParams, newParams) => {
     }
 };
 /*#}#*/
-/*#if(modules.updaterIncrement){#*/
+/*#if(modules.updaterDOM){#*/
 let G_TryStringify = (data, uri, params) => {
     params = uri[G_PARAMS];
     GSet_Params(data, params, params);

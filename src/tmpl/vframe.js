@@ -90,7 +90,7 @@ let Vframe_RemoveVframe = (id, fcc, vframe) => {
         });
         /*#if(modules.nodeAttachVframe){#*/
         id = G_GetById(id);
-        if (id) id['@{vframe#mounted}'] = id.vframe = 0;
+        if (id) id['@{node#mounted.vframe}'] = id.vframe = 0;
         /*#}#*/
     }
 };
@@ -276,8 +276,8 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
             if (viewPath.indexOf(G_SPLITER) > 0) {
                 GSet_Params(parentVf, params, params);
             }
-            /*#if(modules.updaterIncrement){#*/
-            me['@{vframe#data.stringify}'] = G_TryStringify(parentVf, po);
+            /*#if(modules.updaterDOM){#*/
+            //me['@{vframe#data.stringify}'] = G_TryStringify(parentVf, po);
             me['@{vframe#view.path}'] = po[G_PATH];
             /*#}#*/
             /*#if(modules.mxViewAttr){#*/
@@ -295,7 +295,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                             let temp = parentVf['@{updater#data}'];
                             let str = Tmpl(value, temp);
                             value = temp[str];
-                        } catch (ex) {
+                        } catch (e) {
                             value = G_Trim(value.slice(3, -2));
                             if (parentVf && vreg.test(value)) {
                                 value = parentVf.get(value);
@@ -320,21 +320,30 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                     /*#}else{#*/
                     View_Prepare(TView);
                     /*#}#*/
-                    view = new TView({
-                        owner: me,
-                        id
-                    }, params /*#if(modules.viewProtoMixins){#*/, ctors /*#}#*/);
+                    view = new TView(id, me, params /*#if(modules.viewProtoMixins){#*/, ctors /*#}#*/);
 
                     if (DEBUG) {
                         let viewProto = TView.prototype;
+                        let importantProps = {
+                            id: 1,
+                            updater: 1,
+                            owner: 1,
+                            '@{view#observe.router}': 1,
+                            '@{view#resource}': 1,
+                            '@{view#sign}': 1,
+                            '@{view#updater}': 1
+                        };
                         for (let p in view) {
                             if (G_Has(view, p) && viewProto[p]) {
-                                throw new Error(`avoid write ${p} to view ${view.id} at ${viewPath}!`);
+                                throw new Error(`avoid write ${p} at file ${viewPath}!`);
                             }
                         }
-                        view = Safeguard(view, null, key => {
-                            if (G_Has(viewProto, key)) {
-                                throw new Error(`avoid write ${key} to view ${view.id} at ${viewPath}!`);
+                        view = Safeguard(view, null, (key, value) => {
+                            if (G_Has(viewProto, key) ||
+                                (G_Has(importantProps, key) &&
+                                    (key != '@{view#sign}' || !isFinite(value)) &&
+                                    (key != 'owner' || value !== 0))) {
+                                throw new Error(`avoid write ${key} at file ${viewPath}!`);
                             }
                         });
                     }
@@ -495,18 +504,18 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
             svfs, subVf;
         /*#}#*/
         for (vf of vframes) {
-            id = vf.id || (vf.id = G_Id());
+            id = IdIt(vf);
             /*#if(modules.layerVframe){#*/
             if (!G_Has(subs, id)) {
                 /*#}#*/
-                if (!vf['@{vframe#mounted}']) { //防止嵌套的情况下深层的view被反复实例化
-                    vf['@{vframe#mounted}'] = 1;
+                if (!vf['@{node#mounted.vframe}']) { //防止嵌套的情况下深层的view被反复实例化
+                    vf['@{node#mounted.vframe}'] = 1;
                     vfs.push([id, vf.getAttribute(G_MX_VIEW)]);
                 }
                 /*#if(modules.layerVframe){#*/
                 svfs = $(`${G_HashKey}${id} [${G_MX_VIEW}]`);
                 for (subVf of svfs) {
-                    id = subVf.id || (subVf.id = G_Id());
+                    id = IdIt(subVf);
                     subs[id] = 1;
                 }
             }
