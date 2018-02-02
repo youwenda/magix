@@ -305,6 +305,9 @@ let Router_Parse = href => {
             ...query[G_PARAMS]
             /*#if(!modules.forceEdgeRouter){#*/, ...hash[G_PARAMS]/*#}#*/
         };
+        if (DEBUG) {
+            params = Safeguard(params);
+        }
         result = {
             get: GetParam,
             href,

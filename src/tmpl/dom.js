@@ -221,62 +221,51 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                     newHTML = newNode.innerHTML;
                 let updateAttribute, updateChildren, unmountOld,
                     oldVf = Vframe_Vframes[oldNode.id],
-                    view, uri, params, htmlChanged, deep/*, 
+                    assign, needUpdate,
+                    view, uri, params, htmlChanged/*, 
                     oldDataStringify, newDataStringify,dataChanged*/;
                 /*
                     如果存在新旧view，则考虑路径一致，避免渲染的问题
                  */
                 if (newMxView && oldVf) {
-                    /*
-                    新旧两个view路径相同，则需要考虑
-                    1.　没有模板的view，可能依赖dom节点，所以要销毁旧的，渲染子节点
-                    2.　是否有引用传递的数据，如果有则使用json.stringify来比较数据是否变化
-                        细节：循环引用的数据序列化时会出错，如果出错，则全新渲染
-                    */
-                    //oldDataStringify = oldVf['@{vframe#data.stringify}'];
                     view = oldVf['@{vframe#view.entity}'];
+                    assign = view['@{view#assign.fn}'];
                     uri = G_ParseUri(newMxView);
-                    params = uri[G_PARAMS];
-                    //处理引用赋值
-                    if (newMxView.indexOf(G_SPLITER) > -1) {
-                        GSet_Params(data, params, params);
-                    }
-                    //newDataStringify = G_TryStringify(data, uri);
-                    //dataChanged = oldDataStringify != newDataStringify;
                     htmlChanged = newHTML != oldVf['@{vframe#template}'];
-                    deep = !view['@{view#template.object}'];//无模板的组件深入比较子节点
-                    // if (deep ||//无模板的组件
-                    //   htmlChanged //||//innerHTML有变化
-                    //!oldDataStringify ||//数据无法stringify
-                    //dataChanged) {//新旧stringify出的值不一样
-                    //如果新旧是同一类型的view且有assign方法，则调用组件的方法进行更新
-                    if (oldVf['@{vframe#view.path}'] == uri[G_PATH] &&
-                        view['@{view#assign.fn}']) {
-                        oldVf['@{vframe#template}'] = newHTML;
-                        //oldVf['@{vframe#data.stringify}'] = newDataStringify;
-                        oldVf[G_PATH] = newMxView;//update ref
-                        //如果需要更新，则进行更新的操作
-                        uri = {
-                            keys,
-                            node: newNode,
-                            deep,
-                            //data: dataChanged,
-                            html: htmlChanged
-                        };
-                        I_SetAttributes(oldNode, newNode, ref, 1, I_PartialAttrs);
-                        if (G_ToTry(view['@{view#assign.fn}'], [params, uri], view)) {
-                            view['@{view#render.short}']();
+                    needUpdate = newMxView.indexOf('?') > 0 || htmlChanged;
+                }
+                if (newMxView && oldVf &&
+                    oldVf['@{vframe#view.path}'] == uri[G_PATH]) {
+                    if (needUpdate) {
+                        if (assign) {
+                            params = uri[G_PARAMS];
+                            //处理引用赋值
+                            if (newMxView.indexOf(G_SPLITER) > -1) {
+                                GSet_Params(data, params, params);
+                            }
+                            oldVf['@{vframe#template}'] = newHTML;
+                            //oldVf['@{vframe#data.stringify}'] = newDataStringify;
+                            oldVf[G_PATH] = newMxView;//update ref
+                            uri = {
+                                keys,
+                                node: newNode,
+                                deep: !view['@{view#template.object}'],//无模板的组件深入比较子节点
+                                //data: dataChanged,
+                                html: htmlChanged
+                            };
+                            I_SetAttributes(oldNode, newNode, ref, 1, I_PartialAttrs);
+                            if (G_ToTry(assign, [params, uri], view)) {
+                                view['@{view#render.short}']();
+                            }
+                            //默认当一个组件有assign方法时，由该方法及该view上的render方法完成当前区域内的节点更新
+                            //而对于不渲染界面的控制类型的组件来讲，它本身更新后，有可能需要继续由magix更新内部的子节点，此时通过deep参数控制
+                            updateChildren = uri.deep;
+                        } else {
+                            unmountOld = 1;
+                            updateChildren = 1;
+                            updateAttribute = 1;
                         }
-                        //默认当一个组件有assign方法时，由该方法及该view上的render方法完成当前区域内的节点更新
-                        //而对于不渲染界面的控制类型的组件来讲，它本身更新后，有可能需要继续由magix更新内部的子节点，此时通过deep参数控制
-                        updateChildren = uri.deep;
-                    } else {
-                        //否则自动更新，销毁旧的，更新子节点
-                        unmountOld = 1;
-                        updateChildren = 1;
-                        updateAttribute = 1;
                     }
-                    //}
                 } else {
                     updateAttribute = 1;
                     updateChildren = 1;
@@ -330,7 +319,7 @@ let I_UpdateDOM = (updater, data, changed, keys) => {
     if (view && view['@{view#sign}'] > 0 && (tmpl = view['@{view#template.object}'])) {
         console.time('[dom time:' + selfId + ']');
         if (changed) {
-            html = View_SetEventOwner(tmpl(G_SPLITER, data), selfId);
+            html = View_SetEventOwner(tmpl(data), selfId);
             I_SetChildNodes(node, I_GetNode(html, node), ref, vf, data, keys);
             for (x of ref.d) {
                 x[0].value = x[1];
