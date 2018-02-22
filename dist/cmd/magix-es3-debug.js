@@ -1,13 +1,13 @@
 //#snippet;
 //#uncheck = jsThis,jsLoop;
 //#exclude = loader,allProcessor;
-/*!3.8.2 Licensed MIT*/
+/*!3.8.3 Licensed MIT*/
 /*
 author:kooboy_li@163.com
 loader:cmd
-enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,updaterSetState,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterVDOM,updaterDOM
+enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterVRDOM
 
-optionals:serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,share,mxViewAttr,keepHTML,eventEnterLeave,naked,vdom
+optionals:updaterDOM,updaterVDOM,serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,share,mxViewAttr,keepHTML,eventEnterLeave,naked,vdom
 */
 define('magix', ['$'], function (require) {
     if (typeof DEBUG == 'undefined')
@@ -24,6 +24,10 @@ define('magix', ['$'], function (require) {
     var G_DOCUMENT = document;
     var G_DOC = $(G_DOCUMENT);
     var Timeout = G_WINDOW.setTimeout;
+    var G_CHANGED = 'changed';
+    var G_CHANGE = 'change';
+    var G_PAGE_UNLOAD = 'pageunload';
+    var G_VALUE = 'value';
     var G_HashKey = '#';
     var G_NOOP = function () { };
     var JSONStringify = JSON.stringify;
@@ -119,7 +123,7 @@ define('magix', ['$'], function (require) {
             }
         }
     };
-    var IdIt = function (n) { return n.id || (n.id = G_Id()); };
+    var IdIt = function (n) { return n.id || (n['$a'] = 1, n.id = G_Id()); };
     var G_ToTry = function (fns, args, context, r, e) {
         args = args || G_EMPTY_ARRAY;
         if (!G_IsArray(fns))
@@ -143,18 +147,6 @@ define('magix', ['$'], function (require) {
         for (p in oldParams) {
             val = oldParams[p];
             newParams[p] = (val + G_EMPTY)[0] == G_SPLITER ? data[val] : val;
-        }
-    };
-    var G_TryStringify = function (data, uri, params) {
-        params = uri[G_PARAMS];
-        GSet_Params(data, params, params);
-        try {
-            return JSONStringify(uri);
-        }
-        catch (e) {
-            if (DEBUG) {
-                console.warn('JSON.stringify exception:', e, params);
-            }
         }
     };
     var Magix_CacheSort = function (a, b) { return b.f - a.f || b.t - a.t; };
@@ -602,8 +594,8 @@ define('magix', ['$'], function (require) {
             G_Require(Magix_Cfg.ini, function (I) {
                 G_Assign(Magix_Cfg, I, cfg);
                 G_Require(Magix_Cfg.exts, function () {
-                    Router.on('changed', Vframe_NotifyChange);
-                    State.on('changed', Vframe_NotifyChange);
+                    Router.on(G_CHANGED, Vframe_NotifyChange);
+                    State.on(G_CHANGED, Vframe_NotifyChange);
                     Magix_Booted = 1;
                     Router_Bind();
                 });
@@ -1074,7 +1066,7 @@ define('magix', ['$'], function (require) {
             }
             if (State_DataIsChanged) {
                 State_DataIsChanged = 0;
-                this.fire('changed', {
+                this.fire(G_CHANGED, {
                     keys: State_ChangedKeys
                 });
                 State_ChangedKeys = {};
@@ -1191,7 +1183,7 @@ define('magix', ['$'], function (require) {
                         suspend = 1;
                     }
                 };
-                Router.fire('change', e);
+                Router.fire(G_CHANGE, e);
                 if (!suspend && !e.p) {
                     resolve();
                 }
@@ -1200,7 +1192,7 @@ define('magix', ['$'], function (require) {
         G_WINDOW.onbeforeunload = function (e, te, msg) {
             e = e || G_WINDOW.event;
             te = {};
-            Router.fire('pageunload', te);
+            Router.fire(G_PAGE_UNLOAD, te);
             if ((msg = te.msg)) {
                 if (e)
                     e.returnValue = msg;
@@ -1328,7 +1320,7 @@ define('magix', ['$'], function (require) {
             if (Router_LastChanged[G_PATH]) {
                 G_DOCUMENT.title = location.title || DefaultTitle;
             }
-            Router.fire('changed', Router_LastChanged);
+            Router.fire(G_CHANGED, Router_LastChanged);
         }
         Router_Silent = 0;
         if (DEBUG) {
@@ -1512,7 +1504,11 @@ define('magix', ['$'], function (require) {
             });
             id = G_GetById(id);
             if (id)
-                id['$a'] = id.vframe = 0;
+                id['$b'] = 0;
+            if (id)
+                id.vframe = 0;
+            if (id)
+                id['$d'] = 0;
         }
     };
     var Vframe_UpdateTag = 0;
@@ -1842,8 +1838,8 @@ define('magix', ['$'], function (require) {
             for (var _i = 0, vframes_1 = vframes; _i < vframes_1.length; _i++) {
                 vf = vframes_1[_i];
                 id = IdIt(vf);
-                if (!vf['$a']) {
-                    vf['$a'] = 1;
+                if (!vf['$b']) {
+                    vf['$b'] = 1;
                     vfs.push([id, vf.getAttribute(G_MX_VIEW)]);
                 }
             }
@@ -1875,7 +1871,8 @@ define('magix', ['$'], function (require) {
                 var cr = vf["$cr"], pId = vf.pId;
                 vf.unmountView();
                 Vframe_RemoveVframe(id, cr);
-                vf.id = vf.pId = vf['$c'] = vf['$d'] = vf['$h'] = 0; //清除引用,防止被移除的view内部通过setTimeout之类的异步操作有关的界面，影响真正渲染的view
+                vf.id = vf.pId = vf['$c'] = vf['$d'] = 0; //清除引用,防止被移除的view内部通过setTimeout之类的异步操作有关的界面，影响真正渲染的view
+                vf['$h'] = 0;
                 vf.off('alter');
                 vf.off('created');
                 //if (Vframe_Cache.length < 10) {
@@ -2214,120 +2211,120 @@ define('magix', ['$'], function (require) {
             Body_SearchSelectorEvents[type] = (Body_SearchSelectorEvents[type] | 0) + offset;
         }
     };
-    var V_Specials = {
-        input_value: 1,
-        input_checked: 1,
-        input_disabled: 1,
-        input_readonly: 1,
-        textarea_value: 1,
-        textarea_checked: 1,
-        textarea_disabled: 1,
-        textarea_readonly: 1,
-        option_selected: 1
-    };
-    var VSelfClose = {
-        area: 1,
+    var TO_VDOM_SELF_CLOSE = {
+        input: 1,
         br: 1,
-        col: 1,
-        embed: 1,
         hr: 1,
         img: 1,
-        input: 1,
-        param: 1,
+        embed: 1,
         source: 1,
+        area: 1,
+        param: 1,
+        col: 1,
         track: 1,
         wbr: 1
     };
-    var V_TEXT_NODE = 3;
-    var V_SVGNS = 'http://www.w3.org/2000/svg';
-    var V_OpenReg = /^<([a-z\d]+)((?:\s+[-A-Za-z\d_]+(?:="[^"]*")?)*)\s*(\/?)>/, V_AttrReg = /([-A-Za-z\d_]+)(?:="([^"]*)")?/g, V_CloseReg = /^<\/[a-z\d+]+>/;
-    var V_UnescapeMap = {};
-    var V_UnescapeReg = /&#?[^\W]+;?/g;
-    var V_Temp = G_DOCUMENT.createElement('div');
-    var V_Unescape = function (m) {
-        if (!G_Has(V_UnescapeMap, m)) {
-            V_Temp.innerHTML = m;
-            V_UnescapeMap[m] = V_Temp.innerText;
-        }
-        return V_UnescapeMap[m];
+    var TO_VDOM_SPECIAL_PROPS = {
+        input: [G_VALUE, 'checked'],
+        textarea: [G_VALUE],
+        option: ['selected']
     };
-    var VDOM = function (input) {
+    var TO_VDOM_TEXT_NODE = '#text';
+    if (DEBUG) {
+        TO_VDOM_TEXT_NODE = '#text';
+    }
+    var TO_VDOM_OpenReg = /^<([a-z\d]+)((?:\s+[-A-Za-z\d_]+(?:="[^"]*")?)*)\s*(\/?)>/, TO_VDOM_AttrReg = /([-A-Za-z\d_]+)(?:="([^"]*)")?/g, TO_VDOM_CloseReg = /^<\/[a-z\d+]+>/;
+    var TO_VDOM_UnescapeMap = {};
+    var TO_VDOM_UnescapeReg = /&#?[^\W]+;?/g;
+    var TO_VDOM_Temp = G_DOCUMENT.createElement('div');
+    var TO_VDOM_UnescapeCallback = function (m) {
+        if (!G_Has(TO_VDOM_UnescapeMap, m)) {
+            TO_VDOM_Temp.innerHTML = m;
+            TO_VDOM_UnescapeMap[m] = TO_VDOM_Temp.innerText;
+        }
+        return TO_VDOM_UnescapeMap[m];
+    };
+    var TO_VDOM_Unescape = function (str) { return str.replace(TO_VDOM_UnescapeReg, TO_VDOM_UnescapeCallback); };
+    var TO_VDOM = function (input) {
         var count = input.length, current = 0, last = 0, chars, currentParent = {
             'a': [],
             'b': input
-        }, index, temp, match, tag, attrs, unary, stack = [{
-                'c': currentParent
-            }], em, amap, text, compareKey, //比较新旧两个节点的id,如果一致则更新
-        getAttrs = function (tag, attr) {
-            attr.replace(V_AttrReg, function (m, key, value) {
-                value = value || G_EMPTY;
-                if (key == 'id') {
-                    compareKey = value;
-                }
-                else if (key == G_MX_VIEW && value && !compareKey) {
-                    //否则如果是组件,则使用组件的路径做为key
-                    compareKey = G_ParseUri(value)[G_PATH];
-                }
-                attrs.push({
-                    'd': key,
-                    'e': V_Specials[tag + '_' + key],
-                    'f': value
-                });
-                amap[key] = value;
-            });
-        };
+        }, index, temp, match, tag, attrs, stack = [currentParent], em, amap, text, unary, compareKey; //新旧vnode的比较key
         while (current < count) {
             chars = 1;
             temp = input.slice(current);
-            if (temp.indexOf('</') == 0) {
-                match = temp.match(V_CloseReg);
-                if (match) {
-                    currentParent = stack.pop();
-                    em = currentParent['c'];
-                    attrs = input.slice(currentParent['g'], current);
-                    if (em['h'] == 'textarea') {
-                        em['i'].push({
-                            'd': 'value',
-                            'f': attrs,
-                            'e': 1
-                        });
-                        em['j'].value = attrs;
-                        em['a'] = G_EMPTY_ARRAY;
+            if (temp[0] == '<') {
+                if (temp[1] == '/') {
+                    match = temp.match(TO_VDOM_CloseReg);
+                    if (match) {
+                        em = stack.pop();
+                        attrs = input.slice(em['c'], current);
+                        if (em['d'] == 'textarea') {
+                            em['e'].push({
+                                'f': G_VALUE,
+                                'g': attrs
+                            });
+                            em['h'][G_VALUE] = attrs;
+                            em['a'] = G_EMPTY_ARRAY;
+                        }
+                        else {
+                            em['b'] = attrs;
+                        }
+                        currentParent = stack[stack.length - 1];
+                        current += match[0].length;
+                        chars = 0;
                     }
-                    else {
-                        em['b'] = attrs;
-                    }
-                    currentParent = stack[stack.length - 1]['c'];
-                    current += match[0].length;
-                    chars = 0;
                 }
-            }
-            else if (temp[0] == '<') {
-                match = temp.match(V_OpenReg);
-                if (match) {
-                    tag = match[1];
-                    unary = match[3] || VSelfClose[tag];
-                    attrs = [];
-                    amap = {};
-                    compareKey = '';
-                    getAttrs(tag, match[2]);
-                    em = {
-                        'k': compareKey,
-                        'h': tag,
-                        'i': attrs,
-                        'j': amap,
-                        'a': []
-                    };
-                    current += match[0].length;
-                    currentParent['a'].push(em);
-                    if (!unary) {
-                        stack.push({
-                            'c': em,
-                            'g': current
+                else {
+                    match = temp.match(TO_VDOM_OpenReg);
+                    if (match) {
+                        tag = match[1];
+                        attrs = [];
+                        amap = {};
+                        compareKey = G_EMPTY;
+                        match[2].replace(TO_VDOM_AttrReg, function (m, key, value) {
+                            value = value || G_EMPTY;
+                            if (key == 'id') {
+                                compareKey = value;
+                            }
+                            else if (key == G_MX_VIEW && value && !compareKey) {
+                                //否则如果是组件,则使用组件的路径做为key
+                                compareKey = G_ParseUri(value)[G_PATH];
+                            }
+                            attrs.push({
+                                'f': key,
+                                'g': value
+                            });
+                            amap[key] = value;
                         });
-                        currentParent = em;
+                        current += match[0].length;
+                        unary = match[3] || G_Has(TO_VDOM_SELF_CLOSE, tag);
+                        if (DEBUG) {
+                            if (TO_VDOM_SELF_CLOSE[tag] && !match[3]) {
+                                console.error('avoid use tag:' + tag + ' without self close slash. near:' + match[0]);
+                            }
+                        }
+                        em = {
+                            'i': compareKey,
+                            'd': tag,
+                            'e': attrs,
+                            'h': amap,
+                            'a': [],
+                            'c': current
+                        };
+                        currentParent['a'].push(em);
+                        if (unary) {
+                            em['j'] = 1;
+                        }
+                        else {
+                            stack.push(em);
+                            if (DEBUG) {
+                                stack[stack.length - 1]['k'] = current - match[0].length;
+                            }
+                            currentParent = em;
+                        }
+                        chars = 0;
                     }
-                    chars = 0;
                 }
             }
             if (chars) {
@@ -2340,8 +2337,8 @@ define('magix', ['$'], function (require) {
                 }
                 current += text.length;
                 em = {
-                    'h': V_TEXT_NODE,
-                    'b': text.replace(V_UnescapeReg, V_Unescape)
+                    'd': TO_VDOM_TEXT_NODE,
+                    'b': text
                 };
                 currentParent['a'].push(em);
             }
@@ -2352,9 +2349,12 @@ define('magix', ['$'], function (require) {
                 last = current;
             }
         }
+        if (DEBUG && stack.length > 1) {
+            throw new Error('parsing failure:' + input);
+        }
         return currentParent;
     };
-    var V_UnmountVframs = function (vf, n) {
+    var VR_UnmountVframs = function (vf, n) {
         var id = IdIt(n);
         if (vf['$c'][id]) {
             vf.unmountVframe(id, 1);
@@ -2363,152 +2363,116 @@ define('magix', ['$'], function (require) {
             vf.unmountZone(id, 1);
         }
     };
-    var V_SetAttributes = function (oldNode, lastVDOM, newVDOM, ref) {
-        var c, key, value;
-        for (var _i = 0, _a = lastVDOM['i']; _i < _a.length; _i++) {
-            c = _a[_i];
-            key = c['d'];
-            if (!G_Has(newVDOM['j'], key)) {
-                if (c['e']) {
-                    if (key == 'value') {
-                        oldNode.value = '';
+    var VR_SetAttributes = function (oldNode, newVDOM, ref, keepId) {
+        var c, key, value, i, tag = newVDOM['d'];
+        var oldAttributes = oldNode.attributes, nMap = newVDOM['h'];
+        // Remove old attributes.
+        for (i = oldAttributes.length; i--;) {
+            key = oldAttributes[i].name;
+            if (!G_Has(nMap, key)) {
+                if (key == 'id') {
+                    if (!keepId) {
+                        ref.d.push([oldNode, G_EMPTY]);
                     }
-                    else {
-                        oldNode[key] = false;
-                    }
-                }
-                else if (key == 'id') {
-                    ref.d.push([oldNode, '']);
                 }
                 else {
+                    ref.c = 1;
                     oldNode.removeAttribute(key);
                 }
             }
         }
-        for (var _b = 0, _c = newVDOM['i']; _b < _c.length; _b++) {
-            c = _c[_b];
-            key = c['d'];
-            value = c['f'];
-            //旧值与新值不相等
-            if (lastVDOM['j'][key] != value) {
-                if (c['e']) {
-                    if (key == 'value') {
-                        oldNode.value = value;
-                    }
-                    else {
-                        oldNode[key] = true;
-                    }
-                }
-                else if (key == 'id') {
-                    ref.d.push([oldNode, value]);
-                }
-                else {
-                    oldNode.setAttribute(key, value);
-                }
+        for (var _i = 0, _a = newVDOM['e']; _i < _a.length; _i++) {
+            c = _a[_i];
+            key = c['f'];
+            value = TO_VDOM_Unescape(c['g']);
+            if (key == 'id') {
+                ref.d.push([oldNode, value]);
+            }
+            else if (oldNode.getAttribute(key) != value) {
+                ref.c = 1;
+                oldNode.setAttribute(key, value);
+            }
+        }
+        var specials = TO_VDOM_SPECIAL_PROPS[tag];
+        if (specials) {
+            for (var _b = 0, specials_1 = specials; _b < specials_1.length; _b++) {
+                c = specials_1[_b];
+                oldNode[c] = G_Has(nMap, c) ? c != G_VALUE || nMap[c] : c == G_VALUE && G_EMPTY;
             }
         }
     };
-    var V_CreateNode = function (vnode, owner, ref, t, c, key, value, ns, tag) {
-        tag = vnode['h'];
-        if (tag == V_TEXT_NODE) {
+    var VR_SVGNS = 'http://www.w3.org/2000/svg';
+    var VR_CreateNode = function (vnode, owner, ref, c, tag) {
+        tag = vnode['d'];
+        if (tag == TO_VDOM_TEXT_NODE) {
             return G_DOCUMENT.createTextNode(vnode['b']);
         }
-        ns = tag == 'svg' ? V_SVGNS : owner.namespaceURI;
-        t = G_DOCUMENT.createElementNS(ns, tag);
-        t.innerHTML = vnode['b'];
-        for (var _i = 0, _a = vnode['i']; _i < _a.length; _i++) {
-            c = _a[_i];
-            key = c['d'];
-            value = c['f'];
-            if (c['e']) {
-                if (key == 'value') {
-                    t.value = value;
+        c = G_DOCUMENT.createElementNS(tag == 'svg' ? VR_SVGNS : owner.namespaceURI, tag);
+        VR_SetAttributes(c, vnode, ref);
+        c.innerHTML = vnode['b'];
+        return c;
+    };
+    var VR_SetChildNodes = function (realNode, newVDOM, ref, vframe, data) {
+        var oldCount, newCount, i, oldChildren, newChildren, oc, nc, oldNode, compareKey, keyedNodes = {}, vf;
+        oldChildren = realNode.childNodes;
+        oldCount = oldChildren.length;
+        newChildren = newVDOM['a'];
+        newCount = newChildren.length;
+        for (i = 0; i < oldCount; i++) {
+            oc = oldChildren[i];
+            compareKey = oc.id;
+            if (oc['$a']) {
+                vf = Vframe_Vframes[compareKey];
+                compareKey = vf && vf['$n'];
+            }
+            if (compareKey) {
+                compareKey = keyedNodes[compareKey] || (keyedNodes[compareKey] = []);
+                compareKey.push(oc);
+            }
+        }
+        for (i = 0; i < newCount; i++) {
+            oc = oldChildren[i];
+            nc = newChildren[i];
+            compareKey = keyedNodes[nc['i']];
+            if (compareKey && (compareKey = compareKey.shift())) {
+                if (compareKey != oc) {
+                    realNode.insertBefore(compareKey, oc);
+                }
+                VR_SetNode(compareKey, realNode, nc, ref, vframe, data);
+            }
+            else if (oc) {
+                if (keyedNodes[oc['i']]) {
+                    //oldChildren.splice(i, 0, nc);//插入一个占位符，在接下来的比较中才能一一对应
+                    oldCount++;
+                    ref.c = 1;
+                    realNode.insertBefore(VR_CreateNode(nc, realNode, ref), oc);
                 }
                 else {
-                    t[key] = true;
+                    VR_SetNode(oc, realNode, nc, ref, vframe, data);
                 }
-            }
-            else if (key == 'id') {
-                ref.d.push([t, value]);
             }
             else {
-                t.setAttribute(key, value);
-            }
-        }
-        return t;
-    };
-    var V_SetChildNodes = function (realNode, lastVDOM, newVDOM, ref, vframe, data, keys) {
-        var oldCount, newCount, i, j, oldChildren, newChildren, oc, nc, oldNode, nodes = realNode.childNodes, compareKey, orn, ovn, keyedNodes = {};
-        if (!lastVDOM) {
-            ref.c = 1;
-            realNode.innerHTML = newVDOM['b'];
-        }
-        else {
-            oldChildren = lastVDOM['a'];
-            oldCount = oldChildren.length;
-            newChildren = newVDOM['a'];
-            newCount = newChildren.length;
-            for (i = 0; i < oldCount; i++) {
-                oc = oldChildren[i];
-                compareKey = oc['k'];
-                if (compareKey) {
-                    compareKey = keyedNodes[compareKey] || (keyedNodes[compareKey] = []);
-                    compareKey.push({
-                        'l': nodes[i],
-                        'm': oc
-                    });
-                }
-            }
-            for (i = 0; i < newCount; i++) {
-                oc = oldChildren[i];
-                nc = newChildren[i];
-                compareKey = keyedNodes[nc['k']];
-                if (compareKey && (compareKey = compareKey.pop())) {
-                    orn = compareKey['l'];
-                    ovn = compareKey['m'];
-                    if (orn != nodes[i]) {
-                        oldChildren.splice(i, 0, oc = ovn); //移动虚拟dom
-                        for (j = oldChildren.length; j--;) {
-                            if (oldChildren[j] == ovn) {
-                                oldChildren.splice(j, 1);
-                                break;
-                            }
-                        }
-                        realNode.insertBefore(orn, nodes[i]);
-                    }
-                    V_SetNode(nodes[i], realNode, oc, nc, ref, vframe, data, keys);
-                }
-                else if (oc) {
-                    if (keyedNodes[oc['k']]) {
-                        oldChildren.splice(i, 0, nc); //插入一个占位符，在接下来的比较中才能一一对应
-                        oldCount++;
-                        realNode.insertBefore(V_CreateNode(nc, realNode, ref), nodes[i]);
-                    }
-                    else {
-                        V_SetNode(nodes[i], realNode, oc, nc, ref, vframe, data, keys);
-                    }
-                }
-                else {
-                    realNode.appendChild(V_CreateNode(nc, realNode, ref));
-                }
-            }
-            for (i = newCount; i < oldCount; i++) {
-                oldNode = realNode.lastChild; //删除多余的旧节点
-                V_UnmountVframs(vframe, oldNode);
-                realNode.removeChild(oldNode);
+                realNode.appendChild(VR_CreateNode(nc, realNode, ref));
                 ref.c = 1;
             }
         }
+        for (i = newCount; i < oldCount; i++) {
+            oldNode = realNode.lastChild; //删除多余的旧节点
+            VR_UnmountVframs(vframe, oldNode);
+            realNode.removeChild(oldNode);
+            ref.c = 1;
+        }
     };
-    var V_SetNode = function (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys) {
-        if (lastVDOM['h'] == newVDOM['h']) {
-            if (lastVDOM['h'] == V_TEXT_NODE) {
-                if (lastVDOM['b'] != newVDOM['b']) {
-                    realNode.nodeValue = newVDOM['b'];
+    var VR_SetNode = function (realNode, oldParent, newVDOM, ref, vframe, data) {
+        var tag = realNode.nodeName.toLowerCase();
+        if (tag == newVDOM['d']) {
+            if (tag == TO_VDOM_TEXT_NODE) {
+                if (realNode.nodeValue != newVDOM['b']) {
+                    realNode.nodeValue = TO_VDOM_Unescape(newVDOM['b']);
                 }
             }
             else {
-                var newMxView = newVDOM['j'][G_MX_VIEW], newHTML = newVDOM['b'];
+                var newMxView = newVDOM['h'][G_MX_VIEW], newHTML = newVDOM['b'];
                 var updateAttribute = void 0, updateChildren = void 0, unmountOld = void 0, oldVf = Vframe_Vframes[realNode.id], assign = void 0, needUpdate = void 0, view = void 0, uri = void 0, params = void 0, htmlChanged = void 0 /*,
                     oldDataStringify, newDataStringify,dataChanged*/;
                 /*
@@ -2537,13 +2501,12 @@ define('magix', ['$'], function (require) {
                             oldVf[G_PATH] = newMxView; //update ref
                             //如果需要更新，则进行更新的操作
                             uri = {
-                                keys: keys,
                                 inner: newHTML,
                                 deep: !view['$e'],
                                 //data: dataChanged,
                                 html: htmlChanged
                             };
-                            V_SetAttributes(realNode, lastVDOM, newVDOM, ref);
+                            VR_SetAttributes(realNode, newVDOM, ref, 1);
                             if (G_ToTry(assign, [params, uri], view)) {
                                 view['$b']();
                             }
@@ -2567,51 +2530,49 @@ define('magix', ['$'], function (require) {
                     oldVf.unmountVframe(0, 1);
                 }
                 if (updateAttribute) {
-                    V_SetAttributes(realNode, lastVDOM, newVDOM, ref);
+                    //ref.c = 1;
+                    VR_SetAttributes(realNode, newVDOM, ref, oldVf && newMxView);
                 }
                 // Update all children (and subchildren).
                 //自闭合标签不再检测子节点
-                if (updateChildren && !VSelfClose[newVDOM['h']]) {
-                    ref.c = 1;
-                    V_SetChildNodes(realNode, lastVDOM, newVDOM, ref, vframe, data, keys);
+                if (updateChildren) {
+                    //ref.c = 1;
+                    VR_SetChildNodes(realNode, newVDOM, ref, vframe, data);
                 }
             }
         }
         else {
-            V_UnmountVframs(vframe, realNode);
-            oldParent.replaceChild(V_CreateNode(newVDOM, oldParent, ref), realNode);
+            VR_UnmountVframs(vframe, realNode);
+            oldParent.replaceChild(VR_CreateNode(newVDOM, oldParent, ref), realNode);
             ref.c = 1;
         }
     };
-    var V_ContentReg = /\d+\x1d/g;
-    var V_UpdateDOM = function (updater, data, changed, keys) {
+    var VR_UpdateDOM = function (updater) {
         var selfId = updater['$b'];
         var vf = Vframe_Vframes[selfId];
+        var data = updater['$a'];
         var view = vf && vf['$v'], ref = { d: [] }, node = G_GetById(selfId), tmpl, html, x, vdom;
         if (view && view['$a'] > 0 && (tmpl = view['$e'])) {
             console.time('[vdom time:' + selfId + ']');
-            if (changed) {
-                console.time('[vdom html to vdom:' + selfId + ']');
-                html = View_SetEventOwner(tmpl(data), selfId);
-                vdom = VDOM(html);
-                console.timeEnd('[vdom html to vdom:' + selfId + ']');
-                V_SetChildNodes(node, updater['$d'], vdom, ref, vf, data, keys);
-                updater['$d'] = vdom;
-                for (var _i = 0, _a = ref.d; _i < _a.length; _i++) {
-                    x = _a[_i];
-                    x[0].id = x[1];
-                }
-                if (ref.c) {
-                    view.endUpdate(selfId);
-                    G_DOC.trigger({
-                        type: 'htmlchanged',
-                        vId: selfId
-                    });
-                }
+            console.time('[vdom html to vdom:' + selfId + ']');
+            html = View_SetEventOwner(tmpl(data), selfId);
+            vdom = TO_VDOM(html);
+            console.timeEnd('[vdom html to vdom:' + selfId + ']');
+            VR_SetChildNodes(node, vdom, ref, vf, data);
+            for (var _i = 0, _a = ref.d; _i < _a.length; _i++) {
+                x = _a[_i];
+                x[0].id = x[1];
             }
-            view.fire('domready');
-            console.timeEnd('[vdom time:' + selfId + ']');
+            if (ref.c) {
+                view.endUpdate(selfId);
+                G_DOC.trigger({
+                    type: 'htmlchanged',
+                    vId: selfId
+                });
+            }
         }
+        view.fire('domready');
+        console.timeEnd('[vdom time:' + selfId + ']');
     };
     /**
  * 使用mx-keys进行局部刷新的类
@@ -2625,13 +2586,11 @@ define('magix', ['$'], function (require) {
     var Updater = function (viewId) {
         var me = this;
         me['$b'] = viewId;
-        me['$c'] = 1;
         me['$a'] = (_a = {
                 vId: viewId
             },
             _a[G_SPLITER] = 1,
             _a);
-        me['$k'] = {};
         var _a;
     };
     G_Assign(Updater[G_PROTOTYPE], {
@@ -2691,10 +2650,8 @@ define('magix', ['$'], function (require) {
          * }
          */
         set: function (obj) {
-            var me = this, data = me["$a"], keys = me["$k"];
-            if (obj) {
-                me['$c'] = G_Set(obj, data, keys) || me['$c'];
-            }
+            var me = this;
+            G_Assign(me['$a'], obj);
             return me;
         },
         /**
@@ -2707,15 +2664,10 @@ define('magix', ['$'], function (require) {
          *     }).digest();
          * }
          */
-        digest: function (data, keys, changed) {
+        digest: function (data, keys) {
             var me = this;
             me.set(data);
-            data = me['$a'];
-            keys = me['$k'];
-            changed = me['$c'];
-            me['$c'] = 0;
-            me['$k'] = {};
-            V_UpdateDOM(me, data, changed, keys);
+            VR_UpdateDOM(me);
             return me;
         },
         /**
@@ -2742,7 +2694,7 @@ define('magix', ['$'], function (require) {
          */
         snapshot: function () {
             var me = this;
-            me['$e'] = JSONStringify(me['$a']);
+            me['$d'] = JSONStringify(me['$a']);
             return me;
         },
         /**
@@ -2769,8 +2721,8 @@ define('magix', ['$'], function (require) {
          */
         altered: function () {
             var me = this;
-            if (me['$e']) {
-                return me['$e'] != JSONStringify(me['$a']);
+            if (me['$d']) {
+                return me['$d'] != JSONStringify(me['$a']);
             }
         }
     });
@@ -3337,7 +3289,7 @@ define('magix', ['$'], function (require) {
             var changeListener = function (e) {
                 var flag = 'a', // a for router change
                 v = 'b'; // b for viewunload change
-                if (e.type != 'change') {
+                if (e.type != G_CHANGE) {
                     flag = 'b';
                     v = 'a';
                 }
@@ -3365,12 +3317,12 @@ define('magix', ['$'], function (require) {
                     e.msg = msg;
                 }
             };
-            Router.on('change', changeListener);
-            Router.on('pageunload', unloadListener);
+            Router.on(G_CHANGE, changeListener);
+            Router.on(G_PAGE_UNLOAD, unloadListener);
             me.on('unload', changeListener);
             me.on('destroy', function () {
-                Router.off('change', changeListener);
-                Router.off('pageunload', unloadListener);
+                Router.off(G_CHANGE, changeListener);
+                Router.off(G_PAGE_UNLOAD, unloadListener);
             });
         },
         /**

@@ -138,7 +138,7 @@ let State = {
         }
         if (State_DataIsChanged) {
             State_DataIsChanged = 0;
-            this.fire('changed', {
+            this.fire(G_CHANGED, {
                 keys: State_ChangedKeys
             });
             State_ChangedKeys = {};

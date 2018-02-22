@@ -1,15 +1,18 @@
 let Partial_ContentReg = /\d+\x1d/g;
 let Partial_AttrReg = /([\w\-]+)(?:="([\s\S]*?)")?/g;
-let Partial_UnescapeMap = {
-    'amp': '&',
-    'lt': '<',
-    'gt': '>',
-    '#34': '"',
-    '#39': '\'',
-    '#96': '`'
+
+let Partial_Unescape_Map = {};
+let Partial_Unescape_Reg = /&#?[^\W]+;?/g;
+let Partial_Temp = G_DOCUMENT.createElement('div');
+let Partial_Unescape_Callback = m => {
+    if (!G_Has(Partial_Unescape_Map, m)) {
+        Partial_Temp.innerHTML = m;
+        Partial_Unescape_Map[m] = Partial_Temp.innerText;
+    }
+    return Partial_Unescape_Map[m];
 };
-let Partial_UnescapeReg = /&([^;]+);/g;
-let Partial_Unescape = (m, name) => Partial_UnescapeMap[name] || m;
+
+let Partial_Unescape = str => str.replace(Partial_Unescape_Reg, Partial_Unescape_Callback);
 
 let Partial_UpdateNode = (node, view, one,
     renderData, updateAttrs, updateTmpl, viewId, ref, file) => {
@@ -34,7 +37,7 @@ let Partial_UpdateNode = (node, view, one,
                         ref.c = 1;
                         if (a.p) {
                             //decode html
-                            if (a.q) now.replace(Partial_UnescapeReg, Partial_Unescape);
+                            if (a.q) now = Partial_Unescape(now);
                             node[f || n] = now;
                         } else if (exist) {
                             node.setAttribute(n, now);
@@ -63,9 +66,10 @@ let Partial_UpdateNode = (node, view, one,
         }
     }
 };
-let Partial_UpdateDOM = (updater, changedKeys, renderData) => {
+let Partial_UpdateDOM = (updater, changedKeys) => {
     let selfId = updater['@{updater#view.id}'];
     let vf = Vframe_Vframes[selfId];
+    let renderData = updater['@{updater#data}'];
     let view = vf && vf['@{vframe#view.entity}'],
         tmplObject;
     if (!view || view['@{view#sign}'] < 1 || !(tmplObject = view['@{view#template.object}'])) return;

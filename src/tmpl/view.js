@@ -602,7 +602,7 @@ G_Assign(ViewProto, MEvent, {
         let changeListener = e => {
             let flag = 'a', // a for router change
                 v = 'b'; // b for viewunload change
-            if (e.type != 'change') {
+            if (e.type != G_CHANGE) {
                 flag = 'b';
                 v = 'a';
             }
@@ -628,12 +628,12 @@ G_Assign(ViewProto, MEvent, {
                 e.msg = msg;
             }
         };
-        Router.on('change', changeListener);
-        Router.on('pageunload', unloadListener);
+        Router.on(G_CHANGE, changeListener);
+        Router.on(G_PAGE_UNLOAD, unloadListener);
         me.on('unload', changeListener);
         me.on('destroy', () => {
-            Router.off('change', changeListener);
-            Router.off('pageunload', unloadListener);
+            Router.off(G_CHANGE, changeListener);
+            Router.off(G_PAGE_UNLOAD, unloadListener);
         });
     },
     /*#}#*/

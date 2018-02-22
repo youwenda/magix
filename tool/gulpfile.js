@@ -9,12 +9,14 @@ let pkg = require('../package.json');
 let ts = require('typescript');
 let customize = require('./customize');
 
-let type = 'cmd,amd,kissy,webpack,module'; //打包kissy则type='kissy'
-let enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,updaterSetState,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterVDOM,updaterDOM';
+let type ='cmd,amd,kissy,webpack,module'; //打包kissy则type='kissy'
+let enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterVRDOM';
+
+//let enableModules = 'style,viewInit,router,viewMerge,tipRouter,updater,autoEndUpdate,linkage,state,updaterDOM,viewProtoMixins';
 
 //let enableModules='';
 //mobile
-//let enableModules='defaultView,autoEndUpdate,linkage,base,style,viewInit,resource,nodeAttachVframe,updater,updaterSetState,mxViewAttr,layerVframe,state';
+//let enableModules='defaultView,autoEndUpdate,linkage,base,style,viewInit,resource,nodeAttachVframe,updater,mxViewAttr,layerVframe,state';
 
 gulp.task('combine', () => {
     type.split(',').forEach(t => {

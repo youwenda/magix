@@ -70,7 +70,7 @@ let Router_Bind = () => {
                     /*#}#*/
                 }
             };
-            Router.fire('change', e);
+            Router.fire(G_CHANGE, e);
             if (!suspend && !e.p) {
                 resolve();
             }
@@ -79,7 +79,7 @@ let Router_Bind = () => {
     G_WINDOW.onbeforeunload = (e, te, msg) => {
         e = e || G_WINDOW.event;
         te = {};
-        Router.fire('pageunload', te);
+        Router.fire(G_PAGE_UNLOAD, te);
         if ((msg = te.msg)) {
             if (e) e.returnValue = msg;
             return msg;
@@ -155,7 +155,7 @@ if (WinHistory.pushState) {
                         /*#}#*/
                     }
                 };
-                Router.fire('change', e);
+                Router.fire(G_CHANGE, e);
                 if (!suspend && !e.p) {
                     resolve();
                 }
@@ -164,7 +164,7 @@ if (WinHistory.pushState) {
         G_WINDOW.onbeforeunload = (e, te, msg) => {
             e = e || G_WINDOW.event;
             te = {};
-            Router.fire('pageunload', te);
+            Router.fire(G_PAGE_UNLOAD, te);
             if ((msg = te.msg)) {
                 if (e) e.returnValue = msg;
                 return msg;
@@ -337,7 +337,7 @@ let Router_Diff = () => {
             G_DOCUMENT.title = location.title || DefaultTitle;
         }
         /*#}#*/
-        Router.fire('changed', /*#if(modules.updateTitleRouter){#*/ Router_LastChanged /*#}else{#*/ Router_LastChanged = changed.b /*#}#*/);
+        Router.fire(G_CHANGED, /*#if(modules.updateTitleRouter){#*/ Router_LastChanged /*#}else{#*/ Router_LastChanged = changed.b /*#}#*/);
     }
     Router_Silent = 0;
     if (DEBUG) {

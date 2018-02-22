@@ -80,39 +80,25 @@ let I_GetNode = (html, node) => {
 };
 //https://github.com/patrick-steele-idem/morphdom/blob/master/src/specialElHandlers.js
 let I_Specials = {
-    INPUT: ['value', 'checked', 'disabled', 'readonly'],
+    INPUT: [G_VALUE, 'checked'],
+    TEXTAREA: [G_VALUE],
     OPTION: ['selected']
 };
-I_Specials.TEXTAREA = I_Specials.INPUT;
-let I_PartialAttrs = {
-    'style': 1,
-    'id': 1
-};
-let I_SetAttributes = (oldNode, newNode, ref, mxNode, flags) => {
-    let a, b, i, ns, s;
+let I_SetAttributes = (oldNode, newNode, ref, keepId) => {
+    let a, i, key, value;
     let oldAttributes = oldNode.attributes,
         newAttributes = newNode.attributes,
-        nodeName = oldNode.nodeName, lazySetId;
-    let specials = I_Specials[nodeName];
-    if (specials) {
-        for (s of specials) {
-            if (oldNode[s] != newNode[s]) {//浏览器必须激活
-                oldNode[s] = newNode[s];
-            }
-        }
-    }
-    // Remove old attributes.
+        nodeName = oldNode.nodeName;
     for (i = oldAttributes.length; i--;) {
-        a = oldAttributes[i];
-        s = a.localName;
-        if (!flags || !G_Has(flags, s)) {
-            ns = a.namespaceURI;
-            b = newAttributes.getNamedItemNS(ns, s);
-            if (!b && (!mxNode || s != 'id')) {
-                if (s == 'id' && oldNode['@{node#auto.id}']) {
-                    oldNode['@{node#auto.id}'] = 0;
+        a = oldAttributes[i].name;
+        if (!newNode.getAttribute(a)) {
+            if (a == 'id') {
+                if (!keepId) {
+                    ref.d.push([oldNode, '']);
                 }
-                oldAttributes.removeNamedItemNS(ns, s);
+            } else {
+                ref.c = 1;
+                oldNode.removeAttribute(a);
             }
         }
     }
@@ -120,41 +106,46 @@ let I_SetAttributes = (oldNode, newNode, ref, mxNode, flags) => {
     // Set new attributes.
     for (i = newAttributes.length; i--;) {
         a = newAttributes[i];
-        s = a.localName;
-        if (flags != I_PartialAttrs || !G_Has(flags, s)) {
-            ns = a.namespaceURI;
-            b = oldAttributes.getNamedItemNS(ns, s);
-            lazySetId = mxNode && s == 'id';
-            if (lazySetId) {
-                nodeName = a.value;
-                a.value = '';
+        key = a.name;
+        value = a[G_VALUE];
+        if (oldNode.getAttribute(key) != value) {
+            if (key == 'id') {
+                ref.d.push([oldNode, value]);
+            } else {
+                ref.c = 1;
+                oldNode.setAttribute(key, value);
             }
-            if (!b) {
-                // Add a new attribute.
-                newAttributes.removeNamedItemNS(ns, s);
-                oldAttributes.setNamedItemNS(a);
-                if (lazySetId) ref.d.push([a, nodeName]);
-            } else if (b.value !== a.value) {
-                // Update existing attribute.
-                b.value = a.value;
-                if (lazySetId) ref.d.push([b, nodeName]);
+        }
+    }
+
+    let specials = I_Specials[nodeName];
+    if (specials) {
+        for (i of specials) {
+            if (oldNode[i] != newNode[i]) {//浏览器必须激活
+                oldNode[i] = newNode[i];
             }
         }
     }
 };
 
-let I_SetChildNodes = (oldParent, newParent, ref, vf, data, keys) => {
+
+let I_SetChildNodes = (oldParent, newParent, ref, vframe, data) => {
     let oldNode = oldParent.firstChild;
     let newNode = newParent.firstChild;
-    let tempNew, tempOld, extra = 0, nodeKey, foundNode, keyedNodes = {};
+    let tempNew, tempOld, extra = 0, nodeKey, foundNode, keyedNodes = {}, vf;
     // Extract keyed nodes from previous children and keep track of total count.
     while (oldNode) {
         extra++;
         tempOld = oldNode;
         nodeKey = tempOld.id;
         oldNode = oldNode.nextSibling;
-        if (nodeKey && !tempOld['@{node#auto.id}']) {
-            keyedNodes[nodeKey] = tempOld;
+        if (tempOld['@{node#auto.id}']) {
+            vf = Vframe_Vframes[nodeKey];
+            nodeKey = vf && vf['@{vframe#view.path}'];
+        }
+        if (nodeKey) {
+            nodeKey = keyedNodes[nodeKey] || (keyedNodes[nodeKey] = []);
+            nodeKey.push(tempOld);
         }
     }
     oldNode = oldParent.firstChild;
@@ -162,27 +153,35 @@ let I_SetChildNodes = (oldParent, newParent, ref, vf, data, keys) => {
         extra--;
         tempNew = newNode;
         newNode = newNode.nextSibling;
-        if ((nodeKey = tempNew.id) && (foundNode = keyedNodes[nodeKey])) {
-            delete keyedNodes[nodeKey];
-            // If we have a key and it existed before we move the previous node to the new position if needed and diff it.
-            if (foundNode !== oldNode) {
+        nodeKey = tempNew.id;
+        if (!nodeKey && tempNew.nodeType == 1) {
+            nodeKey = tempNew.getAttribute(G_MX_VIEW);
+            nodeKey = nodeKey && G_ParseUri(nodeKey)[G_PATH];
+        }
+        foundNode = keyedNodes[nodeKey];
+        if (foundNode && (foundNode = foundNode.shift())) {
+            if (foundNode != oldNode) {//如果找到的节点和当前不同，则移动
                 oldParent.insertBefore(foundNode, oldNode);
             } else {
                 oldNode = oldNode.nextSibling;
             }
-
-            I_SetNode(foundNode, tempNew, oldParent, ref, vf, data, keys);
+            I_SetNode(foundNode, tempNew, oldParent, ref, vframe, data);
         } else if (oldNode) {
-            nodeKey = oldNode.id;
             tempOld = oldNode;
-            oldNode = oldNode.nextSibling;
+            nodeKey = tempOld.id;
+            if (tempOld['@{node#auto.id}']) {
+                vf = Vframe_Vframes[nodeKey];
+                nodeKey = vf && vf['@{vframe#view.path}'];
+            }
             if (nodeKey && keyedNodes[nodeKey]) {
                 extra++;
+                ref.c=1;
                 // If the old child had a key we skip over it until the end.
                 oldParent.insertBefore(tempNew, tempOld);
             } else {
+                oldNode = oldNode.nextSibling;
                 // Otherwise we diff the two non-keyed nodes.
-                I_SetNode(tempOld, tempNew, oldParent, ref, vf, data, keys);
+                I_SetNode(tempOld, tempNew, oldParent, ref, vframe, data);
             }
         } else {
             // Finally if there was no old node we add the new node.
@@ -190,115 +189,89 @@ let I_SetChildNodes = (oldParent, newParent, ref, vf, data, keys) => {
             ref.c = 1;
         }
     }
-    // Remove old keyed nodes.
-    for (nodeKey in keyedNodes) {
-        extra--;
-        tempOld = keyedNodes[nodeKey];
-        I_UnmountVframs(vf, tempOld);
-        oldParent.removeChild(tempOld);
-        ref.c = 1;
-    }
 
     // If we have any remaining unkeyed nodes remove them from the end.
-    while (--extra >= 0) {
+    while (extra-- > 0) {
         tempOld = oldParent.lastChild;
-        I_UnmountVframs(vf, tempOld);
+        I_UnmountVframs(vframe, tempOld);
         oldParent.removeChild(tempOld);
         ref.c = 1;
     }
 };
 
-let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
-    if (oldNode.nodeType === newNode.nodeType) {
+let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data) => {
+    if (oldNode.nodeName === newNode.nodeName) {
         // Handle regular element node updates.
         if (oldNode.nodeType === 1) {
 
-            // Update the elements attributes / tagName.
-            if (oldNode.nodeName === newNode.nodeName) {
-                // If we have the same nodename then we can directly update the attributes.
+            // If we have the same nodename then we can directly update the attributes.
 
-                let newMxView = newNode.getAttribute(G_MX_VIEW),
-                    newHTML = newNode.innerHTML;
-                let updateAttribute, updateChildren, unmountOld,
-                    oldVf = Vframe_Vframes[oldNode.id],
-                    assign, needUpdate,
-                    view, uri, params, htmlChanged/*, 
+            let newMxView = newNode.getAttribute(G_MX_VIEW),
+                newHTML = newNode.innerHTML;
+            let updateAttribute, updateChildren, unmountOld,
+                oldVf = Vframe_Vframes[oldNode.id],
+                assign, needUpdate,
+                view, uri, params, htmlChanged/*, 
                     oldDataStringify, newDataStringify,dataChanged*/;
-                /*
-                    如果存在新旧view，则考虑路径一致，避免渲染的问题
-                 */
-                if (newMxView && oldVf) {
-                    view = oldVf['@{vframe#view.entity}'];
-                    assign = view['@{view#assign.fn}'];
-                    uri = G_ParseUri(newMxView);
-                    htmlChanged = newHTML != oldVf['@{vframe#template}'];
-                    needUpdate = newMxView.indexOf('?') > 0 || htmlChanged;
-                }
-                if (newMxView && oldVf &&
-                    oldVf['@{vframe#view.path}'] == uri[G_PATH]) {
-                    if (needUpdate) {
-                        if (assign) {
-                            params = uri[G_PARAMS];
-                            //处理引用赋值
-                            if (newMxView.indexOf(G_SPLITER) > -1) {
-                                GSet_Params(data, params, params);
-                            }
-                            oldVf['@{vframe#template}'] = newHTML;
-                            //oldVf['@{vframe#data.stringify}'] = newDataStringify;
-                            oldVf[G_PATH] = newMxView;//update ref
-                            uri = {
-                                keys,
-                                node: newNode,
-                                deep: !view['@{view#template.object}'],//无模板的组件深入比较子节点
-                                //data: dataChanged,
-                                html: htmlChanged
-                            };
-                            I_SetAttributes(oldNode, newNode, ref, 1, I_PartialAttrs);
-                            if (G_ToTry(assign, [params, uri], view)) {
-                                view['@{view#render.short}']();
-                            }
-                            //默认当一个组件有assign方法时，由该方法及该view上的render方法完成当前区域内的节点更新
-                            //而对于不渲染界面的控制类型的组件来讲，它本身更新后，有可能需要继续由magix更新内部的子节点，此时通过deep参数控制
-                            updateChildren = uri.deep;
-                        } else {
-                            unmountOld = 1;
-                            updateChildren = 1;
-                            updateAttribute = 1;
+            /*
+                如果存在新旧view，则考虑路径一致，避免渲染的问题
+             */
+            if (newMxView && oldVf) {
+                view = oldVf['@{vframe#view.entity}'];
+                assign = view['@{view#assign.fn}'];
+                uri = G_ParseUri(newMxView);
+                htmlChanged = newHTML != oldVf['@{vframe#template}'];
+                needUpdate = newMxView.indexOf('?') > 0 || htmlChanged;
+            }
+            if (newMxView && oldVf &&
+                oldVf['@{vframe#view.path}'] == uri[G_PATH]) {
+                if (needUpdate) {
+                    if (assign) {
+                        params = uri[G_PARAMS];
+                        //处理引用赋值
+                        if (newMxView.indexOf(G_SPLITER) > -1) {
+                            GSet_Params(data, params, params);
                         }
+                        oldVf['@{vframe#template}'] = newHTML;
+                        //oldVf['@{vframe#data.stringify}'] = newDataStringify;
+                        oldVf[G_PATH] = newMxView;//update ref
+                        uri = {
+                            node: newNode,
+                            deep: !view['@{view#template.object}'],//无模板的组件深入比较子节点
+                            //data: dataChanged,
+                            html: htmlChanged
+                        };
+                        I_SetAttributes(oldNode, newNode, ref, 1);
+                        if (G_ToTry(assign, [params, uri], view)) {
+                            view['@{view#render.short}']();
+                        }
+                        //默认当一个组件有assign方法时，由该方法及该view上的render方法完成当前区域内的节点更新
+                        //而对于不渲染界面的控制类型的组件来讲，它本身更新后，有可能需要继续由magix更新内部的子节点，此时通过deep参数控制
+                        updateChildren = uri.deep;
+                    } else {
+                        unmountOld = 1;
+                        updateChildren = 1;
+                        updateAttribute = 1;
                     }
-                } else {
-                    updateAttribute = 1;
-                    updateChildren = 1;
-                    unmountOld = oldVf;
-                }
-                if (unmountOld) {
-                    oldVf.unmountVframe(0, 1);
-                }
-                if (updateAttribute) {
-                    I_SetAttributes(oldNode, newNode, ref, oldVf && newMxView);
-                }
-                // Update all children (and subchildren).
-                if (updateChildren) {
-                    ref.c = 1;
-                    I_SetChildNodes(oldNode, newNode, ref, vf, data, keys);
                 }
             } else {
-                // Otherwise clone the new node to use as the existing node.
-                //let newPrev = newNode.cloneNode();
-                // Copy over all existing children from the original node.
-                //while (oldNode.firstChild) newPrev.appendChild(oldNode.firstChild);
-                // Replace the original node with the new one with the right tag.
-                I_UnmountVframs(vf, oldNode);
-                oldParent.replaceChild(newNode, oldNode);
-                ref.c = 1;
+                updateAttribute = 1;
+                updateChildren = 1;
+                unmountOld = oldVf;
             }
-        } else {
-            // Handle other types of node updates (text/comments/etc).
-            // If both are the same type of node we can update directly.
-            if (oldNode.nodeValue !== newNode.nodeValue) {
-                oldNode.nodeValue = newNode.nodeValue;
-                ref.c = 1;
+            if (unmountOld) {
+                oldVf.unmountVframe(0, 1);
             }
+            if (updateAttribute) {
+                I_SetAttributes(oldNode, newNode, ref, oldVf && newMxView);
+            }
+            // Update all children (and subchildren).
+            if (updateChildren) {
+                //ref.c = 1;
+                I_SetChildNodes(oldNode, newNode, ref, vf, data);
+            }
+        } else if (oldNode.nodeValue !== newNode.nodeValue) {
+            oldNode.nodeValue = newNode.nodeValue;
         }
     } else {
         // we have to replace the node.
@@ -307,40 +280,37 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
         ref.c = 1;
     }
 };
-
-let I_ContentReg = /\d+\x1d/g;
-let I_UpdateDOM = (updater, data, changed, keys) => {
+let I_UpdateDOM = (updater) => {
     let selfId = updater['@{updater#view.id}'];
     let vf = Vframe_Vframes[selfId];
+    let data = updater['@{updater#data}'];
     let view = vf && vf['@{vframe#view.entity}'],
         ref = { d: [] },
         node = G_GetById(selfId),
         tmpl, html, x;
     if (view && view['@{view#sign}'] > 0 && (tmpl = view['@{view#template.object}'])) {
         console.time('[dom time:' + selfId + ']');
-        if (changed) {
-            html = View_SetEventOwner(tmpl(data), selfId);
-            I_SetChildNodes(node, I_GetNode(html, node), ref, vf, data, keys);
-            for (x of ref.d) {
-                x[0].value = x[1];
-            }
-            if (ref.c) {
-                view.endUpdate(selfId);
-                /*#if(modules.naked){#*/
-                G_Trigger(G_DOCUMENT, 'htmlchanged', {
-                    vId: selfId
-                });
-                /*#}else if(modules.kissy){#*/
-                G_DOC.fire('htmlchanged', {
-                    vId: selfId
-                });
-                /*#}else{#*/
-                G_DOC.trigger({
-                    type: 'htmlchanged',
-                    vId: selfId
-                });
-                /*#}#*/
-            }
+        html = View_SetEventOwner(tmpl(data), selfId);
+        I_SetChildNodes(node, I_GetNode(html, node), ref, vf, data);
+        for (x of ref.d) {
+            x[0].id = x[1];
+        }
+        if (ref.c) {
+            view.endUpdate(selfId);
+            /*#if(modules.naked){#*/
+            G_Trigger(G_DOCUMENT, 'htmlchanged', {
+                vId: selfId
+            });
+            /*#}else if(modules.kissy){#*/
+            G_DOC.fire('htmlchanged', {
+                vId: selfId
+            });
+            /*#}else{#*/
+            G_DOC.trigger({
+                type: 'htmlchanged',
+                vId: selfId
+            });
+            /*#}#*/
         }
         view.fire('domready');
         console.timeEnd('[dom time:' + selfId + ']');

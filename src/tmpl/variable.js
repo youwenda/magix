@@ -9,6 +9,10 @@ let G_DOCUMENT = document;
 let G_DOC = $(G_DOCUMENT);
 /*#}#*/
 let Timeout = G_WINDOW.setTimeout;
+let G_CHANGED = 'changed';
+let G_CHANGE = 'change';
+let G_PAGE_UNLOAD = 'pageunload';
+let G_VALUE = 'value';
 let G_HashKey = '#';
 let G_NOOP = function () { };
 /*#if(modules.service||modules.updater){#*/
@@ -153,19 +157,6 @@ let GSet_Params = (data, oldParams, newParams) => {
     for (p in oldParams) {
         val = oldParams[p];
         newParams[p] = (val + G_EMPTY)[0] == G_SPLITER ? data[val] : val;
-    }
-};
-/*#}#*/
-/*#if(modules.updaterDOM){#*/
-let G_TryStringify = (data, uri, params) => {
-    params = uri[G_PARAMS];
-    GSet_Params(data, params, params);
-    try {
-        return JSONStringify(uri);
-    } catch (e) {
-        if (DEBUG) {
-            console.warn('JSON.stringify exception:', e, params);
-        }
     }
 };
 /*#}#*/

@@ -10,23 +10,22 @@
 let Updater = function (viewId) {
     let me = this;
     me['@{updater#view.id}'] = viewId;
-    /*#if(!modules.updaterDOM&&!modules.updaterVDOM){#*/
+    /*#if(!modules.updaterDOM&&!modules.updaterVDOM&&!modules.updaterVRDOM){#*/
     me['@{updater#render.id}'] = viewId;
-    /*#}#*/
-    /*#if(modules.updaterDOM||modules.updaterVDOM){#*/
-    me['@{updater#data.changed}'] = 1;
     /*#}#*/
     me['@{updater#data}'] = {
         vId: viewId,
         [G_SPLITER]: 1
     };
+    /*#if(!modules.updaterVDOM&&!modules.updaterVRDOM&&!modules.updaterDOM){#*/
     me['@{updater#keys}'] = {};
+    /*#}#*/
 };
 G_Assign(Updater[G_PROTOTYPE], {
     /**
      * @lends Updater#
      */
-    /*#if(!modules.updaterDOM&&!modules.updaterVDOM){#*/
+    /*#if(!modules.updaterDOM&&!modules.updaterVDOM&&!modules.updaterVRDOM){#*/
     to(id, me) {
         me = this;
         me['@{updater#render.id}'] = id;
@@ -86,14 +85,12 @@ G_Assign(Updater[G_PROTOTYPE], {
      * }
      */
     set(obj) {
-        let me = this, { '@{upater#data}': data, '@{updater#keys}': keys } = me;
-        if (obj) {
-            /*#if(modules.updaterDOM||modules.updaterVDOM){#*/
-            me['@{updater#data.changed}'] = G_Set(obj, data, keys) || me['@{updater#data.changed}'];
-            /*#}else{#*/
-            G_Set(obj, data, keys);
-            /*#}#*/
-        }
+        let me = this;
+        /*#if(!modules.updaterVDOM&&!modules.updaterVRDOM&&!modules.updaterDOM){#*/
+        G_Set(obj, me['@{upater#data}'], me['@{updater#keys}']);
+        /*#}else{#*/
+        G_Assign(me['@{updater#data}'], obj);
+        /*#}#*/
         return me;
     },
     /**
@@ -106,23 +103,24 @@ G_Assign(Updater[G_PROTOTYPE], {
      *     }).digest();
      * }
      */
-    digest(data, keys/*#if(modules.updaterDOM||modules.updaterVDOM){#*/, changed/*#}#*/) {
+    digest(data, keys) {
         let me = this;
         me.set(data);
-        data = me['@{updater#data}'];
+        /*#if(!modules.updaterVDOM&&!modules.updaterVRDOM&&!modules.updaterDOM){#*/
         keys = me['@{updater#keys}'];
-        /*#if(modules.updaterDOM||modules.updaterVDOM){#*/
-        changed = me['@{updater#data.changed}'];
-        me['@{updater#data.changed}'] = 0;
-        /*#}#*/
         me['@{updater#keys}'] = {};
-        /*#if(modules.updaterVDOM){#*/
-        V_UpdateDOM(me, data, changed, keys);
-        /*#}else if(modules.updaterDOM){#*/
-        I_UpdateDOM(me, data, changed, keys);
-        /*#}else{#*/
-        Partial_UpdateDOM(me, keys, data); //render
         /*#}#*/
+
+        /*#if(modules.updaterVRDOM){#*/
+        VR_UpdateDOM(me);
+        /*#}else if(modules.updaterVDOM){#*/
+        V_UpdateDOM(me);
+        /*#}else if(modules.updaterDOM){#*/
+        I_UpdateDOM(me);
+        /*#}else{#*/
+        Partial_UpdateDOM(me, keys); //render
+        /*#}#*/
+
         return me;
     },
     /**

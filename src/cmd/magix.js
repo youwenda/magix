@@ -128,10 +128,14 @@ define('magix', /*#if(!modules.naked){#*/['$'],/*#}#*/ require => {
     /*#}#*/
     Inc('../tmpl/body');
     /*#if(modules.updater){#*/
-    /*#if(!modules.updaterVDOM&&!modules.updaterDOM){#*/
+    /*#if(!modules.updaterVDOM&&!modules.updaterDOM&&!modules.updaterVRDOM){#*/
     Inc('../tmpl/tmpl');
     /*#}#*/
-    /*#if(modules.updaterVDOM){#*/
+    /*#if(modules.updaterVRDOM){#*/
+    Inc('../tmpl/tovdom');
+    Inc('../tmpl/vrdom');
+    /*#}else if(modules.updaterVDOM){#*/
+    Inc('../tmpl/tovdom');
     Inc('../tmpl/vdom');
     /*#}else if(modules.updaterDOM){#*/
     Inc('../tmpl/dom');
