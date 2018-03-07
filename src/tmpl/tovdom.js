@@ -96,6 +96,8 @@ let TO_VDOM = input => {
                         } else if (key == G_MX_VIEW && value && !compareKey) {
                             //否则如果是组件,则使用组件的路径做为key
                             compareKey = G_ParseUri(value)[G_PATH];
+                        } else if (key == 'mxs') {
+                            if (!compareKey) compareKey = value;
                         }
                         attrs.push({
                             '@{~v#node.attrs.key}': key,
@@ -145,6 +147,10 @@ let TO_VDOM = input => {
                 '@{~v#node.html}': text
             };
             currentParent['@{~v#node.children}'].push(em);
+        }
+
+        if (last == current) {
+            break;
         }
         if (DEBUG) {
             if (last == current) {

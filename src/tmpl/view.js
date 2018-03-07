@@ -1,6 +1,8 @@
 let View_EvtMethodReg = /^(\$?)([^<]*)<([^>]+)>$/;
+/*#if(!modules.updaterVDOM&&!modules.updaterVRDOM&&!modules.updaterDOM){#*/
 let View_ScopeReg = /\x1f/g;
 let View_SetEventOwner = (str, id) => (str + G_EMPTY).replace(View_ScopeReg, id);
+/*#}#*/
 /*#if(modules.viewProtoMixins){#*/
 let processMixinsSameEvent = (exist, additional, temp) => {
     if (exist['@{view#list}']) {
@@ -392,9 +394,12 @@ G_Assign(ViewProto, MEvent, {
      *     }
      * });
      */
+    /*#if(!modules.updaterVDOM&&!modules.updaterVRDOM&&!modules.updaterDOM){#*/
     wrapEvent(html) {
+        /*#=(!modules.updaterVDOM&&!modules.updaterVRDOM&&!modules.updaterDOM)#*/
         return View_SetEventOwner(html, this.id);
     },
+    /*#}#*/
     /**
      * 通知当前view即将开始进行html的更新
      * @param {String} [id] 哪块区域需要更新，默认整个view
@@ -600,23 +605,23 @@ G_Assign(ViewProto, MEvent, {
     leaveTip(msg, fn) {
         let me = this;
         let changeListener = e => {
-            let flag = 'a', // a for router change
-                v = 'b'; // b for viewunload change
+            let a = '@{~tip#router.change}', // a for router change
+                b = '@{~tip#view.unload}'; // b for viewunload change
             if (e.type != G_CHANGE) {
-                flag = 'b';
-                v = 'a';
+                a = '@{~tip#view.unload}';
+                b = '@{~tip#router.change}';
             }
-            if (changeListener[flag]) {
+            if (changeListener[a]) {
                 e.prevent();
                 e.reject();
             } else if (fn()) {
                 e.prevent();
-                changeListener[v] = 1;
+                changeListener[b] = 1;
                 me.leaveConfirm(msg, () => {
-                    changeListener[v] = 0;
+                    changeListener[b] = 0;
                     e.resolve();
                 }, () => {
-                    changeListener[v] = 0;
+                    changeListener[b] = 0;
                     e.reject();
                 });
             } else {

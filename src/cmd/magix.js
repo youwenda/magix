@@ -106,6 +106,9 @@ define('magix', /*#if(!modules.naked){#*/['$'],/*#}#*/ require => {
     //let G_IsFunction = $.isFunction;
     Inc('../tmpl/router');
     /*#}#*/
+    /*#if(modules.router||modules.state){#*/
+    Inc('../tmpl/dispatcher');
+    /*#}#*/
     Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe&&!modules.naked){#*/
     $.fn.invokeView = function (name, args) {

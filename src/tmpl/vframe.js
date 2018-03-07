@@ -98,74 +98,6 @@ let Vframe_RemoveVframe = (id, fcc, vframe) => {
         /*#}#*/
     }
 };
-/*#if(modules.router||modules.state){#*/
-let Vframe_UpdateTag = 0;
-/**
- * 通知当前vframe，地址栏发生变化
- * @param {Vframe} vframe vframe对象
- * @private
- */
-let Vframe_Update = (vframe, /*#if(modules.state){#*/ stateKeys, /*#}#*/ view) => {
-    if (vframe && vframe['@{vframe#update.tag}'] != Vframe_UpdateTag && (view = vframe['@{vframe#view.entity}']) && view['@{view#sign}'] > 1) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
-        /*#if(modules.state&&modules.router){#*/
-        let isChanged = stateKeys ? State_IsObserveChanged(view, stateKeys) : View_IsObserveChanged(view);
-        /*#}else if(modules.state){#*/
-        let isChanged = State_IsObserveChanged(view, stateKeys);
-        /*#}else{#*/
-        let isChanged = View_IsObserveChanged(view);
-        /*#}#*/
-        /**
-         * 事件对象
-         * @type {Object}
-         * @ignore
-         */
-        /*let args = {
-                location: RefLoc,
-                changed: RefG_LocationChanged,*/
-        /**
-         * 阻止向所有的子view传递
-         * @ignore
-         */
-        /* prevent: function() {
-                    args.cs = EmptyArr;
-                },*/
-        /**
-         * 向特定的子view传递
-         * @param  {Array} c 子view数组
-         * @ignore
-         */
-        /*to: function(c) {
-                    c = (c + EMPTY).split(COMMA);
-                    args.cs = c;
-                }
-            };*/
-        if (isChanged) { //检测view所关注的相应的参数是否发生了变化
-            view['@{view#render.short}']();
-        }
-        let cs = vframe.children(),
-            c;
-        for (c of cs) {
-            Vframe_Update(Vframe_Vframes[c]/*#if(modules.state){#*/, stateKeys /*#}#*/);
-        }
-    }
-};
-/**
- * 向vframe通知地址栏发生变化
- * @param {Object} e 事件对象
- * @param {Object} e.location G_WINDOW.location.href解析出来的对象
- * @private
- */
-let Vframe_NotifyChange = e => {
-    let vf = Vframe_Root(),
-        view;
-    if ((view = e[Router_VIEW])) {
-        vf.mountView(view.to);
-    } else {
-        Vframe_UpdateTag = G_COUNTER++;
-        Vframe_Update(vf /*#if(modules.state){#*/, e.keys /*#}#*/);
-    }
-};
-/*#}#*/
 /**
  * Vframe类
  * @name Vframe
@@ -355,7 +287,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                     }
                     me['@{vframe#view.entity}'] = view;
                     /*#if(modules.router||modules.state){#*/
-                    me['@{vframe#update.tag}'] = Vframe_UpdateTag;
+                    me['@{vframe#update.tag}'] = Dispatcher_UpdateTag;
                     /*#}#*/
                     View_DelegateEvents(view);
                     /*#if(modules.viewInit){#*/

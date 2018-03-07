@@ -1,13 +1,13 @@
 //#snippet;
 //#uncheck = jsThis,jsLoop;
 //#exclude = loader,allProcessor;
-/*!3.8.3 Licensed MIT*/
+/*!3.8.4 Licensed MIT*/
 /*
 author:kooboy_li@163.com
 loader:module
-enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterVRDOM
+enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM
 
-optionals:updaterDOM,updaterVDOM,serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,share,mxViewAttr,keepHTML,eventEnterLeave,naked,vdom
+optionals:updaterVDOM,updaterVRDOM,serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,share,mxViewAttr,keepHTML,eventEnterLeave,naked,vdom
 */
 if (typeof DEBUG == 'undefined') window.DEBUG = true;
 let G_Type = (type) => o => Object.prototype.toString.call(o).slice(8, -1) == type;
@@ -27,6 +27,8 @@ let G_CHANGED = 'changed';
 let G_CHANGE = 'change';
 let G_PAGE_UNLOAD = 'pageunload';
 let G_VALUE = 'value';
+let G_Tag_Key = 'mxs';
+let G_Tag_Attr_Key = 'mxa';
 let G_HashKey = '#';
 let G_NOOP = function () { };
 
@@ -437,7 +439,7 @@ if (DEBUG) {
             }
             let key = getter + '\x01' + setter;
             let cached = ProxiesPool.get(data);
-            if (cached && 　cached.key == key) {
+            if (cached && cached.key == key) {
                 return cached.entity;
             }
             let build = (prefix, o) => {
@@ -688,9 +690,9 @@ let Magix = {
             G_Assign(Magix_Cfg, I, cfg);
             
             G_Require(Magix_Cfg.exts, () => {
-                Router.on(G_CHANGED, Vframe_NotifyChange);
+                Router.on(G_CHANGED, Dispatcher_NotifyChange);
                 
-                State.on(G_CHANGED, Vframe_NotifyChange);
+                State.on(G_CHANGED, Dispatcher_NotifyChange);
                 
                 Magix_Booted = 1;
                 Router_Bind();
@@ -1566,10 +1568,72 @@ let Router = {
 };
 Magix.Router = Router;
 
+
+let Dispatcher_UpdateTag = 0;
+/**
+ * 通知当前vframe，地址栏发生变化
+ * @param {Vframe} vframe vframe对象
+ * @private
+ */
+let Dispatcher_Update = (vframe,  stateKeys,  view, isChanged, cs, c) => {
+    if (vframe && vframe['$a'] != Dispatcher_UpdateTag && (view = vframe['$v']) && view['$a'] > 1) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
+        
+        isChanged = stateKeys ? State_IsObserveChanged(view, stateKeys) : View_IsObserveChanged(view);
+        
+        /**
+         * 事件对象
+         * @type {Object}
+         * @ignore
+         */
+        /*let args = {
+                location: RefLoc,
+                changed: RefG_LocationChanged,*/
+        /**
+         * 阻止向所有的子view传递
+         * @ignore
+         */
+        /* prevent: function() {
+                    args.cs = EmptyArr;
+                },*/
+        /**
+         * 向特定的子view传递
+         * @param  {Array} c 子view数组
+         * @ignore
+         */
+        /*to: function(c) {
+                    c = (c + EMPTY).split(COMMA);
+                    args.cs = c;
+                }
+            };*/
+        if (isChanged) { //检测view所关注的相应的参数是否发生了变化
+            view['$b']();
+        }
+        cs = vframe.children();
+        for (c of cs) {
+            Dispatcher_Update(Vframe_Vframes[c], stateKeys );
+        }
+    }
+};
+/**
+ * 向vframe通知地址栏发生变化
+ * @param {Object} e 事件对象
+ * @param {Object} e.location G_WINDOW.location.href解析出来的对象
+ * @private
+ */
+let Dispatcher_NotifyChange = (e, vf, view) => {
+    vf = Vframe_Root();
+    if ((view = e[Router_VIEW])) {
+        vf.mountView(view.to);
+    } else {
+        Dispatcher_UpdateTag = G_COUNTER++;
+        Dispatcher_Update(vf , e.keys );
+    }
+};
+
 let Vframe_RootVframe;
 let Vframe_GlobalAlter;
 let Vframe_NotifyCreated = vframe => {
-    if (!vframe['$a'] && !vframe['$b'] && vframe['$cc'] == vframe['$rc']) { //childrenCount === readyCount
+    if (!vframe['$b'] && !vframe['$d'] && vframe['$cc'] == vframe['$rc']) { //childrenCount === readyCount
         if (!vframe['$cr']) { //childrenCreated
             vframe['$cr'] = 1; //childrenCreated
             vframe['$ca'] = 0; //childrenAlter
@@ -1577,8 +1641,8 @@ let Vframe_NotifyCreated = vframe => {
         }
         let p, { id, pId } = vframe;
         p = Vframe_Vframes[pId];
-        if (p && !G_Has(p['$d'], id)) { //readyChildren
-            p['$d'][id] = 1; //readyChildren
+        if (p && !G_Has(p['$e'], id)) { //readyChildren
+            p['$e'][id] = 1; //readyChildren
             p['$rc']++; //readyCount
             Vframe_NotifyCreated(p);
         }
@@ -1592,9 +1656,9 @@ let Vframe_NotifyAlter = (vframe, e) => {
         let p, { id, pId } = vframe;
         //let vom = vframe.owner;
         p = Vframe_Vframes[pId];
-        if (p && G_Has(p['$d'], id)) { //readyMap
+        if (p && G_Has(p['$e'], id)) { //readyMap
             p['$rc']--; //readyCount
-            delete p['$d'][id]; //readyMap
+            delete p['$e'][id]; //readyMap
             Vframe_NotifyAlter(p, e);
         }
     }
@@ -1637,7 +1701,7 @@ let Vframe_AddVframe = (id, vframe) => {
 };
 
 let Vframe_RunInvokes = (vf, list, o) => {
-    list = vf['$e']; //invokeList
+    list = vf['$f']; //invokeList
     while (list.length) {
         o = list.shift();
         if (!o.r) { //remove
@@ -1666,70 +1730,6 @@ let Vframe_RemoveVframe = (id, fcc, vframe) => {
         
     }
 };
-
-let Vframe_UpdateTag = 0;
-/**
- * 通知当前vframe，地址栏发生变化
- * @param {Vframe} vframe vframe对象
- * @private
- */
-let Vframe_Update = (vframe,  stateKeys,  view) => {
-    if (vframe && vframe['$f'] != Vframe_UpdateTag && (view = vframe['$v']) && view['$a'] > 1) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
-        
-        let isChanged = stateKeys ? State_IsObserveChanged(view, stateKeys) : View_IsObserveChanged(view);
-        
-        /**
-         * 事件对象
-         * @type {Object}
-         * @ignore
-         */
-        /*let args = {
-                location: RefLoc,
-                changed: RefG_LocationChanged,*/
-        /**
-         * 阻止向所有的子view传递
-         * @ignore
-         */
-        /* prevent: function() {
-                    args.cs = EmptyArr;
-                },*/
-        /**
-         * 向特定的子view传递
-         * @param  {Array} c 子view数组
-         * @ignore
-         */
-        /*to: function(c) {
-                    c = (c + EMPTY).split(COMMA);
-                    args.cs = c;
-                }
-            };*/
-        if (isChanged) { //检测view所关注的相应的参数是否发生了变化
-            view['$b']();
-        }
-        let cs = vframe.children(),
-            c;
-        for (c of cs) {
-            Vframe_Update(Vframe_Vframes[c], stateKeys );
-        }
-    }
-};
-/**
- * 向vframe通知地址栏发生变化
- * @param {Object} e 事件对象
- * @param {Object} e.location G_WINDOW.location.href解析出来的对象
- * @private
- */
-let Vframe_NotifyChange = e => {
-    let vf = Vframe_Root(),
-        view;
-    if ((view = e[Router_VIEW])) {
-        vf.mountView(view.to);
-    } else {
-        Vframe_UpdateTag = G_COUNTER++;
-        Vframe_Update(vf , e.keys );
-    }
-};
-
 /**
  * Vframe类
  * @name Vframe
@@ -1764,9 +1764,9 @@ let Vframe = function (id, pId, me) {
     me['$cc'] = 0; //childrenCount
     me['$rc'] = 0; //readyCount
     me['$g'] = 1; //signature
-    me['$d'] = {}; //readyMap
+    me['$e'] = {}; //readyMap
     
-    me['$e'] = []; //invokeList
+    me['$f'] = []; //invokeList
     
     me.pId = pId;
     Vframe_AddVframe(id, me);
@@ -1828,7 +1828,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
         }
         
         me.unmountView(/*keepPreHTML*/);
-        me['$a'] = 0; //destroyed 详见unmountView
+        me['$b'] = 0; //destroyed 详见unmountView
         if (node && viewPath) {
             me[G_PATH] = viewPath;
             po = G_ParseUri(viewPath);
@@ -1888,7 +1888,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                     }
                     me['$v'] = view;
                     
-                    me['$f'] = Vframe_UpdateTag;
+                    me['$a'] = Dispatcher_UpdateTag;
                     
                     View_DelegateEvents(view);
                     
@@ -1917,7 +1917,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
         let { '$v': v, id } = me,
             node, reset;
         
-        me['$e'] = []; //invokeList 销毁当前view时，连同调用列表一起销毁
+        me['$f'] = []; //invokeList 销毁当前view时，连同调用列表一起销毁
         
         if (v) {
             if (!Vframe_GlobalAlter) {
@@ -1926,7 +1926,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                     id
                 };
             }
-            me['$a'] = 1; //用于标记当前vframe处于$v销毁状态，在当前vframe上再调用unmountZone时不派发created事件
+            me['$b'] = 1; //用于标记当前vframe处于$v销毁状态，在当前vframe上再调用unmountZone时不派发created事件
             me.unmountZone(0, 1);
             Vframe_NotifyAlter(me, Vframe_GlobalAlter);
 
@@ -2031,7 +2031,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
             不过就展现来讲，一般是不会出现嵌套的情况，出现的话，把里面有层级的vframe都挂到body上也未尝不可，比如brix2.0
          */
 
-        me['$b'] = 1; //hold fire creted
+        me['$d'] = 1; //hold fire creted
         //me.unmountZone(zoneId, 1); 不去清理，详情见：https://github.com/thx/magix/issues/27
         
         
@@ -2051,7 +2051,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                 me.mountVframe(vfs[id] = id, vf);
             }
         }
-        me['$b'] = 0;
+        me['$d'] = 0;
         if (!inner) {
             Vframe_NotifyCreated(me);
         }
@@ -2070,7 +2070,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
             let { '$cr': cr, pId } = vf;
             vf.unmountView(/*keepPreHTML*/);
             Vframe_RemoveVframe(id, cr);
-            vf.id = vf.pId = vf['$c'] = vf['$d'] = 0; //清除引用,防止被移除的view内部通过setTimeout之类的异步操作有关的界面，影响真正渲染的view
+            vf.id = vf.pId = vf['$c'] = vf['$e'] = 0; //清除引用,防止被移除的view内部通过setTimeout之类的异步操作有关的界面，影响真正渲染的view
             
             vf['$h'] = 0;
             
@@ -2148,7 +2148,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
     invoke(name, args) {
         let result;
         let vf = this,
-            view, fn, o, list = vf['$e'],
+            view, fn, o, list = vf['$f'],
             key;
         if ((view = vf['$v']) && view['$f']) { //view rendered
             result = (fn = view[name]) && G_ToTry(fn, args, view);
@@ -2419,167 +2419,65 @@ let Body_DOMEventBind = (type, searchSelector, remove) => {
 
 
 
-let TO_VDOM_SELF_CLOSE = {
-    input: 1,
-    br: 1,
-    hr: 1,
-    img: 1,
-    embed: 1,
-    source: 1,
-    area: 1,
-    param: 1,
-    col: 1,
-    track: 1,
-    wbr: 1
-};
-let TO_VDOM_SPECIAL_PROPS = {
-    input: [G_VALUE, 'checked'],
-    textarea: [G_VALUE],
-    option: ['selected']
-};
+/*
+2017.8.1
+    直接应用节点对比方案，需要解决以下问题
+    1.　view销毁问题，节点是边对比边销毁或新增，期望是view先统一销毁，然后再统一渲染
+    2.　需要识别view内的节点变化，如
+        <div mx-viwe="app/view">
+            <%for(let i=0;i<count;i++){%>
+                <span><%=i%></span>
+            <%}%>
+        </div>
+        从外层的div看，并没有变化，但是内部的节点发生了变化，该view仍然需要销毁
+2018.1.10
+    组件情况：
+    1. 组件带模板，最常见的情况
+    2. 组件带模板，还有可能访问dom节点，如<mx-dropdown><i value="1">星期一</i></mx-dropdown>
+    3. 组件没有模板
+    
 
-let TO_VDOM_TEXT_NODE = '#text';
+    组件前后数据是否一致，通过JSON.stringify序列化比较
+    比较组件节点内的html片断是否变化
 
-if (DEBUG) {
-    TO_VDOM_TEXT_NODE = '#text';
-}
-let TO_VDOM_OpenReg = /^<([a-z\d]+)((?:\s+[-A-Za-z\d_]+(?:="[^"]*")?)*)\s*(\/?)>/,
-    TO_VDOM_AttrReg = /([-A-Za-z\d_]+)(?:="([^"]*)")?/g,
-    TO_VDOM_CloseReg = /^<\/[a-z\d+]+>/;
+    渲染情况：
+    1.　通过标签渲染
+    2.　动态渲染
+ */
 
-let TO_VDOM_UnescapeMap = {};
-let TO_VDOM_UnescapeReg = /&#?[^\W]+;?/g;
-let TO_VDOM_Temp = G_DOCUMENT.createElement('div');
-let TO_VDOM_UnescapeCallback = m => {
-    if (!G_Has(TO_VDOM_UnescapeMap, m)) {
-        TO_VDOM_Temp.innerHTML = m;
-        TO_VDOM_UnescapeMap[m] = TO_VDOM_Temp.innerText;
-    }
-    return TO_VDOM_UnescapeMap[m];
-};
-let TO_VDOM_Unescape = str => str.replace(TO_VDOM_UnescapeReg, TO_VDOM_UnescapeCallback);
-let TO_VDOM = input => {
-    let count = input.length,
-        current = 0,
-        last = 0,
-        chars,
-        currentParent = {
-            'a': [],
-            'b': input
-        },
-        index,
-        temp,
-        match,
-        tag,
-        attrs,
-        stack = [currentParent],
-        em,
-        amap,
-        text,
-        unary,
-        compareKey;//新旧vnode的比较key
-    while (current < count) {
-        chars = 1;
-        temp = input.slice(current);
-        if (temp[0] == '<') {
-            if (temp[1] == '/') {
-                match = temp.match(TO_VDOM_CloseReg);
-                if (match) {
-                    em = stack.pop();
-                    attrs = input.slice(em['c'], current);
-                    if (em['d'] == 'textarea') {
-                        em['e'].push({
-                            'f': G_VALUE,
-                            'g': attrs
-                        });
-                        em['h'][G_VALUE] = attrs;
-                        em['a'] = G_EMPTY_ARRAY;
-                    } else {
-                        em['b'] = attrs;
-                    }
-                    currentParent = stack[stack.length - 1];
-                    current += match[0].length;
-                    chars = 0;
-                }
-            } else {
-                match = temp.match(TO_VDOM_OpenReg);
-                if (match) {
-                    tag = match[1];
-                    attrs = [];
-                    amap = {};
-                    compareKey = G_EMPTY;
-                    match[2].replace(TO_VDOM_AttrReg, (m, key, value) => {
-                        value = value || G_EMPTY;
-                        if (key == 'id') {//如果有id优先使用
-                            compareKey = value;
-                        } else if (key == G_MX_VIEW && value && !compareKey) {
-                            //否则如果是组件,则使用组件的路径做为key
-                            compareKey = G_ParseUri(value)[G_PATH];
-                        }
-                        attrs.push({
-                            'f': key,
-                            'g': value
-                        });
-                        amap[key] = value;
-                    });
-                    current += match[0].length;
-                    unary = match[3] || G_Has(TO_VDOM_SELF_CLOSE, tag);
-                    if (DEBUG) {
-                        if (TO_VDOM_SELF_CLOSE[tag] && !match[3]) {
-                            console.error('avoid use tag:' + tag + ' without self close slash. near:' + match[0]);
-                        }
-                    }
-                    em = {
-                        'i': compareKey,
-                        'd': tag,
-                        'e': attrs,
-                        'h': amap,
-                        'a': [],
-                        'c': current
-                    };
-                    currentParent['a'].push(em);
-                    if (unary) {
-                        em['j'] = 1;
-                    } else {
-                        stack.push(em);
-                        if (DEBUG) {
-                            stack[stack.length - 1]['k'] = current - match[0].length;
-                        }
-                        currentParent = em;
-                    }
-                    chars = 0;
-                }
-            }
-        }
-        if (chars) {
-            index = temp.indexOf('<');
-            if (index < 0) {
-                text = temp;
-            } else {
-                text = temp.substring(0, index);
-            }
-            current += text.length;
-            em = {
-                'd': TO_VDOM_TEXT_NODE,
-                'b': text
-            };
-            currentParent['a'].push(em);
-        }
-        if (DEBUG) {
-            if (last == current) {
-                throw new Error('bad input:' + temp);
-            }
-            last = current;
-        }
-    }
-    if (DEBUG && stack.length > 1) {
-        throw new Error('parsing failure:' + input);
-    }
-    return currentParent;
+//https://github.com/DylanPiercey/set-dom/blob/master/src/index.js
+//https://github.com/patrick-steele-idem/morphdom
+let I_SVGNS = 'http://www.w3.org/2000/svg';
+let I_WrapMap = {
+
+    // Support: IE <=9 only
+    option: [1, '<select multiple>'],
+
+    // XHTML parsers do not magically insert elements in the
+    // same way that tag soup parsers do. So we cannot shorten
+    // this by omitting <tbody> or other required elements.
+    thead: [1, '<table>'],
+    col: [2, '<table><colgroup>'],
+    tr: [2, '<table><tbody>'],
+    td: [3, '<table><tbody><tr>'],
+    area: [1, '<map>'],
+    param: [1, '<object>'],
+    g: [1, `<svg xmlns="${I_SVGNS}">`],
+    all: [0, '']
 };
 
+let I_RTagName = /<([a-z][^\/\0>\x20\t\r\n\f]+)/i;
+// Support: IE <=9 only
+I_WrapMap.optgroup = I_WrapMap.option;
 
-let VR_UnmountVframs = (vf, n) => {
+I_WrapMap.tbody = I_WrapMap.tfoot = I_WrapMap.colgroup = I_WrapMap.caption = I_WrapMap.thead;
+I_WrapMap.th = I_WrapMap.td;
+let I_Doc = G_DOCUMENT.implementation.createHTMLDocument(G_EMPTY);
+let I_Base = I_Doc.createElement('base');
+I_Base.href = G_DOCUMENT.location.href;
+I_Doc.head.appendChild(I_Base);
+
+let I_UnmountVframs = (vf, n) => {
     let id = IdIt(n);
     if (vf['$c'][id]) {
         vf.unmountVframe(id, 1);
@@ -2587,116 +2485,153 @@ let VR_UnmountVframs = (vf, n) => {
         vf.unmountZone(id, 1);
     }
 };
-let VR_SetAttributes = (oldNode, newVDOM, ref, keepId) => {
-    let c, key, value, i, tag = newVDOM['d'];
-    let oldAttributes = oldNode.attributes, nMap = newVDOM['h'];
-    // Remove old attributes.
+let I_GetNode = (html, node) => {
+    let tmp = I_Doc.createElement('div');
+    // Deserialize a standard representation
+    let tag = I_SVGNS == node.namespaceURI ? 'g' : (I_RTagName.exec(html) || [0, ''])[1].toLowerCase();
+    let wrap = I_WrapMap[tag] || I_WrapMap.all;
+    tmp.innerHTML = wrap[1] + html;
+
+    // Descend through wrappers to the right content
+    let j = wrap[0];
+    while (j--) {
+        tmp = tmp.lastChild;
+    }
+    return tmp;
+};
+//https://github.com/patrick-steele-idem/morphdom/blob/master/src/specialElHandlers.js
+let I_Specials = {
+    INPUT: [G_VALUE, 'checked'],
+    TEXTAREA: [G_VALUE],
+    OPTION: ['selected']
+};
+let I_SetAttributes = (oldNode, newNode, ref, keepId) => {
+    let a, i, key, value;
+    let oldAttributes = oldNode.attributes,
+        newAttributes = newNode.attributes,
+        nodeName = oldNode.nodeName;
     for (i = oldAttributes.length; i--;) {
-        key = oldAttributes[i].name;
-        if (!G_Has(nMap, key)) {
-            if (key == 'id') {
+        a = oldAttributes[i].name;
+        if (!newNode.getAttribute(a)) {
+            if (a == 'id') {
                 if (!keepId) {
-                    ref.d.push([oldNode, G_EMPTY]);
+                    ref.d.push([oldNode, '']);
                 }
             } else {
                 ref.c = 1;
-                oldNode.removeAttribute(key);
+                oldNode.removeAttribute(a);
             }
         }
     }
-    for (c of newVDOM['e']) {
-        key = c['f'];
-        value = TO_VDOM_Unescape(c['g']);
-        if (key == 'id') {
-            ref.d.push([oldNode, value]);
-        } else if (oldNode.getAttribute(key) != value) {
-            ref.c = 1;
-            oldNode.setAttribute(key, value);
-        }
-    }
 
-    let specials = TO_VDOM_SPECIAL_PROPS[tag];
-    if (specials) {
-        for (c of specials) {
-            oldNode[c] = G_Has(nMap, c) ? c != G_VALUE || nMap[c] : c == G_VALUE && G_EMPTY;
-        }
-    }
-};
-
-let VR_SVGNS = 'http://www.w3.org/2000/svg';
-let VR_CreateNode = (vnode, owner, ref, c, tag) => {
-    tag = vnode['d'];
-    if (tag == TO_VDOM_TEXT_NODE) {
-        return G_DOCUMENT.createTextNode(vnode['b']);
-    }
-    c = G_DOCUMENT.createElementNS(tag == 'svg' ? VR_SVGNS : owner.namespaceURI, tag);
-    VR_SetAttributes(c, vnode, ref);
-    c.innerHTML = vnode['b'];
-    return c;
-};
-let VR_SetChildNodes = (realNode, newVDOM, ref, vframe, data) => {
-    let oldCount, newCount, i, oldChildren, newChildren, oc, nc, oldNode,
-        compareKey, keyedNodes = {}, vf;
-    oldChildren = realNode.childNodes;
-    oldCount = oldChildren.length;
-    newChildren = newVDOM['a'];
-    newCount = newChildren.length;
-    for (i = 0; i < oldCount; i++) {
-        oc = oldChildren[i];
-        compareKey = oc.id;
-        if (oc['$a']) {
-            vf = Vframe_Vframes[compareKey];
-            compareKey = vf && vf['$n'];
-        }
-        if (compareKey) {
-            compareKey = keyedNodes[compareKey] || (keyedNodes[compareKey] = []);
-            compareKey.push(oc);
-        }
-    }
-
-    for (i = 0; i < newCount; i++) {
-        oc = oldChildren[i];
-        nc = newChildren[i];
-        compareKey = keyedNodes[nc['i']];
-        if (compareKey && (compareKey = compareKey.shift())) {
-            if (compareKey != oc) {//如果找到的节点和当前不同，则移动
-                realNode.insertBefore(compareKey, oc);
-            }
-            VR_SetNode(compareKey, realNode, nc, ref, vframe, data);
-        } else if (oc) {//有旧节点，则更新
-            if (keyedNodes[oc['i']]) {
-                //oldChildren.splice(i, 0, nc);//插入一个占位符，在接下来的比较中才能一一对应
-                oldCount++;
-                ref.c = 1;
-                realNode.insertBefore(VR_CreateNode(nc, realNode, ref), oc);
+    // Set new attributes.
+    for (i = newAttributes.length; i--;) {
+        a = newAttributes[i];
+        key = a.name;
+        value = a[G_VALUE];
+        if (oldNode.getAttribute(key) != value) {
+            if (key == 'id') {
+                ref.d.push([oldNode, value]);
             } else {
-                VR_SetNode(oc, realNode, nc, ref, vframe, data);
+                ref.c = 1;
+                oldNode.setAttribute(key, value);
             }
-        } else {//添加新的节点
-            realNode.appendChild(VR_CreateNode(nc, realNode, ref));
+        }
+    }
+
+    let specials = I_Specials[nodeName];
+    if (specials) {
+        for (i of specials) {
+            if (oldNode[i] != newNode[i]) {//浏览器必须激活
+                oldNode[i] = newNode[i];
+            }
+        }
+    }
+};
+
+let I_GetCompareKey = (node, key, vf) => {
+    key = node['$a'] ? G_EMPTY : node.id;
+    if (!key && node.nodeType == 1) {
+        key = node.getAttribute(G_Tag_Key) || (vf = Vframe_Vframes[key], vf && vf['$n']);
+    }
+    return key;
+};
+
+let I_SetChildNodes = (oldParent, newParent, ref, vframe, data) => {
+    let oldNode = oldParent.lastChild;
+    let newNode = newParent.firstChild;
+    let tempNew, tempOld, extra = 0, nodeKey, foundNode, keyedNodes = {};
+    // Extract keyed nodes from previous children and keep track of total count.
+    while (oldNode) {
+        extra++;
+        tempOld = oldNode;
+        nodeKey = I_GetCompareKey(tempOld);
+        oldNode = oldNode.previousSibling;
+        if (nodeKey) {
+            nodeKey = keyedNodes[nodeKey] || (keyedNodes[nodeKey] = []);
+            nodeKey.push(tempOld);
+        }
+    }
+    oldNode = oldParent.firstChild;
+    while (newNode) {
+        extra--;
+        tempNew = newNode;
+        newNode = newNode.nextSibling;
+        nodeKey = I_GetCompareKey(tempNew);
+        foundNode = keyedNodes[nodeKey];
+        if (foundNode && (foundNode = foundNode.pop())) {
+            if (foundNode != oldNode) {//如果找到的节点和当前不同，则移动
+                oldParent.insertBefore(foundNode, oldNode);
+            } else {
+                oldNode = oldNode.nextSibling;
+            }
+            I_SetNode(foundNode, tempNew, oldParent, ref, vframe, data);
+        } else if (oldNode) {
+            tempOld = oldNode;
+            nodeKey = I_GetCompareKey(tempOld);
+            if (nodeKey && keyedNodes[nodeKey]) {
+                extra++;
+                ref.c = 1;
+                // If the old child had a key we skip over it until the end.
+                oldParent.insertBefore(tempNew, tempOld);
+            } else {
+                oldNode = oldNode.nextSibling;
+                // Otherwise we diff the two non-keyed nodes.
+                I_SetNode(tempOld, tempNew, oldParent, ref, vframe, data);
+            }
+        } else {
+            // Finally if there was no old node we add the new node.
+            oldParent.appendChild(tempNew);
             ref.c = 1;
         }
     }
-    for (i = newCount; i < oldCount; i++) {
-        oldNode = realNode.lastChild;//删除多余的旧节点
-        VR_UnmountVframs(vframe, oldNode);
-        realNode.removeChild(oldNode);
+
+    // If we have any remaining unkeyed nodes remove them from the end.
+    while (extra-- > 0) {
+        tempOld = oldParent.lastChild;
+        I_UnmountVframs(vframe, tempOld);
+        oldParent.removeChild(tempOld);
         ref.c = 1;
     }
 };
 
-let VR_SetNode = (realNode, oldParent, newVDOM, ref, vframe, data) => {
-    let tag = realNode.nodeName.toLowerCase();
-    if (tag == newVDOM['d']) {
-        if (tag == TO_VDOM_TEXT_NODE) {
-            if (realNode.nodeValue != newVDOM['b']) {
-                realNode.nodeValue = TO_VDOM_Unescape(newVDOM['b']);
+let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data) => {
+    if (oldNode.nodeName === newNode.nodeName) {
+        // Handle regular element node updates.
+        if (oldNode.nodeType === 1) {
+            let staticKey = oldNode.getAttribute(G_Tag_Key);
+            if (staticKey && staticKey == newNode.getAttribute(G_Tag_Key)) {
+                //console.log('skip node update', staticKey);
+                return;
             }
-        } else {
-            let newMxView = newVDOM['h'][G_MX_VIEW],
-                newHTML = newVDOM['b'];
-            let updateAttribute, updateChildren, unmountOld,
-                oldVf = Vframe_Vframes[realNode.id],
+            // If we have the same nodename then we can directly update the attributes.
+
+            let newMxView = newNode.getAttribute(G_MX_VIEW),
+                newHTML = newNode.innerHTML;
+            let oldStaticAttrKey = oldNode.getAttribute(G_Tag_Attr_Key);
+            let updateAttribute = !oldStaticAttrKey ||
+                oldStaticAttrKey != newNode.getAttribute(G_Tag_Attr_Key), updateChildren, unmountOld,
+                oldVf = Vframe_Vframes[oldNode.id],
                 assign, needUpdate,
                 view, uri, params, htmlChanged/*, 
                     oldDataStringify, newDataStringify,dataChanged*/;
@@ -2710,11 +2645,9 @@ let VR_SetNode = (realNode, oldParent, newVDOM, ref, vframe, data) => {
                 htmlChanged = newHTML != oldVf['$i'];
                 needUpdate = newMxView.indexOf('?') > 0 || htmlChanged;
             }
-            //旧节点有view,新节点有view,且是同类型的view
             if (newMxView && oldVf &&
                 oldVf['$n'] == uri[G_PATH]) {
                 if (needUpdate) {
-                    //如果有assign方法,且有参数或html变化
                     if (assign) {
                         params = uri[G_PARAMS];
                         //处理引用赋值
@@ -2724,16 +2657,18 @@ let VR_SetNode = (realNode, oldParent, newVDOM, ref, vframe, data) => {
                         oldVf['$i'] = newHTML;
                         //oldVf['$j'] = newDataStringify;
                         oldVf[G_PATH] = newMxView;//update ref
-                        //如果需要更新，则进行更新的操作
                         uri = {
-                            inner: newHTML,
-                            deep: !view['$e'],//无模板的组件深入比较子节点,
+                            node: newNode,
+                            deep: !view['$e'],//无模板的组件深入比较子节点
                             //data: dataChanged,
                             html: htmlChanged
                         };
-                        VR_SetAttributes(realNode, newVDOM, ref, 1);
+                        if (updateAttribute) {
+                            updateAttribute = G_EMPTY;
+                            I_SetAttributes(oldNode, newNode, ref, 1);
+                        }
                         if (G_ToTry(assign, [params, uri], view)) {
-                            view['$b']();
+                            ref.v.push(view);
                         }
                         //默认当一个组件有assign方法时，由该方法及该view上的render方法完成当前区域内的节点更新
                         //而对于不渲染界面的控制类型的组件来讲，它本身更新后，有可能需要继续由magix更新内部的子节点，此时通过deep参数控制
@@ -2741,11 +2676,9 @@ let VR_SetNode = (realNode, oldParent, newVDOM, ref, vframe, data) => {
                     } else {
                         unmountOld = 1;
                         updateChildren = 1;
-                        updateAttribute = 1;
                     }
                 }
             } else {
-                updateAttribute = 1;
                 updateChildren = 1;
                 unmountOld = oldVf;
             }
@@ -2753,40 +2686,41 @@ let VR_SetNode = (realNode, oldParent, newVDOM, ref, vframe, data) => {
                 oldVf.unmountVframe(0, 1);
             }
             if (updateAttribute) {
-                //ref.c = 1;
-                VR_SetAttributes(realNode, newVDOM, ref, oldVf && newMxView);
+                if (unmountOld) ref.c = 1;
+                I_SetAttributes(oldNode, newNode, ref, oldVf && newMxView);
             }
             // Update all children (and subchildren).
-            //自闭合标签不再检测子节点
             if (updateChildren) {
                 //ref.c = 1;
-                VR_SetChildNodes(realNode, newVDOM, ref, vframe, data);
+                I_SetChildNodes(oldNode, newNode, ref, vf, data);
             }
+        } else if (oldNode.nodeValue !== newNode.nodeValue) {
+            oldNode.nodeValue = newNode.nodeValue;
         }
     } else {
-        VR_UnmountVframs(vframe, realNode);
-        oldParent.replaceChild(VR_CreateNode(newVDOM, oldParent, ref), realNode);
+        // we have to replace the node.
+        I_UnmountVframs(vf, oldNode);
+        oldParent.replaceChild(newNode, oldNode);
         ref.c = 1;
     }
 };
-let VR_UpdateDOM = updater => {
+let I_UpdateDOM = (updater) => {
     let selfId = updater['$b'];
     let vf = Vframe_Vframes[selfId];
     let data = updater['$a'];
     let view = vf && vf['$v'],
-        ref = { d: [] },
+        ref = { d: [], v: [] },
         node = G_GetById(selfId),
-        tmpl, html, x,
-        vdom;
+        tmpl, html, x;
     if (view && view['$a'] > 0 && (tmpl = view['$e'])) {
-        console.time('[vdom time:' + selfId + ']');
-        console.time('[vdom html to vdom:' + selfId + ']');
-        html = View_SetEventOwner(tmpl(data), selfId);
-        vdom = TO_VDOM(html);
-        console.timeEnd('[vdom html to vdom:' + selfId + ']');
-        VR_SetChildNodes(node, vdom, ref, vf, data);
+        console.time('[dom time:' + selfId + ']');
+        html = tmpl(data, selfId);
+        I_SetChildNodes(node, I_GetNode(html, node), ref, vf, data);
         for (x of ref.d) {
             x[0].id = x[1];
+        }
+        for (x of ref.v) {
+            x['$b']();
         }
         if (ref.c) {
             view.endUpdate(selfId);
@@ -2796,9 +2730,9 @@ let VR_UpdateDOM = updater => {
             });
             
         }
+        view.fire('domready');
+        console.timeEnd('[dom time:' + selfId + ']');
     }
-    view.fire('domready');
-    console.timeEnd('[vdom time:' + selfId + ']');
 };
 
 /**
@@ -2894,13 +2828,13 @@ G_Assign(Updater[G_PROTOTYPE], {
      *     }).digest();
      * }
      */
-    digest(data, keys) {
+    digest(data) {
         let me = this;
         me.set(data);
         
 
         
-        VR_UpdateDOM(me);
+        I_UpdateDOM(me);
         
 
         return me;
@@ -2963,8 +2897,7 @@ G_Assign(Updater[G_PROTOTYPE], {
 });
 
 let View_EvtMethodReg = /^(\$?)([^<]*)<([^>]+)>$/;
-let View_ScopeReg = /\x1f/g;
-let View_SetEventOwner = (str, id) => (str + G_EMPTY).replace(View_ScopeReg, id);
+
 
 let processMixinsSameEvent = (exist, additional, temp) => {
     if (exist['$h']) {
@@ -3348,9 +3281,7 @@ G_Assign(ViewProto, MEvent, {
      *     }
      * });
      */
-    wrapEvent(html) {
-        return View_SetEventOwner(html, this.id);
-    },
+    
     /**
      * 通知当前view即将开始进行html的更新
      * @param {String} [id] 哪块区域需要更新，默认整个view
@@ -3550,23 +3481,23 @@ G_Assign(ViewProto, MEvent, {
     leaveTip(msg, fn) {
         let me = this;
         let changeListener = e => {
-            let flag = 'a', // a for router change
-                v = 'b'; // b for viewunload change
+            let a = 'a', // a for router change
+                b = 'b'; // b for viewunload change
             if (e.type != G_CHANGE) {
-                flag = 'b';
-                v = 'a';
+                a = 'b';
+                b = 'a';
             }
-            if (changeListener[flag]) {
+            if (changeListener[a]) {
                 e.prevent();
                 e.reject();
             } else if (fn()) {
                 e.prevent();
-                changeListener[v] = 1;
+                changeListener[b] = 1;
                 me.leaveConfirm(msg, () => {
-                    changeListener[v] = 0;
+                    changeListener[b] = 0;
                     e.resolve();
                 }, () => {
-                    changeListener[v] = 0;
+                    changeListener[b] = 0;
                     e.reject();
                 });
             } else {

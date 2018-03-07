@@ -208,9 +208,9 @@ let Magix = {
             G_Assign(Magix_Cfg, I, cfg);
             /*#}#*/
             G_Require(Magix_Cfg.exts, () => {
-                Router.on(G_CHANGED, Vframe_NotifyChange);
+                Router.on(G_CHANGED, Dispatcher_NotifyChange);
                 /*#if(modules.state){#*/
-                State.on(G_CHANGED, Vframe_NotifyChange);
+                State.on(G_CHANGED, Dispatcher_NotifyChange);
                 /*#}#*/
                 Magix_Booted = 1;
                 Router_Bind();
@@ -225,7 +225,7 @@ let Magix = {
         G_Require(Magix_Cfg.exts, () => {
             Vframe_Root().mountView(Magix_Cfg.defaultView);
             /*#if(modules.state){#*/
-            State.on(G_CHANGED, Vframe_NotifyChange);
+            State.on(G_CHANGED, Dispatcher_NotifyChange);
             /*#}#*/
         });
     },

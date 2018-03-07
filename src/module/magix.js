@@ -71,6 +71,9 @@ Inc('../tmpl/state');
 //let G_IsFunction = $.isFunction;
 Inc('../tmpl/router');
 /*#}#*/
+/*#if(modules.router||modules.state){#*/
+Inc('../tmpl/dispatcher');
+/*#}#*/
 Inc('../tmpl/vframe');
 Inc('../tmpl/body');
 /*#if(modules.updater){#*/

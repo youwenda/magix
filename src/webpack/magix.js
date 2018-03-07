@@ -104,6 +104,9 @@ module.exports = (() => {
     /*#if(modules.mxViewAttr){#*/
     let G_Trim = $.trim;
     /*#}#*/
+    /*#if(modules.router||modules.state){#*/
+    Inc('../tmpl/dispatcher');
+    /*#}#*/
     Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe){#*/
     $.fn.invokeView = function (name, args) {

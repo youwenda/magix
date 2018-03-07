@@ -13,6 +13,8 @@ let G_CHANGED = 'changed';
 let G_CHANGE = 'change';
 let G_PAGE_UNLOAD = 'pageunload';
 let G_VALUE = 'value';
+let G_Tag_Key = 'mxs';
+let G_Tag_Attr_Key = 'mxa';
 let G_HashKey = '#';
 let G_NOOP = function () { };
 /*#if(modules.service||modules.updater){#*/

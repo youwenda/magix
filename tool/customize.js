@@ -4,6 +4,8 @@ let rs = require('./lib/rs');
 let tmpl = require('./lib/tmpl');
 var pkg = require('../package.json');
 let sep = path.sep;
+let modulesReg = /\/\/#modules\s*=\s*([^\r\n]+)/;
+let incReg = /Inc\((['"])(.+)\1\);*/g;
 let modules = {
     base: 1, //base模块
     style: 1, //是否有样式处理
@@ -11,7 +13,7 @@ let modules = {
     updater: 1, //自动更新
     updaterDOM: 1, //dom增量更新
     updaterVDOM: 1,//v-dom增量更新
-    updaterVRDOM:1,//v-r-dom
+    updaterVRDOM: 1,//v-r-dom
 
     service: 1, //接口服务
     serviceCombine: 1, //接口combine
@@ -83,27 +85,39 @@ let copyFile = (from, to, callback) => {
     fs.writeFileSync(to, content);
 };
 module.exports = (options, es3) => {
-    let map = {};
-    let others = [];
     let enableModules = options.enableModules;
     let loaderType = options.loaderType || 'unknown';
     let tmplFile = options.tmplFile;
     let aimFile = options.aimFile;
-    enableModules.split(',').forEach(function (m) {
-        m = m.trim();
-        map[m] = 1;
-        if (m == 'service') {
-            m = 'ceach';
+    let getModules = m => {
+        let map = {};
+        let others = [];
+        m.split(',').forEach(function (m) {
+            m = m.trim();
+            map[m] = 1;
+            if (m == 'service') {
+                m = 'ceach';
+            }
+            map[m] = 1;
+        });
+        for (let p in modules) {
+            if (!map[p]) {
+                others.push(p);
+            }
         }
-        map[m] = 1;
-    });
-    for (let p in modules) {
-        if (!map[p]) {
-            others.push(p);
-        }
-    }
-    let incReg = /Inc\((['"])(.+)\1\);*/g;
+        return {
+            enables: map,
+            others
+        };
+    };
     copyFile(tmplFile, aimFile, content => {
+        let match = content.match(modulesReg),
+            m;
+        if (match) {
+            m = getModules(match[1]);
+        } else {
+            m = getModules(enableModules);
+        }
         let dir = path.dirname(tmplFile);
         content = content.replace(incReg, (match, q, name) => {
             let file = path.resolve(dir, name + '.js');
@@ -111,16 +125,16 @@ module.exports = (options, es3) => {
         });
         let header = '\/\/#snippet;\r\n\/\/#uncheck = jsThis,jsLoop;\r\n\/\/#exclude = loader,allProcessor;\r\n/*!' + pkg.version + ' Licensed MIT*/';
         header += '\r\n/*\r\nauthor:kooboy_li@163.com\r\nloader:' + loaderType;
-        header += '\r\nenables:' + Object.keys(map);
-        header += '\r\n\r\noptionals:' + others;
+        header += '\r\nenables:' + Object.keys(m.enables);
+        header += '\r\n\r\noptionals:' + m.others;
         header += '\r\n*/\r\n';
         if (es3) {
-            map.es3 = true;
+            m.enables.es3 = true;
         }
-        map[loaderType] = true;
+        m.enables[loaderType] = true;
         if (loaderType == 'module') {
-            map.naked = true;
+            m.enables.naked = true;
         }
-        return rs.process(tmpl(header + content, map));
+        return rs.process(tmpl(header + content, m.enables));
     });
 };

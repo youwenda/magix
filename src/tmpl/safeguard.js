@@ -8,7 +8,7 @@ if (DEBUG) {
             }
             let key = getter + '\x01' + setter;
             let cached = ProxiesPool.get(data);
-            if (cached && 　cached.key == key) {
+            if (cached && cached.key == key) {
                 return cached.entity;
             }
             let build = (prefix, o) => {

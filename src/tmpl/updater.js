@@ -103,11 +103,11 @@ G_Assign(Updater[G_PROTOTYPE], {
      *     }).digest();
      * }
      */
-    digest(data, keys) {
+    digest(data) {
         let me = this;
         me.set(data);
         /*#if(!modules.updaterVDOM&&!modules.updaterVRDOM&&!modules.updaterDOM){#*/
-        keys = me['@{updater#keys}'];
+        let keys = me['@{updater#keys}'];
         me['@{updater#keys}'] = {};
         /*#}#*/
 

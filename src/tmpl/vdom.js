@@ -52,23 +52,38 @@ let V_CreateNode = (vnode, owner, ref, c, tag) => {
     }
     c = G_DOCUMENT.createElementNS(tag == 'svg' ? V_SVGNS : owner.namespaceURI, tag);
     V_SetAttributes(c, 0, vnode, ref);
-    c.innerHTML = vnode['@{~v#node.html}'];
+    if (vnode['@{~v#node.html}']) {
+        c.innerHTML = vnode['@{~v#node.html}'];
+    }
     return c;
 };
+let V_GenKeyedNodes = (vnodes, nodes, start, end) => {
+    let keyed = {}, i = end, v, key;
+    for (; i >= start; i--) {
+        v = vnodes[i];
+        key = v['@{~v#node.compare.key}'];
+        if (key) {
+            key = keyed[key] || (keyed[key] = []);
+            key.push({
+                '@{~v#old.list.node}': nodes[i],
+                '@{~v#old.vlist.node}': v
+            });
+        }
+    }
+    return keyed;
+};
 let V_SetChildNodes = (realNode, lastVDOM, newVDOM, ref, vframe, data) => {
-    let oldCount, newCount, i, j, oldChildren, newChildren, oc, nc, oldNode,
-        nodes = realNode.childNodes, compareKey,
-        orn, ovn, keyedNodes;
     if (!lastVDOM) {//view首次初始化，通过innerHTML快速更新
         ref.c = 1;
         realNode.innerHTML = newVDOM['@{~v#node.html}'];
     } else {
-        oldChildren = lastVDOM['@{~v#node.children}'];
-        oldCount = oldChildren.length;
-        newChildren = newVDOM['@{~v#node.children}'];
-        newCount = newChildren.length;
-        keyedNodes = {};
-        for (i = 0; i < oldCount; i++) {
+        let i, oi = 0,
+            oldChildren = lastVDOM['@{~v#node.children}'],
+            newChildren = newVDOM['@{~v#node.children}'], oc, nc,
+            oldCount = oldChildren.length, newCount = newChildren.length,
+            nodes = realNode.childNodes, compareKey,
+            orn, ovn, keyedNodes = {};
+        for (i = oldCount; i--;) {
             oc = oldChildren[i];
             compareKey = oc['@{~v#node.compare.key}'];
             if (compareKey) {
@@ -79,29 +94,66 @@ let V_SetChildNodes = (realNode, lastVDOM, newVDOM, ref, vframe, data) => {
                 });
             }
         }
+        /* let oldStartIdx = 0,
+             oldEndIdx = oldCount - 1,
+             newStartIdx = 0,
+             newEndIdx = newCount - 1,
+             oldStartVNode = oldChildren[oldStartIdx],
+             oldEndVNode = oldChildren[oldEndIdx],
+             newStartVNode = newChildren[newStartIdx],
+             newEndVNode = newChildren[newEndIdx];
+ 
+         while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+             if (newStartVNode['@{~v#node.compare.key}'] == oldStartVNode['@{~v#node.compare.key}']) {
+                 V_SetNode(nodes[newStartIdx], realNode, oldStartVNode, newStartVNode, ref, vframe, data);
+                 newStartVNode = newChildren[++newStartIdx];
+                 oldStartVNode = oldChildren[++oldStartIdx];
+             } else if (newEndVNode['@{~v#node.compare.key}'] == oldEndVNode['@{~v#node.compare.key}']) {
+                 V_SetNode(nodes[newEndIdx], realNode, oldEndVNode, newEndVNode, ref, vframe, data);
+                 newEndVNode = newChildren[--newEndIdx];
+                 oldEndVNode = oldChildren[--oldEndIdx];
+             } else {
+                 if (!keyedNodes) keyedNodes = V_GenKeyedNodes(oldChildren, nodes, oldStartIdx, oldEndIdx);
+ 
+             }
+         }
+         if (newStartIdx > newEndIdx) {
+             for (i = oldStartIdx; i <= oldEndIdx; i++) {
+                 oi = nodes[oldStartIdx];//删除多余的旧节点
+                 V_UnmountVframs(vframe, oi);
+                 realNode.removeChild(oi);
+                 ref.c = 1;
+             }
+         }*/
+
 
         for (i = 0; i < newCount; i++) {
-            oc = oldChildren[i];
+            do {
+                oc = oldChildren[oi++];
+            } while (oc && oc['@{~v#vnode.moved}']);
             nc = newChildren[i];
             compareKey = keyedNodes[nc['@{~v#node.compare.key}']];
-            if (compareKey && (compareKey = compareKey.shift())) {
+            if (compareKey && (compareKey = compareKey.pop())) {
                 orn = compareKey['@{~v#old.list.node}'];
                 ovn = compareKey['@{~v#old.vlist.node}'];
                 if (orn != nodes[i]) {//如果找到的节点和当前不同，则移动
-                    oldChildren.splice(i, 0, oc = ovn);//移动虚拟dom
-                    for (j = oldChildren.length; j--;) {//从后向前清理虚拟dom
-                        if (oldChildren[j] == ovn) {
-                            oldChildren.splice(j, 1);
-                            break;
-                        }
-                    }
+                    // oldChildren.splice(i, 0, oc = ovn);//移动虚拟dom
+                    // for (j = oldChildren.length; j--;) {//从后向前清理虚拟dom
+                    //     if (oldChildren[j] == ovn) {
+                    //         oldChildren.splice(j, 1);
+                    //         break;
+                    //     }
+                    // }
+                    ovn['@{~v#vnode.moved}'] = 1;
+                    oc = ovn;
                     realNode.insertBefore(orn, nodes[i]);
                 }
                 V_SetNode(nodes[i], realNode, oc, nc, ref, vframe, data);
             } else if (oc) {//有旧节点，则更新
                 if (keyedNodes[oc['@{~v#node.compare.key}']]) {
-                    oldChildren.splice(i, 0, nc);//插入一个占位符，在接下来的比较中才能一一对应
-                    oldCount++;
+                    //oldChildren.splice(i, 0, nc);//插入一个占位符，在接下来的比较中才能一一对应
+                    //oldCount++;
+                    oi--;
                     ref.c = 1;
                     realNode.insertBefore(V_CreateNode(nc, realNode, ref), nodes[i]);
                 } else {
@@ -114,9 +166,9 @@ let V_SetChildNodes = (realNode, lastVDOM, newVDOM, ref, vframe, data) => {
             }
         }
         for (i = newCount; i < oldCount; i++) {
-            oldNode = realNode.lastChild;//删除多余的旧节点
-            V_UnmountVframs(vframe, oldNode);
-            realNode.removeChild(oldNode);
+            oi = nodes[newCount];//删除多余的旧节点
+            V_UnmountVframs(vframe, oi);
+            realNode.removeChild(oi);
             ref.c = 1;
         }
     }
@@ -137,10 +189,11 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data) => {
             if (lastVDOM['@{~v#node.html}'] != newVDOM['@{~v#node.html}']) {
                 realNode.nodeValue = TO_VDOM_Unescape(newVDOM['@{~v#node.html}']);
             }
-        } else {
+        } else if (!lastVDOM['@{~v#node.attrs.map}'][G_Tag_Key] || lastVDOM['@{~v#node.attrs.map}'][G_Tag_Key] != newVDOM['@{~v#node.attrs.map}'][G_Tag_Key]) {
             let newMxView = newVDOM['@{~v#node.attrs.map}'][G_MX_VIEW],
                 newHTML = newVDOM['@{~v#node.html}'];
-            let updateAttribute, updateChildren, unmountOld,
+            let updateAttribute = !newVDOM['@{~v#node.attrs.map}'][G_Tag_Attr_Key] || newVDOM['@{~v#node.attrs.map}'][G_Tag_Attr_Key] != newVDOM['@{~v#node.attrs.map}'][G_Tag_Attr_Key],
+                updateChildren, unmountOld,
                 oldVf = Vframe_Vframes[realNode.id],
                 assign, needUpdate,
                 view, uri, params, htmlChanged/*, 
@@ -154,6 +207,13 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data) => {
                 uri = G_ParseUri(newMxView);
                 htmlChanged = newHTML != lastVDOM['@{~v#node.html}'];
                 needUpdate = newMxView.indexOf('?') > 0 || htmlChanged;
+                /*
+                    只检测是否有参数控制view而不检测数据是否变化的原因：
+                    例：view内有一input接收传递的参数，且该input也能被用户输入
+                    var d1='xl';
+                    var d2='xl';
+                    当传递第一份数据时，input显示值xl，这时候用户修改了input的值且使用第二份数据重新渲染这个view，问input该如何显示？
+                */
             }
             //旧节点有view,新节点有view,且是同类型的view
             if (newMxView && oldVf &&
@@ -176,9 +236,12 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data) => {
                             //data: dataChanged,
                             html: htmlChanged
                         };
-                        V_SetAttributes(realNode, lastVDOM, newVDOM, ref);
+                        if (updateAttribute) {
+                            updateAttribute = G_EMPTY;
+                            V_SetAttributes(realNode, lastVDOM, newVDOM, ref);
+                        }
                         if (G_ToTry(assign, [params, uri], view)) {
-                            view['@{view#render.short}']();
+                            ref.v.push(view);
                         }
                         //默认当一个组件有assign方法时，由该方法及该view上的render方法完成当前区域内的节点更新
                         //而对于不渲染界面的控制类型的组件来讲，它本身更新后，有可能需要继续由magix更新内部的子节点，此时通过deep参数控制
@@ -186,11 +249,9 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data) => {
                     } else {
                         unmountOld = 1;
                         updateChildren = 1;
-                        updateAttribute = 1;
                     }
                 }
             } else {
-                updateAttribute = 1;
                 updateChildren = 1;
                 unmountOld = oldVf;
             }
@@ -198,6 +259,7 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data) => {
                 oldVf.unmountVframe(0, 1);
             }
             if (updateAttribute) {
+                if (unmountOld) ref.c = 1;
                 //ref.c = 1;
                 V_SetAttributes(realNode, lastVDOM, newVDOM, ref);
             }
@@ -220,20 +282,23 @@ let V_UpdateDOM = updater => {
     let vf = Vframe_Vframes[selfId];
     let data = updater['@{updater#data}'];
     let view = vf && vf['@{vframe#view.entity}'],
-        ref = { d: [] },
+        ref = { d: [], v: [] },
         node = G_GetById(selfId),
         tmpl, html, x,
         vdom;
     if (view && view['@{view#sign}'] > 0 && (tmpl = view['@{view#template.object}'])) {
         console.time('[vdom time:' + selfId + ']');
         console.time('[vdom html to vdom:' + selfId + ']');
-        html = View_SetEventOwner(tmpl(data), selfId);
+        html = tmpl(data, selfId);
         vdom = TO_VDOM(html);
         console.timeEnd('[vdom html to vdom:' + selfId + ']');
         V_SetChildNodes(node, updater['@{updater#vdom}'], vdom, ref, vf, data);
         updater['@{updater#vdom}'] = vdom;
         for (x of ref.d) {
             x[0].id = x[1];
+        }
+        for (x of ref.v) {
+            x['@{view#render.short}']();
         }
         if (ref.c) {
             view.endUpdate(selfId);

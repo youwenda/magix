@@ -51,7 +51,9 @@ let VR_CreateNode = (vnode, owner, ref, c, tag) => {
     }
     c = G_DOCUMENT.createElementNS(tag == 'svg' ? VR_SVGNS : owner.namespaceURI, tag);
     VR_SetAttributes(c, vnode, ref);
-    c.innerHTML = vnode['@{~v#node.html}'];
+    if (vnode['@{~v#node.html}']) {
+        c.innerHTML = vnode['@{~v#node.html}'];
+    }
     return c;
 };
 let VR_SetChildNodes = (realNode, newVDOM, ref, vframe, data) => {
@@ -61,12 +63,11 @@ let VR_SetChildNodes = (realNode, newVDOM, ref, vframe, data) => {
     oldCount = oldChildren.length;
     newChildren = newVDOM['@{~v#node.children}'];
     newCount = newChildren.length;
-    for (i = 0; i < oldCount; i++) {
+    for (i = oldCount; i--;) {
         oc = oldChildren[i];
-        compareKey = oc.id;
-        if (oc['@{node#auto.id}']) {
-            vf = Vframe_Vframes[compareKey];
-            compareKey = vf && vf['@{vframe#view.path}'];
+        compareKey = oc['@{node#auto.id}'] ? G_EMPTY : oc.id;
+        if (!compareKey && oc.nodeType == 1) {
+            compareKey = oc.getAttribute(G_Tag_Key) || (vf = Vframe_Vframes[compareKey], vf && vf['@{vframe#view.path}']);
         }
         if (compareKey) {
             compareKey = keyedNodes[compareKey] || (keyedNodes[compareKey] = []);
@@ -78,7 +79,7 @@ let VR_SetChildNodes = (realNode, newVDOM, ref, vframe, data) => {
         oc = oldChildren[i];
         nc = newChildren[i];
         compareKey = keyedNodes[nc['@{~v#node.compare.key}']];
-        if (compareKey && (compareKey = compareKey.shift())) {
+        if (compareKey && (compareKey = compareKey.pop())) {
             if (compareKey != oc) {//如果找到的节点和当前不同，则移动
                 realNode.insertBefore(compareKey, oc);
             }
@@ -112,10 +113,13 @@ let VR_SetNode = (realNode, oldParent, newVDOM, ref, vframe, data) => {
             if (realNode.nodeValue != newVDOM['@{~v#node.html}']) {
                 realNode.nodeValue = TO_VDOM_Unescape(newVDOM['@{~v#node.html}']);
             }
-        } else {
+        } else if (!newVDOM['@{~v#node.attrs.map}'][G_Tag_Key] ||
+            newVDOM['@{~v#node.attrs.map}'][G_Tag_Key] !=
+            realNode.getAttribute(G_Tag_Key)) {
             let newMxView = newVDOM['@{~v#node.attrs.map}'][G_MX_VIEW],
                 newHTML = newVDOM['@{~v#node.html}'];
-            let updateAttribute, updateChildren, unmountOld,
+            let updateAttribute = !newVDOM['@{~v#node.attrs.map}'][G_Tag_Attr_Key] || newVDOM['@{~v#node.attrs.map}'][G_Tag_Attr_Key] != realNode.getAttribute(G_Tag_Attr_Key),
+                updateChildren, unmountOld,
                 oldVf = Vframe_Vframes[realNode.id],
                 assign, needUpdate,
                 view, uri, params, htmlChanged/*, 
@@ -151,9 +155,12 @@ let VR_SetNode = (realNode, oldParent, newVDOM, ref, vframe, data) => {
                             //data: dataChanged,
                             html: htmlChanged
                         };
-                        VR_SetAttributes(realNode, newVDOM, ref, 1);
+                        if (updateAttribute) {
+                            updateAttribute = G_EMPTY;
+                            VR_SetAttributes(realNode, newVDOM, ref, 1);
+                        }
                         if (G_ToTry(assign, [params, uri], view)) {
-                            view['@{view#render.short}']();
+                            ref.v.push(view);
                         }
                         //默认当一个组件有assign方法时，由该方法及该view上的render方法完成当前区域内的节点更新
                         //而对于不渲染界面的控制类型的组件来讲，它本身更新后，有可能需要继续由magix更新内部的子节点，此时通过deep参数控制
@@ -161,11 +168,9 @@ let VR_SetNode = (realNode, oldParent, newVDOM, ref, vframe, data) => {
                     } else {
                         unmountOld = 1;
                         updateChildren = 1;
-                        updateAttribute = 1;
                     }
                 }
             } else {
-                updateAttribute = 1;
                 updateChildren = 1;
                 unmountOld = oldVf;
             }
@@ -174,6 +179,7 @@ let VR_SetNode = (realNode, oldParent, newVDOM, ref, vframe, data) => {
             }
             if (updateAttribute) {
                 //ref.c = 1;
+                if (unmountOld) ref.c = 1;
                 VR_SetAttributes(realNode, newVDOM, ref, oldVf && newMxView);
             }
             // Update all children (and subchildren).
@@ -194,19 +200,22 @@ let VR_UpdateDOM = updater => {
     let vf = Vframe_Vframes[selfId];
     let data = updater['@{updater#data}'];
     let view = vf && vf['@{vframe#view.entity}'],
-        ref = { d: [] },
+        ref = { d: [], v: [] },
         node = G_GetById(selfId),
         tmpl, html, x,
         vdom;
     if (view && view['@{view#sign}'] > 0 && (tmpl = view['@{view#template.object}'])) {
-        console.time('[vdom time:' + selfId + ']');
-        console.time('[vdom html to vdom:' + selfId + ']');
-        html = View_SetEventOwner(tmpl(data), selfId);
+        console.time('[vrdom time:' + selfId + ']');
+        console.time('[vrdom html to vdom:' + selfId + ']');
+        html = tmpl(data, selfId);
         vdom = TO_VDOM(html);
-        console.timeEnd('[vdom html to vdom:' + selfId + ']');
+        console.timeEnd('[vrdom html to vdom:' + selfId + ']');
         VR_SetChildNodes(node, vdom, ref, vf, data);
         for (x of ref.d) {
             x[0].id = x[1];
+        }
+        for (x of ref.v) {
+            x['@{view#render.short}']();
         }
         if (ref.c) {
             view.endUpdate(selfId);
@@ -227,5 +236,5 @@ let VR_UpdateDOM = updater => {
         }
     }
     view.fire('domready');
-    console.timeEnd('[vdom time:' + selfId + ']');
+    console.timeEnd('[vrdom time:' + selfId + ']');
 };

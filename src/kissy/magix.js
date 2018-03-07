@@ -57,6 +57,9 @@ KISSY.add('magix', (S, SE, DOM) => {
     /*#if(modules.mxViewAttr){#*/
     let G_Trim = S.trim;
     /*#}#*/
+    /*#if(modules.router||modules.state){#*/
+    Inc('../tmpl/dispatcher');
+    /*#}#*/
     Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe){#*/
     DOM[G_PROTOTYPE].invokeView = function (name, args) {
