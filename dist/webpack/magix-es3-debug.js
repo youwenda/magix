@@ -4178,5 +4178,14 @@ module.exports = (function () {
      */
     Magix.Base = G_NOOP;
     coreDefaultView = View.extend();
+    /**
+     * 往全局views里面添加view
+     * @param {String} [name] view别名
+     * @param {Promise} [promise] 对应的promise对象
+     */
+    Magix.addView = function (name, promiseObj) {
+        var cfgViews = Magix_Cfg.views = Magix_Cfg.views || {};
+        cfgViews[name] = promiseObj;
+    };
     return Magix;
 })();
