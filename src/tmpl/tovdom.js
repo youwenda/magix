@@ -80,12 +80,14 @@ let TO_VDOM = input => {
                     }
                     currentParent = stack[stack.length - 1];
                     current += match[0].length;
+                    em['@{~v#node.outer.html}'] = input.slice(em['@{~v#node.start.pos}'], current);
                     chars = 0;
                 }
             } else {
                 match = temp.match(TO_VDOM_OpenReg);
                 if (match) {
                     tag = match[1];
+                    chars = match[0];
                     attrs = [];
                     amap = {};
                     compareKey = G_EMPTY;
@@ -96,8 +98,8 @@ let TO_VDOM = input => {
                         } else if (key == G_MX_VIEW && value && !compareKey) {
                             //否则如果是组件,则使用组件的路径做为key
                             compareKey = G_ParseUri(value)[G_PATH];
-                        } else if (key == 'mxs') {
-                            if (!compareKey) compareKey = value;
+                        } else if (key == G_Tag_Key && !compareKey) {
+                            compareKey = value;
                         }
                         attrs.push({
                             '@{~v#node.attrs.key}': key,
@@ -105,7 +107,6 @@ let TO_VDOM = input => {
                         });
                         amap[key] = value;
                     });
-                    current += match[0].length;
                     unary = match[3] || G_Has(TO_VDOM_SELF_CLOSE, tag);
                     if (DEBUG) {
                         if (TO_VDOM_SELF_CLOSE[tag] && !match[3]) {
@@ -113,12 +114,14 @@ let TO_VDOM = input => {
                         }
                     }
                     em = {
+                        '@{~v#node.outer.html}': chars,
                         '@{~v#node.compare.key}': compareKey,
                         '@{~v#node.tag}': tag,
                         '@{~v#node.attrs}': attrs,
                         '@{~v#node.attrs.map}': amap,
                         '@{~v#node.children}': [],
-                        '@{~v#content.start.pos}': current
+                        '@{~v#node.start.pos}': current,
+                        '@{~v#content.start.pos}': current += chars.length
                     };
                     currentParent['@{~v#node.children}'].push(em);
                     if (unary) {
