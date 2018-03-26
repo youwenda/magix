@@ -128,31 +128,59 @@ let I_SetAttributes = (oldNode, newNode, ref, keepId) => {
     }
 };
 
-let I_GetCompareKey = (node, key, vf) => {
-    key = node['@{node#auto.id}'] ? G_EMPTY : node.id;
-    if (!key && node.nodeType == 1) {
-        key = node.getAttribute(G_Tag_Key) || (vf = Vframe_Vframes[key], vf && vf['@{vframe#view.path}']);
+let I_GetCompareKey = (node, key) => {
+    if (node.nodeType == 1) {
+        if (node.$kd) {
+            key = node.$k;
+        } else {
+            key = node['@{node#auto.id}'] ? G_EMPTY : node.id;
+            if (!key) {
+                key = node.getAttribute(G_Tag_Key);
+            }
+            if (!key) {
+                key = node.getAttribute(G_MX_VIEW);
+                if (key) {
+                    key = G_ParseUri(key)[G_PATH];
+                }
+            }
+            node.$kd = 1;
+            node.$k = key;
+        }
     }
     return key;
 };
 
-let I_SetChildNodes = (oldParent, newParent, ref, vframe, data) => {
+let I_SetChildNodes = (oldParent, newParent, ref, vframe, data, keys) => {
     let oldNode = oldParent.lastChild;
     let newNode = newParent.firstChild;
     let tempNew, tempOld, extra = 0,
-        nodeKey, foundNode, keyedNodes = {},
+        nodeKey, foundNode, keyedNodes = {}, newKeyedNodes = {},
         removed;
     // Extract keyed nodes from previous children and keep track of total count.
     while (oldNode) {
         extra++;
-        tempOld = oldNode;
-        nodeKey = I_GetCompareKey(tempOld);
-        oldNode = oldNode.previousSibling;
+        nodeKey = I_GetCompareKey(oldNode);
         if (nodeKey) {
             nodeKey = keyedNodes[nodeKey] || (keyedNodes[nodeKey] = []);
-            nodeKey.push(tempOld);
+            nodeKey.push(oldNode);
+        }
+        oldNode = oldNode.previousSibling;
+        if (newNode) {
+            nodeKey = I_GetCompareKey(newNode);
+            if (nodeKey) {
+                newKeyedNodes[nodeKey] = 1;
+            }
+            newNode = newNode.nextSibling;
         }
     }
+    while (newNode) {
+        nodeKey = I_GetCompareKey(newNode);
+        if (nodeKey) {
+            newKeyedNodes[nodeKey] = 1;
+        }
+        newNode = newNode.nextSibling;
+    }
+    newNode = newParent.firstChild;
     removed = newParent.childNodes.length < extra;
     oldNode = oldParent.firstChild;
     while (newNode) {
@@ -172,11 +200,15 @@ let I_SetChildNodes = (oldParent, newParent, ref, vframe, data) => {
             } else {
                 oldNode = oldNode.nextSibling;
             }
-            I_SetNode(foundNode, tempNew, oldParent, ref, vframe, data);
+            /*#if(modules.updaterAsync){#*/
+            Async_AddTask(vframe, I_SetNode, foundNode, tempNew, oldParent, ref, vframe, data, keys);
+            /*#}else{#*/
+            I_SetNode(foundNode, tempNew, oldParent, ref, vframe, data, keys);
+            /*#}#*/
         } else if (oldNode) {
             tempOld = oldNode;
             nodeKey = I_GetCompareKey(tempOld);
-            if (nodeKey && keyedNodes[nodeKey]) {
+            if (nodeKey && keyedNodes[nodeKey] && newKeyedNodes[nodeKey]) {
                 extra++;
                 ref.c = 1;
                 // If the old child had a key we skip over it until the end.
@@ -184,7 +216,11 @@ let I_SetChildNodes = (oldParent, newParent, ref, vframe, data) => {
             } else {
                 oldNode = oldNode.nextSibling;
                 // Otherwise we diff the two non-keyed nodes.
-                I_SetNode(tempOld, tempNew, oldParent, ref, vframe, data);
+                /*#if(modules.updaterAsync){#*/
+                Async_AddTask(vframe, I_SetNode, tempOld, tempNew, oldParent, ref, vframe, data, keys);
+                /*#}else{#*/
+                I_SetNode(tempOld, tempNew, oldParent, ref, vframe, data, keys);
+                /*#}#*/
             }
         } else {
             // Finally if there was no old node we add the new node.
@@ -202,41 +238,52 @@ let I_SetChildNodes = (oldParent, newParent, ref, vframe, data) => {
     }
 };
 
-let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data) => {
+let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
     //优先使用浏览器内置的方法进行判断
-    if ((oldNode.nodeType == 1 && oldNode.hasAttribute('mxv')) ||
+    if ((oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
         !(oldNode.isEqualNode && oldNode.isEqualNode(newNode))) {
         if (oldNode.nodeName === newNode.nodeName) {
             // Handle regular element node updates.
             if (oldNode.nodeType === 1) {
-                let staticKey = oldNode.getAttribute(G_Tag_Key);
-                if (staticKey && staticKey == newNode.getAttribute(G_Tag_Key)) {
+                let staticKey = newNode.getAttribute(G_Tag_Key);
+                if (staticKey && staticKey == oldNode.getAttribute(G_Tag_Key)) {
                     return;
                 }
                 // If we have the same nodename then we can directly update the attributes.
 
                 let newMxView = newNode.getAttribute(G_MX_VIEW),
                     newHTML = newNode.innerHTML;
-                let oldStaticAttrKey = oldNode.getAttribute(G_Tag_Attr_Key);
-                let updateAttribute = !oldStaticAttrKey ||
-                    oldStaticAttrKey != newNode.getAttribute(G_Tag_Attr_Key), updateChildren, unmountOld,
+                let newStaticAttrKey = newNode.getAttribute(G_Tag_Attr_Key);
+                let updateAttribute = !newStaticAttrKey ||
+                    newStaticAttrKey != oldNode.getAttribute(G_Tag_Attr_Key), updateChildren, unmountOld,
                     oldVf = Vframe_Vframes[oldNode.id],
-                    assign, needUpdate,
-                    view, uri, params, htmlChanged/*, 
+                    assign,
+                    view,
+                    uri = newMxView && G_ParseUri(newMxView),
+                    params,
+                    htmlChanged, urlChanged, paramsChanged/*, 
                     oldDataStringify, newDataStringify,dataChanged*/;
                 /*
                     如果存在新旧view，则考虑路径一致，避免渲染的问题
                  */
-                if (newMxView && oldVf) {
-                    view = oldVf['@{vframe#view.entity}'];
-                    assign = view['@{view#assign.fn}'];
-                    uri = G_ParseUri(newMxView);
-                    htmlChanged = newHTML != oldVf['@{vframe#template}'];
-                    needUpdate = newMxView.indexOf('?') > 0 || htmlChanged;
-                }
                 if (newMxView && oldVf &&
-                    oldVf['@{vframe#view.path}'] == uri[G_PATH]) {
-                    if (needUpdate) {
+                    oldVf['@{vframe#view.path}'] == uri[G_PATH] &&
+                    (view = oldVf['@{vframe#view.entity}'])) {
+                    htmlChanged = newHTML != oldVf['@{vframe#template}'];
+                    urlChanged = newMxView != oldVf[G_PATH];
+                    paramsChanged = urlChanged;
+                    assign = oldNode.getAttribute(G_Tag_View_Key);
+                    if (!htmlChanged && !paramsChanged && assign) {
+                        params = assign.split(G_COMMA);
+                        for (assign of params) {
+                            if (G_Has(keys, assign)) {
+                                paramsChanged = 1;
+                                break;
+                            }
+                        }
+                    }
+                    if (paramsChanged || htmlChanged) {
+                        assign = view['@{view#assign.fn}'];
                         if (assign) {
                             params = uri[G_PARAMS];
                             //处理引用赋值
@@ -248,11 +295,12 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data) => {
                             oldVf[G_PATH] = newMxView;//update ref
                             uri = {
                                 node: newNode,
-                                deep: !view['@{view#template.object}'],//无模板的组件深入比较子节点
-                                //data: dataChanged,
-                                html: htmlChanged
+                                html: newHTML,
+                                deep: !view['@{view#template.object}'],
+                                inner: htmlChanged,
+                                query: paramsChanged
                             };
-                            updateAttribute = G_EMPTY;
+                            updateAttribute = 1;
                             /*if (updateAttribute) {
                                 updateAttribute = G_EMPTY;
                                 I_SetAttributes(oldNode, newNode, ref, 1);
@@ -267,24 +315,39 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data) => {
                             unmountOld = 1;
                             updateChildren = 1;
                         }
+                    } else {
+                        updateAttribute = 1;
                     }
                 } else {
                     updateChildren = 1;
                     unmountOld = oldVf;
                 }
                 if (unmountOld) {
+                    ref.c = 1;
                     oldVf.unmountVframe(0, 1);
                 }
                 if (updateAttribute) {
-                    if (unmountOld) ref.c = 1;
-                    I_SetAttributes(oldNode, newNode, ref, oldVf && newMxView);
+                    if (updateAttribute === 1) {
+                        if (newStaticAttrKey) {
+                            oldNode.setAttribute(G_Tag_Attr_Key, newStaticAttrKey);
+                        }
+                        if (staticKey) {
+                            oldNode.setAttribute(G_Tag_Key, staticKey);
+                        }
+                        if (urlChanged) {
+                            oldNode.setAttribute(G_MX_VIEW, newMxView);
+                        }
+                    } else {
+                        I_SetAttributes(oldNode, newNode, ref, oldVf && newMxView);
+                    }
                 }
                 // Update all children (and subchildren).
                 if (updateChildren) {
                     //ref.c = 1;
-                    I_SetChildNodes(oldNode, newNode, ref, vf, data);
+                    I_SetChildNodes(oldNode, newNode, ref, vf, data, keys);
                 }
             } else if (oldNode.nodeValue !== newNode.nodeValue) {
+                ref.c = 1;
                 oldNode.nodeValue = newNode.nodeValue;
             }
         } else {
@@ -293,44 +356,5 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data) => {
             oldParent.replaceChild(newNode, oldNode);
             ref.c = 1;
         }
-    }
-};
-let I_UpdateDOM = (updater) => {
-    let selfId = updater['@{updater#view.id}'];
-    let vf = Vframe_Vframes[selfId];
-    let data = updater['@{updater#data}'];
-    let view = vf && vf['@{vframe#view.entity}'],
-        ref = { d: [], v: [] },
-        node = G_GetById(selfId),
-        tmpl, html, x;
-    if (view && view['@{view#sign}'] > 0 && (tmpl = view['@{view#template.object}'])) {
-        console.time('[dom time:' + selfId + ']');
-        html = tmpl(data, selfId);
-        I_SetChildNodes(node, I_GetNode(html, node), ref, vf, data);
-        for (x of ref.d) {
-            x[0].id = x[1];
-        }
-        for (x of ref.v) {
-            x['@{view#render.short}']();
-        }
-        if (ref.c) {
-            view.endUpdate(selfId);
-            /*#if(modules.naked){#*/
-            G_Trigger(G_DOCUMENT, 'htmlchanged', {
-                vId: selfId
-            });
-            /*#}else if(modules.kissy){#*/
-            G_DOC.fire('htmlchanged', {
-                vId: selfId
-            });
-            /*#}else{#*/
-            G_DOC.trigger({
-                type: 'htmlchanged',
-                vId: selfId
-            });
-            /*#}#*/
-        }
-        view.fire('domready');
-        console.timeEnd('[dom time:' + selfId + ']');
     }
 };

@@ -13,7 +13,7 @@ let modules = {
     updater: 1, //自动更新
     updaterDOM: 1, //dom增量更新
     updaterVDOM: 1,//v-dom增量更新
-    updaterVRDOM: 1,//v-r-dom
+    updaterAsync: 1,//异步更新界面
 
     service: 1, //接口服务
     serviceCombine: 1, //接口combine

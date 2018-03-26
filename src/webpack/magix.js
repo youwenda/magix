@@ -107,6 +107,9 @@ module.exports = (() => {
     /*#if(modules.router||modules.state){#*/
     Inc('../tmpl/dispatcher');
     /*#}#*/
+    /*#if(modules.updater&&modules.updaterAsync){#*/
+    Inc('../tmpl/async');
+    /*#}#*/
     Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe){#*/
     $.fn.invokeView = function (name, args) {
@@ -130,13 +133,10 @@ module.exports = (() => {
 
     Inc('../tmpl/body');
     /*#if(modules.updater){#*/
-    /*#if(!modules.updaterVDOM&&!modules.updaterDOM&&!modules.updaterVRDOM){#*/
+    /*#if(!modules.updaterVDOM&&!modules.updaterDOM){#*/
     Inc('../tmpl/tmpl');
     /*#}#*/
-    /*#if(modules.updaterVRDOM){#*/
-    Inc('../tmpl/tovdom');
-    Inc('../tmpl/vrdom');
-    /*#}else if(modules.updaterVDOM){#*/
+    /*#if(modules.updaterVDOM){#*/
     Inc('../tmpl/tovdom');
     Inc('../tmpl/vdom');
     /*#}else if(modules.updaterDOM){#*/
@@ -170,10 +170,9 @@ module.exports = (() => {
      * @param {String} [name] view别名
      * @param {Promise} [promise] 对应的promise对象
      */
-    Magix.addView = function(name, promiseObj){
-      var cfgViews = Magix_Cfg.views = Magix_Cfg.views || {}
-      cfgViews[name] = promiseObj
-    }
-    
+    Magix.addView = (name, promiseObj) => {
+        let cfgViews = Magix_Cfg.views = Magix_Cfg.views || {};
+        cfgViews[name] = promiseObj;
+    };
     return Magix;
 })();

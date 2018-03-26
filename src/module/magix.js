@@ -74,16 +74,16 @@ Inc('../tmpl/router');
 /*#if(modules.router||modules.state){#*/
 Inc('../tmpl/dispatcher');
 /*#}#*/
+/*#if(modules.updater&&modules.updaterAsync){#*/
+Inc('../tmpl/async');
+/*#}#*/
 Inc('../tmpl/vframe');
 Inc('../tmpl/body');
 /*#if(modules.updater){#*/
-/*#if(!modules.updaterVDOM&&!modules.updaterDOM&&!modules.updaterVRDOM){#*/
+/*#if(!modules.updaterVDOM&&!modules.updaterDOM){#*/
 Inc('../tmpl/tmpl');
 /*#}#*/
-/*#if(modules.updaterVRDOM){#*/
-Inc('../tmpl/tovdom');
-Inc('../tmpl/vrdom');
-/*#}else if(modules.updaterVDOM){#*/
+/*#if(modules.updaterVDOM){#*/
 Inc('../tmpl/tovdom');
 Inc('../tmpl/vdom');
 /*#}else if(modules.updaterDOM){#*/

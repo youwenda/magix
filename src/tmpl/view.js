@@ -1,5 +1,5 @@
 let View_EvtMethodReg = /^(\$?)([^<]*)<([^>]+)>$/;
-/*#if(!modules.updaterVDOM&&!modules.updaterVRDOM&&!modules.updaterDOM){#*/
+/*#if(!modules.updaterVDOM&&!modules.updaterDOM){#*/
 let View_ScopeReg = /\x1f/g;
 let View_SetEventOwner = (str, id) => (str + G_EMPTY).replace(View_ScopeReg, id);
 /*#}#*/
@@ -394,9 +394,9 @@ G_Assign(ViewProto, MEvent, {
      *     }
      * });
      */
-    /*#if(!modules.updaterVDOM&&!modules.updaterVRDOM&&!modules.updaterDOM){#*/
+    /*#if(!modules.updaterVDOM&&!modules.updaterDOM){#*/
     wrapEvent(html) {
-        /*#=(!modules.updaterVDOM&&!modules.updaterVRDOM&&!modules.updaterDOM)#*/
+        /*#=(!modules.updaterVDOM&&!modules.updaterDOM)#*/
         return View_SetEventOwner(html, this.id);
     },
     /*#}#*/

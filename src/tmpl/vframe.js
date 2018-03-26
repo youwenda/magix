@@ -89,13 +89,15 @@ let Vframe_RemoveVframe = (id, fcc, vframe) => {
             fcc //fireChildrenCreated
         });
         id = G_GetById(id);
-        if (id) id['@{node#mounted.vframe}'] = 0;
-        /*#if(modules.nodeAttachVframe){#*/
-        if (id) id.vframe = 0;
-        /*#}#*/
-        /*#if(modules.updaterDOM||modules.updaterVRDOM){#*/
-        if (id) id['@{node#aut.id}'] = 0;
-        /*#}#*/
+        if (id) {
+            id['@{node#mounted.vframe}'] = 0;
+            /*#if(modules.nodeAttachVframe){#*/
+            id.vframe = 0;
+            /*#}#*/
+            /*#if(modules.updaterDOM){#*/
+            id['@{node#auto.id}'] = 0;
+            /*#}#*/
+        }
     }
 };
 /**
@@ -135,6 +137,9 @@ let Vframe = function (id, pId, me) {
     me['@{vframe#children.ready}'] = {}; //readyMap
     /*#if(modules.linkage){#*/
     me['@{vframe#invoke.list}'] = []; //invokeList
+    /*#}#*/
+    /*#if(modules.updaterAsync){#*/
+    me['@{vframe#async.priority}'] = G_COUNTER++;
     /*#}#*/
     me.pId = pId;
     Vframe_AddVframe(id, me);
@@ -189,12 +194,10 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
         let { id, pId, '@{vframe#sign}': s } = me;
         let node = G_GetById(id),
             po, sign, view, params /*#if(modules.viewProtoMixins){#*/, ctors /*#}#*/ /*#if(modules.updater){#*/, parentVf/*#}#*/;
-        /*#if(!modules.updaterVDOM){#*/
         if (!me['@{vframe#alter.node}'] && node) { //alter
             me['@{vframe#alter.node}'] = 1;
             me['@{vframe#template}'] = node.innerHTML; //.replace(ScriptsReg, ''); template
         }
-        /*#}#*/
         me.unmountView(/*keepPreHTML*/);
         me['@{vframe#destroyed}'] = 0; //destroyed 详见unmountView
         if (node && viewPath) {
@@ -214,7 +217,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
             if (viewPath.indexOf(G_SPLITER) > 0) {
                 GSet_Params(parentVf, params, params);
             }
-            /*#if(modules.updaterDOM||modules.updaterVRDOM||modules.updaterVDOM){#*/
+            /*#if(modules.updaterDOM||modules.updaterVDOM){#*/
             //me['@{vframe#data.stringify}'] = G_TryStringify(parentVf, po);
             me['@{vframe#view.path}'] = po[G_PATH];
             /*#}#*/
@@ -227,14 +230,14 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                 name = attr.name;
                 value = attr[G_VALUE];
                 if (name.indexOf('view-') === 0) {
-                    let key = name.slice(5).replace(/-(\w)/g, capitalize);
-                    if (value.slice(0, 3) == '<%@' && value.slice(-2) == '%>') {
+                    let key = name.substring(5).replace(/-(\w)/g, capitalize);
+                    if (value.substring(0, 3) == '<%@' && value.substring(value.length - 2) == '%>') {
                         try {
                             let temp = parentVf['@{updater#data}'];
                             let str = Tmpl(value, temp);
                             value = temp[str];
                         } catch (e) {
-                            value = G_Trim(value.slice(3, -2));
+                            value = G_Trim(value.substring(3, value.length - 2));
                             if (parentVf && vreg.test(value)) {
                                 value = parentVf.get(value);
                             } else {
@@ -296,9 +299,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                     view['@{view#render.short}']();
                     /*#if(modules.autoEndUpdate){#*/
                     if (!view['@{view#template.object}']) { //无模板
-                        /*#if(!modules.updaterVDOM){#*/
                         me['@{vframe#alter.node}'] = 0; //不会修改节点，因此销毁时不还原
-                        /*#}#*/
                         if (!view['@{view#rendered}']) {
                             view.endUpdate();
                         }
@@ -332,6 +333,9 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
             me['@{vframe#view.entity}'] = 0; //unmountView时，尽可能早的删除vframe上的$v对象，防止$v销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
             if (v['@{view#sign}'] > 0) {
                 v['@{view#sign}'] = 0;
+                /*#if(modules.updaterAsync){#*/
+                Async_DeleteTask(id);
+                /*#}#*/
                 v.fire('destroy', 0, 1, 1);
                 /*#if(modules.resource){#*/
                 View_DestroyAllResources(v, 1);
@@ -340,7 +344,6 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                 v.owner = 0;
             }
             v['@{view#sign}']--;
-            /*#if(!modules.updaterVDOM){#*/
             node = G_GetById(id);
             if (node && me['@{vframe#alter.node}'] /*&&!keepPreHTML*/) { //如果$v本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且$v有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即$v安装前什么样，销毁后把节点恢复到安装前的情况
                 /*#if(!modules.keepHTML){#*/
@@ -351,7 +354,6 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                 /*#}#*/
                 /*#}#*/
             }
-            /*#}#*/
             if (reset)
                 Vframe_GlobalAlter = 0;
         }

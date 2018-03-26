@@ -109,6 +109,9 @@ define('magix', /*#if(!modules.naked){#*/['$'],/*#}#*/ require => {
     /*#if(modules.router||modules.state){#*/
     Inc('../tmpl/dispatcher');
     /*#}#*/
+    /*#if(modules.updater&&modules.updaterAsync){#*/
+    Inc('../tmpl/async');
+    /*#}#*/
     Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe&&!modules.naked){#*/
     $.fn.invokeView = function (name, args) {
@@ -131,13 +134,10 @@ define('magix', /*#if(!modules.naked){#*/['$'],/*#}#*/ require => {
     /*#}#*/
     Inc('../tmpl/body');
     /*#if(modules.updater){#*/
-    /*#if(!modules.updaterVDOM&&!modules.updaterDOM&&!modules.updaterVRDOM){#*/
+    /*#if(!modules.updaterVDOM&&!modules.updaterDOM){#*/
     Inc('../tmpl/tmpl');
     /*#}#*/
-    /*#if(modules.updaterVRDOM){#*/
-    Inc('../tmpl/tovdom');
-    Inc('../tmpl/vrdom');
-    /*#}else if(modules.updaterVDOM){#*/
+    /*#if(modules.updaterVDOM){#*/
     Inc('../tmpl/tovdom');
     Inc('../tmpl/vdom');
     /*#}else if(modules.updaterDOM){#*/

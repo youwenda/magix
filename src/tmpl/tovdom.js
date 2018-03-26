@@ -16,17 +16,13 @@ let TO_VDOM_SPECIAL_PROPS = {
     textarea: [G_VALUE],
     option: ['selected']
 };
-/*#if(modules.updaterVRDOM){#*/
-let TO_VDOM_TEXT_NODE = '#text';
-/*#}else if(modules.updaterVDOM){#*/
 let TO_VDOM_TEXT_NODE = G_COUNTER;
-/*#}#*/
 if (DEBUG) {
     TO_VDOM_TEXT_NODE = '#text';
 }
 let TO_VDOM_OpenReg = /^<([a-z\d]+)((?:\s+[-A-Za-z\d_]+(?:="[^"]*")?)*)\s*(\/?)>/,
     TO_VDOM_AttrReg = /([-A-Za-z\d_]+)(?:="([^"]*)")?/g,
-    TO_VDOM_CloseReg = /^<\/[a-z\d+]+>/;
+    TO_VDOM_CloseReg = /^<\/[a-z\d]+>/;
 
 let TO_VDOM_UnescapeMap = {};
 let TO_VDOM_UnescapeReg = /&#?[^\W]+;?/g;
@@ -45,15 +41,17 @@ let TO_VDOM = input => {
         last = 0,
         chars,
         currentParent = {
+            '@{~v#node.reused}': {},
             '@{~v#node.children}': [],
             '@{~v#node.html}': input
         },
         index,
-        temp,
+        html = input,
         match,
         tag,
         attrs,
         stack = [currentParent],
+        moveLength,
         em,
         amap,
         text,
@@ -61,13 +59,12 @@ let TO_VDOM = input => {
         compareKey;//新旧vnode的比较key
     while (current < count) {
         chars = 1;
-        temp = input.slice(current);
-        if (temp[0] == '<') {
-            if (temp[1] == '/') {
-                match = temp.match(TO_VDOM_CloseReg);
+        if (html[0] == '<') {
+            if (html[1] == '/') {
+                match = html.match(TO_VDOM_CloseReg);
                 if (match) {
                     em = stack.pop();
-                    attrs = input.slice(em['@{~v#content.start.pos}'], current);
+                    attrs = input.substring(em['@{~v#content.start.pos}'], current);
                     if (em['@{~v#node.tag}'] == 'textarea') {
                         em['@{~v#node.attrs}'].push({
                             '@{~v#node.attrs.key}': G_VALUE,
@@ -79,12 +76,12 @@ let TO_VDOM = input => {
                         em['@{~v#node.html}'] = attrs;
                     }
                     currentParent = stack[stack.length - 1];
-                    current += match[0].length;
-                    em['@{~v#node.outer.html}'] = input.slice(em['@{~v#node.start.pos}'], current);
+                    current += moveLength = match[0].length;
+                    em['@{~v#node.outer.html}'] = input.substring(em['@{~v#node.start.pos}'], current);
                     chars = 0;
                 }
             } else {
-                match = temp.match(TO_VDOM_OpenReg);
+                match = html.match(TO_VDOM_OpenReg);
                 if (match) {
                     tag = match[1];
                     chars = match[0];
@@ -120,9 +117,13 @@ let TO_VDOM = input => {
                         '@{~v#node.attrs}': attrs,
                         '@{~v#node.attrs.map}': amap,
                         '@{~v#node.children}': [],
+                        '@{~v#node.reused}': {},
                         '@{~v#node.start.pos}': current,
-                        '@{~v#content.start.pos}': current += chars.length
+                        '@{~v#content.start.pos}': current += moveLength = chars.length
                     };
+                    if (compareKey) {
+                        currentParent['@{~v#node.reused}'][compareKey] = 1;
+                    }
                     currentParent['@{~v#node.children}'].push(em);
                     if (unary) {
                         em['@{~v#node.self.close}'] = 1;
@@ -138,16 +139,17 @@ let TO_VDOM = input => {
             }
         }
         if (chars) {
-            index = temp.indexOf('<');
+            index = html.indexOf('<');
             if (index < 0) {
-                text = temp;
+                text = html;
             } else {
-                text = temp.substring(0, index);
+                text = html.substring(0, index);
             }
-            current += text.length;
+            current += moveLength = text.length;
             em = {
                 '@{~v#node.tag}': TO_VDOM_TEXT_NODE,
-                '@{~v#node.html}': text
+                '@{~v#node.html}': text,
+                '@{~v#node.outer.html}': text
             };
             currentParent['@{~v#node.children}'].push(em);
         }
@@ -155,6 +157,8 @@ let TO_VDOM = input => {
         if (last == current) {
             break;
         }
+        //substring is fater than slice . lower gc
+        html = html.substring(moveLength);
         if (DEBUG) {
             if (last == current) {
                 throw new Error('bad input:' + temp);

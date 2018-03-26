@@ -72,12 +72,13 @@ let V_GenKeyedNodes = (vnodes, nodes, start, end) => {
     }
     return keyed;
 };
-let V_SetChildNodes = (realNode, lastVDOM, newVDOM, ref, vframe, data) => {
+let V_SetChildNodes = (realNode, lastVDOM, newVDOM, ref, vframe, data, keys) => {
     if (lastVDOM) {//view首次初始化，通过innerHTML快速更新
         let i, oi = 0,
             oldChildren = lastVDOM['@{~v#node.children}'],
             newChildren = newVDOM['@{~v#node.children}'], oc, nc,
             oldCount = oldChildren.length, newCount = newChildren.length,
+            reused = newVDOM['@{~v#node.reused}'],
             nodes = realNode.childNodes, compareKey,
             orn, ovn, keyedNodes = {};
         for (i = oldCount; i--;) {
@@ -123,7 +124,46 @@ let V_SetChildNodes = (realNode, lastVDOM, newVDOM, ref, vframe, data) => {
              }
          }*/
 
-
+        /*#if(modules.updaterAsync){#*/
+        for (i = 0; i < newCount; i++) {
+            oc = oldChildren[i];
+            nc = newChildren[i];
+            compareKey = keyedNodes[nc['@{~v#node.compare.key}']];
+            if (compareKey && (compareKey = compareKey.pop())) {
+                orn = compareKey['@{~v#old.list.node}'];
+                ovn = compareKey['@{~v#old.vlist.node}'];
+                if (orn != nodes[i]) {//如果找到的节点和当前不同，则移动
+                    oldChildren.splice(i, 0, oc = ovn);//移动虚拟dom
+                    for (oi = oldChildren.length; oi--;) {//从后向前清理虚拟dom
+                        if (oldChildren[oi] == ovn) {
+                            oldChildren.splice(oi, 1);
+                            break;
+                        }
+                    }
+                    realNode.insertBefore(orn, nodes[i]);
+                }
+                Async_AddTask(vframe, V_SetNode, nodes[i], realNode, oc, nc, ref, vframe, data, keys);
+            } else if (oc) {//有旧节点，则更新
+                if (keyedNodes[oc['@{~v#node.compare.key}']] &&
+                    reused[oc['@{~v#node.compare.key}']]) {
+                    oldChildren.splice(i, 0, nc);//插入一个占位符，在接下来的比较中才能一一对应
+                    oldCount++;
+                    ref.c = 1;
+                    realNode.insertBefore(V_CreateNode(nc, realNode, ref), nodes[i]);
+                } else {
+                    Async_AddTask(vframe, V_SetNode, nodes[i], realNode, oc, nc, ref, vframe, data, keys);
+                }
+            } else {//添加新的节点
+                oldChildren.push(nc);
+                realNode.appendChild(V_CreateNode(nc, realNode, ref));
+                ref.c = 1;
+            }
+        }
+        oi = oldCount - newCount;
+        if (oi > 0) {
+            oldChildren.splice(-oi);
+        }
+        /*#}else{#*/
         for (i = 0; i < newCount; i++) {
             do {
                 oc = oldChildren[oi++];
@@ -145,16 +185,17 @@ let V_SetChildNodes = (realNode, lastVDOM, newVDOM, ref, vframe, data) => {
                     oc = ovn;
                     realNode.insertBefore(orn, nodes[i]);
                 }
-                V_SetNode(nodes[i], realNode, oc, nc, ref, vframe, data);
+                V_SetNode(nodes[i], realNode, oc, nc, ref, vframe, data, keys);
             } else if (oc) {//有旧节点，则更新
-                if (keyedNodes[oc['@{~v#node.compare.key}']]) {
+                if (keyedNodes[oc['@{~v#node.compare.key}']] &&
+                    reused[oc['@{~v#node.compare.key}']]) {
                     //oldChildren.splice(i, 0, nc);//插入一个占位符，在接下来的比较中才能一一对应
-                    //oldCount++;
+                    oldCount++;
                     oi--;
                     ref.c = 1;
                     realNode.insertBefore(V_CreateNode(nc, realNode, ref), nodes[i]);
                 } else {
-                    V_SetNode(nodes[i], realNode, oc, nc, ref, vframe, data);
+                    V_SetNode(nodes[i], realNode, oc, nc, ref, vframe, data, keys);
                     //ref.c = 1;
                 }
             } else {//添加新的节点
@@ -162,6 +203,7 @@ let V_SetChildNodes = (realNode, lastVDOM, newVDOM, ref, vframe, data) => {
                 ref.c = 1;
             }
         }
+        /*#}#*/
         for (i = newCount; i < oldCount; i++) {
             oi = nodes[newCount];//删除多余的旧节点
             V_UnmountVframs(vframe, oi);
@@ -173,8 +215,21 @@ let V_SetChildNodes = (realNode, lastVDOM, newVDOM, ref, vframe, data) => {
         realNode.innerHTML = newVDOM['@{~v#node.html}'];
     }
 };
-
-let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data) => {
+/*#if(modules.updaterAsync){#*/
+let V_CopyVNode = (lastVDOM, newVDOM, withChildren, p) => {
+    for (p in lastVDOM) {
+        if (withChildren || p != '@{~v#node.children}') {
+            delete lastVDOM[p];
+        }
+    }
+    for (p in newVDOM) {
+        if (withChildren || p != '@{~v#node.children}') {
+            lastVDOM[p] = newVDOM[p];
+        }
+    }
+};
+/*#}#*/
+let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys) => {
     if (DEBUG) {
         if (oldParent.nodeName == 'TEMPLATE') {
             console.error('unsupport template tag');
@@ -184,44 +239,61 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data) => {
             console.error('Your code is not match the DOM tree generated by the browser. near:' + lastVDOM['@{~v#node.html}'] + '. Is that you lost some tags or modified the DOM tree?');
         }
     }
-    if (G_Has(lastVDOM['@{~v#node.attrs.map}'], 'mxv') ||
+    let lastAMap = lastVDOM['@{~v#node.attrs.map}'],
+        newAMap = newVDOM['@{~v#node.attrs.map}'];
+    if (G_Has(lastAMap, 'mxv') ||
         lastVDOM['@{~v#node.outer.html}'] != newVDOM['@{~v#node.outer.html}']) {
         if (lastVDOM['@{~v#node.tag}'] == newVDOM['@{~v#node.tag}']) {
             if (lastVDOM['@{~v#node.tag}'] == TO_VDOM_TEXT_NODE) {
                 if (lastVDOM['@{~v#node.html}'] != newVDOM['@{~v#node.html}']) {
+                    ref.c = 1;
+                    /*#if(modules.updaterAsync){#*/
+                    lastVDOM['@{~v#node.html}'] = newVDOM['@{~v#node.html}'];
+                    /*#}#*/
                     realNode.nodeValue = TO_VDOM_Unescape(newVDOM['@{~v#node.html}']);
                 }
-            } else if (!lastVDOM['@{~v#node.attrs.map}'][G_Tag_Key] ||
-                lastVDOM['@{~v#node.attrs.map}'][G_Tag_Key] != newVDOM['@{~v#node.attrs.map}'][G_Tag_Key]) {
-                let newMxView = newVDOM['@{~v#node.attrs.map}'][G_MX_VIEW],
+            } else if (!lastAMap[G_Tag_Key] || lastAMap[G_Tag_Key] != newAMap[G_Tag_Key]) {
+                let newMxView = newAMap[G_MX_VIEW],
                     newHTML = newVDOM['@{~v#node.html}'];
-                let updateAttribute = !newVDOM['@{~v#node.attrs.map}'][G_Tag_Attr_Key] || newVDOM['@{~v#node.attrs.map}'][G_Tag_Attr_Key] != newVDOM['@{~v#node.attrs.map}'][G_Tag_Attr_Key],
+                let updateAttribute = !newAMap[G_Tag_Attr_Key] || lastAMap[G_Tag_Attr_Key] != newAMap[G_Tag_Attr_Key],
                     updateChildren, unmountOld,
                     oldVf = Vframe_Vframes[realNode.id],
-                    assign, needUpdate,
-                    view, uri, params, htmlChanged/*, 
+                    assign,
+                    view,
+                    uri = newMxView && G_ParseUri(newMxView),
+                    params,
+                    htmlChanged,
+                    paramsChanged/*, 
                     oldDataStringify, newDataStringify,dataChanged*/;
                 /*
                     如果存在新旧view，则考虑路径一致，避免渲染的问题
                  */
-                if (newMxView && oldVf) {
-                    view = oldVf['@{vframe#view.entity}'];
-                    assign = view['@{view#assign.fn}'];
-                    uri = G_ParseUri(newMxView);
-                    htmlChanged = newHTML != lastVDOM['@{~v#node.html}'];
-                    needUpdate = newMxView.indexOf('?') > 0 || htmlChanged;
-                    /*
-                        只检测是否有参数控制view而不检测数据是否变化的原因：
-                        例：view内有一input接收传递的参数，且该input也能被用户输入
-                        var d1='xl';
-                        var d2='xl';
-                        当传递第一份数据时，input显示值xl，这时候用户修改了input的值且使用第二份数据重新渲染这个view，问input该如何显示？
-                    */
-                }
+
+                /*
+                    只检测是否有参数控制view而不检测数据是否变化的原因：
+                    例：view内有一input接收传递的参数，且该input也能被用户输入
+                    var d1='xl';
+                    var d2='xl';
+                    当传递第一份数据时，input显示值xl，这时候用户修改了input的值且使用第二份数据重新渲染这个view，问input该如何显示？
+                */
                 //旧节点有view,新节点有view,且是同类型的view
                 if (newMxView && oldVf &&
-                    oldVf['@{vframe#view.path}'] == uri[G_PATH]) {
-                    if (needUpdate) {
+                    oldVf['@{vframe#view.path}'] == uri[G_PATH] &&
+                    (view = oldVf['@{vframe#view.entity}'])) {
+                    htmlChanged = newHTML != lastVDOM['@{~v#node.html}'];
+                    paramsChanged = newMxView != oldVf[G_PATH];
+                    assign = lastAMap[G_Tag_View_Key];
+                    if (!htmlChanged && !paramsChanged && assign) {
+                        params = assign.split(G_COMMA);
+                        for (assign of params) {
+                            if (G_Has(keys, assign)) {
+                                paramsChanged = 1;
+                                break;
+                            }
+                        }
+                    }
+                    if (paramsChanged || htmlChanged) {
+                        assign = view['@{view#assign.fn}'];
                         //如果有assign方法,且有参数或html变化
                         if (assign) {
                             params = uri[G_PARAMS];
@@ -234,15 +306,13 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data) => {
                             oldVf[G_PATH] = newMxView;//update ref
                             //如果需要更新，则进行更新的操作
                             uri = {
-                                inner: newHTML,
-                                deep: !view['@{view#template.object}'],//无模板的组件深入比较子节点,
-                                //data: dataChanged,
-                                html: htmlChanged
+                                node: newVDOM,
+                                html: newHTML,
+                                deep: !view['@{view#template.object}'],
+                                inner: htmlChanged,
+                                query: paramsChanged
                             };
-                            if (updateAttribute) {
-                                updateAttribute = G_EMPTY;
-                                V_SetAttributes(realNode, lastVDOM, newVDOM, ref);
-                            }
+                            updateAttribute = G_EMPTY;
                             if (G_ToTry(assign, [params, uri], view)) {
                                 ref.v.push(view);
                             }
@@ -253,75 +323,39 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data) => {
                             unmountOld = 1;
                             updateChildren = 1;
                         }
+                    } else {
+                        updateAttribute = G_EMPTY;
                     }
                 } else {
                     updateChildren = 1;
                     unmountOld = oldVf;
                 }
                 if (unmountOld) {
+                    ref.c = 1;
                     oldVf.unmountVframe(0, 1);
                 }
                 if (updateAttribute) {
-                    if (unmountOld) ref.c = 1;
-                    //ref.c = 1;
                     V_SetAttributes(realNode, lastVDOM, newVDOM, ref);
                 }
                 // Update all children (and subchildren).
                 //自闭合标签不再检测子节点
-                if (updateChildren && !newVDOM['@{~v#node.self.close}'] && !lastVDOM['@{~v#node.self.close}']) {
+                if (updateChildren &&
+                    !(newVDOM['@{~v#node.self.close}'] &&
+                        lastVDOM['@{~v#node.self.close}'])) {
                     //ref.c = 1;
-                    V_SetChildNodes(realNode, lastVDOM, newVDOM, ref, vframe, data);
+                    V_SetChildNodes(realNode, lastVDOM, newVDOM, ref, vframe, data, keys);
                 }
+                /*#if(modules.updaterAsync){#*/
+                V_CopyVNode(lastVDOM, newVDOM);
+                /*#}#*/
             }
         } else {
+            /*#if(modules.updaterAsync){#*/
+            V_CopyVNode(lastVDOM, newVDOM, 1);
+            /*#}#*/
             V_UnmountVframs(vframe, realNode);
             oldParent.replaceChild(V_CreateNode(newVDOM, oldParent, ref), realNode);
             ref.c = 1;
         }
     }
-};
-
-let V_UpdateDOM = updater => {
-    let selfId = updater['@{updater#view.id}'];
-    let vf = Vframe_Vframes[selfId];
-    let data = updater['@{updater#data}'];
-    let view = vf && vf['@{vframe#view.entity}'],
-        ref = { d: [], v: [] },
-        node = G_GetById(selfId),
-        tmpl, html, x,
-        vdom;
-    if (view && view['@{view#sign}'] > 0 && (tmpl = view['@{view#template.object}'])) {
-        console.time('[vdom time:' + selfId + ']');
-        console.time('[vdom html to vdom:' + selfId + ']');
-        html = tmpl(data, selfId);
-        vdom = TO_VDOM(html);
-        console.timeEnd('[vdom html to vdom:' + selfId + ']');
-        V_SetChildNodes(node, updater['@{updater#vdom}'], vdom, ref, vf, data);
-        updater['@{updater#vdom}'] = vdom;
-        for (x of ref.d) {
-            x[0].id = x[1];
-        }
-        for (x of ref.v) {
-            x['@{view#render.short}']();
-        }
-        if (ref.c) {
-            view.endUpdate(selfId);
-            /*#if(modules.naked){#*/
-            G_Trigger(G_DOCUMENT, 'htmlchanged', {
-                vId: selfId
-            });
-            /*#}else if(modules.kissy){#*/
-            G_DOC.fire('htmlchanged', {
-                vId: selfId
-            });
-            /*#}else{#*/
-            G_DOC.trigger({
-                type: 'htmlchanged',
-                vId: selfId
-            });
-            /*#}#*/
-        }
-    }
-    view.fire('domready');
-    console.timeEnd('[vdom time:' + selfId + ']');
 };

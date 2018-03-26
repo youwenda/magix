@@ -127,6 +127,7 @@ let State = {
             }
         }
         /*#}#*/
+        return this;
     },
     /**
      * 检测数据变化，如果有变化则派发changed事件

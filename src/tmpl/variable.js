@@ -15,6 +15,7 @@ let G_PAGE_UNLOAD = 'pageunload';
 let G_VALUE = 'value';
 let G_Tag_Key = 'mxs';
 let G_Tag_Attr_Key = 'mxa';
+let G_Tag_View_Key = 'mxv';
 let G_HashKey = '#';
 let G_NOOP = function () { };
 /*#if(modules.service||modules.updater){#*/
@@ -53,7 +54,8 @@ let Magix_Cfg = {
 
 let G_GetById = id => typeof id == Magix_StrObject ? id : G_DOCUMENT.getElementById(id);
 /*#if(modules.updater||modules.state){#*/
-let G_IsPrimitive = args => !args || typeof args != Magix_StrObject;
+let Magix_StrFunction = 'function';
+let G_IsPrimitive = args => !args || (args = typeof (args), args != Magix_StrObject && args != Magix_StrFunction);
 let G_Set = (newData, oldData, keys) => {
     let changed = 0,
         now, old, p;

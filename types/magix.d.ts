@@ -378,7 +378,7 @@ declare namespace Magix {
          * @param replace 是否替换当前的历史记录
          * @param silent 是否是静默更新，不触发change事件
          */
-        to(path: string, params: object, replace?: boolean, silent?: boolean): void
+        to(path: string, params?: object, replace?: boolean, silent?: boolean): void
 
         /**
          * 导航到新的地址

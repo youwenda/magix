@@ -2,6 +2,14 @@
 1. `dom diff`增加删除判断
 2. 如果`view`有`assign`方法，全权交与`view`更新，不再更新属性
 3. 原生使用`isEqualNode`方法，虚拟`dom`使用`outer.html`快速跳过相同的节点
+4. 字符串`html`到`vdom`使用`substring`方法，解决`slice`方法导致的浏览器长时间垃圾回收的问题
+5. `Magix.State`中`set`方法返回`this`方便连续调用
+6. 支持异步更新
+7. 节点比较的情况下，首次渲染及后续有变化时都要`endUpdate`
+8. 不再维护`vrdom`，鸡肋
+9. 重构`updater`中的`digest`方法，减少函数调用
+10. 修正`vframe`正渲染或销毁`view`后，`dom update`更新时，访问`view`不存在的`bug`
+11. 修正刷新时，`view`内只有某一个`view`有变化，且未实现`assign`方法，销毁无法重建的`bug`
 
 ## 3.8.4
 1. 防止虚拟`dom`解析时的死循环

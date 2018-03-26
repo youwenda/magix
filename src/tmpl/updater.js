@@ -10,22 +10,21 @@
 let Updater = function (viewId) {
     let me = this;
     me['@{updater#view.id}'] = viewId;
-    /*#if(!modules.updaterDOM&&!modules.updaterVDOM&&!modules.updaterVRDOM){#*/
+    me['@{updater#data.changed}'] = 1;
+    /*#if(!modules.updaterDOM&&!modules.updaterVDOM){#*/
     me['@{updater#render.id}'] = viewId;
     /*#}#*/
     me['@{updater#data}'] = {
         vId: viewId,
         [G_SPLITER]: 1
     };
-    /*#if(!modules.updaterVDOM&&!modules.updaterVRDOM&&!modules.updaterDOM){#*/
     me['@{updater#keys}'] = {};
-    /*#}#*/
 };
 G_Assign(Updater[G_PROTOTYPE], {
     /**
      * @lends Updater#
      */
-    /*#if(!modules.updaterDOM&&!modules.updaterVDOM&&!modules.updaterVRDOM){#*/
+    /*#if(!modules.updaterDOM&&!modules.updaterVDOM){#*/
     to(id, me) {
         me = this;
         me['@{updater#render.id}'] = id;
@@ -86,11 +85,7 @@ G_Assign(Updater[G_PROTOTYPE], {
      */
     set(obj) {
         let me = this;
-        /*#if(!modules.updaterVDOM&&!modules.updaterVRDOM&&!modules.updaterDOM){#*/
-        G_Set(obj, me['@{upater#data}'], me['@{updater#keys}']);
-        /*#}else{#*/
-        G_Assign(me['@{updater#data}'], obj);
-        /*#}#*/
+        me['@{updater#data.changed}'] = G_Set(obj, me['@{upater#data}'], me['@{updater#keys}']) || me['@{updater#data.changed}'];
         return me;
     },
     /**
@@ -104,24 +99,108 @@ G_Assign(Updater[G_PROTOTYPE], {
      * }
      */
     digest(data) {
-        let me = this;
-        me.set(data);
-        /*#if(!modules.updaterVDOM&&!modules.updaterVRDOM&&!modules.updaterDOM){#*/
-        let keys = me['@{updater#keys}'];
+        let me = this.set(data),
+            keys = me['@{updater#keys}'],
+            changed = me['@{updater#data.changed}'];
+        me['@{updater#data.changed}'] = 0;
         me['@{updater#keys}'] = {};
+        data = me['@{updater#data}'];
+        /*#if(modules.updaterVDOM||modules.updaterDOM){#*/
+        /*#if(modules.updaterAsync){#*/
+        return new Promise(resolve => {
+            /*#}#*/
+            let selfId = me['@{updater#view.id}'],
+                vf = Vframe_Vframes[selfId],
+                view = vf && vf['@{vframe#view.entity}'],
+                ref = { d: [], v: [] },
+                node = G_GetById(selfId),
+                tmpl, vdom;
+            if (changed && view && view['@{view#sign}'] > 0 &&
+                (tmpl = view['@{view#template.object}'])) {
+                /*#if(!modules.updaterAsync){#*/
+                console.time('[updater time:' + selfId + ']');
+                console.time('[html to dom:' + selfId + ']');
+                /*#if(modules.updaterVDOM){#*/
+                vdom = TO_VDOM(tmpl(data, selfId, G_IsPrimitive));
+                /*#}else{#*/
+                vdom = I_GetNode(tmpl(data, selfId, G_IsPrimitive), node);
+                /*#}#*/
+                console.timeEnd('[html to dom:' + selfId + ']');
+                /*#}#*/
+                /*#if(modules.updaterAsync){#*/
+                Async_SetNewTask(vf, () => {
+                    console.log('ui ready', selfId);
+                    /*#}else{#*/
+                    /*#if(modules.updaterVDOM){#*/
+                    V_SetChildNodes(node, me['@{updater#vdom}'], vdom, ref, vf, data, keys);
+                    me['@{updater#vdom}'] = vdom;
+                    /*#}else{#*/
+                    I_SetChildNodes(node, vdom, ref, vf, data, keys);
+                    /*#}#*/
+                    /*#}#*/
+                    for (vdom of ref.d) {
+                        vdom[0].id = vdom[1];
+                    }
+                    for (vdom of ref.v) {
+                        vdom['@{view#render.short}']();
+                    }
+                    if (ref.c || !view['@{view#rendered}']) {
+                        view.endUpdate(selfId);
+                    }
+                    if (ref.c) {
+                        /*#if(modules.naked){#*/
+                        G_Trigger(G_DOCUMENT, 'htmlchanged', {
+                            vId: selfId
+                        });
+                        /*#}else if(modules.kissy){#*/
+                        G_DOC.fire('htmlchanged', {
+                            vId: selfId
+                        });
+                        /*#}else{#*/
+                        G_DOC.trigger({
+                            type: 'htmlchanged',
+                            vId: selfId
+                        });
+                        /*#}#*/
+                    }
+                    view.fire('domready');
+                    /*#if(modules.updaterAsync){#*/
+                    resolve();
+                });
+                Async_AddTask(vf, () => {
+                    console.time('[updater time:' + selfId + ']');
+                    console.time('[html to dom:' + selfId + ']');
+                    /*#if(modules.updaterVDOM){#*/
+                    vdom = TO_VDOM(tmpl(data, selfId, G_IsPrimitive));
+                    /*#}else{#*/
+                    vdom = I_GetNode(tmpl(data, selfId, G_IsPrimitive), node);
+                    /*#}#*/
+                    console.timeEnd('[html to dom:' + selfId + ']');
+                    /*#if(modules.updaterVDOM){#*/
+                    V_SetChildNodes(node, me['@{updater#vdom}'], vdom, ref, vf, data, keys);
+                    if (!me['@{updater#vdom}']) me['@{updater#vdom}'] = vdom;
+                    /*#}else{#*/
+                    I_SetChildNodes(node, vdom, ref, vf, data, keys);
+                    /*#}#*/
+                    console.timeEnd('[updater time:' + selfId + ']');
+                    Async_CheckStatus(selfId);
+                });
+                /*#}else{#*/
+                console.timeEnd('[updater time:' + selfId + ']');
+                /*#}#*/
+            }
+            /*#if(modules.updaterAsync){#*/
+            else {
+                resolve();
+            }
+        });
         /*#}#*/
-
-        /*#if(modules.updaterVRDOM){#*/
-        VR_UpdateDOM(me);
-        /*#}else if(modules.updaterVDOM){#*/
-        V_UpdateDOM(me);
-        /*#}else if(modules.updaterDOM){#*/
-        I_UpdateDOM(me);
         /*#}else{#*/
-        Partial_UpdateDOM(me, keys); //render
+        changed && Partial_UpdateDOM(me, keys); //render
         /*#}#*/
-
+        /*#if(!modules.updaterAsync){#*/
         return me;
+        /*#}#*/
     },
     /**
      * 获取当前数据状态的快照，配合altered方法可获得数据是否有变化
