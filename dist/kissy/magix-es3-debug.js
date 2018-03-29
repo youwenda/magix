@@ -1,7 +1,7 @@
 //#snippet;
 //#uncheck = jsThis,jsLoop;
 //#exclude = loader,allProcessor;
-/*!3.8.5 Licensed MIT*/
+/*!3.8.6 Licensed MIT*/
 /*
 author:kooboy_li@163.com
 loader:kissy
@@ -61,8 +61,7 @@ KISSY.add('magix', function (S, SE, DOM) {
         }
     };
     var G_GetById = function (id) { return typeof id == Magix_StrObject ? id : G_DOCUMENT.getElementById(id); };
-    var Magix_StrFunction = 'function';
-    var G_IsPrimitive = function (args) { return !args || (args = typeof (args), args != Magix_StrObject && args != Magix_StrFunction); };
+    var G_IsPrimitive = function (args) { return !args || typeof args != Magix_StrObject; };
     var G_Set = function (newData, oldData, keys) {
         var changed = 0, now, old, p;
         for (p in newData) {
@@ -146,12 +145,28 @@ KISSY.add('magix', function (S, SE, DOM) {
         return r;
     };
     var G_Has = function (owner, prop) { return owner && Magix_HasProp.call(owner, prop); }; //false 0 G_NULL '' undefined
-    var GSet_Params = function (data, oldParams, newParams) {
+    var G_TranslateData = function (data, params, deep) {
         var p, val;
-        for (p in oldParams) {
-            val = oldParams[p];
-            newParams[p] = (val + G_EMPTY)[0] == G_SPLITER ? data[val] : val;
+        if (G_IsPrimitive(params)) {
+            p = params + G_EMPTY;
+            if (p[0] == G_SPLITER) {
+                params = data[p];
+            }
         }
+        else {
+            for (p in params) {
+                val = params[p];
+                if (deep && !G_IsPrimitive(val)) {
+                    G_TranslateData(data, val, deep);
+                }
+                if (p[0] == G_SPLITER) {
+                    delete params[p];
+                    p = data[p];
+                }
+                params[p] = (val + G_EMPTY)[0] == G_SPLITER ? data[val] : val;
+            }
+        }
+        return params;
     };
     var Magix_CacheSort = function (a, b) { return b.f - a.f || b.t - a.t; };
     /**
@@ -1151,16 +1166,17 @@ KISSY.add('magix', function (S, SE, DOM) {
                 }
             }
         });
-        G_WINDOW.onbeforeunload = function (e, te, msg) {
+        G_DOMEventLibBind(G_WINDOW, 'beforeunload', function (e, te, msg) {
             e = e || G_WINDOW.event;
             te = {};
             Router.fire(G_PAGE_UNLOAD, te);
             if ((msg = te.msg)) {
+                //chrome use e.returnValue and ie use return value
                 if (e)
                     e.returnValue = msg;
                 return msg;
             }
-        };
+        });
         Router_Diff();
     };
     var Router_PNR_Routers, Router_PNR_UnmatchView, /*Router_PNR_IsFun,*/ Router_PNR_DefaultView, Router_PNR_DefaultPath;
@@ -1636,7 +1652,7 @@ KISSY.add('magix', function (S, SE, DOM) {
                 parentVf = parentVf && parentVf['$d'];
                 parentVf = parentVf && parentVf['$a'];
                 if (viewPath.indexOf(G_SPLITER) > 0) {
-                    GSet_Params(parentVf, params, params);
+                    G_TranslateData(parentVf, params);
                 }
                 //me['$j'] = G_TryStringify(parentVf, po);
                 me['$n'] = po[G_PATH];
@@ -1994,9 +2010,8 @@ KISSY.add('magix', function (S, SE, DOM) {
             console.log('selector',e);
         }
 
-        那么先派发mx-event绑定的事件再派发选择器绑定的事件
+        那么先派发选择器绑定的事件再派发mx-event绑定的事件
 
-        如果要停止选择器上的事件派发，请调用e.stopImmediatePropagation()
 
     5.在当前view根节点上绑定事件，目前只能使用选择器绑定，如
         '$<click>'(e){
@@ -2018,12 +2033,11 @@ KISSY.add('magix', function (S, SE, DOM) {
                     n: match[2],
                     i: match[3]
                 };
-                /*jshint evil: true*/
-                match.p = match.i && G_ToTry(Function("return " + match.i), G_EMPTY_ARRAY, current);
                 Body_EvtInfoCache.set(info, match);
             }
-            match = G_Assign({}, match, { r: info });
-            eventInfos.push(match);
+            match = G_Assign({}, match, { 
+                /*jshint evil: true*/
+                p: match.i && G_ToTry(Function("return " + match.i), G_EMPTY_ARRAY, current), r: info });
         }
         //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件里
         if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
@@ -2078,6 +2092,9 @@ KISSY.add('magix', function (S, SE, DOM) {
                 } while (vf && (selectorVfId = vf.pId));
             }
         }
+        if (match) {
+            eventInfos.push(match);
+        }
         return eventInfos;
     };
     var Body_DOMEventProcessor = function (domEvent) {
@@ -2112,7 +2129,7 @@ KISSY.add('magix', function (S, SE, DOM) {
                             domEvent.eventTarget = target;
                             params = p || {};
                             if (i && i.indexOf(G_SPLITER) > 0) {
-                                GSet_Params(view['$d']['$a'], params, params = {});
+                                G_TranslateData(view['$d']['$a'], params, 1);
                                 if (DEBUG) {
                                     params = Safeguard(params);
                                 }
@@ -2294,6 +2311,21 @@ KISSY.add('magix', function (S, SE, DOM) {
             }
         }
     };
+    var I_SpecialEqual = function (oldNode, newNode) {
+        var nodeName = oldNode.nodeName, i;
+        var specials = I_Specials[nodeName];
+        var result = true;
+        if (specials) {
+            for (var _i = 0, specials_2 = specials; _i < specials_2.length; _i++) {
+                i = specials_2[_i];
+                if (oldNode[i] != newNode[i]) {
+                    result = false;
+                    break;
+                }
+            }
+        }
+        return result;
+    };
     var I_GetCompareKey = function (node, key) {
         if (node.nodeType == 1) {
             if (node.$kd) {
@@ -2400,7 +2432,7 @@ KISSY.add('magix', function (S, SE, DOM) {
     var I_SetNode = function (oldNode, newNode, oldParent, ref, vf, data, keys) {
         //优先使用浏览器内置的方法进行判断
         if ((oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
-            !(oldNode.isEqualNode && oldNode.isEqualNode(newNode))) {
+            !(oldNode.isEqualNode && oldNode.isEqualNode(newNode) && I_SpecialEqual(oldNode, newNode))) {
             if (oldNode.nodeName === newNode.nodeName) {
                 // Handle regular element node updates.
                 if (oldNode.nodeType === 1) {
@@ -2440,7 +2472,7 @@ KISSY.add('magix', function (S, SE, DOM) {
                                 params = uri[G_PARAMS];
                                 //处理引用赋值
                                 if (newMxView.indexOf(G_SPLITER) > -1) {
-                                    GSet_Params(data, params, params);
+                                    G_TranslateData(data, params);
                                 }
                                 oldVf['$i'] = newHTML;
                                 //oldVf['$j'] = newDataStringify;
@@ -2618,7 +2650,7 @@ KISSY.add('magix', function (S, SE, DOM) {
                 (tmpl = view['$e'])) {
                 console.time('[updater time:' + selfId + ']');
                 console.time('[html to dom:' + selfId + ']');
-                vdom = I_GetNode(tmpl(data, selfId, G_IsPrimitive), node);
+                vdom = I_GetNode(tmpl(data, selfId), node);
                 console.timeEnd('[html to dom:' + selfId + ']');
                 I_SetChildNodes(node, vdom, ref, vf, data, keys);
                 for (var _i = 0, _a = ref.d; _i < _a.length; _i++) {
@@ -2696,6 +2728,9 @@ KISSY.add('magix', function (S, SE, DOM) {
             if (me['$d']) {
                 return me['$d'] != JSONStringify(me['$a']);
             }
+        },
+        translate: function (data) {
+            return G_TranslateData(this['$a'], data, 1);
         }
     });
     var View_EvtMethodReg = /^(\$?)([^<]*)<([^>]+)>$/;
@@ -3267,16 +3302,13 @@ KISSY.add('magix', function (S, SE, DOM) {
                 else if (fn()) {
                     e.prevent();
                     changeListener[b] = 1;
-                    me.leaveConfirm(msg, function () {
+                    me.leaveConfirm(function () {
                         changeListener[b] = 0;
                         e.resolve();
                     }, function () {
                         changeListener[b] = 0;
                         e.reject();
-                    });
-                }
-                else {
-                    e.resolve();
+                    }, msg);
                 }
             };
             var unloadListener = function (e) {
@@ -3485,7 +3517,7 @@ KISSY.add('magix', function (S, SE, DOM) {
     };
     var Service_Task = function (done, host, service, total, flag, bagCache) {
         var doneArr = [];
-        var errorArgs = 0;
+        var errorArgs = G_NULL;
         var currentDoneCount = 0;
         return function (idx, error) {
             var bag = this;

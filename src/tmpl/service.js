@@ -138,7 +138,7 @@ let Service_CacheDone = function (cacheKey, err, fns) {
 };
 let Service_Task = (done, host, service, total, flag, bagCache) => {
     let doneArr = [];
-    let errorArgs = 0;
+    let errorArgs = G_NULL;
     let currentDoneCount = 0;
 
     return function (idx, error) {

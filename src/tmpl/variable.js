@@ -54,8 +54,7 @@ let Magix_Cfg = {
 
 let G_GetById = id => typeof id == Magix_StrObject ? id : G_DOCUMENT.getElementById(id);
 /*#if(modules.updater||modules.state){#*/
-let Magix_StrFunction = 'function';
-let G_IsPrimitive = args => !args || (args = typeof (args), args != Magix_StrObject && args != Magix_StrFunction);
+let G_IsPrimitive = args => !args || typeof args != Magix_StrObject;
 let G_Set = (newData, oldData, keys) => {
     let changed = 0,
         now, old, p;
@@ -156,11 +155,26 @@ let G_ToTry = (fns, args, context, r, e) => {
 
 let G_Has = (owner, prop) => owner && Magix_HasProp.call(owner, prop); //false 0 G_NULL '' undefined
 /*#if(modules.updater){#*/
-let GSet_Params = (data, oldParams, newParams) => {
+let G_TranslateData = (data, params, deep) => {
     let p, val;
-    for (p in oldParams) {
-        val = oldParams[p];
-        newParams[p] = (val + G_EMPTY)[0] == G_SPLITER ? data[val] : val;
+    if (G_IsPrimitive(params)) {
+        p = params + G_EMPTY;
+        if (p[0] == G_SPLITER) {
+            params = data[p];
+        }
+    } else {
+        for (p in params) {
+            val = params[p];
+            if (deep && !G_IsPrimitive(val)) {
+                G_TranslateData(data, val, deep);
+            }
+            if (p[0] == G_SPLITER) {
+                delete params[p];
+                p = data[p];
+            }
+            params[p] = (val + G_EMPTY)[0] == G_SPLITER ? data[val] : val;
+        }
     }
+    return params;
 };
 /*#}#*/

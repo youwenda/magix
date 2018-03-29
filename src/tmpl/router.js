@@ -76,15 +76,16 @@ let Router_Bind = () => {
             }
         }
     });
-    G_WINDOW.onbeforeunload = (e, te, msg) => {
+    G_DOMEventLibBind(G_WINDOW, 'beforeunload', (e, te, msg) => {
         e = e || G_WINDOW.event;
         te = {};
         Router.fire(G_PAGE_UNLOAD, te);
         if ((msg = te.msg)) {
+            //chrome use e.returnValue and ie use return value
             if (e) e.returnValue = msg;
             return msg;
         }
-    };
+    });
     Router_Diff();
 };
 /*#}else{#*/

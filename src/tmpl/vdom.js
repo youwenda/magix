@@ -299,7 +299,7 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys
                             params = uri[G_PARAMS];
                             //处理引用赋值
                             if (newMxView.indexOf(G_SPLITER) > -1) {
-                                GSet_Params(data, params, params);
+                                G_TranslateData(data, params);
                             }
                             //oldVf['@{vframe#template}'] = newHTML;
                             //oldVf['@{vframe#data.stringify}'] = newDataStringify;

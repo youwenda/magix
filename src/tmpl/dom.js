@@ -127,6 +127,20 @@ let I_SetAttributes = (oldNode, newNode, ref, keepId) => {
         }
     }
 };
+let I_SpecialEqual = (oldNode, newNode) => {
+    let nodeName = oldNode.nodeName, i;
+    let specials = I_Specials[nodeName];
+    let result = true;
+    if (specials) {
+        for (i of specials) {
+            if (oldNode[i] != newNode[i]) {
+                result = false;
+                break;
+            }
+        }
+    }
+    return result;
+};
 
 let I_GetCompareKey = (node, key) => {
     if (node.nodeType == 1) {
@@ -241,7 +255,7 @@ let I_SetChildNodes = (oldParent, newParent, ref, vframe, data, keys) => {
 let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
     //优先使用浏览器内置的方法进行判断
     if ((oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
-        !(oldNode.isEqualNode && oldNode.isEqualNode(newNode))) {
+        !(oldNode.isEqualNode && oldNode.isEqualNode(newNode) && I_SpecialEqual(oldNode, newNode))) {
         if (oldNode.nodeName === newNode.nodeName) {
             // Handle regular element node updates.
             if (oldNode.nodeType === 1) {
@@ -288,7 +302,7 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                             params = uri[G_PARAMS];
                             //处理引用赋值
                             if (newMxView.indexOf(G_SPLITER) > -1) {
-                                GSet_Params(data, params, params);
+                                G_TranslateData(data, params);
                             }
                             oldVf['@{vframe#template}'] = newHTML;
                             //oldVf['@{vframe#data.stringify}'] = newDataStringify;

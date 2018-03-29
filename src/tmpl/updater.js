@@ -121,9 +121,9 @@ G_Assign(Updater[G_PROTOTYPE], {
                 console.time('[updater time:' + selfId + ']');
                 console.time('[html to dom:' + selfId + ']');
                 /*#if(modules.updaterVDOM){#*/
-                vdom = TO_VDOM(tmpl(data, selfId, G_IsPrimitive));
+                vdom = TO_VDOM(tmpl(data, selfId));
                 /*#}else{#*/
-                vdom = I_GetNode(tmpl(data, selfId, G_IsPrimitive), node);
+                vdom = I_GetNode(tmpl(data, selfId), node);
                 /*#}#*/
                 console.timeEnd('[html to dom:' + selfId + ']');
                 /*#}#*/
@@ -171,9 +171,9 @@ G_Assign(Updater[G_PROTOTYPE], {
                     console.time('[updater time:' + selfId + ']');
                     console.time('[html to dom:' + selfId + ']');
                     /*#if(modules.updaterVDOM){#*/
-                    vdom = TO_VDOM(tmpl(data, selfId, G_IsPrimitive));
+                    vdom = TO_VDOM(tmpl(data, selfId));
                     /*#}else{#*/
-                    vdom = I_GetNode(tmpl(data, selfId, G_IsPrimitive), node);
+                    vdom = I_GetNode(tmpl(data, selfId), node);
                     /*#}#*/
                     console.timeEnd('[html to dom:' + selfId + ']');
                     /*#if(modules.updaterVDOM){#*/
@@ -256,5 +256,8 @@ G_Assign(Updater[G_PROTOTYPE], {
         if (me['@{updater#data.string}']) {
             return me['@{updater#data.string}'] != JSONStringify(me['@{updater#data}']);
         }
+    },
+    translate(data) {
+        return G_TranslateData(this['@{updater#data}'], data, 1);
     }
 });

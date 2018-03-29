@@ -215,7 +215,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
             parentVf = parentVf && parentVf['@{view#updater}'];
             parentVf = parentVf && parentVf['@{updater#data}'];
             if (viewPath.indexOf(G_SPLITER) > 0) {
-                GSet_Params(parentVf, params, params);
+                G_TranslateData(parentVf, params);
             }
             /*#if(modules.updaterDOM||modules.updaterVDOM){#*/
             //me['@{vframe#data.stringify}'] = G_TryStringify(parentVf, po);

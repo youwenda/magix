@@ -21,9 +21,8 @@
             console.log('selector',e);
         }
 
-        那么先派发mx-event绑定的事件再派发选择器绑定的事件
+        那么先派发选择器绑定的事件再派发mx-event绑定的事件
 
-        如果要停止选择器上的事件派发，请调用e.stopImmediatePropagation()
 
     5.在当前view根节点上绑定事件，目前只能使用选择器绑定，如
         '$<click>'(e){
@@ -51,18 +50,17 @@ let Body_FindVframeInfo = (current, eventType) => {
                 n: match[2],
                 i: match[3]
             };
-            /*jshint evil: true*/
-            match.p = match.i && G_ToTry(Function(`return ${match.i}`), G_EMPTY_ARRAY, current);
             Body_EvtInfoCache.set(info, match);
         }
         match = {
             ...match,
+            /*jshint evil: true*/
+            p: match.i && G_ToTry(Function(`return ${match.i}`), G_EMPTY_ARRAY, current),
             /*#if(modules.mxViewAttr){#*/
             v: match.v || current.getAttribute('mx-owner'),
             /*#}#*/
             r: info
         };
-        eventInfos.push(match);
     }
     //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件里
     if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
@@ -130,6 +128,9 @@ let Body_FindVframeInfo = (current, eventType) => {
             while (vf && (selectorVfId = vf.pId));
         }
     }
+    if (match) {
+        eventInfos.push(match);
+    }
     return eventInfos;
 };
 
@@ -167,7 +168,7 @@ let Body_DOMEventProcessor = domEvent => {
                         /*#if(modules.updater){#*/
                         params = p || {};
                         if (i && i.indexOf(G_SPLITER) > 0) {
-                            GSet_Params(view['@{view#updater}']['@{updater#data}'], params, params = {});
+                            G_TranslateData(view['@{view#updater}']['@{updater#data}'], params, 1);
                             if (DEBUG) {
                                 params = Safeguard(params);
                             }

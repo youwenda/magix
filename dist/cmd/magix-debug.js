@@ -1,7 +1,7 @@
 //#snippet;
 //#uncheck = jsThis,jsLoop;
 //#exclude = loader,allProcessor;
-/*!3.8.5 Licensed MIT*/
+/*!3.8.6 Licensed MIT*/
 /*
 author:kooboy_li@163.com
 loader:cmd
@@ -72,8 +72,7 @@ let Magix_Cfg = {
 
 let G_GetById = id => typeof id == Magix_StrObject ? id : G_DOCUMENT.getElementById(id);
 
-let Magix_StrFunction = 'function';
-let G_IsPrimitive = args => !args || (args = typeof (args), args != Magix_StrObject && args != Magix_StrFunction);
+let G_IsPrimitive = args => !args || typeof args != Magix_StrObject;
 let G_Set = (newData, oldData, keys) => {
     let changed = 0,
         now, old, p;
@@ -146,12 +145,27 @@ let G_ToTry = (fns, args, context, r, e) => {
 
 let G_Has = (owner, prop) => owner && Magix_HasProp.call(owner, prop); //false 0 G_NULL '' undefined
 
-let GSet_Params = (data, oldParams, newParams) => {
+let G_TranslateData = (data, params, deep) => {
     let p, val;
-    for (p in oldParams) {
-        val = oldParams[p];
-        newParams[p] = (val + G_EMPTY)[0] == G_SPLITER ? data[val] : val;
+    if (G_IsPrimitive(params)) {
+        p = params + G_EMPTY;
+        if (p[0] == G_SPLITER) {
+            params = data[p];
+        }
+    } else {
+        for (p in params) {
+            val = params[p];
+            if (deep && !G_IsPrimitive(val)) {
+                G_TranslateData(data, val, deep);
+            }
+            if (p[0] == G_SPLITER) {
+                delete params[p];
+                p = data[p];
+            }
+            params[p] = (val + G_EMPTY)[0] == G_SPLITER ? data[val] : val;
+        }
     }
+    return params;
 };
 
     let Magix_CacheSort = (a, b) =>   b.f - a.f || b.t - a.t;
@@ -1228,15 +1242,16 @@ let Router_Bind = () => {
             }
         }
     });
-    G_WINDOW.onbeforeunload = (e, te, msg) => {
+    G_DOMEventLibBind(G_WINDOW, 'beforeunload', (e, te, msg) => {
         e = e || G_WINDOW.event;
         te = {};
         Router.fire(G_PAGE_UNLOAD, te);
         if ((msg = te.msg)) {
+            //chrome use e.returnValue and ie use return value
             if (e) e.returnValue = msg;
             return msg;
         }
-    };
+    });
     Router_Diff();
 };
 
@@ -1765,7 +1780,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
             parentVf = parentVf && parentVf['$d'];
             parentVf = parentVf && parentVf['$a'];
             if (viewPath.indexOf(G_SPLITER) > 0) {
-                GSet_Params(parentVf, params, params);
+                G_TranslateData(parentVf, params);
             }
             
             //me['$j'] = G_TryStringify(parentVf, po);
@@ -2163,9 +2178,8 @@ Magix.Vframe = Vframe;
             console.log('selector',e);
         }
 
-        那么先派发mx-event绑定的事件再派发选择器绑定的事件
+        那么先派发选择器绑定的事件再派发mx-event绑定的事件
 
-        如果要停止选择器上的事件派发，请调用e.stopImmediatePropagation()
 
     5.在当前view根节点上绑定事件，目前只能使用选择器绑定，如
         '$<click>'(e){
@@ -2193,16 +2207,15 @@ let Body_FindVframeInfo = (current, eventType) => {
                 n: match[2],
                 i: match[3]
             };
-            /*jshint evil: true*/
-            match.p = match.i && G_ToTry(Function(`return ${match.i}`), G_EMPTY_ARRAY, current);
             Body_EvtInfoCache.set(info, match);
         }
         match = {
             ...match,
+            /*jshint evil: true*/
+            p: match.i && G_ToTry(Function(`return ${match.i}`), G_EMPTY_ARRAY, current),
             
             r: info
         };
-        eventInfos.push(match);
     }
     //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件里
     if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
@@ -2260,6 +2273,9 @@ let Body_FindVframeInfo = (current, eventType) => {
             while (vf && (selectorVfId = vf.pId));
         }
     }
+    if (match) {
+        eventInfos.push(match);
+    }
     return eventInfos;
 };
 
@@ -2297,7 +2313,7 @@ let Body_DOMEventProcessor = domEvent => {
                         
                         params = p || {};
                         if (i && i.indexOf(G_SPLITER) > 0) {
-                            GSet_Params(view['$d']['$a'], params, params = {});
+                            G_TranslateData(view['$d']['$a'], params, 1);
                             if (DEBUG) {
                                 params = Safeguard(params);
                             }
@@ -2487,6 +2503,20 @@ let I_SetAttributes = (oldNode, newNode, ref, keepId) => {
         }
     }
 };
+let I_SpecialEqual = (oldNode, newNode) => {
+    let nodeName = oldNode.nodeName, i;
+    let specials = I_Specials[nodeName];
+    let result = true;
+    if (specials) {
+        for (i of specials) {
+            if (oldNode[i] != newNode[i]) {
+                result = false;
+                break;
+            }
+        }
+    }
+    return result;
+};
 
 let I_GetCompareKey = (node, key) => {
     if (node.nodeType == 1) {
@@ -2597,7 +2627,7 @@ let I_SetChildNodes = (oldParent, newParent, ref, vframe, data, keys) => {
 let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
     //优先使用浏览器内置的方法进行判断
     if ((oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
-        !(oldNode.isEqualNode && oldNode.isEqualNode(newNode))) {
+        !(oldNode.isEqualNode && oldNode.isEqualNode(newNode) && I_SpecialEqual(oldNode, newNode))) {
         if (oldNode.nodeName === newNode.nodeName) {
             // Handle regular element node updates.
             if (oldNode.nodeType === 1) {
@@ -2644,7 +2674,7 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                             params = uri[G_PARAMS];
                             //处理引用赋值
                             if (newMxView.indexOf(G_SPLITER) > -1) {
-                                GSet_Params(data, params, params);
+                                G_TranslateData(data, params);
                             }
                             oldVf['$i'] = newHTML;
                             //oldVf['$j'] = newDataStringify;
@@ -2828,7 +2858,7 @@ G_Assign(Updater[G_PROTOTYPE], {
                 console.time('[updater time:' + selfId + ']');
                 console.time('[html to dom:' + selfId + ']');
                 
-                vdom = I_GetNode(tmpl(data, selfId, G_IsPrimitive), node);
+                vdom = I_GetNode(tmpl(data, selfId), node);
                 
                 console.timeEnd('[html to dom:' + selfId + ']');
                 
@@ -2919,6 +2949,9 @@ G_Assign(Updater[G_PROTOTYPE], {
         if (me['$d']) {
             return me['$d'] != JSONStringify(me['$a']);
         }
+    },
+    translate(data) {
+        return G_TranslateData(this['$a'], data, 1);
     }
 });
     
@@ -3519,15 +3552,13 @@ G_Assign(ViewProto, MEvent, {
             } else if (fn()) {
                 e.prevent();
                 changeListener[b] = 1;
-                me.leaveConfirm(msg, () => {
+                me.leaveConfirm(() => {
                     changeListener[b] = 0;
                     e.resolve();
                 }, () => {
                     changeListener[b] = 0;
                     e.reject();
-                });
-            } else {
-                e.resolve();
+                }, msg);
             }
         };
         let unloadListener = e => {
@@ -3743,7 +3774,7 @@ let Service_CacheDone = function (cacheKey, err, fns) {
 };
 let Service_Task = (done, host, service, total, flag, bagCache) => {
     let doneArr = [];
-    let errorArgs = 0;
+    let errorArgs = G_NULL;
     let currentDoneCount = 0;
 
     return function (idx, error) {

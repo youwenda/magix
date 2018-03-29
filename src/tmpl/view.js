@@ -617,15 +617,13 @@ G_Assign(ViewProto, MEvent, {
             } else if (fn()) {
                 e.prevent();
                 changeListener[b] = 1;
-                me.leaveConfirm(msg, () => {
+                me.leaveConfirm(() => {
                     changeListener[b] = 0;
                     e.resolve();
                 }, () => {
                     changeListener[b] = 0;
                     e.reject();
-                });
-            } else {
-                e.resolve();
+                }, msg);
             }
         };
         let unloadListener = e => {

@@ -186,6 +186,11 @@ declare namespace Magix {
          * 检测数据是否有变动
          */
         altered(): boolean
+        /**
+         * 得到模板中@符号对应的原始数据
+         * @param data 待转换的数据
+         */
+        translate(data: any): object
     }
     /**
      * 数据载体接口
