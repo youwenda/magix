@@ -136,6 +136,26 @@ let G_ToMap = (list, key) => {
     }
     return map;
 };
+/*#if(modules.updater){#*/
+let G_ParseCache = new G_Cache();
+let G_ParseExpr = (expr, data, result) => {
+    if (G_ParseCache.has(expr)) {
+        result = G_ParseCache.get(expr);
+    } else {
+        //jshint evil:true
+        result = G_ToTry(Function(`return ${expr}`));
+        if (expr.indexOf(G_SPLITER) > -1) {
+            G_TranslateData(data, result, 1);
+        } else {
+            G_ParseCache.set(expr, result);
+        }
+    }
+    if (DEBUG) {
+        result = Safeguard(result);
+    }
+    return result;
+};
+/*#}#*/
 /**
  * Magix对象，提供常用方法
  * @name Magix

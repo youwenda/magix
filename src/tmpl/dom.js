@@ -85,10 +85,11 @@ let I_Specials = {
     OPTION: ['selected']
 };
 let I_SetAttributes = (oldNode, newNode, ref, keepId) => {
+    delete oldNode.$;
+    delete oldNode.$kd;
     let a, i, key, value;
     let oldAttributes = oldNode.attributes,
-        newAttributes = newNode.attributes,
-        nodeName = oldNode.nodeName;
+        newAttributes = newNode.attributes;
     for (i = oldAttributes.length; i--;) {
         a = oldAttributes[i].name;
         if (!newNode.hasAttribute(a)) {
@@ -117,25 +118,20 @@ let I_SetAttributes = (oldNode, newNode, ref, keepId) => {
             }
         }
     }
-
-    let specials = I_Specials[nodeName];
-    if (specials) {
-        for (i of specials) {
-            if (oldNode[i] != newNode[i]) {//浏览器必须激活
-                oldNode[i] = newNode[i];
-            }
-        }
-    }
 };
-let I_SpecialEqual = (oldNode, newNode) => {
+let I_SpecialDiff = (oldNode, newNode, update) => {
     let nodeName = oldNode.nodeName, i;
     let specials = I_Specials[nodeName];
-    let result = true;
+    let result = 0;
     if (specials) {
         for (i of specials) {
             if (oldNode[i] != newNode[i]) {
-                result = false;
-                break;
+                result = 1;
+                if (update) {
+                    oldNode[i] = newNode[i];
+                } else {
+                    break;
+                }
             }
         }
     }
@@ -252,15 +248,30 @@ let I_SetChildNodes = (oldParent, newParent, ref, vframe, data, keys) => {
     }
 };
 
-let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
+let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys, special) => {
     //优先使用浏览器内置的方法进行判断
-    if ((oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
-        !(oldNode.isEqualNode && oldNode.isEqualNode(newNode) && I_SpecialEqual(oldNode, newNode))) {
+    /*
+        特殊属性优先判断，先识别特殊属性是否发生了改变
+        如果特殊属性发生了变化，是否更新取决于该节点上是否渲染了view
+        如果渲染了view则走相关的view流程
+        否则才更新特殊属性
+
+        场景：<input value="{{=abc}}"/>
+        updater.digest({abc:'abc'});
+        然后用户删除了input中的abc修改成了123
+        此时依然updater.digest({abc:'abc'}),问input中的值该显示abc还是123?
+        目前是显示abc
+    */
+    if ((special = I_SpecialDiff(oldNode, newNode)) ||
+        (oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
+        !(oldNode.isEqualNode && oldNode.isEqualNode(newNode))) {
         if (oldNode.nodeName === newNode.nodeName) {
             // Handle regular element node updates.
             if (oldNode.nodeType === 1) {
                 let staticKey = newNode.getAttribute(G_Tag_Key);
-                if (staticKey && staticKey == oldNode.getAttribute(G_Tag_Key)) {
+                if (!special &&
+                    staticKey &&
+                    staticKey == oldNode.getAttribute(G_Tag_Key)) {
                     return;
                 }
                 // If we have the same nodename then we can directly update the attributes.
@@ -329,7 +340,7 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                             unmountOld = 1;
                             updateChildren = 1;
                         }
-                    } else {
+                    } else {//view没发生变化，则只更新特别的几个属性
                         updateAttribute = 1;
                     }
                 } else {
@@ -341,6 +352,7 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                     oldVf.unmountVframe(0, 1);
                 }
                 if (updateAttribute) {
+                    //对于view，我们只更新特别的几个属性
                     if (updateAttribute === 1) {
                         if (newStaticAttrKey) {
                             oldNode.setAttribute(G_Tag_Attr_Key, newStaticAttrKey);
@@ -354,6 +366,10 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                     } else {
                         I_SetAttributes(oldNode, newNode, ref, oldVf && newMxView);
                     }
+                }
+                //如果是特殊属性变化且该节点上没有渲染view,则更新
+                if (special && updateAttribute !== 1) {
+                    I_SpecialDiff(oldNode, newNode, 1);
                 }
                 // Update all children (and subchildren).
                 if (updateChildren) {

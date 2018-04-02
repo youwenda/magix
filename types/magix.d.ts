@@ -188,9 +188,14 @@ declare namespace Magix {
         altered(): boolean
         /**
          * 得到模板中@符号对应的原始数据
-         * @param data 待转换的数据
+         * @param data 数据对象
          */
-        translate(data: any): object
+        translate(data: object): object
+        /**
+         * 得到模板中@符号对应的原始数据
+         * @param origin 源字符串
+         */
+        parse(origin: string): object
     }
     /**
      * 数据载体接口

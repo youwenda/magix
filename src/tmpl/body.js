@@ -54,8 +54,6 @@ let Body_FindVframeInfo = (current, eventType) => {
         }
         match = {
             ...match,
-            /*jshint evil: true*/
-            p: match.i && G_ToTry(Function(`return ${match.i}`), G_EMPTY_ARRAY, current),
             /*#if(modules.mxViewAttr){#*/
             v: match.v || current.getAttribute('mx-owner'),
             /*#}#*/
@@ -166,22 +164,16 @@ let Body_DOMEventProcessor = domEvent => {
                     if (fn) {
                         domEvent.eventTarget = target;
                         /*#if(modules.updater){#*/
-                        params = p || {};
-                        if (i && i.indexOf(G_SPLITER) > 0) {
-                            G_TranslateData(view['@{view#updater}']['@{updater#data}'], params, 1);
-                            if (DEBUG) {
-                                params = Safeguard(params);
-                            }
-                        }
+                        params = i ? G_ParseExpr(i, view['@{view#updater}']['@{updater#data}']) : {};
                         domEvent[G_PARAMS] = params;
                         /*#}else{#*/
                         domEvent[G_PARAMS] = p || {};
                         /*#}#*/
                         G_ToTry(fn, domEvent, view);
-
-                        if (domEvent.isImmediatePropagationStopped()) {
+                        //没发现实际的用途
+                        /*if (domEvent.isImmediatePropagationStopped()) {
                             break;
-                        }
+                        }*/
                     }
                     if (DEBUG) {
                         if (!fn) { //检测为什么找不到处理函数

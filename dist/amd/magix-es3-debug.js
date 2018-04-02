@@ -1,7 +1,7 @@
 //#snippet;
 //#uncheck = jsThis,jsLoop;
 //#exclude = loader,allProcessor;
-/*!3.8.6 Licensed MIT*/
+/*!3.8.7 Licensed MIT*/
 /*
 author:kooboy_li@163.com
 loader:amd
@@ -146,7 +146,7 @@ define('magix', ['$'], function ($) {
     var G_Has = function (owner, prop) { return owner && Magix_HasProp.call(owner, prop); }; //false 0 G_NULL '' undefined
     var G_TranslateData = function (data, params, deep) {
         var p, val;
-        if (G_IsPrimitive(params)) {
+        if (!deep && G_IsPrimitive(params)) {
             p = params + G_EMPTY;
             if (p[0] == G_SPLITER) {
                 params = data[p];
@@ -358,6 +358,9 @@ define('magix', ['$'], function ($) {
                     }
                     return new Proxy(o, {
                         set: function (target, property, value) {
+                            if (!setter && !prefix) {
+                                throw new Error('avoid writeback,key: ' + prefix + property + ' value:' + value + ' more info: https://github.com/thx/magix/issues/38');
+                            }
                             target[property] = value;
                             if (setter) {
                                 setter(prefix + property, value);
@@ -527,6 +530,26 @@ define('magix', ['$'], function ($) {
             }
         }
         return map;
+    };
+    var G_ParseCache = new G_Cache();
+    var G_ParseExpr = function (expr, data, result) {
+        if (G_ParseCache.has(expr)) {
+            result = G_ParseCache.get(expr);
+        }
+        else {
+            //jshint evil:true
+            result = G_ToTry(Function("return " + expr));
+            if (expr.indexOf(G_SPLITER) > -1) {
+                G_TranslateData(data, result, 1);
+            }
+            else {
+                G_ParseCache.set(expr, result);
+            }
+        }
+        if (DEBUG) {
+            result = Safeguard(result);
+        }
+        return result;
     };
     /**
      * Magix对象，提供常用方法
@@ -2062,9 +2085,7 @@ define('magix', ['$'], function ($) {
                 };
                 Body_EvtInfoCache.set(info, match);
             }
-            match = G_Assign({}, match, { 
-                /*jshint evil: true*/
-                p: match.i && G_ToTry(Function("return " + match.i), G_EMPTY_ARRAY, current), r: info });
+            match = G_Assign({}, match, { r: info });
         }
         //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件里
         if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
@@ -2154,18 +2175,13 @@ define('magix', ['$'], function ($) {
                         fn = view[eventName];
                         if (fn) {
                             domEvent.eventTarget = target;
-                            params = p || {};
-                            if (i && i.indexOf(G_SPLITER) > 0) {
-                                G_TranslateData(view['$d']['$a'], params, 1);
-                                if (DEBUG) {
-                                    params = Safeguard(params);
-                                }
-                            }
+                            params = i ? G_ParseExpr(i, view['$d']['$a']) : {};
                             domEvent[G_PARAMS] = params;
                             G_ToTry(fn, domEvent, view);
-                            if (domEvent.isImmediatePropagationStopped()) {
+                            //没发现实际的用途
+                            /*if (domEvent.isImmediatePropagationStopped()) {
                                 break;
-                            }
+                            }*/
                         }
                         if (DEBUG) {
                             if (!fn) {
@@ -2297,8 +2313,10 @@ define('magix', ['$'], function ($) {
         OPTION: ['selected']
     };
     var I_SetAttributes = function (oldNode, newNode, ref, keepId) {
+        delete oldNode.$;
+        delete oldNode.$kd;
         var a, i, key, value;
-        var oldAttributes = oldNode.attributes, newAttributes = newNode.attributes, nodeName = oldNode.nodeName;
+        var oldAttributes = oldNode.attributes, newAttributes = newNode.attributes;
         for (i = oldAttributes.length; i--;) {
             a = oldAttributes[i].name;
             if (!newNode.hasAttribute(a)) {
@@ -2328,26 +2346,22 @@ define('magix', ['$'], function ($) {
                 }
             }
         }
+    };
+    var I_SpecialDiff = function (oldNode, newNode, update) {
+        var nodeName = oldNode.nodeName, i;
         var specials = I_Specials[nodeName];
+        var result = 0;
         if (specials) {
             for (var _i = 0, specials_1 = specials; _i < specials_1.length; _i++) {
                 i = specials_1[_i];
                 if (oldNode[i] != newNode[i]) {
-                    oldNode[i] = newNode[i];
-                }
-            }
-        }
-    };
-    var I_SpecialEqual = function (oldNode, newNode) {
-        var nodeName = oldNode.nodeName, i;
-        var specials = I_Specials[nodeName];
-        var result = true;
-        if (specials) {
-            for (var _i = 0, specials_2 = specials; _i < specials_2.length; _i++) {
-                i = specials_2[_i];
-                if (oldNode[i] != newNode[i]) {
-                    result = false;
-                    break;
+                    result = 1;
+                    if (update) {
+                        oldNode[i] = newNode[i];
+                    }
+                    else {
+                        break;
+                    }
                 }
             }
         }
@@ -2456,15 +2470,30 @@ define('magix', ['$'], function ($) {
             ref.c = 1;
         }
     };
-    var I_SetNode = function (oldNode, newNode, oldParent, ref, vf, data, keys) {
+    var I_SetNode = function (oldNode, newNode, oldParent, ref, vf, data, keys, special) {
         //优先使用浏览器内置的方法进行判断
-        if ((oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
-            !(oldNode.isEqualNode && oldNode.isEqualNode(newNode) && I_SpecialEqual(oldNode, newNode))) {
+        /*
+            特殊属性优先判断，先识别特殊属性是否发生了改变
+            如果特殊属性发生了变化，是否更新取决于该节点上是否渲染了view
+            如果渲染了view则走相关的view流程
+            否则才更新特殊属性
+    
+            场景：<input value="{{=abc}}"/>
+            updater.digest({abc:'abc'});
+            然后用户删除了input中的abc修改成了123
+            此时依然updater.digest({abc:'abc'}),问input中的值该显示abc还是123?
+            目前是显示abc
+        */
+        if ((special = I_SpecialDiff(oldNode, newNode)) ||
+            (oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
+            !(oldNode.isEqualNode && oldNode.isEqualNode(newNode))) {
             if (oldNode.nodeName === newNode.nodeName) {
                 // Handle regular element node updates.
                 if (oldNode.nodeType === 1) {
                     var staticKey = newNode.getAttribute(G_Tag_Key);
-                    if (staticKey && staticKey == oldNode.getAttribute(G_Tag_Key)) {
+                    if (!special &&
+                        staticKey &&
+                        staticKey == oldNode.getAttribute(G_Tag_Key)) {
                         return;
                     }
                     // If we have the same nodename then we can directly update the attributes.
@@ -2541,6 +2570,7 @@ define('magix', ['$'], function ($) {
                         oldVf.unmountVframe(0, 1);
                     }
                     if (updateAttribute) {
+                        //对于view，我们只更新特别的几个属性
                         if (updateAttribute === 1) {
                             if (newStaticAttrKey) {
                                 oldNode.setAttribute(G_Tag_Attr_Key, newStaticAttrKey);
@@ -2555,6 +2585,10 @@ define('magix', ['$'], function ($) {
                         else {
                             I_SetAttributes(oldNode, newNode, ref, oldVf && newMxView);
                         }
+                    }
+                    //如果是特殊属性变化且该节点上没有渲染view,则更新
+                    if (special && updateAttribute !== 1) {
+                        I_SpecialDiff(oldNode, newNode, 1);
                     }
                     // Update all children (and subchildren).
                     if (updateChildren) {
@@ -2700,7 +2734,7 @@ define('magix', ['$'], function ($) {
                 view.fire('domready');
                 console.timeEnd('[updater time:' + selfId + ']');
             }
-            return me;
+            return Promise.resolve();
         },
         /**
          * 获取当前数据状态的快照，配合altered方法可获得数据是否有变化
@@ -2757,23 +2791,34 @@ define('magix', ['$'], function ($) {
                 return me['$d'] != JSONStringify(me['$a']);
             }
         },
+        /**
+         * 翻译带@占位符的数据
+         * @param {string} origin 源字符串
+         */
         translate: function (data) {
             return G_TranslateData(this['$a'], data, 1);
+        },
+        /**
+         * 翻译带@占位符的数据
+         * @param {string} origin 源字符串
+         */
+        parse: function (origin) {
+            return G_ParseExpr(origin, this['$a']);
         }
     });
     var View_EvtMethodReg = /^(\$?)([^<]*)<([^>]+)>$/;
     var processMixinsSameEvent = function (exist, additional, temp) {
-        if (exist['$h']) {
+        if (exist['a']) {
             temp = exist;
         }
         else {
             temp = function (e) {
-                G_ToTry(temp['$h'], e, this);
+                G_ToTry(temp['a'], e, this);
             };
-            temp['$h'] = [exist];
-            temp['$i'] = 1;
+            temp['a'] = [exist];
+            temp['b'] = 1;
         }
-        temp['$h'] = temp['$h'].concat(additional['$h'] || additional);
+        temp['a'] = temp['a'].concat(additional['a'] || additional);
         return temp;
     };
     //let View_MxEvt = /\smx-(?!view|vframe)[a-z]+\s*=\s*"/g;
@@ -2836,6 +2881,37 @@ define('magix', ['$'], function ($) {
         win: G_WINDOW,
         doc: G_DOCUMENT
     };
+    var View_MergeMixins = function (mixins, proto, ctors) {
+        var temp = {}, p, node, fn, exist;
+        for (var _i = 0, mixins_1 = mixins; _i < mixins_1.length; _i++) {
+            node = mixins_1[_i];
+            for (p in node) {
+                fn = node[p];
+                exist = temp[p];
+                if (p == 'ctor') {
+                    ctors.push(fn);
+                    continue;
+                }
+                else if (View_EvtMethodReg.test(p)) {
+                    if (exist) {
+                        fn = processMixinsSameEvent(exist, fn);
+                    }
+                    else {
+                        fn['b'] = 1;
+                    }
+                }
+                else if (DEBUG && exist && p != 'extend' && p != G_SPLITER) {
+                    Magix_Cfg.error(Error('merge duplicate:' + p));
+                }
+                temp[p] = fn;
+            }
+        }
+        for (p in temp) {
+            if (!G_Has(proto, p)) {
+                proto[p] = temp[p];
+            }
+        }
+    };
     /**
      * 预处理view
      * @param  {View} oView view子类
@@ -2844,37 +2920,10 @@ define('magix', ['$'], function ($) {
     var View_Prepare = function (oView) {
         if (!oView[G_SPLITER]) {
             oView[G_SPLITER] = [];
-            var prop = oView[G_PROTOTYPE], currentFn = void 0, matches = void 0, selectorOrCallback = void 0, events = void 0, eventsObject = {}, eventsList = [], selectorObject = {}, node = void 0, isSelector = void 0, p = void 0, item = void 0, mask = void 0, temp = {};
+            var prop = oView[G_PROTOTYPE], currentFn = void 0, matches = void 0, selectorOrCallback = void 0, events = void 0, eventsObject = {}, eventsList = [], selectorObject = {}, node = void 0, isSelector = void 0, p = void 0, item = void 0, mask = void 0;
             matches = prop.mixins;
             if (matches) {
-                for (var _i = 0, matches_1 = matches; _i < matches_1.length; _i++) {
-                    node = matches_1[_i];
-                    for (p in node) {
-                        currentFn = node[p];
-                        selectorOrCallback = temp[p];
-                        if (p == 'ctor') {
-                            oView[G_SPLITER].push(currentFn);
-                            continue;
-                        }
-                        else if (View_EvtMethodReg.test(p)) {
-                            if (selectorOrCallback) {
-                                currentFn = processMixinsSameEvent(selectorOrCallback, currentFn);
-                            }
-                            else {
-                                currentFn['$i'] = 1;
-                            }
-                        }
-                        else if (DEBUG && selectorOrCallback && p != 'extend' && p != G_SPLITER) {
-                            Magix_Cfg.error(Error('mixins duplicate:' + p));
-                        }
-                        temp[p] = currentFn;
-                    }
-                }
-                for (p in temp) {
-                    if (!G_Has(prop, p)) {
-                        prop[p] = temp[p];
-                    }
-                }
+                View_MergeMixins(matches, prop, oView[G_SPLITER]);
             }
             for (p in prop) {
                 currentFn = prop[p];
@@ -2882,8 +2931,8 @@ define('magix', ['$'], function ($) {
                 if (matches) {
                     isSelector = matches[1], selectorOrCallback = matches[2], events = matches[3];
                     events = events.split(G_COMMA);
-                    for (var _a = 0, events_1 = events; _a < events_1.length; _a++) {
-                        item = events_1[_a];
+                    for (var _i = 0, events_1 = events; _i < events_1.length; _i++) {
+                        item = events_1[_i];
                         node = View_Globals[selectorOrCallback];
                         mask = 1;
                         if (isSelector) {
@@ -2909,9 +2958,9 @@ define('magix', ['$'], function ($) {
                         if (!node) {
                             prop[item] = currentFn;
                         }
-                        else if (node['$i']) {
-                            if (currentFn['$i']) {
-                                prop[item] = processMixinsSameEvent(node, currentFn);
+                        else if (node['b']) {
+                            if (currentFn['b']) {
+                                prop[item] = processMixinsSameEvent(currentFn, node);
                             }
                             else if (G_Has(prop, p)) {
                                 prop[item] = currentFn;
@@ -3039,15 +3088,7 @@ define('magix', ['$'], function ($) {
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
-            var prop, ctor;
-            for (var _a = 0, args_1 = args; _a < args_1.length; _a++) {
-                prop = args_1[_a];
-                ctor = prop && prop.ctor;
-                if (ctor) {
-                    View_Ctors.push(ctor);
-                }
-                G_Assign(ViewProto, prop);
-            }
+            View_MergeMixins(args, ViewProto, View_Ctors);
         },
         /**
          * 继承

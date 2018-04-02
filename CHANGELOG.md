@@ -1,3 +1,9 @@
+## 3.8.7
+1. 增强`View.merge`，同样的事件进行`merge`而不是覆盖
+2. 调整特殊属性的处理，进行前置到节点判断
+3. 调整`input`,`textarea`,`option`标签的处理
+4. 修复`reused key`不同的`key`指向同一个节点的问题
+
 ## 3.8.6
 1. 修正`tipRouter`在`view`嵌套的情况下，`view`中提前`resolve`导致子`view`不触发提示的`bug`
 2. 调整`leaveConfirm`参数

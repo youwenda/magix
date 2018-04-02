@@ -1,7 +1,7 @@
 //#snippet;
 //#uncheck = jsThis,jsLoop;
 //#exclude = loader,allProcessor;
-/*!3.8.6 Licensed MIT*/
+/*!3.8.7 Licensed MIT*/
 /*
 author:kooboy_li@163.com
 loader:cmd
@@ -147,7 +147,7 @@ let G_Has = (owner, prop) => owner && Magix_HasProp.call(owner, prop); //false 0
 
 let G_TranslateData = (data, params, deep) => {
     let p, val;
-    if (G_IsPrimitive(params)) {
+    if (!deep && G_IsPrimitive(params)) {
         p = params + G_EMPTY;
         if (p[0] == G_SPLITER) {
             params = data[p];
@@ -382,6 +382,9 @@ let G_Extend = (ctor, base, props, statics, cProto) => {
                 }
                 return new Proxy(o, {
                     set(target, property, value) {
+                        if (!setter && !prefix) {
+                            throw new Error('avoid writeback,key: ' + prefix + property + ' value:' + value + ' more info: https://github.com/thx/magix/issues/38');
+                        }
                         target[property] = value;
                         if (setter) {
                             setter(prefix + property, value);
@@ -552,6 +555,26 @@ let G_ToMap = (list, key) => {
     }
     return map;
 };
+
+let G_ParseCache = new G_Cache();
+let G_ParseExpr = (expr, data, result) => {
+    if (G_ParseCache.has(expr)) {
+        result = G_ParseCache.get(expr);
+    } else {
+        //jshint evil:true
+        result = G_ToTry(Function(`return ${expr}`));
+        if (expr.indexOf(G_SPLITER) > -1) {
+            G_TranslateData(data, result, 1);
+        } else {
+            G_ParseCache.set(expr, result);
+        }
+    }
+    if (DEBUG) {
+        result = Safeguard(result);
+    }
+    return result;
+};
+
 /**
  * Magix对象，提供常用方法
  * @name Magix
@@ -2211,8 +2234,6 @@ let Body_FindVframeInfo = (current, eventType) => {
         }
         match = {
             ...match,
-            /*jshint evil: true*/
-            p: match.i && G_ToTry(Function(`return ${match.i}`), G_EMPTY_ARRAY, current),
             
             r: info
         };
@@ -2311,20 +2332,14 @@ let Body_DOMEventProcessor = domEvent => {
                     if (fn) {
                         domEvent.eventTarget = target;
                         
-                        params = p || {};
-                        if (i && i.indexOf(G_SPLITER) > 0) {
-                            G_TranslateData(view['$d']['$a'], params, 1);
-                            if (DEBUG) {
-                                params = Safeguard(params);
-                            }
-                        }
+                        params = i ? G_ParseExpr(i, view['$d']['$a']) : {};
                         domEvent[G_PARAMS] = params;
                         
                         G_ToTry(fn, domEvent, view);
-
-                        if (domEvent.isImmediatePropagationStopped()) {
+                        //没发现实际的用途
+                        /*if (domEvent.isImmediatePropagationStopped()) {
                             break;
-                        }
+                        }*/
                     }
                     if (DEBUG) {
                         if (!fn) { //检测为什么找不到处理函数
@@ -2461,10 +2476,11 @@ let I_Specials = {
     OPTION: ['selected']
 };
 let I_SetAttributes = (oldNode, newNode, ref, keepId) => {
+    delete oldNode.$;
+    delete oldNode.$kd;
     let a, i, key, value;
     let oldAttributes = oldNode.attributes,
-        newAttributes = newNode.attributes,
-        nodeName = oldNode.nodeName;
+        newAttributes = newNode.attributes;
     for (i = oldAttributes.length; i--;) {
         a = oldAttributes[i].name;
         if (!newNode.hasAttribute(a)) {
@@ -2493,25 +2509,20 @@ let I_SetAttributes = (oldNode, newNode, ref, keepId) => {
             }
         }
     }
-
-    let specials = I_Specials[nodeName];
-    if (specials) {
-        for (i of specials) {
-            if (oldNode[i] != newNode[i]) {//浏览器必须激活
-                oldNode[i] = newNode[i];
-            }
-        }
-    }
 };
-let I_SpecialEqual = (oldNode, newNode) => {
+let I_SpecialDiff = (oldNode, newNode, update) => {
     let nodeName = oldNode.nodeName, i;
     let specials = I_Specials[nodeName];
-    let result = true;
+    let result = 0;
     if (specials) {
         for (i of specials) {
             if (oldNode[i] != newNode[i]) {
-                result = false;
-                break;
+                result = 1;
+                if (update) {
+                    oldNode[i] = newNode[i];
+                } else {
+                    break;
+                }
             }
         }
     }
@@ -2624,15 +2635,30 @@ let I_SetChildNodes = (oldParent, newParent, ref, vframe, data, keys) => {
     }
 };
 
-let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
+let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys, special) => {
     //优先使用浏览器内置的方法进行判断
-    if ((oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
-        !(oldNode.isEqualNode && oldNode.isEqualNode(newNode) && I_SpecialEqual(oldNode, newNode))) {
+    /*
+        特殊属性优先判断，先识别特殊属性是否发生了改变
+        如果特殊属性发生了变化，是否更新取决于该节点上是否渲染了view
+        如果渲染了view则走相关的view流程
+        否则才更新特殊属性
+
+        场景：<input value="{{=abc}}"/>
+        updater.digest({abc:'abc'});
+        然后用户删除了input中的abc修改成了123
+        此时依然updater.digest({abc:'abc'}),问input中的值该显示abc还是123?
+        目前是显示abc
+    */
+    if ((special = I_SpecialDiff(oldNode, newNode)) ||
+        (oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
+        !(oldNode.isEqualNode && oldNode.isEqualNode(newNode))) {
         if (oldNode.nodeName === newNode.nodeName) {
             // Handle regular element node updates.
             if (oldNode.nodeType === 1) {
                 let staticKey = newNode.getAttribute(G_Tag_Key);
-                if (staticKey && staticKey == oldNode.getAttribute(G_Tag_Key)) {
+                if (!special &&
+                    staticKey &&
+                    staticKey == oldNode.getAttribute(G_Tag_Key)) {
                     return;
                 }
                 // If we have the same nodename then we can directly update the attributes.
@@ -2701,7 +2727,7 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                             unmountOld = 1;
                             updateChildren = 1;
                         }
-                    } else {
+                    } else {//view没发生变化，则只更新特别的几个属性
                         updateAttribute = 1;
                     }
                 } else {
@@ -2713,6 +2739,7 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                     oldVf.unmountVframe(0, 1);
                 }
                 if (updateAttribute) {
+                    //对于view，我们只更新特别的几个属性
                     if (updateAttribute === 1) {
                         if (newStaticAttrKey) {
                             oldNode.setAttribute(G_Tag_Attr_Key, newStaticAttrKey);
@@ -2726,6 +2753,10 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                     } else {
                         I_SetAttributes(oldNode, newNode, ref, oldVf && newMxView);
                     }
+                }
+                //如果是特殊属性变化且该节点上没有渲染view,则更新
+                if (special && updateAttribute !== 1) {
+                    I_SpecialDiff(oldNode, newNode, 1);
                 }
                 // Update all children (and subchildren).
                 if (updateChildren) {
@@ -2892,7 +2923,7 @@ G_Assign(Updater[G_PROTOTYPE], {
             
         
         
-        return me;
+        return Promise.resolve();
         
     },
     /**
@@ -2950,8 +2981,19 @@ G_Assign(Updater[G_PROTOTYPE], {
             return me['$d'] != JSONStringify(me['$a']);
         }
     },
+    /**
+     * 翻译带@占位符的数据
+     * @param {string} origin 源字符串
+     */
     translate(data) {
         return G_TranslateData(this['$a'], data, 1);
+    },
+    /**
+     * 翻译带@占位符的数据
+     * @param {string} origin 源字符串
+     */
+    parse(origin) {
+        return G_ParseExpr(origin, this['$a']);
     }
 });
     
@@ -2959,16 +3001,16 @@ G_Assign(Updater[G_PROTOTYPE], {
 
 
 let processMixinsSameEvent = (exist, additional, temp) => {
-    if (exist['$h']) {
+    if (exist['a']) {
         temp = exist;
     } else {
         temp = function (e) {
-            G_ToTry(temp['$h'], e, this);
+            G_ToTry(temp['a'], e, this);
         };
-        temp['$h'] = [exist];
-        temp['$i'] = 1;
+        temp['a'] = [exist];
+        temp['b'] = 1;
     }
-    temp['$h'] = temp['$h'].concat(additional['$h'] || additional);
+    temp['a'] = temp['a'].concat(additional['a'] || additional);
     return temp;
 };
 
@@ -3036,6 +3078,35 @@ let View_Globals = {
     win: G_WINDOW,
     doc: G_DOCUMENT
 };
+
+let View_MergeMixins = (mixins, proto, ctors) => {
+    let temp = {}, p, node, fn, exist;
+    for (node of mixins) {
+        for (p in node) {
+            fn = node[p];
+            exist = temp[p];
+            if (p == 'ctor') {
+                ctors.push(fn);
+                continue;
+            } else if (View_EvtMethodReg.test(p)) {
+                if (exist) {
+                    fn = processMixinsSameEvent(exist, fn);
+                } else {
+                    fn['b'] = 1;
+                }
+            } else if (DEBUG && exist && p != 'extend' && p != G_SPLITER) { //只在开发中提示
+                Magix_Cfg.error(Error('merge duplicate:' + p));
+            }
+            temp[p] = fn;
+        }
+    }
+    for (p in temp) {
+        if (!G_Has(proto, p)) {
+            proto[p] = temp[p];
+        }
+    }
+};
+
 /**
  * 预处理view
  * @param  {View} oView view子类
@@ -3048,35 +3119,12 @@ let View_Prepare = oView => {
             currentFn, matches, selectorOrCallback, events, eventsObject = {},
             eventsList = [],
             selectorObject = {},
-            node, isSelector, p, item, mask , temp = {} ;
+            node, isSelector, p, item, mask;
 
         
         matches = prop.mixins;
         if (matches) {
-            for (node of matches) {
-                for (p in node) {
-                    currentFn = node[p];
-                    selectorOrCallback = temp[p];
-                    if (p == 'ctor') {
-                        oView[G_SPLITER].push(currentFn);
-                        continue;
-                    } else if (View_EvtMethodReg.test(p)) {
-                        if (selectorOrCallback) {
-                            currentFn = processMixinsSameEvent(selectorOrCallback, currentFn);
-                        } else {
-                            currentFn['$i'] = 1;
-                        }
-                    } else if (DEBUG && selectorOrCallback && p != 'extend' && p != G_SPLITER) { //只在开发中提示
-                        Magix_Cfg.error(Error('mixins duplicate:' + p));
-                    }
-                    temp[p] = currentFn;
-                }
-            }
-            for (p in temp) {
-                if (!G_Has(prop, p)) {
-                    prop[p] = temp[p];
-                }
-            }
+            View_MergeMixins(matches, prop, oView[G_SPLITER]);
         }
         
         for (p in prop) {
@@ -3111,9 +3159,9 @@ let View_Prepare = oView => {
                     //for in 就近遍历，如果有则忽略
                     if (!node) { //未设置过
                         prop[item] = currentFn;
-                    } else if (node['$i']) { //现有的方法是mixins上的
-                        if (currentFn['$i']) { //2者都是mixins上的事件，则合并
-                            prop[item] = processMixinsSameEvent(node, currentFn);
+                    } else if (node['b']) { //现有的方法是mixins上的
+                        if (currentFn['b']) { //2者都是mixins上的事件，则合并
+                            prop[item] = processMixinsSameEvent(currentFn, node);
                         } else if (G_Has(prop, p)) { //currentFn方法不是mixin上的，也不是继承来的，在当前view上，优先级最高
                             prop[item] = currentFn;
                         }
@@ -3250,14 +3298,7 @@ G_Assign(View, {
      */
     
     merge(...args) {
-        let prop, ctor;
-        for (prop of args) {
-            ctor = prop && prop.ctor;
-            if (ctor) {
-                View_Ctors.push(ctor);
-            }
-            G_Assign(ViewProto, prop);
-        }
+        View_MergeMixins(args, ViewProto, View_Ctors);
     },
     
     /**

@@ -157,7 +157,7 @@ let G_Has = (owner, prop) => owner && Magix_HasProp.call(owner, prop); //false 0
 /*#if(modules.updater){#*/
 let G_TranslateData = (data, params, deep) => {
     let p, val;
-    if (G_IsPrimitive(params)) {
+    if (!deep && G_IsPrimitive(params)) {
         p = params + G_EMPTY;
         if (p[0] == G_SPLITER) {
             params = data[p];

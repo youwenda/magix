@@ -155,16 +155,15 @@ let TO_VDOM = input => {
         }
 
         if (last == current) {
+            if (DEBUG) {
+                throw new Error('bad input:' + html);
+            }
             break;
         }
         //substring is fater than slice . lower gc
         html = html.substring(moveLength);
-        if (DEBUG) {
-            if (last == current) {
-                throw new Error('bad input:' + temp);
-            }
-            last = current;
-        }
+
+        last = current;
     }
     if (DEBUG && stack.length > 1) {
         throw new Error('parsing failure:' + input);

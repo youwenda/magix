@@ -199,7 +199,7 @@ G_Assign(Updater[G_PROTOTYPE], {
         changed && Partial_UpdateDOM(me, keys); //render
         /*#}#*/
         /*#if(!modules.updaterAsync){#*/
-        return me;
+        return Promise.resolve();
         /*#}#*/
     },
     /**
@@ -257,7 +257,18 @@ G_Assign(Updater[G_PROTOTYPE], {
             return me['@{updater#data.string}'] != JSONStringify(me['@{updater#data}']);
         }
     },
+    /**
+     * 翻译带@占位符的数据
+     * @param {string} origin 源字符串
+     */
     translate(data) {
         return G_TranslateData(this['@{updater#data}'], data, 1);
+    },
+    /**
+     * 翻译带@占位符的数据
+     * @param {string} origin 源字符串
+     */
+    parse(origin) {
+        return G_ParseExpr(origin, this['@{updater#data}']);
     }
 });

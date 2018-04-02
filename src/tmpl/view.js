@@ -5,16 +5,16 @@ let View_SetEventOwner = (str, id) => (str + G_EMPTY).replace(View_ScopeReg, id)
 /*#}#*/
 /*#if(modules.viewProtoMixins){#*/
 let processMixinsSameEvent = (exist, additional, temp) => {
-    if (exist['@{view#list}']) {
+    if (exist['@{~viewmixin#list}']) {
         temp = exist;
     } else {
         temp = function (e) {
-            G_ToTry(temp['@{view#list}'], e, this);
+            G_ToTry(temp['@{~viewmixin#list}'], e, this);
         };
-        temp['@{view#list}'] = [exist];
-        temp['@{view#is.mixin}'] = 1;
+        temp['@{~viewmixin#list}'] = [exist];
+        temp['@{~viewmixin#is.mixin}'] = 1;
     }
-    temp['@{view#list}'] = temp['@{view#list}'].concat(additional['@{view#list}'] || additional);
+    temp['@{~viewmixin#list}'] = temp['@{~viewmixin#list}'].concat(additional['@{~viewmixin#list}'] || additional);
     return temp;
 };
 /*#}#*/
@@ -84,6 +84,35 @@ let View_Globals = {
     win: G_WINDOW,
     doc: G_DOCUMENT
 };
+/*#if(modules.viewProtoMixins||modules.viewMerge){#*/
+let View_MergeMixins = (mixins, proto, ctors) => {
+    let temp = {}, p, node, fn, exist;
+    for (node of mixins) {
+        for (p in node) {
+            fn = node[p];
+            exist = temp[p];
+            if (p == 'ctor') {
+                ctors.push(fn);
+                continue;
+            } else if (View_EvtMethodReg.test(p)) {
+                if (exist) {
+                    fn = processMixinsSameEvent(exist, fn);
+                } else {
+                    fn['@{~viewmixin#is.mixin}'] = 1;
+                }
+            } else if (DEBUG && exist && p != 'extend' && p != G_SPLITER) { //只在开发中提示
+                Magix_Cfg.error(Error('merge duplicate:' + p));
+            }
+            temp[p] = fn;
+        }
+    }
+    for (p in temp) {
+        if (!G_Has(proto, p)) {
+            proto[p] = temp[p];
+        }
+    }
+};
+/*#}#*/
 /**
  * 预处理view
  * @param  {View} oView view子类
@@ -96,35 +125,12 @@ let View_Prepare = oView => {
             currentFn, matches, selectorOrCallback, events, eventsObject = {},
             eventsList = [],
             selectorObject = {},
-            node, isSelector, p, item, mask /*#if(modules.viewProtoMixins){#*/, temp = {} /*#}#*/;
+            node, isSelector, p, item, mask;
 
         /*#if(modules.viewProtoMixins){#*/
         matches = prop.mixins;
         if (matches) {
-            for (node of matches) {
-                for (p in node) {
-                    currentFn = node[p];
-                    selectorOrCallback = temp[p];
-                    if (p == 'ctor') {
-                        oView[G_SPLITER].push(currentFn);
-                        continue;
-                    } else if (View_EvtMethodReg.test(p)) {
-                        if (selectorOrCallback) {
-                            currentFn = processMixinsSameEvent(selectorOrCallback, currentFn);
-                        } else {
-                            currentFn['@{view#is.mixin}'] = 1;
-                        }
-                    } else if (DEBUG && selectorOrCallback && p != 'extend' && p != G_SPLITER) { //只在开发中提示
-                        Magix_Cfg.error(Error('mixins duplicate:' + p));
-                    }
-                    temp[p] = currentFn;
-                }
-            }
-            for (p in temp) {
-                if (!G_Has(prop, p)) {
-                    prop[p] = temp[p];
-                }
-            }
+            View_MergeMixins(matches, prop, oView[G_SPLITER]);
         }
         /*#}#*/
         for (p in prop) {
@@ -159,9 +165,9 @@ let View_Prepare = oView => {
                     //for in 就近遍历，如果有则忽略
                     if (!node) { //未设置过
                         prop[item] = currentFn;
-                    } else if (node['@{view#is.mixin}']) { //现有的方法是mixins上的
-                        if (currentFn['@{view#is.mixin}']) { //2者都是mixins上的事件，则合并
-                            prop[item] = processMixinsSameEvent(node, currentFn);
+                    } else if (node['@{~viewmixin#is.mixin}']) { //现有的方法是mixins上的
+                        if (currentFn['@{~viewmixin#is.mixin}']) { //2者都是mixins上的事件，则合并
+                            prop[item] = processMixinsSameEvent(currentFn, node);
                         } else if (G_Has(prop, p)) { //currentFn方法不是mixin上的，也不是继承来的，在当前view上，优先级最高
                             prop[item] = currentFn;
                         }
@@ -302,14 +308,7 @@ G_Assign(View, {
      */
     /*#if(modules.viewMerge){#*/
     merge(...args) {
-        let prop, ctor;
-        for (prop of args) {
-            ctor = prop && prop.ctor;
-            if (ctor) {
-                View_Ctors.push(ctor);
-            }
-            G_Assign(ViewProto, prop);
-        }
+        View_MergeMixins(args, ViewProto, View_Ctors);
     },
     /*#}#*/
     /**

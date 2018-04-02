@@ -17,6 +17,9 @@ if (DEBUG) {
                 }
                 return new Proxy(o, {
                     set(target, property, value) {
+                        if (!setter && !prefix) {
+                            throw new Error('avoid writeback,key: ' + prefix + property + ' value:' + value + ' more info: https://github.com/thx/magix/issues/38');
+                        }
                         target[property] = value;
                         if (setter) {
                             setter(prefix + property, value);
