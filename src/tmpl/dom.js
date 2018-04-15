@@ -85,8 +85,7 @@ let I_Specials = {
     OPTION: ['selected']
 };
 let I_SetAttributes = (oldNode, newNode, ref, keepId) => {
-    delete oldNode.$;
-    delete oldNode.$kd;
+    delete oldNode['@{node#is.keyed}'];
     let a, i, key, value;
     let oldAttributes = oldNode.attributes,
         newAttributes = newNode.attributes;
@@ -95,7 +94,7 @@ let I_SetAttributes = (oldNode, newNode, ref, keepId) => {
         if (!newNode.hasAttribute(a)) {
             if (a == 'id') {
                 if (!keepId) {
-                    ref.d.push([oldNode, '']);
+                    ref.d.push([oldNode, G_EMPTY]);
                 }
             } else {
                 ref.c = 1;
@@ -119,7 +118,7 @@ let I_SetAttributes = (oldNode, newNode, ref, keepId) => {
         }
     }
 };
-let I_SpecialDiff = (oldNode, newNode, update) => {
+let I_SpecialDiff = (oldNode, newNode) => {
     let nodeName = oldNode.nodeName, i;
     let specials = I_Specials[nodeName];
     let result = 0;
@@ -127,11 +126,7 @@ let I_SpecialDiff = (oldNode, newNode, update) => {
         for (i of specials) {
             if (oldNode[i] != newNode[i]) {
                 result = 1;
-                if (update) {
-                    oldNode[i] = newNode[i];
-                } else {
-                    break;
-                }
+                oldNode[i] = newNode[i];
             }
         }
     }
@@ -140,8 +135,8 @@ let I_SpecialDiff = (oldNode, newNode, update) => {
 
 let I_GetCompareKey = (node, key) => {
     if (node.nodeType == 1) {
-        if (node.$kd) {
-            key = node.$k;
+        if (node['@{node#is.keyed}']) {
+            key = node['@{node#reused.key}'];
         } else {
             key = node['@{node#auto.id}'] ? G_EMPTY : node.id;
             if (!key) {
@@ -153,8 +148,8 @@ let I_GetCompareKey = (node, key) => {
                     key = G_ParseUri(key)[G_PATH];
                 }
             }
-            node.$kd = 1;
-            node.$k = key;
+            node['@{node#is.keyed}'] = 1;
+            node['@{node#reused.key}'] = key;
         }
     }
     return key;
@@ -248,7 +243,7 @@ let I_SetChildNodes = (oldParent, newParent, ref, vframe, data, keys) => {
     }
 };
 
-let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys, special) => {
+let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
     //优先使用浏览器内置的方法进行判断
     /*
         特殊属性优先判断，先识别特殊属性是否发生了改变
@@ -262,15 +257,14 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys, special) => {
         此时依然updater.digest({abc:'abc'}),问input中的值该显示abc还是123?
         目前是显示abc
     */
-    if ((special = I_SpecialDiff(oldNode, newNode)) ||
+    if (I_SpecialDiff(oldNode, newNode) ||
         (oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
         !(oldNode.isEqualNode && oldNode.isEqualNode(newNode))) {
         if (oldNode.nodeName === newNode.nodeName) {
             // Handle regular element node updates.
             if (oldNode.nodeType === 1) {
                 let staticKey = newNode.getAttribute(G_Tag_Key);
-                if (!special &&
-                    staticKey &&
+                if (staticKey &&
                     staticKey == oldNode.getAttribute(G_Tag_Key)) {
                     return;
                 }
@@ -353,23 +347,7 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys, special) => {
                 }
                 if (updateAttribute) {
                     //对于view，我们只更新特别的几个属性
-                    if (updateAttribute === 1) {
-                        if (newStaticAttrKey) {
-                            oldNode.setAttribute(G_Tag_Attr_Key, newStaticAttrKey);
-                        }
-                        if (staticKey) {
-                            oldNode.setAttribute(G_Tag_Key, staticKey);
-                        }
-                        if (urlChanged) {
-                            oldNode.setAttribute(G_MX_VIEW, newMxView);
-                        }
-                    } else {
-                        I_SetAttributes(oldNode, newNode, ref, oldVf && newMxView);
-                    }
-                }
-                //如果是特殊属性变化且该节点上没有渲染view,则更新
-                if (special && updateAttribute !== 1) {
-                    I_SpecialDiff(oldNode, newNode, 1);
+                    I_SetAttributes(oldNode, newNode, ref, oldVf && newMxView);
                 }
                 // Update all children (and subchildren).
                 if (updateChildren) {

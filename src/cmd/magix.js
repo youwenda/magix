@@ -147,6 +147,9 @@ define('magix', /*#if(!modules.naked){#*/['$'],/*#}#*/ require => {
     /*#}#*/
     Inc('../tmpl/updater');
     /*#}#*/
+    /*#if(modules.viewSlot){#*/
+    Inc('../tmpl/slot');
+    /*#}#*/
     Inc('../tmpl/view');
     /*#if(modules.service){#*/
     let G_Type = $.type;

@@ -46,17 +46,17 @@ let G_AddEvent = (element, type, data, fn) => {
     let id = G_MxId(element);
     let collections = G_EventHandlers[id] || (G_EventHandlers[id] = []);
     let h = {
-        '@{dom#data.viewId}': data && data.i,
-        '@{dom#real.fn}': fn,
-        '@{dom#type}': type,
-        '@{dom#event.proxy}'(e) {
+        '@{~dom#data.viewId}': data && data.i,
+        '@{~dom#real.fn}': fn,
+        '@{~dom#type}': type,
+        '@{~dom#event.proxy}'(e) {
             e = G_EventCompatible(e);
             if (e.isImmediatePropagationStopped()) return;
             fn.call(element, e, data);
         }
     };
     collections.push(h);
-    element.addEventListener(type, h['@{dom#event.proxy}'], false);
+    element.addEventListener(type, h['@{~dom#event.proxy}'], false);
 };
 let G_RemoveEvent = (element, type, data, cb) => {
     let id = G_MxId(element);
@@ -65,8 +65,8 @@ let G_RemoveEvent = (element, type, data, cb) => {
         let found;
         for (let c, i = collections.length; i--;) {
             c = collections[i];
-            if (c['@{dom#type}'] == type && c['@{dom#real.fn}'] === cb) {
-                let cd = c['@{dom#data.viewId}'];
+            if (c['@{~dom#type}'] == type && c['@{~dom#real.fn}'] === cb) {
+                let cd = c['@{~dom#data.viewId}'];
                 if (!data || (data && data.i == cd)) {
                     found = c;
                     collections.splice(i, 1);
@@ -75,7 +75,7 @@ let G_RemoveEvent = (element, type, data, cb) => {
             }
         }
         if (found) {
-            element.removeEventListener(type, found['@{dom#event.proxy}'], false);
+            element.removeEventListener(type, found['@{~dom#event.proxy}'], false);
         }
     }
 };

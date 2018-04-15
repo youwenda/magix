@@ -33,6 +33,7 @@ let modules = {
     collectView: 1, //收集同一个view中所有的子view并一次性发出请求，在请求combine时有用
     layerVframe: 1, //父子化同一个view中嵌套存在的vframe
     viewProtoMixins: 1, //支持mixins
+    viewSlot: 1,//view支持slot
     share: 1, //向子或孙view公开数据
     defaultView: 1, //自动初始化
     autoEndUpdate: 1, //自动识别并结束更新。针对没有tmpl属性的view自动识别并结束更新

@@ -198,6 +198,22 @@ declare namespace Magix {
         parse(origin: string): object
     }
     /**
+     * magix虚拟dom接口
+     */
+    interface MagixVDOM {
+        [key: string]: any
+    }
+    /**
+     * slot接口
+     */
+    interface Slot {
+        /**
+         * 从节点对象中获取slot字符串
+         * @param node 节点对象
+         */
+        from<T extends object>(node: HTMLElement | MagixVDOM): T & { default: string }
+    }
+    /**
      * 数据载体接口
      */
     interface Bag {
@@ -1070,7 +1086,11 @@ declare interface Magix {
     /**
      * 拥有事件on,off,fire的基类
      */
-    Base: Magix.Base,
+    Base: Magix.Base
+    /**
+     * slot对象
+     */
+    Slot: Magix.Slot
     default: Magix
 }
 

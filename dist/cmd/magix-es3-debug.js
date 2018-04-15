@@ -1,11 +1,11 @@
 //#snippet;
 //#uncheck = jsThis,jsLoop;
 //#exclude = loader,allProcessor;
-/*!3.8.7 Licensed MIT*/
+/*!3.8.8 Licensed MIT*/
 /*
 author:kooboy_li@163.com
 loader:cmd
-enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM
+enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,viewSlot,updaterDOM
 
 optionals:updaterVDOM,updaterAsync,serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,share,mxViewAttr,keepHTML,eventEnterLeave,naked,vdom
 */
@@ -363,16 +363,13 @@ define('magix', ['$'], function (require) {
                 if (G_IsPrimitive(data)) {
                     return data;
                 }
-                var key = getter + '\x01' + setter;
-                var cached = ProxiesPool_1.get(data);
-                if (cached && cached.key == key) {
-                    return cached.entity;
-                }
                 var build = function (prefix, o) {
-                    if (o['\x1e_sf_\x1e']) {
-                        return o;
+                    var key = getter + '\x01' + setter;
+                    var cached = ProxiesPool_1.get(o);
+                    if (cached && cached.key == key) {
+                        return cached.entity;
                     }
-                    return new Proxy(o, {
+                    var entity = new Proxy(o, {
                         set: function (target, property, value) {
                             if (!setter && !prefix) {
                                 throw new Error('avoid writeback,key: ' + prefix + property + ' value:' + value + ' more info: https://github.com/thx/magix/issues/38');
@@ -384,26 +381,24 @@ define('magix', ['$'], function (require) {
                             return true;
                         },
                         get: function (target, property) {
-                            if (property == '\x1e_sf_\x1e') {
-                                return true;
-                            }
                             var out = target[property];
                             if (!prefix && getter) {
                                 getter(property);
                             }
-                            if (G_Has(target, property) && (G_IsArray(out) || G_IsObject(out))) {
+                            if (G_Has(target, property) &&
+                                (G_IsArray(out) || G_IsObject(out))) {
                                 return build(prefix + property + '.', out);
                             }
                             return out;
                         }
                     });
+                    ProxiesPool_1.set(o, {
+                        key: key,
+                        entity: entity
+                    });
+                    return entity;
                 };
-                var entity = build('', data);
-                ProxiesPool_1.set(data, {
-                    key: key,
-                    entity: entity
-                });
-                return entity;
+                return build('', data);
             };
         }
         else {
@@ -1790,6 +1785,8 @@ define('magix', ['$'], function (require) {
                 me['$v'] = 0; //unmountView时，尽可能早的删除vframe上的$v对象，防止$v销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
                 if (v['$a'] > 0) {
                     v['$a'] = 0;
+                    delete Body_RangeEvents[id];
+                    delete Body_RangeVframes[id];
                     v.fire('destroy', 0, 1, 1);
                     View_DestroyAllResources(v, 1);
                     View_DelegateEvents(v, 1);
@@ -1880,19 +1877,27 @@ define('magix', ['$'], function (require) {
             //me.unmountZone(zoneId, 1); 不去清理，详情见：https://github.com/thx/magix/issues/27
             for (var _i = 0, vframes_1 = vframes; _i < vframes_1.length; _i++) {
                 vf = vframes_1[_i];
-                id = IdIt(vf);
-                if (!vf['$b']) {
+                if (!vf['$b'] && vf.getAttribute('mx-slot') != me.id) {
+                    id = IdIt(vf);
                     vf['$b'] = 1;
                     vfs.push([id, vf.getAttribute(G_MX_VIEW)]);
                 }
             }
             for (var _a = 0, vfs_1 = vfs; _a < vfs_1.length; _a++) {
                 _b = vfs_1[_a], id = _b[0], vf = _b[1];
-                if (vfs[id]) {
-                    Magix_Cfg.error(Error("vf.id duplicate:" + id + " at " + me[G_PATH]));
+                if (DEBUG && document.querySelectorAll("#" + id).length > 1) {
+                    Magix_Cfg.error(Error("dom id:\"" + id + "\" duplicate"));
+                }
+                if (DEBUG) {
+                    if (vfs[id]) {
+                        Magix_Cfg.error(Error("vf.id duplicate:" + id + " at " + me[G_PATH]));
+                    }
+                    else {
+                        me.mountVframe(vfs[id] = id, vf);
+                    }
                 }
                 else {
-                    me.mountVframe(vfs[id] = id, vf);
+                    me.mountVframe(id, vf);
                 }
             }
             me['$d'] = 0;
@@ -2083,13 +2088,30 @@ define('magix', ['$'], function (require) {
         '$<click>'(e){
             console.log('view root click',e);
         }
+    
+    range:{
+        app:{
+            20:{
+                mouseover:1,
+                mousemove:1
+            }
+        }
+    }
+    view:{
+        linkage:{
+            40:1
+        }
+    }
  */
     var Body_EvtInfoCache = new G_Cache(30, 10);
     var Body_EvtInfoReg = /(?:([\w\-]+)\x1e)?([^(]+)\(([\s\S]*)?\)/;
     var Body_RootEvents = {};
     var Body_SearchSelectorEvents = {};
+    var Body_RangeEvents = {};
+    var Body_RangeVframes = {};
+    var Body_Guid = 0;
     var Body_FindVframeInfo = function (current, eventType) {
-        var vf, tempId, selectorObject, eventSelector, eventInfos = [], begin = current, info = current.getAttribute("mx-" + eventType), match, view, vfs = [], selectorVfId, backtrace = 0;
+        var vf, tempId, selectorObject, eventSelector, eventInfos = [], begin = current, info = current.getAttribute("mx-" + eventType), match, view, vfs = [], selectorVfId = G_HashKey, backtrace = 0;
         if (info) {
             match = Body_EvtInfoCache.get(info);
             if (!match) {
@@ -2105,24 +2127,48 @@ define('magix', ['$'], function (require) {
         }
         //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件里
         if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
-            selectorVfId = current['$a']; //如果节点有缓存，则使用缓存
-            if (!selectorVfId) {
+            if ((selectorObject = Body_RangeVframes[tempId = begin['$d']])
+                && selectorObject[begin['$e']] == 1) {
+                view = 1;
+                selectorVfId = tempId; //如果节点有缓存，则使用缓存
+            }
+            if (!view) {
                 vfs.push(begin);
                 while (begin != G_DOCBODY && (begin = begin.parentNode)) {
-                    if ((Vframe_Vframes[tempId = begin.id] || (tempId = begin.$v))) {
+                    if (Vframe_Vframes[tempId = begin.id] ||
+                        ((selectorObject = Body_RangeVframes[tempId = begin['$d']]) &&
+                            selectorObject[begin['$e']] == 1)) {
                         selectorVfId = tempId;
                         break;
                     }
                     vfs.push(begin);
                 }
-            }
-            if (selectorVfId) {
                 for (var _i = 0, vfs_2 = vfs; _i < vfs_2.length; _i++) {
                     info = vfs_2[_i];
-                    info['$a'] = selectorVfId;
+                    if (!(tempId = Body_RangeVframes[selectorVfId])) {
+                        tempId = Body_RangeVframes[selectorVfId] = {};
+                    }
+                    selectorObject = info['$e'] || (info['$e'] = ++Body_Guid);
+                    tempId[selectorObject] = 1;
+                    info['$d'] = selectorVfId;
                 }
+            }
+            if (selectorVfId != G_HashKey) {
                 begin = current.id;
                 if (Vframe_Vframes[begin]) {
+                    /*
+                        如果当前节点是vframe的根节点，则把当前的vf置为该vframe
+                        该处主要处理这样的边界情况
+                        <mx-vrame src="./test" mx-click="parent()"/>
+                        //.test.js
+                        export default Magix.View.extend({
+                            '$<click>'(){
+                                console.log('test clicked');
+                            }
+                        });
+    
+                        当click事件发生在mx-vframe节点上时，要先派发内部通过选择器绑定在根节点上的事件，然后再派发外部的事件
+                    */
                     backtrace = selectorVfId = begin;
                 }
                 do {
@@ -2137,7 +2183,11 @@ define('magix', ['$'], function (require) {
                                 n: tempId
                             };
                             if (tempId) {
-                                if (G_TargetMatchSelector(current, tempId)) {
+                                /*
+                                    事件发生时，做为临界的根节点只能触发`$`绑定的事件，其它事件不能触发
+                                */
+                                if (!backtrace &&
+                                    G_TargetMatchSelector(current, tempId)) {
                                     eventInfos.push(selectorObject);
                                 }
                             }
@@ -2165,16 +2215,15 @@ define('magix', ['$'], function (require) {
         var target = domEvent.target, type = domEvent.type;
         var eventInfos;
         var ignore;
-        var arr = [];
         var vframe, view, eventName, fn;
         var lastVfId;
-        var params;
+        var params, arr = [];
         while (target != G_DOCBODY) {
             eventInfos = Body_FindVframeInfo(target, type);
             if (eventInfos.length) {
                 arr = [];
                 for (var _i = 0, eventInfos_1 = eventInfos; _i < eventInfos_1.length; _i++) {
-                    var _a = eventInfos_1[_i], v = _a.v, r = _a.r, n = _a.n, p = _a.p, i = _a.i;
+                    var _a = eventInfos_1[_i], v = _a.v, r = _a.r, n = _a.n, i = _a.i;
                     if (!v && DEBUG) {
                         return Magix_Cfg.error(Error("bad " + type + ":" + r));
                     }
@@ -2221,20 +2270,43 @@ define('magix', ['$'], function (require) {
                 }
             }
             /*|| e.mxStop */
-            if ((ignore = target.$) &&
-                ignore[type] ||
+            if (((ignore = Body_RangeEvents[fn = target['$d']]) &&
+                (ignore = ignore[target['$e']]) &&
+                ignore[type]) ||
                 domEvent.isPropagationStopped()) {
+                if (arr.length) {
+                    arr.push(fn);
+                }
                 break;
             }
             else {
                 arr.push(target);
+                lastVfId = target.id;
+                if (Vframe_Vframes[lastVfId]) {
+                    arr.push(lastVfId);
+                }
             }
             target = target.parentNode || G_DOCBODY;
         }
-        for (var _b = 0, arr_1 = arr; _b < arr_1.length; _b++) {
-            target = arr_1[_b];
-            ignore = target.$ || (target.$ = {});
-            ignore[type] = 1;
+        if ((fn = arr.length)) {
+            ignore = G_HashKey;
+            for (; fn--;) {
+                view = arr[fn];
+                if (view.nodeType) {
+                    if (!(eventInfos = Body_RangeEvents[ignore])) {
+                        eventInfos = Body_RangeEvents[ignore] = {};
+                    }
+                    lastVfId = view['$e'] || (view['$e'] = ++Body_Guid);
+                    if (!(params = eventInfos[lastVfId])) {
+                        params = eventInfos[lastVfId] = {};
+                        view['$d'] = ignore;
+                    }
+                    params[type] = 1;
+                }
+                else {
+                    ignore = view;
+                }
+            }
         }
     };
     var Body_DOMEventBind = function (type, searchSelector, remove) {
@@ -2329,8 +2401,7 @@ define('magix', ['$'], function (require) {
         OPTION: ['selected']
     };
     var I_SetAttributes = function (oldNode, newNode, ref, keepId) {
-        delete oldNode.$;
-        delete oldNode.$kd;
+        delete oldNode['$f'];
         var a, i, key, value;
         var oldAttributes = oldNode.attributes, newAttributes = newNode.attributes;
         for (i = oldAttributes.length; i--;) {
@@ -2338,7 +2409,7 @@ define('magix', ['$'], function (require) {
             if (!newNode.hasAttribute(a)) {
                 if (a == 'id') {
                     if (!keepId) {
-                        ref.d.push([oldNode, '']);
+                        ref.d.push([oldNode, G_EMPTY]);
                     }
                 }
                 else {
@@ -2363,7 +2434,7 @@ define('magix', ['$'], function (require) {
             }
         }
     };
-    var I_SpecialDiff = function (oldNode, newNode, update) {
+    var I_SpecialDiff = function (oldNode, newNode) {
         var nodeName = oldNode.nodeName, i;
         var specials = I_Specials[nodeName];
         var result = 0;
@@ -2372,12 +2443,7 @@ define('magix', ['$'], function (require) {
                 i = specials_1[_i];
                 if (oldNode[i] != newNode[i]) {
                     result = 1;
-                    if (update) {
-                        oldNode[i] = newNode[i];
-                    }
-                    else {
-                        break;
-                    }
+                    oldNode[i] = newNode[i];
                 }
             }
         }
@@ -2385,8 +2451,8 @@ define('magix', ['$'], function (require) {
     };
     var I_GetCompareKey = function (node, key) {
         if (node.nodeType == 1) {
-            if (node.$kd) {
-                key = node.$k;
+            if (node['$f']) {
+                key = node['$g'];
             }
             else {
                 key = node['$a'] ? G_EMPTY : node.id;
@@ -2399,8 +2465,8 @@ define('magix', ['$'], function (require) {
                         key = G_ParseUri(key)[G_PATH];
                     }
                 }
-                node.$kd = 1;
-                node.$k = key;
+                node['$f'] = 1;
+                node['$g'] = key;
             }
         }
         return key;
@@ -2486,7 +2552,7 @@ define('magix', ['$'], function (require) {
             ref.c = 1;
         }
     };
-    var I_SetNode = function (oldNode, newNode, oldParent, ref, vf, data, keys, special) {
+    var I_SetNode = function (oldNode, newNode, oldParent, ref, vf, data, keys) {
         //优先使用浏览器内置的方法进行判断
         /*
             特殊属性优先判断，先识别特殊属性是否发生了改变
@@ -2500,15 +2566,14 @@ define('magix', ['$'], function (require) {
             此时依然updater.digest({abc:'abc'}),问input中的值该显示abc还是123?
             目前是显示abc
         */
-        if ((special = I_SpecialDiff(oldNode, newNode)) ||
+        if (I_SpecialDiff(oldNode, newNode) ||
             (oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
             !(oldNode.isEqualNode && oldNode.isEqualNode(newNode))) {
             if (oldNode.nodeName === newNode.nodeName) {
                 // Handle regular element node updates.
                 if (oldNode.nodeType === 1) {
                     var staticKey = newNode.getAttribute(G_Tag_Key);
-                    if (!special &&
-                        staticKey &&
+                    if (staticKey &&
                         staticKey == oldNode.getAttribute(G_Tag_Key)) {
                         return;
                     }
@@ -2587,24 +2652,7 @@ define('magix', ['$'], function (require) {
                     }
                     if (updateAttribute) {
                         //对于view，我们只更新特别的几个属性
-                        if (updateAttribute === 1) {
-                            if (newStaticAttrKey) {
-                                oldNode.setAttribute(G_Tag_Attr_Key, newStaticAttrKey);
-                            }
-                            if (staticKey) {
-                                oldNode.setAttribute(G_Tag_Key, staticKey);
-                            }
-                            if (urlChanged) {
-                                oldNode.setAttribute(G_MX_VIEW, newMxView);
-                            }
-                        }
-                        else {
-                            I_SetAttributes(oldNode, newNode, ref, oldVf && newMxView);
-                        }
-                    }
-                    //如果是特殊属性变化且该节点上没有渲染view,则更新
-                    if (special && updateAttribute !== 1) {
-                        I_SpecialDiff(oldNode, newNode, 1);
+                        I_SetAttributes(oldNode, newNode, ref, oldVf && newMxView);
                     }
                     // Update all children (and subchildren).
                     if (updateChildren) {
@@ -2725,6 +2773,8 @@ define('magix', ['$'], function (require) {
             var selfId = me['$b'], vf = Vframe_Vframes[selfId], view = vf && vf['$v'], ref = { d: [], v: [] }, node = G_GetById(selfId), tmpl, vdom;
             if (changed && view && view['$a'] > 0 &&
                 (tmpl = view['$e'])) {
+                delete Body_RangeEvents[selfId];
+                delete Body_RangeVframes[selfId];
                 console.time('[updater time:' + selfId + ']');
                 console.time('[html to dom:' + selfId + ']');
                 vdom = I_GetNode(tmpl(data, selfId), node);
@@ -2822,6 +2872,31 @@ define('magix', ['$'], function (require) {
             return G_ParseExpr(origin, this['$a']);
         }
     });
+    /*
+    slot
+*/
+    var Slot_Default = 'default';
+    var Slot_Slot = 'slot';
+    var Slot_RemoveReg = /\s+slot(\s*=\s*"[^"]*")?/g;
+    var Slot = {
+        from: function (node) {
+            var map = {}, n, sn, dom = node.nodeType;
+            var named, nodes = dom ? node.childNodes : node['a'];
+            for (var _i = 0, nodes_1 = nodes; _i < nodes_1.length; _i++) {
+                n = nodes_1[_i];
+                if (dom ? n.nodeType == dom && n.hasAttribute(Slot_Slot) : G_Has(n['b'], Slot_Slot)) {
+                    named = 1;
+                    sn = (dom ? n.getAttribute(Slot_Slot) : n['b'][Slot_Slot]) || Slot_Default;
+                    map[sn] = (dom ? n.outerHTML : n['c']).replace(Slot_RemoveReg, '');
+                }
+            }
+            if (!named) {
+                map[Slot_Default] = (dom ? node.innerHTML : node['d']).replace(Slot_RemoveReg, '');
+            }
+            return map;
+        }
+    };
+    Magix.Slot = Slot;
     var View_EvtMethodReg = /^(\$?)([^<]*)<([^>]+)>$/;
     var processMixinsSameEvent = function (exist, additional, temp) {
         if (exist['a']) {

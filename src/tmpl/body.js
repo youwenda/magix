@@ -28,18 +28,34 @@
         '$<click>'(e){
             console.log('view root click',e);
         }
+    
+    range:{
+        app:{
+            20:{
+                mouseover:1,
+                mousemove:1
+            }
+        }
+    }
+    view:{
+        linkage:{
+            40:1
+        }
+    }
  */
 let Body_EvtInfoCache = new G_Cache(30, 10);
 let Body_EvtInfoReg = /(?:([\w\-]+)\x1e)?([^(]+)\(([\s\S]*)?\)/;
 let Body_RootEvents = {};
 let Body_SearchSelectorEvents = {};
+let Body_RangeEvents = {};
+let Body_RangeVframes = {};
+let Body_Guid = 0;
 let Body_FindVframeInfo = (current, eventType) => {
     let vf, tempId, selectorObject, eventSelector, eventInfos = [],
         begin = current,
         info = current.getAttribute(`mx-${eventType}`),
-        match, view,
-        vfs = [],
-        selectorVfId,
+        match, view, vfs = [],
+        selectorVfId = G_HashKey,
         backtrace = 0;
     if (info) {
         match = Body_EvtInfoCache.get(info);
@@ -62,27 +78,50 @@ let Body_FindVframeInfo = (current, eventType) => {
     }
     //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件里
     if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
-        selectorVfId = current['@{body#vframe.id}']; //如果节点有缓存，则使用缓存
-        if (!selectorVfId) { //先找最近的vframe
+        if ((selectorObject = Body_RangeVframes[tempId = begin['@{node#owner.vframe}']])
+            && selectorObject[begin['@{node#guid}']] == 1) {
+            view = 1;
+            selectorVfId = tempId;//如果节点有缓存，则使用缓存
+        }
+        if (!view) { //先找最近的vframe
             vfs.push(begin);
             while (begin != G_DOCBODY && (begin = begin.parentNode)) { //找最近的vframe,且节点上没有mx-autonomy属性
-                if ((Vframe_Vframes[tempId = begin.id] || (tempId = begin.$v))) {
+                if (Vframe_Vframes[tempId = begin.id] ||
+                    ((selectorObject = Body_RangeVframes[tempId = begin['@{node#owner.vframe}']]) &&
+                        selectorObject[begin['@{node#guid}']] == 1)) {
                     selectorVfId = tempId;
                     break;
                 }
                 vfs.push(begin);
             }
-        }
-
-        if (selectorVfId) { //从最近的vframe向上查找带有选择器事件的view
             for (info of vfs) {
-                info['@{body#vframe.id}'] = selectorVfId;
+                if (!(tempId = Body_RangeVframes[selectorVfId])) {
+                    tempId = Body_RangeVframes[selectorVfId] = {};
+                }
+                selectorObject = info['@{node#guid}'] || (info['@{node#guid}'] = ++Body_Guid);
+                tempId[selectorObject] = 1;
+                info['@{node#owner.vframe}'] = selectorVfId;
             }
+        }
+        if (selectorVfId != G_HashKey) { //从最近的vframe向上查找带有选择器事件的view
             /*#if(modules.layerVframe){#*/
             let findParent = match && !match.v;
             /*#}#*/
             begin = current.id;
             if (Vframe_Vframes[begin]) {
+                /*
+                    如果当前节点是vframe的根节点，则把当前的vf置为该vframe
+                    该处主要处理这样的边界情况
+                    <mx-vrame src="./test" mx-click="parent()"/>
+                    //.test.js
+                    export default Magix.View.extend({
+                        '$<click>'(){
+                            console.log('test clicked');
+                        }
+                    });
+
+                    当click事件发生在mx-vframe节点上时，要先派发内部通过选择器绑定在根节点上的事件，然后再派发外部的事件
+                */
                 backtrace = selectorVfId = begin;
             }
             do {
@@ -97,7 +136,11 @@ let Body_FindVframeInfo = (current, eventType) => {
                             n: tempId
                         };
                         if (tempId) {
-                            if (G_TargetMatchSelector(current, tempId)) {
+                            /*
+                                事件发生时，做为临界的根节点只能触发`$`绑定的事件，其它事件不能触发
+                            */
+                            if (!backtrace &&
+                                G_TargetMatchSelector(current, tempId)) {
                                 eventInfos.push(selectorObject);
                             }
                         } else if (backtrace) {
@@ -136,17 +179,14 @@ let Body_DOMEventProcessor = domEvent => {
     let { target, type } = domEvent;
     let eventInfos;
     let ignore;
-    let arr = [];
     let vframe, view, eventName, fn;
     let lastVfId;
-    /*#if(modules.updater){#*/
-    let params;
-    /*#}#*/
-    while (target != G_DOCBODY) { //找事件附近有mx-[a-z]+事件的DOM节点,考虑在向上遍历的过程中，节点被删除，所以需要判断nodeType,主要是IE
+    let params, arr = [];
+    while (target != G_DOCBODY) {
         eventInfos = Body_FindVframeInfo(target, type);
         if (eventInfos.length) {
             arr = [];
-            for (let { v, r, n, p, i } of eventInfos) {
+            for (let { v, r, n, i } of eventInfos) {
                 if (!v && DEBUG) {
                     return Magix_Cfg.error(Error(`bad ${type}:${r}`));
                 }
@@ -163,12 +203,8 @@ let Body_DOMEventProcessor = domEvent => {
                     fn = view[eventName];
                     if (fn) {
                         domEvent.eventTarget = target;
-                        /*#if(modules.updater){#*/
                         params = i ? G_ParseExpr(i, view['@{view#updater}']['@{updater#data}']) : {};
                         domEvent[G_PARAMS] = params;
-                        /*#}else{#*/
-                        domEvent[G_PARAMS] = p || {};
-                        /*#}#*/
                         G_ToTry(fn, domEvent, view);
                         //没发现实际的用途
                         /*if (domEvent.isImmediatePropagationStopped()) {
@@ -195,18 +231,41 @@ let Body_DOMEventProcessor = domEvent => {
             }
         }
         /*|| e.mxStop */
-        if ((ignore = target.$) &&
-            ignore[type] ||
+        if (((ignore = Body_RangeEvents[fn = target['@{node#owner.vframe}']]) &&
+            (ignore = ignore[target['@{node#guid}']]) &&
+            ignore[type]) ||
             domEvent.isPropagationStopped()) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
+            if (arr.length) {
+                arr.push(fn);
+            }
             break;
         } else {
             arr.push(target);
+            lastVfId = target.id;
+            if (Vframe_Vframes[lastVfId]) {
+                arr.push(lastVfId);
+            }
         }
         target = target.parentNode || G_DOCBODY;
     }
-    for (target of arr) {
-        ignore = target.$ || (target.$ = {});
-        ignore[type] = 1;
+    if ((fn = arr.length)) {
+        ignore = G_HashKey;
+        for (; fn--;) {
+            view = arr[fn];
+            if (view.nodeType) {
+                if (!(eventInfos = Body_RangeEvents[ignore])) {
+                    eventInfos = Body_RangeEvents[ignore] = {};
+                }
+                lastVfId = view['@{node#guid}'] || (view['@{node#guid}'] = ++Body_Guid);
+                if (!(params = eventInfos[lastVfId])) {
+                    params = eventInfos[lastVfId] = {};
+                    view['@{node#owner.vframe}'] = ignore;
+                }
+                params[type] = 1;
+            } else {
+                ignore = view;
+            }
+        }
     }
 };
 let Body_DOMEventBind = (type, searchSelector, remove) => {

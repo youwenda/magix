@@ -333,6 +333,8 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
             me['@{vframe#view.entity}'] = 0; //unmountView时，尽可能早的删除vframe上的$v对象，防止$v销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
             if (v['@{view#sign}'] > 0) {
                 v['@{view#sign}'] = 0;
+                delete Body_RangeEvents[id];
+                delete Body_RangeVframes[id];
                 /*#if(modules.updaterAsync){#*/
                 Async_DeleteTask(id);
                 /*#}#*/
@@ -448,28 +450,35 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
             svfs, subVf;
         /*#}#*/
         for (vf of vframes) {
-            id = IdIt(vf);
-            /*#if(modules.layerVframe){#*/
-            if (!G_Has(subs, id)) {
-                /*#}#*/
-                if (!vf['@{node#mounted.vframe}']) { //防止嵌套的情况下深层的view被反复实例化
+            if (!vf['@{node#mounted.vframe}'] /*#if(modules.viewSlot){#*/ && vf.getAttribute('mx-slot') != me.id/*#}#*/) { //防止嵌套的情况下深层的view被反复实例化
+                id = IdIt(vf);
+                /*#if(modules.layerVframe){#*/
+                if (!G_Has(subs, id)) {
+                    /*#}#*/
                     vf['@{node#mounted.vframe}'] = 1;
                     vfs.push([id, vf.getAttribute(G_MX_VIEW)]);
+                    /*#if(modules.layerVframe){#*/
                 }
-                /*#if(modules.layerVframe){#*/
                 svfs = $(`${G_HashKey}${id} [${G_MX_VIEW}]`);
                 for (subVf of svfs) {
                     id = IdIt(subVf);
                     subs[id] = 1;
                 }
+                /*#}#*/
             }
-            /*#}#*/
         }
         for ([id, vf] of vfs) {
-            if (vfs[id]) {
-                Magix_Cfg.error(Error(`vf.id duplicate:${id} at ${me[G_PATH]}`));
+            if (DEBUG && document.querySelectorAll(`#${id}`).length > 1) {
+                Magix_Cfg.error(Error(`dom id:"${id}" duplicate`));
+            }
+            if (DEBUG) {
+                if (vfs[id]) {
+                    Magix_Cfg.error(Error(`vf.id duplicate:${id} at ${me[G_PATH]}`));
+                } else {
+                    me.mountVframe(vfs[id] = id, vf);
+                }
             } else {
-                me.mountVframe(vfs[id] = id, vf);
+                me.mountVframe(id, vf);
             }
         }
         me['@{vframe#hold.fire}'] = 0;

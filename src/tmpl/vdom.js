@@ -8,7 +8,6 @@ let V_UnmountVframs = (vf, n) => {
 };
 let V_SVGNS = 'http://www.w3.org/2000/svg';
 let V_SetAttributes = (oldNode, lastVDOM, newVDOM, ref) => {
-    delete oldNode.$;
     let c, key, value,
         nMap = newVDOM['@{~v#node.attrs.map}'];
     if (lastVDOM) {
@@ -40,7 +39,7 @@ let V_SetAttributes = (oldNode, lastVDOM, newVDOM, ref) => {
     }
 };
 
-let V_SpecialDiff = (oldNode, lastVDOM, newVDOM, update) => {
+let V_SpecialDiff = (oldNode, lastVDOM, newVDOM) => {
     let tag = lastVDOM['@{~v#node.tag}'], c, now;
     let specials = TO_VDOM_SPECIAL_PROPS[tag];
     let nMap = newVDOM['@{~v#node.attrs.map}'];
@@ -50,11 +49,7 @@ let V_SpecialDiff = (oldNode, lastVDOM, newVDOM, update) => {
             now = G_Has(nMap, c) ? c != G_VALUE || nMap[c] : c == G_VALUE && G_EMPTY;
             if (oldNode[c] != now) {
                 result = 1;
-                if (update) {
-                    oldNode[c] = now;
-                } else {
-                    break;
-                }
+                oldNode[c] = now;
             }
         }
     }
@@ -244,7 +239,7 @@ let V_CopyVNode = (lastVDOM, newVDOM, withChildren, p) => {
     }
 };
 /*#}#*/
-let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys, special) => {
+let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys) => {
     if (DEBUG) {
         if (oldParent.nodeName == 'TEMPLATE') {
             console.error('unsupport template tag');
@@ -256,7 +251,7 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys
     }
     let lastAMap = lastVDOM['@{~v#node.attrs.map}'],
         newAMap = newVDOM['@{~v#node.attrs.map}'];
-    if ((special = V_SpecialDiff(realNode, lastVDOM, newVDOM)) ||
+    if (V_SpecialDiff(realNode, lastVDOM, newVDOM) ||
         G_Has(lastAMap, 'mxv') ||
         lastVDOM['@{~v#node.outer.html}'] != newVDOM['@{~v#node.outer.html}']) {
         if (lastVDOM['@{~v#node.tag}'] == newVDOM['@{~v#node.tag}']) {
@@ -350,14 +345,8 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys
                     ref.c = 1;
                     oldVf.unmountVframe(0, 1);
                 }
-                if (updateAttribute !== 1) {
-                    if (updateAttribute) {
-                        V_SetAttributes(realNode, lastVDOM, newVDOM, ref);
-                    }
-                    //如果是特殊属性变化且该节点上没有渲染view,则更新
-                    if (special) {
-                        V_SpecialDiff(realNode, lastVDOM, newVDOM, 1);
-                    }
+                if (updateAttribute) {
+                    V_SetAttributes(realNode, lastVDOM, newVDOM, ref);
                 }
                 // Update all children (and subchildren).
                 //自闭合标签不再检测子节点

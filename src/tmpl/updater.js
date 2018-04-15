@@ -117,6 +117,8 @@ G_Assign(Updater[G_PROTOTYPE], {
                 tmpl, vdom;
             if (changed && view && view['@{view#sign}'] > 0 &&
                 (tmpl = view['@{view#template.object}'])) {
+                delete Body_RangeEvents[selfId];
+                delete Body_RangeVframes[selfId];
                 /*#if(!modules.updaterAsync){#*/
                 console.time('[updater time:' + selfId + ']');
                 console.time('[html to dom:' + selfId + ']');
@@ -141,6 +143,7 @@ G_Assign(Updater[G_PROTOTYPE], {
                     for (vdom of ref.d) {
                         vdom[0].id = vdom[1];
                     }
+
                     for (vdom of ref.v) {
                         vdom['@{view#render.short}']();
                     }
