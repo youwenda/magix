@@ -1,3 +1,163 @@
+
+let _getHTML = (vnode,withTag) => {
+  let c,key,value,tag,prefix,content
+  tag = vnode['@{~v#node.tag}']
+  content = vnode['@{~v#node.html}']
+  if(tag == TO_VDOM_TEXT_NODE) return content
+  
+  if(tag && withTag){
+      prefix = '<' + tag + ' ' 
+      for (c of vnode['@{~v#node.attrs}']) {
+          key = c['@{~v#node.attrs.key}'];
+          value = c['@{~v#node.attrs.value}'];
+          prefix +=  ' ' + key + '="' + TO_VDOM_Unescape(value)+'"';
+      }
+      if(vnode['@{~v#node.self.close}']){
+          return prefix + ' />'
+      }else{
+          return prefix + ' >'+ content + '</'+tag+'>'
+      }
+  }else{
+    return content
+  }
+}
+
+let V_GetOuterNodehtml = (vnode) => {
+
+    if(vnode['@{~v#node.outer.html}']){
+      return vnode['@{~v#node.outer.html}']
+    }
+    vnode['@{~v#node.outer.html}'] = _getHTML(vnode,true)
+
+    return vnode['@{~v#node.outer.html}']
+}
+
+let V_GetNodehtml = (vnode,withTag) => {
+
+    if(vnode['@{~v#node.html}']){
+      return _getHTML(vnode,withTag)
+    }
+
+    let content = ''
+    if(Array.isArray(vnode)){
+        vnode.forEach(function(node){
+            content += V_GetNodehtml(node,withTag)
+        })
+    }else{
+        if(vnode['@{~v#node.children}'].length > 0){
+          content = V_GetNodehtml(vnode['@{~v#node.children}'],true)
+        }
+    }
+    vnode['@{~v#node.html}'] = content
+
+    return _getHTML(vnode,withTag)
+}
+
+let tmplMxEventReg = /mx-(?!view|vframe|owner|autonomy|datafrom|guid|ssid|dep|html|static)([a-zA-Z]+)/;
+
+let V_CreatElement = function(tag,attrs,...children){
+
+    let vdom = {}
+    let compareKey = ''
+    let view = this
+    attrs = attrs || {}
+    children = children || []
+
+    // 如果发现是组件实例，那么我们需要做个别名转换
+    if(tag instanceof Function){
+        if(!Magix.addView){
+            console.error('unsupport template tag,function tag must use magix webpack');
+            return 
+        }
+        let guid = G_Id('_mv_')
+        attrs['mx-view'] = guid
+        Magix.addView(guid,tag)  // 这样后续可以通过guid 找到这个实例
+        tag = 'div'  // 默认用div是不是不好
+    }
+
+    vdom['@{~v#node.attrs.map}'] = attrs
+    vdom['@{~v#node.attrs}'] = []
+
+    Object.keys(attrs).forEach(function(attrKey){
+        
+        // compareKey的处理
+        if (attrKey == 'id') {//如果有id优先使用
+            compareKey = attrs[attrKey];
+        } else if (attrKey == G_MX_VIEW && attrs[attrKey] && !compareKey) {
+            //否则如果是组件,则使用组件的路径做为key
+            compareKey = G_ParseUri(attrs[attrKey])[G_PATH]
+        } else if (attrKey == 'mxs') {
+            if (!compareKey) compareKey = attrs[attrKey];
+        }
+
+        // eventName的处理，我觉得可以直接用另外一种去做。直接是fn
+        if (tmplMxEventReg.test(attrKey)) {
+            var name = attrs[attrKey]; // 支持直接传递函数了
+            var prop = void 0;
+            var efid = '';
+            if (name instanceof Function) {
+                efid = G_Id('_efn_')
+                name = efid + '()'; // 使用一个代替
+                // 将这个函数存起来，等待后面去调用
+                prop = view.constructor[G_PROTOTYPE];
+                prop[efid + G_SPLITER + 'click'] = attrs[attrKey];
+            }
+            attrs[attrKey] = view.id + '\x1e' + name;
+        }
+
+        vdom['@{~v#node.attrs}'].push({
+            '@{~v#node.attrs.key}':attrKey,
+            '@{~v#node.attrs.value}':attrs[attrKey]
+        })
+    })
+
+    // 如果是mx-view，那么属性需要特殊处理
+    if(attrs['mx-view']){
+        let mxViewParams = [] // attrs['mx-view'].indexOf('?') !== -1 ? '' : '?'
+        let mxAttr = null
+        let sKey,viewKey,mxViewParamsString
+        vdom['@{~v#node.attrs}'].forEach(function(attr){
+            if(attr['@{~v#node.attrs.key}'] === 'mx-view'){
+                mxAttr = attr
+            }else if(attr['@{~v#node.attrs.key}'].trim().startsWith('view-')){
+                // 如果属性的值是个变量，而不是字符串 ？ 暂时区分不出来，干脆全部当做透传变量吧
+                sKey = G_SPLITER + G_Id('sk')  // 如果是string是否可以优化下，以string为key
+                view.updater['@{updater#data}'][sKey] = attr['@{~v#node.attrs.value}'] // 先存起来
+                attr['@{~v#node.attrs.value}'] = sKey
+                vdom['@{~v#node.attrs.map}'][attr['@{~v#node.attrs.key}']] = sKey
+
+                viewKey = attr['@{~v#node.attrs.key}'].replace('view-','')  // view-xxx => xxx
+                mxViewParams.push(viewKey + '=' + sKey)
+            }
+        })
+        mxViewParamsString = mxAttr['@{~v#node.attrs.value}'] + '?' + mxViewParams.join('&')
+        mxAttr['@{~v#node.attrs.value}'] = mxViewParamsString
+        attrs['mx-view'] = mxViewParamsString
+    }
+
+    if(tag){
+        vdom['@{~v#node.tag}'] = tag
+        vdom['@{~v#node.compare.key}'] = compareKey
+    }
+
+    vdom['@{~v#node.children}'] = []
+
+    children.forEach(function(child){
+        if(G_IsObject(child)){
+            vdom['@{~v#node.children}'].push(child)
+        }else{
+            // 针对text需要做处理
+            vdom['@{~v#node.children}'].push({
+                '@{~v#node.html}': child,
+                '@{~v#node.tag}' : TO_VDOM_TEXT_NODE
+            })
+        }
+    })
+
+    return vdom
+}
+
+
 let V_UnmountVframs = (vf, n) => {
     let id = IdIt(n);
     if (vf['@{vframe#children}'][id]) {
@@ -60,10 +220,11 @@ let V_CreateNode = (vnode, owner, ref, c, tag) => {
     if (tag == TO_VDOM_TEXT_NODE) {
         return G_DOCUMENT.createTextNode(vnode['@{~v#node.html}']);
     }
+    let nHtml = V_GetNodehtml(vnode);
     c = G_DOCUMENT.createElementNS(tag == 'svg' ? V_SVGNS : owner.namespaceURI, tag);
     V_SetAttributes(c, 0, vnode, ref);
-    if (vnode['@{~v#node.html}']) {
-        c.innerHTML = vnode['@{~v#node.html}'];
+    if (nHtml) {
+        c.innerHTML = nHtml;
     }
     return c;
 };
@@ -222,7 +383,7 @@ let V_SetChildNodes = (realNode, lastVDOM, newVDOM, ref, vframe, data, keys) => 
         }
     } else {
         ref.c = 1;
-        realNode.innerHTML = newVDOM['@{~v#node.html}'];
+        realNode.innerHTML = V_GetNodehtml(newVDOM);
     }
 };
 /*#if(modules.updaterAsync){#*/
@@ -246,17 +407,17 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys
         }
         if ((realNode.nodeName == '#text' && lastVDOM['@{~v#node.tag}'] != '#text') || (
             realNode.nodeName != '#text' && realNode.nodeName.toLowerCase() != lastVDOM['@{~v#node.tag}'])) {
-            console.error('Your code is not match the DOM tree generated by the browser. near:' + lastVDOM['@{~v#node.html}'] + '. Is that you lost some tags or modified the DOM tree?');
+            console.error('Your code is not match the DOM tree generated by the browser. near:' + V_GetNodehtml(lastVDOM) + '. Is that you lost some tags or modified the DOM tree?');
         }
     }
     let lastAMap = lastVDOM['@{~v#node.attrs.map}'],
         newAMap = newVDOM['@{~v#node.attrs.map}'];
     if (V_SpecialDiff(realNode, lastVDOM, newVDOM) ||
         G_Has(lastAMap, 'mxv') ||
-        lastVDOM['@{~v#node.outer.html}'] != newVDOM['@{~v#node.outer.html}']) {
+        V_GetOuterNodehtml(lastVDOM) != V_GetOuterNodehtml(newVDOM)) {
         if (lastVDOM['@{~v#node.tag}'] == newVDOM['@{~v#node.tag}']) {
             if (lastVDOM['@{~v#node.tag}'] == TO_VDOM_TEXT_NODE) {
-                if (lastVDOM['@{~v#node.html}'] != newVDOM['@{~v#node.html}']) {
+                if (V_GetNodehtml(lastVDOM) != V_GetNodehtml(newVDOM)) {
                     ref.c = 1;
                     /*#if(modules.updaterAsync){#*/
                     lastVDOM['@{~v#node.html}'] = newVDOM['@{~v#node.html}'];
@@ -265,7 +426,7 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys
                 }
             } else if (!lastAMap[G_Tag_Key] || lastAMap[G_Tag_Key] != newAMap[G_Tag_Key]) {
                 let newMxView = newAMap[G_MX_VIEW],
-                    newHTML = newVDOM['@{~v#node.html}'];
+                    newHTML = V_GetNodehtml(newVDOM);
                 let updateAttribute = !newAMap[G_Tag_Attr_Key] || lastAMap[G_Tag_Attr_Key] != newAMap[G_Tag_Attr_Key],
                     updateChildren, unmountOld,
                     oldVf = Vframe_Vframes[realNode.id],
@@ -291,7 +452,7 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys
                 if (newMxView && oldVf &&
                     oldVf['@{vframe#view.path}'] == uri[G_PATH] &&
                     (view = oldVf['@{vframe#view.entity}'])) {
-                    htmlChanged = newHTML != lastVDOM['@{~v#node.html}'];
+                    htmlChanged = newHTML != V_GetNodehtml(lastVDOM);
                     paramsChanged = newMxView != oldVf[G_PATH];
                     assign = lastAMap[G_Tag_View_Key];
                     if (!htmlChanged && !paramsChanged && assign) {

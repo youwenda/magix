@@ -123,7 +123,19 @@ G_Assign(Updater[G_PROTOTYPE], {
                 console.time('[updater time:' + selfId + ']');
                 console.time('[html to dom:' + selfId + ']');
                 /*#if(modules.updaterVDOM){#*/
-                vdom = TO_VDOM(tmpl(data, selfId));
+                if(!view.$vcr) view.$vcr = V_CreatElement;
+                // 是个对象，直接返回
+                vdom = tmpl.call(view, data, selfId)
+                if (G_IsObject(vdom)) { // 如果返回的就是虚拟dom
+                    if(vdom['@{~v#node.tag}']){   // 只是一个节点
+                        // 需要包装一个最根的节点
+                        vdom = {
+                            "@{~v#node.children}": [vdom]
+                        }
+                    }
+                }else{
+                    vdom = TO_VDOM(vdom);
+                }
                 /*#}else{#*/
                 vdom = I_GetNode(tmpl(data, selfId), node);
                 /*#}#*/
