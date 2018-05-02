@@ -10,7 +10,7 @@ let ts = require('typescript');
 let customize = require('./customize');
 
 let type ='cmd,amd,kissy,webpack,module'; //打包kissy则type='kissy'
-let enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,viewSlot,updaterDOM';
+let enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM,viewSlot';
 
 //let enableModules = 'style,viewInit,router,viewMerge,tipRouter,updater,autoEndUpdate,linkage,state,updaterDOM,viewProtoMixins';
 
@@ -36,7 +36,7 @@ gulp.task('combine', () => {
             let c = fs.readFileSync('../dist/' + t + '/magix-es3-debug.js') + '';
             let str = ts.transpileModule(c, {
                 compilerOptions: {
-                    lib: ['es7'],
+                    lib: ['ES7','ESNext','ES6'],
                     target: 'es3',
                     module: ts.ModuleKind.None
                 }
