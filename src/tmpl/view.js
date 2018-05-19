@@ -1,8 +1,4 @@
 let View_EvtMethodReg = /^(\$?)([^<]*)<([^>]+)>$/;
-/*#if(!modules.updaterVDOM&&!modules.updaterDOM){#*/
-let View_ScopeReg = /\x1f/g;
-let View_SetEventOwner = (str, id) => (str + G_EMPTY).replace(View_ScopeReg, id);
-/*#}#*/
 /*#if(modules.viewProtoMixins){#*/
 let processMixinsSameEvent = (exist, additional, temp) => {
     if (exist['@{~viewmixin#list}']) {
@@ -51,7 +47,9 @@ let View_WrapMethod = (prop, fName, short, fn, me) => {
         me = this;
         if (me['@{view#sign}'] > 0) { //signature
             me['@{view#sign}']++;
+            /*#if(!modules.mini){#*/
             me.fire('rendercall');
+            /*#}#*/
             /*#if(modules.resource){#*/
             View_DestroyAllResources(me);
             /*#}#*/
@@ -252,7 +250,7 @@ let View_IsObserveChanged = view => {
  */
 
 
-let View = function (id, owner, ops, me) {
+function View(id, owner, ops, me) {
     me = this;
     me.owner = owner;
     me.id = id;
@@ -271,7 +269,7 @@ let View = function (id, owner, ops, me) {
     /*#if(modules.viewMerge){#*/
     G_ToTry(View_Ctors, ops, me);
     /*#}#*/
-};
+}
 let ViewProto = View[G_PROTOTYPE];
 G_Assign(View, {
     /**
@@ -349,19 +347,19 @@ G_Assign(View, {
         let ctors = [];
         if (ctor) ctors.push(ctor);
         /*#}#*/
-        let NView = function (d, a, b /*#if(modules.viewProtoMixins){#*/, c /*#}#*/) {
+        function NView(d, a, b/*#if(modules.viewSlot){#*/, e/*#}#*/ /*#if(modules.viewProtoMixins){#*/, c /*#}#*/) {
             me.call(this, d, a, b);
             /*#if(modules.viewProtoMixins){#*/
-            G_ToTry(ctors.concat(c), b, this);
+            G_ToTry(ctors.concat(c), /*#if(modules.viewSlot){#*/[b, e]/*#}else{#*/b/*#}#*/, this);
             /*#}else{#*/
-            if (ctor) ctor.call(this, b);
+            if (ctor) ctor.call(this, b/*#if(modules.viewSlot){#*/, e/*#}#*/);
             /*#}#*/
-        };
+        }
         NView.extend = me.extend;
         return G_Extend(NView, me, props, statics);
     }
 });
-G_Assign(ViewProto, MEvent, {
+G_Assign(ViewProto /*#if(!modules.mini){#*/, MEvent/*#}#*/, {
     /**
      * @lends View#
      */
@@ -393,12 +391,6 @@ G_Assign(ViewProto, MEvent, {
      *     }
      * });
      */
-    /*#if(!modules.updaterVDOM&&!modules.updaterDOM){#*/
-    wrapEvent(html) {
-        /*#=(!modules.updaterVDOM&&!modules.updaterDOM)#*/
-        return View_SetEventOwner(html, this.id);
-    },
-    /*#}#*/
     /**
      * 通知当前view即将开始进行html的更新
      * @param {String} [id] 哪块区域需要更新，默认整个view

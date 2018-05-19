@@ -14,13 +14,13 @@ let Magix_CacheSort = (a, b) =>  /*#if(modules.cnum){#*/ b.n - a.n || /*#}#*/ b.
  * c.has('key1');//判断
  * //注意：缓存通常配合其它方法使用，在Magix中，对路径的解析等使用了缓存。在使用缓存优化性能时，可以达到节省CPU和内存的双赢效果
  */
-let G_Cache = function (max, buffer, remove, me) {
+function G_Cache(max, buffer, remove, me) {
     me = this;
     me.c = [];
     me.b = buffer || 5; //buffer先取整，如果为0则再默认5
     me.x = me.b + (max || 20);
     me.r = remove;
-};
+}
 
 G_Assign(G_Cache[G_PROTOTYPE], {
     /**

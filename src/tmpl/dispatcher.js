@@ -5,7 +5,9 @@ let Dispatcher_UpdateTag = 0;
  * @private
  */
 let Dispatcher_Update = (vframe, /*#if(modules.state){#*/ stateKeys, /*#}#*/ view, isChanged, cs, c) => {
-    if (vframe && vframe['@{vframe#update.tag}'] != Dispatcher_UpdateTag && (view = vframe['@{vframe#view.entity}']) && view['@{view#sign}'] > 1) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
+    if (vframe && vframe['@{vframe#update.tag}'] != Dispatcher_UpdateTag &&
+        (view = vframe['@{vframe#view.entity}']) &&
+        view['@{view#sign}'] > 1) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
         /*#if(modules.state&&modules.router){#*/
         isChanged = stateKeys ? State_IsObserveChanged(view, stateKeys) : View_IsObserveChanged(view);
         /*#}else if(modules.state){#*/

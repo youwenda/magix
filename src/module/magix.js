@@ -15,15 +15,7 @@ let G_Require = (name, fn) => {
         /*#if(modules.defaultView){#*/
         if (MxGlobalView == name) {
             if (!G_DefaultView) {
-                G_DefaultView = View.extend(
-                    /*#if(!modules.autoEndUpdate){#*/
-                    {
-                        render() {
-                            this.endUpdate();
-                        }
-                    }
-                    /*#}#*/
-                );
+                G_DefaultView = View.extend();
             }
             fn(G_DefaultView);
         } else {/*#}#*/
@@ -85,11 +77,13 @@ Inc('../tmpl/tmpl');
 /*#}#*/
 /*#if(modules.updaterVDOM){#*/
 Inc('../tmpl/tovdom');
-Inc('../tmpl/vdom');
+/*#if(modules.updaterQuick){#*/
+Inc('../tmpl/quick');
+/*#}else{#*/
+Inc('../tmpl/tovdom');
+/*#}#*/
 /*#}else if(modules.updaterDOM){#*/
 Inc('../tmpl/dom');
-/*#}else{#*/
-Inc('../tmpl/partial');
 /*#}#*/
 Inc('../tmpl/updater');
 /*#}#*/
@@ -102,5 +96,7 @@ let G_Now = Date.now;
 Inc('../tmpl/service');
 /*#}#*/
 Inc('../tmpl/base');
-Magix.trigger = G_Trigger;
+/*#if(!modules.mini){#*/
+Magix.fire = G_Trigger;
+/*#}#*/
 export default Magix;

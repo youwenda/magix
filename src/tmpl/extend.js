@@ -1,4 +1,4 @@
-let T = function () { };
+function T() { }
 let G_Extend = (ctor, base, props, statics, cProto) => {
     //bProto.constructor = base;
     T[G_PROTOTYPE] = base[G_PROTOTYPE];

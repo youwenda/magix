@@ -5,7 +5,7 @@ let Magix_ParamsObjectTemp;
 let Magix_ParamsFn = (match, name, value) => {
     try {
         value = decodeURIComponent(value);
-    } catch (e) {
+    } catch(_magix) {
 
     }
     Magix_ParamsObjectTemp[name] = value;
@@ -91,6 +91,7 @@ let G_ParseUri = path => {
         params: { ...r.b }
     };
 };
+/*#if(!modules.mini){#*/
 /**
  * 转换成字符串路径
  * @param  {String} path 路径
@@ -136,6 +137,7 @@ let G_ToMap = (list, key) => {
     }
     return map;
 };
+/*#}#*/
 /*#if(modules.updater){#*/
 let G_ParseCache = new G_Cache();
 let G_ParseExpr = (expr, data, result) => {
@@ -250,6 +252,7 @@ let Magix = {
         });
     },
     /*#}#*/
+    /*#if(!modules.mini){#*/
     /**
      * 把列表转化成hash对象
      * @param  {Array} list 源数组
@@ -266,6 +269,7 @@ let Magix = {
      * //转成对象后不需要每次都遍历数组查询
      */
     toMap: G_ToMap,
+    /*#}#*/
     /**
      * 以try cache方式执行方法，忽略掉任何异常
      * @function
@@ -317,6 +321,7 @@ let Magix = {
      * // result == 'test'
      */
     toTry: G_ToTry,
+    /*#if(!modules.mini){#*/
     /**
      * 转换成字符串路径
      * @function
@@ -340,6 +345,7 @@ let Magix = {
      * // str == /xxx/?a=&c=2
      */
     toUrl: G_ToUri,
+    /*#}#*/
     /**
      * 把路径字符串转换成对象
      * @function
@@ -402,6 +408,7 @@ let Magix = {
      * @return {Boolean} 是否拥有prop属性
      */
     has: G_Has,
+    /*#if(!modules.mini){#*/
     /**
      * 获取对象的keys
      * @param {Object} object 获取key的对象
@@ -420,6 +427,7 @@ let Magix = {
      * @return {Array}
      */
     keys: G_Keys,
+    /*#}#*/
     /**
      * 判断一个节点是否在另外一个节点内，如果比较的2个节点是同一个节点，也返回true
      * @function

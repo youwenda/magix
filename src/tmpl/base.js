@@ -1,13 +1,15 @@
 /*#if(modules.base){#*/
+/*#if(!modules.mini){#*/
 G_Assign(G_NOOP[G_PROTOTYPE], MEvent);
+/*#}#*/
 G_NOOP.extend = function extend(props, statics) {
     let me = this;
     let ctor = props && props.ctor;
-    let X = function (...a) {
+    function X(...a) {
         let t = this;
         me.apply(t, a);
         if (ctor) ctor.apply(t, a);
-    };
+    }
     X.extend = extend;
     return G_Extend(X, me, props, statics);
 };

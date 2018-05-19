@@ -48,10 +48,10 @@
  * @property {String} id bag唯一标识
  */
 
-let Bag = function () {
+function Bag() {
     this.id = G_Id('b');
     this.$ = {};
-};
+}
 G_Assign(Bag[G_PROTOTYPE], {
     /**
      * @lends Bag#
@@ -73,7 +73,7 @@ G_Assign(Bag[G_PROTOTYPE], {
      *     console.log(list);
      * });
      */
-    get(key, dValue, udfd) {
+    get(key, dValue) {
         let me = this;
         //let alen = arguments.length;
         /*
@@ -91,7 +91,6 @@ G_Assign(Bag[G_PROTOTYPE], {
 
             或者key本身就是数组
          */
-        let hasDValue = dValue != udfd;
         let attrs = me.$;
         if (key) {
             let tks = G_IsArray(key) ? key.slice() : (key + G_EMPTY).split('.'),
@@ -100,11 +99,11 @@ G_Assign(Bag[G_PROTOTYPE], {
                 attrs = attrs[tk];
             }
             if (tk) {
-                attrs = udfd;
+                attrs = G_Undefined;
             }
         }
         let type;
-        if (hasDValue && (type = G_Type(dValue)) != G_Type(attrs)) {
+        if (dValue !== G_Undefined && (type = G_Type(dValue)) != G_Type(attrs)) {
             if (DEBUG) {
                 console.warn('type neq:' + key + ' is not a(n) ' + type);
             }
@@ -129,13 +128,13 @@ G_Assign(Bag[G_PROTOTYPE], {
 });
 let Service_FetchFlags_ONE = 1;
 let Service_FetchFlags_ALL = 2;
-let Service_CacheDone = function (cacheKey, err, fns) {
+function Service_CacheDone(cacheKey, err, fns) {
     fns = this[cacheKey]; //取出当前的缓存信息
     if (fns) {
         delete this[cacheKey]; //先删除掉信息
         G_ToTry(fns, err, fns.e); //执行所有的回调
     }
-};
+}
 let Service_Task = (done, host, service, total, flag, bagCache) => {
     let doneArr = [];
     let errorArgs = G_NULL;
@@ -299,7 +298,7 @@ let Service_Send = (me, attrs, done, flag, save) => {
  *     console.log(err,bag);
  * });
  */
-let Service = function () {
+function Service() {
     let me = this;
     me.id = G_Id('s');
     if (DEBUG) {
@@ -311,7 +310,7 @@ let Service = function () {
         }, 1000);
     }
     me['@{service#list}'] = [];
-};
+}
 
 G_Assign(Service[G_PROTOTYPE], {
     /**
@@ -659,8 +658,9 @@ let Service_Manager = {
             }
         }
         return entity;
-    },
+    }/*#if(!modules.mini){#*/,
     ...MEvent
+    /*#}#*/
 };
 /**
  * 继承
@@ -684,9 +684,9 @@ let Service_Manager = {
  * },10,2);//最大缓存10个接口数据，缓冲区2个
  */
 Service.extend = (sync, cacheMax, cacheBuffer) => {
-    let NService = function () {
+    function NService() {
         Service.call(this);
-    };
+    }
     NService['@{service#send}'] = sync;
     NService['@{service#cache}'] = new G_Cache(cacheMax, cacheBuffer);
     NService['@{service#request.keys}'] = {};

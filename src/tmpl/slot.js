@@ -1,9 +1,34 @@
 /*
     slot
 */
-let Slot_Default = 'default';
+
 let Slot_Slot = 'slot';
 let Slot_RemoveReg = /\s+slot(\s*=\s*"[^"]*")?/g;
+/*#if(modules.updaterQuick){#*/
+let Slot = {
+    from(nodes) {
+        let map = {}, n, nMap, slot, c;
+        for (n of nodes) {
+            nMap = n['@{~v#node.attrs.map}'];
+            if ((slot = nMap[Slot_Slot])) {
+                delete nMap[Slot_Slot];
+                n['@{~v#node.outer.html}'] = n['@{~v#node.outer.html}'].replace(Slot_RemoveReg, '');
+                c = map[slot];
+                if (c) {
+                    if (!c.length) {
+                        c = map[slot] = [c];
+                    }
+                    c.push(n);
+                } else {
+                    map[slot] = n;
+                }
+            }
+        }
+        return map;
+    }
+};
+/*#}else{#*/
+let Slot_Default = 'default';
 let Slot = {
     from(node) {
         let map = {}, n, sn, dom = node.nodeType;
@@ -21,4 +46,5 @@ let Slot = {
         return map;
     }
 };
+/*#}#*/
 Magix.Slot = Slot;

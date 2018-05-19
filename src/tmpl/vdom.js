@@ -1,3 +1,24 @@
+let V_SPECIAL_PROPS = {
+    input: [G_VALUE, 'checked'],
+    textarea: [G_VALUE],
+    option: ['selected']
+};
+
+let V_TEXT_NODE = G_COUNTER;
+if (DEBUG) {
+    V_TEXT_NODE = '#text';
+}
+let V_UnescapeMap = {};
+let V_UnescapeReg = /&#?[^\W]+;?/g;
+let V_Temp = G_DOCUMENT.createElement('div');
+let V_UnescapeCallback = m => {
+    if (!G_Has(V_UnescapeMap, m)) {
+        V_Temp.innerHTML = m;
+        V_UnescapeMap[m] = V_Temp.innerText;
+    }
+    return V_UnescapeMap[m];
+};
+let V_Unescape = str => str.replace(V_UnescapeReg, V_UnescapeCallback);
 let V_UnmountVframs = (vf, n) => {
     let id = IdIt(n);
     if (vf['@{vframe#children}'][id]) {
@@ -6,13 +27,16 @@ let V_UnmountVframs = (vf, n) => {
         vf.unmountZone(id, 1);
     }
 };
-let V_SVGNS = 'http://www.w3.org/2000/svg';
+let V_NSMap = {
+    svg: 'http://www.w3.org/2000/svg',
+    math: 'http://www.w3.org/1998/Math/MathML'
+};
 let V_SetAttributes = (oldNode, lastVDOM, newVDOM, ref) => {
-    let c, key, value,
-        nMap = newVDOM['@{~v#node.attrs.map}'];
+    let key, value,
+        nMap = newVDOM['@{~v#node.attrs.map}'],
+        oMap = lastVDOM['@{~v#node.attrs.map}'];
     if (lastVDOM) {
-        for (c of lastVDOM['@{~v#node.attrs}']) {
-            key = c['@{~v#node.attrs.key}'];
+        for (key in oMap) {
             if (!G_Has(nMap, key)) {//如果旧有新木有
                 if (key == 'id') {
                     ref.d.push([oldNode, G_EMPTY]);
@@ -23,12 +47,11 @@ let V_SetAttributes = (oldNode, lastVDOM, newVDOM, ref) => {
             }
         }
     }
-    for (c of newVDOM['@{~v#node.attrs}']) {
-        key = c['@{~v#node.attrs.key}'];
-        value = c['@{~v#node.attrs.value}'];
+    for (key in nMap) {
+        value = nMap[key];
         //旧值与新值不相等
-        if (!lastVDOM || lastVDOM['@{~v#node.attrs.map}'][key] !== value) {
-            value = TO_VDOM_Unescape(value);
+        if (!lastVDOM || oMap[key] !== value) {
+            value = V_Unescape(value);
             if (key == 'id') {
                 ref.d.push([oldNode, value]);
             } else {
@@ -41,7 +64,7 @@ let V_SetAttributes = (oldNode, lastVDOM, newVDOM, ref) => {
 
 let V_SpecialDiff = (oldNode, lastVDOM, newVDOM) => {
     let tag = lastVDOM['@{~v#node.tag}'], c, now;
-    let specials = TO_VDOM_SPECIAL_PROPS[tag];
+    let specials = V_SPECIAL_PROPS[tag];
     let nMap = newVDOM['@{~v#node.attrs.map}'];
     let result = 0;
     if (specials) {
@@ -57,10 +80,10 @@ let V_SpecialDiff = (oldNode, lastVDOM, newVDOM) => {
 };
 let V_CreateNode = (vnode, owner, ref, c, tag) => {
     tag = vnode['@{~v#node.tag}'];
-    if (tag == TO_VDOM_TEXT_NODE) {
-        return G_DOCUMENT.createTextNode(vnode['@{~v#node.html}']);
+    if (tag == V_TEXT_NODE) {
+        return G_DOCUMENT.createTextNode(vnode['@{~v#node.outer.html}']);
     }
-    c = G_DOCUMENT.createElementNS(tag == 'svg' ? V_SVGNS : owner.namespaceURI, tag);
+    c = G_DOCUMENT.createElementNS(V_NSMap[tag] || owner.namespaceURI, tag);
     V_SetAttributes(c, 0, vnode, ref);
     if (vnode['@{~v#node.html}']) {
         c.innerHTML = vnode['@{~v#node.html}'];
@@ -82,143 +105,146 @@ let V_GenKeyedNodes = (vnodes, nodes, start, end) => {
     }
     return keyed;
 };
-let V_SetChildNodes = (realNode, lastVDOM, newVDOM, ref, vframe, data, keys) => {
+let V_SetChildNodes = (realNode, lastVDOM, newVDOM, ref, vframe, keys) => {
     if (lastVDOM) {//view首次初始化，通过innerHTML快速更新
-        let i, oi = 0,
-            oldChildren = lastVDOM['@{~v#node.children}'],
-            newChildren = newVDOM['@{~v#node.children}'], oc, nc,
-            oldCount = oldChildren.length, newCount = newChildren.length,
-            reused = newVDOM['@{~v#node.reused}'],
-            nodes = realNode.childNodes, compareKey,
-            orn, ovn, keyedNodes = {};
-        for (i = oldCount; i--;) {
-            oc = oldChildren[i];
-            compareKey = oc['@{~v#node.compare.key}'];
-            if (compareKey) {
-                compareKey = keyedNodes[compareKey] || (keyedNodes[compareKey] = []);
-                compareKey.push({
-                    '@{~v#old.list.node}': nodes[i],
-                    '@{~v#old.vlist.node}': oc
-                });
+        if (lastVDOM['@{~v#node.has.mxv}'] ||
+            lastVDOM['@{~v#node.html}'] != newVDOM['@{~v#node.html}']) {
+            let i, oi = 0,
+                oldChildren = lastVDOM['@{~v#node.children}'],
+                newChildren = newVDOM['@{~v#node.children}'], oc, nc,
+                oldCount = oldChildren.length, newCount = newChildren.length,
+                reused = newVDOM['@{~v#node.reused}'],
+                nodes = realNode.childNodes, compareKey,
+                orn, ovn, keyedNodes = {};
+            for (i = oldCount; i--;) {
+                oc = oldChildren[i];
+                compareKey = oc['@{~v#node.compare.key}'];
+                if (compareKey) {
+                    compareKey = keyedNodes[compareKey] || (keyedNodes[compareKey] = []);
+                    compareKey.push({
+                        '@{~v#old.list.node}': nodes[i],
+                        '@{~v#old.vlist.node}': oc
+                    });
+                }
             }
-        }
-        /* let oldStartIdx = 0,
-             oldEndIdx = oldCount - 1,
-             newStartIdx = 0,
-             newEndIdx = newCount - 1,
-             oldStartVNode = oldChildren[oldStartIdx],
-             oldEndVNode = oldChildren[oldEndIdx],
-             newStartVNode = newChildren[newStartIdx],
-             newEndVNode = newChildren[newEndIdx];
- 
-         while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
-             if (newStartVNode['@{~v#node.compare.key}'] == oldStartVNode['@{~v#node.compare.key}']) {
-                 V_SetNode(nodes[newStartIdx], realNode, oldStartVNode, newStartVNode, ref, vframe, data);
-                 newStartVNode = newChildren[++newStartIdx];
-                 oldStartVNode = oldChildren[++oldStartIdx];
-             } else if (newEndVNode['@{~v#node.compare.key}'] == oldEndVNode['@{~v#node.compare.key}']) {
-                 V_SetNode(nodes[newEndIdx], realNode, oldEndVNode, newEndVNode, ref, vframe, data);
-                 newEndVNode = newChildren[--newEndIdx];
-                 oldEndVNode = oldChildren[--oldEndIdx];
-             } else {
-                 if (!keyedNodes) keyedNodes = V_GenKeyedNodes(oldChildren, nodes, oldStartIdx, oldEndIdx);
- 
+            /* let oldStartIdx = 0,
+                 oldEndIdx = oldCount - 1,
+                 newStartIdx = 0,
+                 newEndIdx = newCount - 1,
+                 oldStartVNode = oldChildren[oldStartIdx],
+                 oldEndVNode = oldChildren[oldEndIdx],
+                 newStartVNode = newChildren[newStartIdx],
+                 newEndVNode = newChildren[newEndIdx];
+     
+             while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+                 if (newStartVNode['@{~v#node.compare.key}'] == oldStartVNode['@{~v#node.compare.key}']) {
+                     V_SetNode(nodes[newStartIdx], realNode, oldStartVNode, newStartVNode, ref, vframe, data);
+                     newStartVNode = newChildren[++newStartIdx];
+                     oldStartVNode = oldChildren[++oldStartIdx];
+                 } else if (newEndVNode['@{~v#node.compare.key}'] == oldEndVNode['@{~v#node.compare.key}']) {
+                     V_SetNode(nodes[newEndIdx], realNode, oldEndVNode, newEndVNode, ref, vframe, data);
+                     newEndVNode = newChildren[--newEndIdx];
+                     oldEndVNode = oldChildren[--oldEndIdx];
+                 } else {
+                     if (!keyedNodes) keyedNodes = V_GenKeyedNodes(oldChildren, nodes, oldStartIdx, oldEndIdx);
+     
+                 }
              }
-         }
-         if (newStartIdx > newEndIdx) {
-             for (i = oldStartIdx; i <= oldEndIdx; i++) {
-                 oi = nodes[oldStartIdx];//删除多余的旧节点
-                 V_UnmountVframs(vframe, oi);
-                 realNode.removeChild(oi);
-                 ref.c = 1;
-             }
-         }*/
+             if (newStartIdx > newEndIdx) {
+                 for (i = oldStartIdx; i <= oldEndIdx; i++) {
+                     oi = nodes[oldStartIdx];//删除多余的旧节点
+                     V_UnmountVframs(vframe, oi);
+                     realNode.removeChild(oi);
+                     ref.c = 1;
+                 }
+             }*/
 
-        /*#if(modules.updaterAsync){#*/
-        for (i = 0; i < newCount; i++) {
-            oc = oldChildren[i];
-            nc = newChildren[i];
-            compareKey = keyedNodes[nc['@{~v#node.compare.key}']];
-            if (compareKey && (compareKey = compareKey.pop())) {
-                orn = compareKey['@{~v#old.list.node}'];
-                ovn = compareKey['@{~v#old.vlist.node}'];
-                if (orn != nodes[i]) {//如果找到的节点和当前不同，则移动
-                    oldChildren.splice(i, 0, oc = ovn);//移动虚拟dom
-                    for (oi = oldChildren.length; oi--;) {//从后向前清理虚拟dom
-                        if (oldChildren[oi] == ovn) {
-                            oldChildren.splice(oi, 1);
-                            break;
+            /*#if(modules.updaterAsync){#*/
+            for (i = 0; i < newCount; i++) {
+                oc = oldChildren[i];
+                nc = newChildren[i];
+                compareKey = keyedNodes[nc['@{~v#node.compare.key}']];
+                if (compareKey && (compareKey = compareKey.pop())) {
+                    orn = compareKey['@{~v#old.list.node}'];
+                    ovn = compareKey['@{~v#old.vlist.node}'];
+                    if (orn != nodes[i]) {//如果找到的节点和当前不同，则移动
+                        oldChildren.splice(i, 0, oc = ovn);//移动虚拟dom
+                        for (oi = oldChildren.length; oi--;) {//从后向前清理虚拟dom
+                            if (oldChildren[oi] == ovn) {
+                                oldChildren.splice(oi, 1);
+                                break;
+                            }
                         }
+                        realNode.insertBefore(orn, nodes[i]);
                     }
-                    realNode.insertBefore(orn, nodes[i]);
-                }
-                Async_AddTask(vframe, V_SetNode, nodes[i], realNode, oc, nc, ref, vframe, data, keys);
-            } else if (oc) {//有旧节点，则更新
-                if (keyedNodes[oc['@{~v#node.compare.key}']] &&
-                    reused[oc['@{~v#node.compare.key}']]) {
-                    oldChildren.splice(i, 0, nc);//插入一个占位符，在接下来的比较中才能一一对应
-                    oldCount++;
+                    Async_AddTask(vframe, V_SetNode, nodes[i], realNode, oc, nc, ref, vframe, keys);
+                } else if (oc) {//有旧节点，则更新
+                    if (keyedNodes[oc['@{~v#node.compare.key}']] &&
+                        reused[oc['@{~v#node.compare.key}']]) {
+                        oldChildren.splice(i, 0, nc);//插入一个占位符，在接下来的比较中才能一一对应
+                        oldCount++;
+                        ref.c = 1;
+                        realNode.insertBefore(V_CreateNode(nc, realNode, ref), nodes[i]);
+                    } else {
+                        Async_AddTask(vframe, V_SetNode, nodes[i], realNode, oc, nc, ref, vframe, keys);
+                    }
+                } else {//添加新的节点
+                    oldChildren.push(nc);
+                    realNode.appendChild(V_CreateNode(nc, realNode, ref));
                     ref.c = 1;
-                    realNode.insertBefore(V_CreateNode(nc, realNode, ref), nodes[i]);
-                } else {
-                    Async_AddTask(vframe, V_SetNode, nodes[i], realNode, oc, nc, ref, vframe, data, keys);
                 }
-            } else {//添加新的节点
-                oldChildren.push(nc);
-                realNode.appendChild(V_CreateNode(nc, realNode, ref));
+            }
+            oi = oldCount - newCount;
+            if (oi > 0) {
+                oldChildren.splice(-oi);
+            }
+            /*#}else{#*/
+            for (i = 0; i < newCount; i++) {
+                do {
+                    oc = oldChildren[oi++];
+                } while (oc && oc['@{~v#vnode.moved}']);
+                nc = newChildren[i];
+                compareKey = keyedNodes[nc['@{~v#node.compare.key}']];
+                if (compareKey && (compareKey = compareKey.pop())) {
+                    orn = compareKey['@{~v#old.list.node}'];
+                    ovn = compareKey['@{~v#old.vlist.node}'];
+                    if (orn != nodes[i]) {//如果找到的节点和当前不同，则移动
+                        // oldChildren.splice(i, 0, oc = ovn);//移动虚拟dom
+                        // for (j = oldChildren.length; j--;) {//从后向前清理虚拟dom
+                        //     if (oldChildren[j] == ovn) {
+                        //         oldChildren.splice(j, 1);
+                        //         break;
+                        //     }
+                        // }
+                        ovn['@{~v#vnode.moved}'] = 1;
+                        oc = ovn;
+                        realNode.insertBefore(orn, nodes[i]);
+                    }
+                    V_SetNode(nodes[i], realNode, oc, nc, ref, vframe, keys);
+                } else if (oc) {//有旧节点，则更新
+                    if (keyedNodes[oc['@{~v#node.compare.key}']] &&
+                        reused[oc['@{~v#node.compare.key}']]) {
+                        //oldChildren.splice(i, 0, nc);//插入一个占位符，在接下来的比较中才能一一对应
+                        oldCount++;
+                        oi--;
+                        ref.c = 1;
+                        realNode.insertBefore(V_CreateNode(nc, realNode, ref), nodes[i]);
+                    } else {
+                        V_SetNode(nodes[i], realNode, oc, nc, ref, vframe, keys);
+                        //ref.c = 1;
+                    }
+                } else {//添加新的节点
+                    realNode.appendChild(V_CreateNode(nc, realNode, ref));
+                    ref.c = 1;
+                }
+            }
+            /*#}#*/
+            for (i = newCount; i < oldCount; i++) {
+                oi = nodes[newCount];//删除多余的旧节点
+                V_UnmountVframs(vframe, oi);
+                realNode.removeChild(oi);
                 ref.c = 1;
             }
-        }
-        oi = oldCount - newCount;
-        if (oi > 0) {
-            oldChildren.splice(-oi);
-        }
-        /*#}else{#*/
-        for (i = 0; i < newCount; i++) {
-            do {
-                oc = oldChildren[oi++];
-            } while (oc && oc['@{~v#vnode.moved}']);
-            nc = newChildren[i];
-            compareKey = keyedNodes[nc['@{~v#node.compare.key}']];
-            if (compareKey && (compareKey = compareKey.pop())) {
-                orn = compareKey['@{~v#old.list.node}'];
-                ovn = compareKey['@{~v#old.vlist.node}'];
-                if (orn != nodes[i]) {//如果找到的节点和当前不同，则移动
-                    // oldChildren.splice(i, 0, oc = ovn);//移动虚拟dom
-                    // for (j = oldChildren.length; j--;) {//从后向前清理虚拟dom
-                    //     if (oldChildren[j] == ovn) {
-                    //         oldChildren.splice(j, 1);
-                    //         break;
-                    //     }
-                    // }
-                    ovn['@{~v#vnode.moved}'] = 1;
-                    oc = ovn;
-                    realNode.insertBefore(orn, nodes[i]);
-                }
-                V_SetNode(nodes[i], realNode, oc, nc, ref, vframe, data, keys);
-            } else if (oc) {//有旧节点，则更新
-                if (keyedNodes[oc['@{~v#node.compare.key}']] &&
-                    reused[oc['@{~v#node.compare.key}']]) {
-                    //oldChildren.splice(i, 0, nc);//插入一个占位符，在接下来的比较中才能一一对应
-                    oldCount++;
-                    oi--;
-                    ref.c = 1;
-                    realNode.insertBefore(V_CreateNode(nc, realNode, ref), nodes[i]);
-                } else {
-                    V_SetNode(nodes[i], realNode, oc, nc, ref, vframe, data, keys);
-                    //ref.c = 1;
-                }
-            } else {//添加新的节点
-                realNode.appendChild(V_CreateNode(nc, realNode, ref));
-                ref.c = 1;
-            }
-        }
-        /*#}#*/
-        for (i = newCount; i < oldCount; i++) {
-            oi = nodes[newCount];//删除多余的旧节点
-            V_UnmountVframs(vframe, oi);
-            realNode.removeChild(oi);
-            ref.c = 1;
         }
     } else {
         ref.c = 1;
@@ -239,7 +265,7 @@ let V_CopyVNode = (lastVDOM, newVDOM, withChildren, p) => {
     }
 };
 /*#}#*/
-let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys) => {
+let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, keys, hasMXV) => {
     if (DEBUG) {
         if (oldParent.nodeName == 'TEMPLATE') {
             console.error('unsupport template tag');
@@ -252,21 +278,21 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys
     let lastAMap = lastVDOM['@{~v#node.attrs.map}'],
         newAMap = newVDOM['@{~v#node.attrs.map}'];
     if (V_SpecialDiff(realNode, lastVDOM, newVDOM) ||
-        G_Has(lastAMap, 'mxv') ||
+        (hasMXV = lastVDOM['@{~v#node.has.mxv}']) ||
         lastVDOM['@{~v#node.outer.html}'] != newVDOM['@{~v#node.outer.html}']) {
         if (lastVDOM['@{~v#node.tag}'] == newVDOM['@{~v#node.tag}']) {
-            if (lastVDOM['@{~v#node.tag}'] == TO_VDOM_TEXT_NODE) {
-                if (lastVDOM['@{~v#node.html}'] != newVDOM['@{~v#node.html}']) {
-                    ref.c = 1;
-                    /*#if(modules.updaterAsync){#*/
-                    lastVDOM['@{~v#node.html}'] = newVDOM['@{~v#node.html}'];
-                    /*#}#*/
-                    realNode.nodeValue = TO_VDOM_Unescape(newVDOM['@{~v#node.html}']);
-                }
-            } else if (!lastAMap[G_Tag_Key] || lastAMap[G_Tag_Key] != newAMap[G_Tag_Key]) {
+            if (lastVDOM['@{~v#node.tag}'] == V_TEXT_NODE) {
+                ref.c = 1;
+                /*#if(modules.updaterAsync){#*/
+                lastVDOM['@{~v#node.outer.html}'] = newVDOM['@{~v#node.outer.html}'];
+                /*#}#*/
+                realNode.nodeValue = V_Unescape(newVDOM['@{~v#node.outer.html}']);
+            } else if (!lastAMap[G_Tag_Key] ||
+                lastAMap[G_Tag_Key] != newAMap[G_Tag_Key]) {
                 let newMxView = newAMap[G_MX_VIEW],
                     newHTML = newVDOM['@{~v#node.html}'];
-                let updateAttribute = !newAMap[G_Tag_Attr_Key] || lastAMap[G_Tag_Attr_Key] != newAMap[G_Tag_Attr_Key],
+                let updateAttribute = !newAMap[G_Tag_Attr_Key] ||
+                    lastAMap[G_Tag_Attr_Key] != newAMap[G_Tag_Attr_Key],
                     updateChildren, unmountOld,
                     oldVf = Vframe_Vframes[realNode.id],
                     assign,
@@ -274,8 +300,7 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys
                     uri = newMxView && G_ParseUri(newMxView),
                     params,
                     htmlChanged,
-                    paramsChanged/*, 
-                    oldDataStringify, newDataStringify,dataChanged*/;
+                    paramsChanged;
                 /*
                     如果存在新旧view，则考虑路径一致，避免渲染的问题
                  */
@@ -290,6 +315,7 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys
                 //旧节点有view,新节点有view,且是同类型的view
                 if (newMxView && oldVf &&
                     oldVf['@{vframe#view.path}'] == uri[G_PATH] &&
+                    lastAMap.id == newAMap.id &&//id如果不一样也要销毁，只有id同时存在且相同或同时不存在id才可以
                     (view = oldVf['@{vframe#view.entity}'])) {
                     htmlChanged = newHTML != lastVDOM['@{~v#node.html}'];
                     paramsChanged = newMxView != oldVf[G_PATH];
@@ -303,25 +329,25 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys
                             }
                         }
                     }
-                    if (paramsChanged || htmlChanged) {
+                    if (paramsChanged || htmlChanged || hasMXV) {
                         assign = view['@{view#assign.fn}'];
                         //如果有assign方法,且有参数或html变化
                         if (assign) {
                             params = uri[G_PARAMS];
                             //处理引用赋值
-                            if (newMxView.indexOf(G_SPLITER) > -1) {
-                                G_TranslateData(data, params);
-                            }
+                            Vframe_TranslateQuery(/*#if(modules.viewSlot){#*/newAMap[G_MX_OWNER] ||/*#}#*/ oldVf.pId, newMxView, params);
                             //oldVf['@{vframe#template}'] = newHTML;
                             //oldVf['@{vframe#data.stringify}'] = newDataStringify;
                             oldVf[G_PATH] = newMxView;//update ref
                             //如果需要更新，则进行更新的操作
                             uri = {
-                                node: newVDOM,
-                                html: newHTML,
+                                //nodes: newVDOM['@{~v#node.children}'],
+                                //html: newHTML,
+                                mxv: hasMXV,
                                 deep: !view['@{view#template.object}'],
                                 inner: htmlChanged,
-                                query: paramsChanged
+                                query: paramsChanged,
+                                keys
                             };
                             updateAttribute = 1;
                             if (G_ToTry(assign, [params, uri], view)) {
@@ -354,7 +380,7 @@ let V_SetNode = (realNode, oldParent, lastVDOM, newVDOM, ref, vframe, data, keys
                     !(newVDOM['@{~v#node.self.close}'] &&
                         lastVDOM['@{~v#node.self.close}'])) {
                     //ref.c = 1;
-                    V_SetChildNodes(realNode, lastVDOM, newVDOM, ref, vframe, data, keys);
+                    V_SetChildNodes(realNode, lastVDOM, newVDOM, ref, vframe, keys);
                 }
                 /*#if(modules.updaterAsync){#*/
                 V_CopyVNode(lastVDOM, newVDOM);

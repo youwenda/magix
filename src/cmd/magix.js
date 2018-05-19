@@ -20,15 +20,7 @@ define('magix', /*#if(!modules.naked){#*/['$'],/*#}#*/ require => {
             /*#if(modules.defaultView){#*/
             if (MxGlobalView == name) {
                 if (!G_DefaultView) {
-                    G_DefaultView = View.extend(
-                        /*#if(!modules.autoEndUpdate){#*/
-                        {
-                            render() {
-                                this.endUpdate();
-                            }
-                        }
-                        /*#}#*/
-                    );
+                    G_DefaultView = View.extend();
                 }
                 fn(G_DefaultView);
             } else /*#}#*/
@@ -115,21 +107,12 @@ define('magix', /*#if(!modules.naked){#*/['$'],/*#}#*/ require => {
     Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe&&!modules.naked){#*/
     $.fn.invokeView = function (name, args) {
-        let l = this.length;
-        if (l) {
-            let e = this[0];
-            let vf = e.vframe;
-            if (args === undefined) {
-                return vf && vf.invoke(name);
-            } else {
-                for (e of this) {
-                    vf = e.vframe;
-                    if (vf) {
-                        vf.invoke(name, args);
-                    }
-                }
-            }
+        let returned = [], e, vf;
+        for (e of this) {
+            vf = e.vframe;
+            returned.push(vf && vf.invoke(name, args));
         }
+        return returned;
     };
     /*#}#*/
     Inc('../tmpl/body');
@@ -138,12 +121,14 @@ define('magix', /*#if(!modules.naked){#*/['$'],/*#}#*/ require => {
     Inc('../tmpl/tmpl');
     /*#}#*/
     /*#if(modules.updaterVDOM){#*/
+    /*#if(modules.updaterQuick){#*/
+    Inc('../tmpl/quick');
+    /*#}else{#*/
     Inc('../tmpl/tovdom');
+    /*#}#*/
     Inc('../tmpl/vdom');
     /*#}else if(modules.updaterDOM){#*/
     Inc('../tmpl/dom');
-    /*#}else{#*/
-    Inc('../tmpl/partial');
     /*#}#*/
     Inc('../tmpl/updater');
     /*#}#*/
@@ -158,8 +143,8 @@ define('magix', /*#if(!modules.naked){#*/['$'],/*#}#*/ require => {
     Inc('../tmpl/service');
     /*#}#*/
     Inc('../tmpl/base');
-    /*#if(modules.naked){#*/
-    Magix.trgger = G_Trigger;
+    /*#if(modules.naked&&!modules.mini){#*/
+    Magix.fire = G_Trigger;
     /*#}#*/
     Magix.default = Magix;
     return Magix;

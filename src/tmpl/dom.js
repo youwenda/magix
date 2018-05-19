@@ -155,7 +155,7 @@ let I_GetCompareKey = (node, key) => {
     return key;
 };
 
-let I_SetChildNodes = (oldParent, newParent, ref, vframe, data, keys) => {
+let I_SetChildNodes = (oldParent, newParent, ref, vframe, keys) => {
     let oldNode = oldParent.lastChild;
     let newNode = newParent.firstChild;
     let tempNew, tempOld, extra = 0,
@@ -206,9 +206,9 @@ let I_SetChildNodes = (oldParent, newParent, ref, vframe, data, keys) => {
                 oldNode = oldNode.nextSibling;
             }
             /*#if(modules.updaterAsync){#*/
-            Async_AddTask(vframe, I_SetNode, foundNode, tempNew, oldParent, ref, vframe, data, keys);
+            Async_AddTask(vframe, I_SetNode, foundNode, tempNew, oldParent, ref, vframe, keys);
             /*#}else{#*/
-            I_SetNode(foundNode, tempNew, oldParent, ref, vframe, data, keys);
+            I_SetNode(foundNode, tempNew, oldParent, ref, vframe, keys);
             /*#}#*/
         } else if (oldNode) {
             tempOld = oldNode;
@@ -222,9 +222,9 @@ let I_SetChildNodes = (oldParent, newParent, ref, vframe, data, keys) => {
                 oldNode = oldNode.nextSibling;
                 // Otherwise we diff the two non-keyed nodes.
                 /*#if(modules.updaterAsync){#*/
-                Async_AddTask(vframe, I_SetNode, tempOld, tempNew, oldParent, ref, vframe, data, keys);
+                Async_AddTask(vframe, I_SetNode, tempOld, tempNew, oldParent, ref, vframe, keys);
                 /*#}else{#*/
-                I_SetNode(tempOld, tempNew, oldParent, ref, vframe, data, keys);
+                I_SetNode(tempOld, tempNew, oldParent, ref, vframe, keys);
                 /*#}#*/
             }
         } else {
@@ -243,7 +243,7 @@ let I_SetChildNodes = (oldParent, newParent, ref, vframe, data, keys) => {
     }
 };
 
-let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
+let I_SetNode = (oldNode, newNode, oldParent, ref, vf, keys, hasMXV) => {
     //优先使用浏览器内置的方法进行判断
     /*
         特殊属性优先判断，先识别特殊属性是否发生了改变
@@ -258,7 +258,7 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
         目前是显示abc
     */
     if (I_SpecialDiff(oldNode, newNode) ||
-        (oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
+        (oldNode.nodeType == 1 && (hasMXV = oldNode.hasAttribute(G_Tag_View_Key))) ||
         !(oldNode.isEqualNode && oldNode.isEqualNode(newNode))) {
         if (oldNode.nodeName === newNode.nodeName) {
             // Handle regular element node updates.
@@ -280,12 +280,9 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                     view,
                     uri = newMxView && G_ParseUri(newMxView),
                     params,
-                    htmlChanged, urlChanged, paramsChanged/*, 
-                    oldDataStringify, newDataStringify,dataChanged*/;
-                /*
-                    如果存在新旧view，则考虑路径一致，避免渲染的问题
-                 */
+                    htmlChanged, urlChanged, paramsChanged;
                 if (newMxView && oldVf &&
+                    (!newNode.id || newNode.id == oldNode.id) &&
                     oldVf['@{vframe#view.path}'] == uri[G_PATH] &&
                     (view = oldVf['@{vframe#view.entity}'])) {
                     htmlChanged = newHTML != oldVf['@{vframe#template}'];
@@ -301,14 +298,12 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                             }
                         }
                     }
-                    if (paramsChanged || htmlChanged) {
+                    if (paramsChanged || htmlChanged || hasMXV) {
                         assign = view['@{view#assign.fn}'];
                         if (assign) {
                             params = uri[G_PARAMS];
                             //处理引用赋值
-                            if (newMxView.indexOf(G_SPLITER) > -1) {
-                                G_TranslateData(data, params);
-                            }
+                            Vframe_TranslateQuery(/*#if(modules.viewSlot){#*/newNode.getAttribute(G_MX_OWNER) ||/*#}#*/ oldVf.pId, newMxView, params);
                             oldVf['@{vframe#template}'] = newHTML;
                             //oldVf['@{vframe#data.stringify}'] = newDataStringify;
                             oldVf[G_PATH] = newMxView;//update ref
@@ -316,8 +311,10 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                                 node: newNode,
                                 html: newHTML,
                                 deep: !view['@{view#template.object}'],
+                                mxv: hasMXV,
                                 inner: htmlChanged,
-                                query: paramsChanged
+                                query: paramsChanged,
+                                keys
                             };
                             updateAttribute = 1;
                             /*if (updateAttribute) {
@@ -352,7 +349,7 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, data, keys) => {
                 // Update all children (and subchildren).
                 if (updateChildren) {
                     //ref.c = 1;
-                    I_SetChildNodes(oldNode, newNode, ref, vf, data, keys);
+                    I_SetChildNodes(oldNode, newNode, ref, vf, keys);
                 }
             } else if (oldNode.nodeValue !== newNode.nodeValue) {
                 ref.c = 1;

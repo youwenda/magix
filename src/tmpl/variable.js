@@ -4,6 +4,7 @@ let G_EMPTY_ARRAY = [];
 let G_COMMA = ',';
 let G_NULL = null;
 let G_WINDOW = window;
+let G_Undefined = void G_COUNTER;
 let G_DOCUMENT = document;
 /*#if(!modules.naked){#*/
 let G_DOC = $(G_DOCUMENT);
@@ -16,8 +17,11 @@ let G_VALUE = 'value';
 let G_Tag_Key = 'mxs';
 let G_Tag_Attr_Key = 'mxa';
 let G_Tag_View_Key = 'mxv';
+/*#if(modules.viewSlot){#*/
+let G_MX_OWNER = 'mxo';
+/*#}#*/
 let G_HashKey = '#';
-let G_NOOP = function () { };
+function G_NOOP() { }
 /*#if(modules.service||modules.updater){#*/
 let JSONStringify = JSON.stringify;
 /*#}#*/
@@ -48,7 +52,9 @@ let Magix_Cfg = {
     defaultView: MxGlobalView,
     /*#}#*/
     error(e) {
-        throw e;
+        Timeout(() => {
+            throw e;
+        });
     }
 };
 
@@ -78,20 +84,21 @@ let G_NodeIn = (a, b, r) => {
         if (!r) {
             try {
                 r = (b.compareDocumentPosition(a) & 16) == 16;
-            } catch (e) { }
+            } catch (_magix) { }
         }
     }
     return r;
 };
 /*#if(modules.es3){#*/
-let G_Assign = function (t) {
+function G_Assign(t) {
     for (var s, i = 1, n = arguments.length; i < n; i++) {
         s = arguments[i];
         for (var p in s) if (G_Has(s, p))
             t[p] = s[p];
     }
     return t;
-};
+}
+/*#if(!modules.mini){#*/
 let G_Keys = (obj, keys, p) => {
     keys = [];
     for (p in obj) {
@@ -101,9 +108,14 @@ let G_Keys = (obj, keys, p) => {
     }
     return keys;
 };
+/*#}#*/
 let Magix_HasProp = Magix_Cfg.hasOwnProperty;
 /*#}else{#*/
-let { assign: G_Assign, keys: G_Keys, hasOwnProperty: Magix_HasProp } = Object;
+let {
+    assign: G_Assign,
+     /*#if(!modules.mini){#*/keys: G_Keys,/*#}#*/
+    hasOwnProperty: Magix_HasProp
+} = Object;
 /*#}#*/
 /*#if(modules.style){#*/
 /*#if(modules.naked){#*/

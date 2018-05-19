@@ -32,7 +32,7 @@ let Async_RunTask = (last, one, task) => {
         if (task) {
             one = task[task['@{~task#work.index}']++];
             if (one) {
-                one.f.apply(G_NULL, one.a);
+                one.f(...one.a);
             } else {
                 Async_Tasks.shift();
                 Async_CheckStatus(task['@{~task#vf.id}']);

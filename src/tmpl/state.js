@@ -182,8 +182,9 @@ let State = {
                 this.on('destroy', () => TeardownKeysRef(keys));
             }
         };
-    },
+    }/*#if(!modules.mini){#*/,
     ...MEvent
+    /*#}#*/
     /**
      * 当State中的数据有改变化后触发
      * @name State.changed

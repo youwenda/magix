@@ -1,13 +1,13 @@
 //#snippet;
 //#uncheck = jsThis,jsLoop;
 //#exclude = loader,allProcessor;
-/*!3.8.8 Licensed MIT*/
+/*!3.8.10 Licensed MIT*/
 /*
 author:kooboy_li@163.com
 loader:cmd
-enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,viewSlot,updaterDOM
+enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM
 
-optionals:updaterVDOM,updaterAsync,serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,share,mxViewAttr,keepHTML,eventEnterLeave,naked,vdom
+optionals:updaterVDOM,updaterAsync,serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,viewSlot,share,mxViewAttr,keepHTML,eventEnterLeave,naked,vdom
 */
 define('magix', ['$'], function (require) {
     if (typeof DEBUG == 'undefined')
@@ -21,6 +21,7 @@ define('magix', ['$'], function (require) {
     var G_COMMA = ',';
     var G_NULL = null;
     var G_WINDOW = window;
+    var G_Undefined = void G_COUNTER;
     var G_DOCUMENT = document;
     var G_DOC = $(G_DOCUMENT);
     var Timeout = G_WINDOW.setTimeout;
@@ -32,7 +33,7 @@ define('magix', ['$'], function (require) {
     var G_Tag_Attr_Key = 'mxa';
     var G_Tag_View_Key = 'mxv';
     var G_HashKey = '#';
-    var G_NOOP = function () { };
+    function G_NOOP() { }
     var JSONStringify = JSON.stringify;
     var G_DOCBODY; //initilize at vframe_root
     /*
@@ -57,7 +58,9 @@ define('magix', ['$'], function (require) {
         rootId: G_Id(),
         defaultView: MxGlobalView,
         error: function (e) {
-            throw e;
+            Timeout(function () {
+                throw e;
+            });
         }
     };
     var G_GetById = function (id) { return typeof id == Magix_StrObject ? id : G_DOCUMENT.getElementById(id); };
@@ -84,12 +87,12 @@ define('magix', ['$'], function (require) {
                 try {
                     r = (b.compareDocumentPosition(a) & 16) == 16;
                 }
-                catch (e) { }
+                catch (_magix) { }
             }
         }
         return r;
     };
-    var G_Assign = function (t) {
+    function G_Assign(t) {
         for (var s, i = 1, n = arguments.length; i < n; i++) {
             s = arguments[i];
             for (var p in s)
@@ -97,7 +100,7 @@ define('magix', ['$'], function (require) {
                     t[p] = s[p];
         }
         return t;
-    };
+    }
     var G_Keys = function (obj, keys, p) {
         keys = [];
         for (p in obj) {
@@ -184,13 +187,13 @@ define('magix', ['$'], function (require) {
      * c.has('key1');//判断
      * //注意：缓存通常配合其它方法使用，在Magix中，对路径的解析等使用了缓存。在使用缓存优化性能时，可以达到节省CPU和内存的双赢效果
      */
-    var G_Cache = function (max, buffer, remove, me) {
+    function G_Cache(max, buffer, remove, me) {
         me = this;
         me.c = [];
         me.b = buffer || 5; //buffer先取整，如果为0则再默认5
         me.x = me.b + (max || 20);
         me.r = remove;
-    };
+    }
     G_Assign(G_Cache[G_PROTOTYPE], {
         /**
          * @lends Cache#
@@ -326,7 +329,7 @@ define('magix', ['$'], function (require) {
             fn();
         }
     };
-    var T = function () { };
+    function T() { }
     var G_Extend = function (ctor, base, props, statics, cProto) {
         //bProto.constructor = base;
         T[G_PROTOTYPE] = base[G_PROTOTYPE];
@@ -413,7 +416,7 @@ define('magix', ['$'], function (require) {
         try {
             value = decodeURIComponent(value);
         }
-        catch (e) {
+        catch (_magix) {
         }
         Magix_ParamsObjectTemp[name] = value;
     };
@@ -876,10 +879,10 @@ define('magix', ['$'], function (require) {
         nodeId: IdIt
     };
     /**
- * 多播事件对象
- * @name Event
- * @namespace
- */
+     * 多播事件对象
+     * @name Event
+     * @namespace
+     */
     var MEvent = {
         /**
          * @lends MEvent
@@ -1171,14 +1174,13 @@ define('magix', ['$'], function (require) {
     };
     var Router_TrimHashReg = /(?:^.*\/\/[^\/]+|#.*$)/gi;
     var Router_TrimQueryReg = /^[^#]*#?!?/;
-    var GetParam = function (key, params) {
-        params = this[G_PARAMS];
-        return params[key] || G_EMPTY;
-    };
+    function GetParam(key, defaultValue) {
+        return this[G_PARAMS][key] || defaultValue !== G_Undefined && defaultValue || G_EMPTY;
+    }
     var Router_Edge = 0;
     var Router_Hashbang = G_HashKey + '!';
     var Router_UpdateHash = function (path, replace) {
-        path = "" + Router_Hashbang + path;
+        path = Router_Hashbang + path;
         if (replace) {
             Router_WinLoc.replace(path);
         }
@@ -1430,16 +1432,16 @@ define('magix', ['$'], function (require) {
             var lParams = Router_LLoc[G_PARAMS];
             var lQuery = Router_LLoc.query[G_PARAMS];
             G_Assign(tParams, params); //把路径中解析出来的参数与用户传递的参数进行合并
-            if (tPath) {
+            if (tPath) { //设置路径带参数的形式，如:/abc?q=b&c=e或不带参数 /abc
                 //tPath = G_Path(lPath, tPath);
-                if (!Router_Edge) {
-                    for (lPath in lQuery) {
+                if (!Router_Edge) { //pushState不用处理
+                    for (lPath in lQuery) { //未出现在query中的参数设置为空
                         if (!G_Has(tParams, lPath))
                             tParams[lPath] = G_EMPTY;
                     }
                 }
             }
-            else if (lParams) {
+            else if (lParams) { //只有参数，如:a=b&c=d
                 tPath = lPath; //使用历史路径
                 tParams = G_Assign({}, lParams, tParams); //复制原来的参数，合并新的参数
             }
@@ -1464,7 +1466,9 @@ define('magix', ['$'], function (require) {
      * @private
      */
     var Dispatcher_Update = function (vframe, stateKeys, view, isChanged, cs, c) {
-        if (vframe && vframe['$a'] != Dispatcher_UpdateTag && (view = vframe['$v']) && view['$a'] > 1) {
+        if (vframe && vframe['$a'] != Dispatcher_UpdateTag &&
+            (view = vframe['$v']) &&
+            view['$a'] > 1) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
             isChanged = stateKeys ? State_IsObserveChanged(view, stateKeys) : View_IsObserveChanged(view);
             /**
              * 事件对象
@@ -1491,7 +1495,7 @@ define('magix', ['$'], function (require) {
                         args.cs = c;
                     }
                 };*/
-            if (isChanged) {
+            if (isChanged) { //检测view所关注的相应的参数是否发生了变化
                 view['$b']();
             }
             cs = vframe.children();
@@ -1519,16 +1523,16 @@ define('magix', ['$'], function (require) {
     };
     var Vframe_RootVframe;
     var Vframe_GlobalAlter;
+    var Vframe_Vframes = {};
     var Vframe_NotifyCreated = function (vframe) {
-        if (!vframe['$b'] && !vframe['$d'] && vframe['$cc'] == vframe['$rc']) {
-            if (!vframe['$cr']) {
+        if (!vframe['$b'] && !vframe['$d'] && vframe['$cc'] == vframe['$rc']) { //childrenCount === readyCount
+            if (!vframe['$cr']) { //childrenCreated
                 vframe['$cr'] = 1; //childrenCreated
                 vframe['$ca'] = 0; //childrenAlter
                 vframe.fire('created'); //不在view上派发事件，如果view需要绑定，则绑定到owner上，view一般不用该事件，如果需要这样处理：this.owner.oncreated=function(){};this.ondestroy=function(){this.owner.off('created')}
             }
-            var p = void 0, id = vframe.id, pId = vframe.pId;
-            p = Vframe_Vframes[pId];
-            if (p && !G_Has(p['$e'], id)) {
+            var id = vframe.id, pId = vframe.pId, p = Vframe_Vframes[pId];
+            if (p && !G_Has(p['$e'], id)) { //readyChildren
                 p['$e'][id] = 1; //readyChildren
                 p['$rc']++; //readyCount
                 Vframe_NotifyCreated(p);
@@ -1536,19 +1540,27 @@ define('magix', ['$'], function (require) {
         }
     };
     var Vframe_NotifyAlter = function (vframe, e) {
-        if (!vframe['$ca'] && vframe['$cr']) {
+        if (!vframe['$ca'] && vframe['$cr']) { //childrenAlter childrenCreated 当前vframe触发过created才可以触发alter事件
             vframe['$cr'] = 0; //childrenCreated
             vframe['$ca'] = 1; //childreAleter
             vframe.fire('alter', e);
-            var p = void 0, id = vframe.id, pId = vframe.pId;
+            var id = vframe.id, pId = vframe.pId, p = Vframe_Vframes[pId];
             //let vom = vframe.owner;
-            p = Vframe_Vframes[pId];
-            if (p && G_Has(p['$e'], id)) {
+            if (p && G_Has(p['$e'], id)) { //readyMap
                 p['$rc']--; //readyCount
                 delete p['$e'][id]; //readyMap
                 Vframe_NotifyAlter(p, e);
             }
         }
+    };
+    var Vframe_TranslateQuery = function (pId, src, params, pVf) {
+        pVf = Vframe_Vframes[pId];
+        pVf = pVf && pVf['$v'];
+        pVf = pVf ? pVf['$d']['$a'] : {};
+        if (src.indexOf(G_SPLITER) > 0) {
+            G_TranslateData(pVf, params);
+        }
+        return pVf;
     };
     /**
      * 获取根vframe;
@@ -1570,7 +1582,6 @@ define('magix', ['$'], function (require) {
         }
         return Vframe_RootVframe;
     };
-    var Vframe_Vframes = {};
     var Vframe_AddVframe = function (id, vframe) {
         if (!G_Has(Vframe_Vframes, id)) {
             Vframe_Vframes[id] = vframe;
@@ -1586,7 +1597,7 @@ define('magix', ['$'], function (require) {
         list = vf['$f']; //invokeList
         while (list.length) {
             o = list.shift();
-            if (!o.r) {
+            if (!o.r) { //remove
                 vf.invoke(o.n, o.a); //name,arguments
             }
             delete list[o.k]; //key
@@ -1625,7 +1636,7 @@ define('magix', ['$'], function (require) {
      * @property {String} path 当前view的路径名，包括参数
      * @property {String} pId 父vframe的id，如果是根节点则为undefined
      */
-    var Vframe = function (id, pId, me) {
+    function Vframe(id, pId, me) {
         me = this;
         me.id = id;
         if (DEBUG) {
@@ -1642,12 +1653,12 @@ define('magix', ['$'], function (require) {
         me['$c'] = {}; //childrenMap
         me['$cc'] = 0; //childrenCount
         me['$rc'] = 0; //readyCount
-        me['$g'] = 1; //signature
+        me['$g'] = me['$g'] || 1; //signature
         me['$e'] = {}; //readyMap
         me['$f'] = []; //invokeList
         me.pId = pId;
         Vframe_AddVframe(id, me);
-    };
+    }
     G_Assign(Vframe, {
         /**
          * @lends Vframe
@@ -1696,30 +1707,23 @@ define('magix', ['$'], function (require) {
             var me = this;
             var id = me.id, pId = me.pId, s = me["$g"];
             var node = G_GetById(id), po, sign, view, params, ctors, parentVf;
-            if (!me['$h'] && node) {
+            if (!me['$h'] && node) { //alter
                 me['$h'] = 1;
                 me['$i'] = node.innerHTML; //.replace(ScriptsReg, ''); template
             }
-            me.unmountView();
+            me.unmountView( /*keepPreHTML*/);
             me['$b'] = 0; //destroyed 详见unmountView
-            if (node && viewPath) {
+            po = G_ParseUri(viewPath);
+            view = po[G_PATH];
+            if (node && view) {
                 me[G_PATH] = viewPath;
-                po = G_ParseUri(viewPath);
-                view = po[G_PATH];
                 sign = ++s;
                 params = po[G_PARAMS];
-                parentVf = Vframe_Vframes[pId];
-                parentVf = parentVf && parentVf['$v'];
-                parentVf = parentVf && parentVf['$d'];
-                parentVf = parentVf && parentVf['$a'];
-                if (viewPath.indexOf(G_SPLITER) > 0) {
-                    G_TranslateData(parentVf, params);
-                }
-                //me['$j'] = G_TryStringify(parentVf, po);
-                me['$n'] = po[G_PATH];
+                parentVf = Vframe_TranslateQuery(pId, viewPath, params);
+                me['$j'] = po[G_PATH];
                 G_Assign(params, viewInitParams);
                 G_Require(view, function (TView) {
-                    if (sign == me['$g']) {
+                    if (sign == me['$g']) { //有可能在view载入后，vframe已经卸载了
                         if (!TView) {
                             return Magix_Cfg.error(Error("id:" + id + " cannot load:" + view));
                         }
@@ -1755,7 +1759,7 @@ define('magix', ['$'], function (require) {
                         View_DelegateEvents(view);
                         G_ToTry(view.init, params, view);
                         view['$b']();
-                        if (!view['$e']) {
+                        if (!view['$e']) { //无模板
                             me['$h'] = 0; //不会修改节点，因此销毁时不还原
                             if (!view['$f']) {
                                 view.endUpdate();
@@ -1768,7 +1772,7 @@ define('magix', ['$'], function (require) {
         /**
          * 销毁对应的view
          */
-        unmountView: function () {
+        unmountView: function ( /*keepPreHTML*/) {
             var me = this;
             var v = me["$v"], id = me.id, node, reset;
             me['$f'] = []; //invokeList 销毁当前view时，连同调用列表一起销毁
@@ -1794,7 +1798,7 @@ define('magix', ['$'], function (require) {
                 }
                 v['$a']--;
                 node = G_GetById(id);
-                if (node && me['$h'] /*&&!keepPreHTML*/) {
+                if (node && me['$h'] /*&&!keepPreHTML*/) { //如果$v本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且$v有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即$v安装前什么样，销毁后把节点恢复到安装前的情况
                     $(node).html(me['$i']);
                 }
                 if (reset)
@@ -1825,8 +1829,8 @@ define('magix', ['$'], function (require) {
             //let vom = me.owner;
             vf = Vframe_Vframes[vfId];
             if (!vf) {
-                if (!G_Has(c, vfId)) {
-                    me['$o'] = 0; //childrenList 清空缓存的子列表
+                if (!G_Has(c, vfId)) { //childrenMap,当前子vframe不包含这个id
+                    me['$n'] = 0; //childrenList 清空缓存的子列表
                     me['$cc']++; //childrenCount ，增加子节点
                 }
                 c[vfId] = vfId; //map
@@ -1877,7 +1881,7 @@ define('magix', ['$'], function (require) {
             //me.unmountZone(zoneId, 1); 不去清理，详情见：https://github.com/thx/magix/issues/27
             for (var _i = 0, vframes_1 = vframes; _i < vframes_1.length; _i++) {
                 vf = vframes_1[_i];
-                if (!vf['$b'] && vf.getAttribute('mx-slot') != me.id) {
+                if (!vf['$b']) { //防止嵌套的情况下深层的view被反复实例化
                     id = IdIt(vf);
                     vf['$b'] = 1;
                     vfs.push([id, vf.getAttribute(G_MX_VIEW)]);
@@ -1917,7 +1921,7 @@ define('magix', ['$'], function (require) {
             vf = Vframe_Vframes[id];
             if (vf) {
                 var cr = vf["$cr"], pId = vf.pId;
-                vf.unmountView();
+                vf.unmountView( /*keepPreHTML*/);
                 Vframe_RemoveVframe(id, cr);
                 vf.id = vf.pId = vf['$c'] = vf['$e'] = 0; //清除引用,防止被移除的view内部通过setTimeout之类的异步操作有关的界面，影响真正渲染的view
                 vf['$h'] = 0;
@@ -1927,9 +1931,9 @@ define('magix', ['$'], function (require) {
                 Vframe_Cache.push(vf);
                 //}
                 vf = Vframe_Vframes[pId];
-                if (vf && G_Has(vf['$c'], id)) {
+                if (vf && G_Has(vf['$c'], id)) { //childrenMap
                     delete vf['$c'][id]; //childrenMap
-                    vf['$o'] = 0;
+                    vf['$n'] = 0;
                     vf['$cc']--; //cildrenCount
                     if (!inner)
                         Vframe_NotifyCreated(vf); //移除后通知完成事件
@@ -1977,7 +1981,7 @@ define('magix', ['$'], function (require) {
          */
         children: function (me) {
             me = this;
-            return me['$o'] || (me['$o'] = G_Keys(me['$c']));
+            return me['$n'] || (me['$n'] = G_Keys(me['$c']));
         },
         /**
          * 调用view的方法
@@ -1995,7 +1999,7 @@ define('magix', ['$'], function (require) {
         invoke: function (name, args) {
             var result;
             var vf = this, view, fn, o, list = vf['$f'], key;
-            if ((view = vf['$v']) && view['$f']) {
+            if ((view = vf['$v']) && view['$f']) { //view rendered
                 result = (fn = view[name]) && G_ToTry(fn, args, view);
             }
             else {
@@ -2040,23 +2044,13 @@ define('magix', ['$'], function (require) {
      *      fca firstChildrenAlter  fcc firstChildrenCreated
      */
     $.fn.invokeView = function (name, args) {
-        var l = this.length;
-        if (l) {
-            var e = this[0];
-            var vf = e.vframe;
-            if (args === undefined) {
-                return vf && vf.invoke(name);
-            }
-            else {
-                for (var _i = 0, _a = this; _i < _a.length; _i++) {
-                    e = _a[_i];
-                    vf = e.vframe;
-                    if (vf) {
-                        vf.invoke(name, args);
-                    }
-                }
-            }
+        var returned = [], e, vf;
+        for (var _i = 0, _a = this; _i < _a.length; _i++) {
+            e = _a[_i];
+            vf = e.vframe;
+            returned.push(vf && vf.invoke(name, args));
         }
+        return returned;
     };
     /*
     dom event处理思路
@@ -2132,9 +2126,9 @@ define('magix', ['$'], function (require) {
                 view = 1;
                 selectorVfId = tempId; //如果节点有缓存，则使用缓存
             }
-            if (!view) {
+            if (!view) { //先找最近的vframe
                 vfs.push(begin);
-                while (begin != G_DOCBODY && (begin = begin.parentNode)) {
+                while (begin != G_DOCBODY && (begin = begin.parentNode)) { //找最近的vframe,且节点上没有mx-autonomy属性
                     if (Vframe_Vframes[tempId = begin.id] ||
                         ((selectorObject = Body_RangeVframes[tempId = begin['$d']]) &&
                             selectorObject[begin['$e']] == 1)) {
@@ -2153,7 +2147,7 @@ define('magix', ['$'], function (require) {
                     info['$d'] = selectorVfId;
                 }
             }
-            if (selectorVfId != G_HashKey) {
+            if (selectorVfId != G_HashKey) { //从最近的vframe向上查找带有选择器事件的view
                 begin = current.id;
                 if (Vframe_Vframes[begin]) {
                     /*
@@ -2249,7 +2243,7 @@ define('magix', ['$'], function (require) {
                             }*/
                         }
                         if (DEBUG) {
-                            if (!fn) {
+                            if (!fn) { //检测为什么找不到处理函数
                                 if (eventName[0] == '\u001f') {
                                     console.error('use view.wrapEvent wrap your html');
                                 }
@@ -2259,11 +2253,11 @@ define('magix', ['$'], function (require) {
                             }
                         }
                     }
-                    else {
+                    else { //如果处于删除中的事件触发，则停止事件的传播
                         domEvent.stopPropagation();
                     }
                     if (DEBUG) {
-                        if (!view && view !== 0) {
+                        if (!view && view !== 0) { //销毁
                             console.error('can not find vframe:' + v);
                         }
                     }
@@ -2273,7 +2267,7 @@ define('magix', ['$'], function (require) {
             if (((ignore = Body_RangeEvents[fn = target['$d']]) &&
                 (ignore = ignore[target['$e']]) &&
                 ignore[type]) ||
-                domEvent.isPropagationStopped()) {
+                domEvent.isPropagationStopped()) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
                 if (arr.length) {
                     arr.push(fn);
                 }
@@ -2312,11 +2306,11 @@ define('magix', ['$'], function (require) {
     var Body_DOMEventBind = function (type, searchSelector, remove) {
         var counter = Body_RootEvents[type] | 0;
         var offset = (remove ? -1 : 1);
-        if (!counter || remove === counter) {
+        if (!counter || remove === counter) { // remove=1  counter=1
             G_DOMEventLibBind(G_DOCBODY, type, Body_DOMEventProcessor, remove);
         }
         Body_RootEvents[type] = counter + offset;
-        if (searchSelector) {
+        if (searchSelector) { //记录需要搜索选择器的事件
             Body_SearchSelectorEvents[type] = (Body_SearchSelectorEvents[type] | 0) + offset;
         }
     };
@@ -2471,7 +2465,7 @@ define('magix', ['$'], function (require) {
         }
         return key;
     };
-    var I_SetChildNodes = function (oldParent, newParent, ref, vframe, data, keys) {
+    var I_SetChildNodes = function (oldParent, newParent, ref, vframe, keys) {
         var oldNode = oldParent.lastChild;
         var newNode = newParent.firstChild;
         var tempNew, tempOld, extra = 0, nodeKey, foundNode, keyedNodes = {}, newKeyedNodes = {}, removed;
@@ -2509,7 +2503,7 @@ define('magix', ['$'], function (require) {
             nodeKey = I_GetCompareKey(tempNew);
             foundNode = keyedNodes[nodeKey];
             if (foundNode && (foundNode = foundNode.pop())) {
-                if (foundNode != oldNode) {
+                if (foundNode != oldNode) { //如果找到的节点和当前不同，则移动
                     if (removed && oldNode.nextSibling == foundNode) {
                         oldParent.appendChild(oldNode);
                         oldNode = foundNode.nextSibling;
@@ -2521,7 +2515,7 @@ define('magix', ['$'], function (require) {
                 else {
                     oldNode = oldNode.nextSibling;
                 }
-                I_SetNode(foundNode, tempNew, oldParent, ref, vframe, data, keys);
+                I_SetNode(foundNode, tempNew, oldParent, ref, vframe, keys);
             }
             else if (oldNode) {
                 tempOld = oldNode;
@@ -2535,7 +2529,7 @@ define('magix', ['$'], function (require) {
                 else {
                     oldNode = oldNode.nextSibling;
                     // Otherwise we diff the two non-keyed nodes.
-                    I_SetNode(tempOld, tempNew, oldParent, ref, vframe, data, keys);
+                    I_SetNode(tempOld, tempNew, oldParent, ref, vframe, keys);
                 }
             }
             else {
@@ -2552,7 +2546,7 @@ define('magix', ['$'], function (require) {
             ref.c = 1;
         }
     };
-    var I_SetNode = function (oldNode, newNode, oldParent, ref, vf, data, keys) {
+    var I_SetNode = function (oldNode, newNode, oldParent, ref, vf, keys, hasMXV) {
         //优先使用浏览器内置的方法进行判断
         /*
             特殊属性优先判断，先识别特殊属性是否发生了改变
@@ -2567,7 +2561,7 @@ define('magix', ['$'], function (require) {
             目前是显示abc
         */
         if (I_SpecialDiff(oldNode, newNode) ||
-            (oldNode.nodeType == 1 && oldNode.hasAttribute(G_Tag_View_Key)) ||
+            (oldNode.nodeType == 1 && (hasMXV = oldNode.hasAttribute(G_Tag_View_Key))) ||
             !(oldNode.isEqualNode && oldNode.isEqualNode(newNode))) {
             if (oldNode.nodeName === newNode.nodeName) {
                 // Handle regular element node updates.
@@ -2581,13 +2575,10 @@ define('magix', ['$'], function (require) {
                     var newMxView = newNode.getAttribute(G_MX_VIEW), newHTML = newNode.innerHTML;
                     var newStaticAttrKey = newNode.getAttribute(G_Tag_Attr_Key);
                     var updateAttribute = !newStaticAttrKey ||
-                        newStaticAttrKey != oldNode.getAttribute(G_Tag_Attr_Key), updateChildren = void 0, unmountOld = void 0, oldVf = Vframe_Vframes[oldNode.id], assign = void 0, view = void 0, uri = newMxView && G_ParseUri(newMxView), params = void 0, htmlChanged = void 0, urlChanged = void 0, paramsChanged = void 0 /*,
-                    oldDataStringify, newDataStringify,dataChanged*/;
-                    /*
-                        如果存在新旧view，则考虑路径一致，避免渲染的问题
-                     */
+                        newStaticAttrKey != oldNode.getAttribute(G_Tag_Attr_Key), updateChildren = void 0, unmountOld = void 0, oldVf = Vframe_Vframes[oldNode.id], assign = void 0, view = void 0, uri = newMxView && G_ParseUri(newMxView), params = void 0, htmlChanged = void 0, urlChanged = void 0, paramsChanged = void 0;
                     if (newMxView && oldVf &&
-                        oldVf['$n'] == uri[G_PATH] &&
+                        (!newNode.id || newNode.id == oldNode.id) &&
+                        oldVf['$j'] == uri[G_PATH] &&
                         (view = oldVf['$v'])) {
                         htmlChanged = newHTML != oldVf['$i'];
                         urlChanged = newMxView != oldVf[G_PATH];
@@ -2603,23 +2594,23 @@ define('magix', ['$'], function (require) {
                                 }
                             }
                         }
-                        if (paramsChanged || htmlChanged) {
+                        if (paramsChanged || htmlChanged || hasMXV) {
                             assign = view['$g'];
                             if (assign) {
                                 params = uri[G_PARAMS];
                                 //处理引用赋值
-                                if (newMxView.indexOf(G_SPLITER) > -1) {
-                                    G_TranslateData(data, params);
-                                }
+                                Vframe_TranslateQuery(oldVf.pId, newMxView, params);
                                 oldVf['$i'] = newHTML;
-                                //oldVf['$j'] = newDataStringify;
+                                //oldVf['$o'] = newDataStringify;
                                 oldVf[G_PATH] = newMxView; //update ref
                                 uri = {
                                     node: newNode,
                                     html: newHTML,
                                     deep: !view['$e'],
+                                    mxv: hasMXV,
                                     inner: htmlChanged,
-                                    query: paramsChanged
+                                    query: paramsChanged,
+                                    keys: keys
                                 };
                                 updateAttribute = 1;
                                 /*if (updateAttribute) {
@@ -2638,7 +2629,7 @@ define('magix', ['$'], function (require) {
                                 updateChildren = 1;
                             }
                         }
-                        else {
+                        else { //view没发生变化，则只更新特别的几个属性
                             updateAttribute = 1;
                         }
                     }
@@ -2657,7 +2648,7 @@ define('magix', ['$'], function (require) {
                     // Update all children (and subchildren).
                     if (updateChildren) {
                         //ref.c = 1;
-                        I_SetChildNodes(oldNode, newNode, ref, vf, data, keys);
+                        I_SetChildNodes(oldNode, newNode, ref, vf, keys);
                     }
                 }
                 else if (oldNode.nodeValue !== newNode.nodeValue) {
@@ -2673,16 +2664,66 @@ define('magix', ['$'], function (require) {
             }
         }
     };
+    var Updater_Digest = function (updater, digesting) {
+        var keys = updater['$k'], changed = updater['$c'], selfId = updater['$b'], vf = Vframe_Vframes[selfId], view = vf && vf['$v'], ref = { d: [], v: [] }, node = G_GetById(selfId), tmpl, vdom, data = updater['$a'], redigest = function (trigger) {
+            if (digesting.i < digesting.length) {
+                Updater_Digest(updater, digesting);
+            }
+            else {
+                ref = digesting.slice();
+                digesting.i = digesting.length = 0;
+                if (trigger) {
+                    view.fire('domready');
+                }
+                G_ToTry(ref);
+            }
+        };
+        digesting.i = digesting.length;
+        updater['$c'] = 0;
+        updater['$k'] = {};
+        if (changed &&
+            view &&
+            view['$a'] > 0 &&
+            (tmpl = view['$e'])) {
+            delete Body_RangeEvents[selfId];
+            delete Body_RangeVframes[selfId];
+            console.time('[updater time:' + selfId + ']');
+            vdom = I_GetNode(tmpl(data, selfId), node);
+            I_SetChildNodes(node, vdom, ref, vf, keys);
+            for (var _i = 0, _a = ref.d; _i < _a.length; _i++) {
+                vdom = _a[_i];
+                vdom[0].id = vdom[1];
+            }
+            for (var _b = 0, _c = ref.v; _b < _c.length; _b++) {
+                vdom = _c[_b];
+                vdom['$b']();
+            }
+            if (ref.c || !view['$f']) {
+                view.endUpdate(selfId);
+            }
+            if (ref.c) {
+                G_DOC.trigger({
+                    type: 'htmlchanged',
+                    vId: selfId
+                });
+            }
+            console.timeEnd('[updater time:' + selfId + ']');
+            redigest(1);
+        }
+        else {
+            redigest();
+        }
+    };
     /**
- * 使用mx-keys进行局部刷新的类
- * @constructor
- * @name Updater
- * @class
- * @beta
- * @module updater
- * @param {String} viewId Magix.View对象Id
- */
-    var Updater = function (viewId) {
+     * 使用mx-keys进行局部刷新的类
+     * @constructor
+     * @name Updater
+     * @class
+     * @beta
+     * @module updater
+     * @param {String} viewId Magix.View对象Id
+     */
+    function Updater(viewId) {
         var me = this;
         me['$b'] = viewId;
         me['$c'] = 1;
@@ -2691,9 +2732,10 @@ define('magix', ['$'], function (require) {
             },
             _a[G_SPLITER] = 1,
             _a);
+        me['$d'] = [];
         me['$k'] = {};
         var _a;
-    };
+    }
     G_Assign(Updater[G_PROTOTYPE], {
         /**
          * @lends Updater#
@@ -2765,42 +2807,30 @@ define('magix', ['$'], function (require) {
          *     }).digest();
          * }
          */
-        digest: function (data) {
-            var me = this.set(data), keys = me['$k'], changed = me['$c'];
-            me['$c'] = 0;
-            me['$k'] = {};
-            data = me['$a'];
-            var selfId = me['$b'], vf = Vframe_Vframes[selfId], view = vf && vf['$v'], ref = { d: [], v: [] }, node = G_GetById(selfId), tmpl, vdom;
-            if (changed && view && view['$a'] > 0 &&
-                (tmpl = view['$e'])) {
-                delete Body_RangeEvents[selfId];
-                delete Body_RangeVframes[selfId];
-                console.time('[updater time:' + selfId + ']');
-                console.time('[html to dom:' + selfId + ']');
-                vdom = I_GetNode(tmpl(data, selfId), node);
-                console.timeEnd('[html to dom:' + selfId + ']');
-                I_SetChildNodes(node, vdom, ref, vf, data, keys);
-                for (var _i = 0, _a = ref.d; _i < _a.length; _i++) {
-                    vdom = _a[_i];
-                    vdom[0].id = vdom[1];
-                }
-                for (var _b = 0, _c = ref.v; _b < _c.length; _b++) {
-                    vdom = _c[_b];
-                    vdom['$b']();
-                }
-                if (ref.c || !view['$f']) {
-                    view.endUpdate(selfId);
-                }
-                if (ref.c) {
-                    G_DOC.trigger({
-                        type: 'htmlchanged',
-                        vId: selfId
-                    });
-                }
-                view.fire('domready');
-                console.timeEnd('[updater time:' + selfId + ']');
+        digest: function (data, resolve) {
+            var me = this.set(data), digesting = me['$d'];
+            /*
+                view:
+                <div>
+                    <mx-dropdown mx-focusout="rerender()"/>
+                <div>
+    
+                view.digest=>dropdown.focusout=>view.redigest=>view.redigest.end=>view.digest.end
+    
+                view.digest中嵌套了view.redigest，view.redigest可能操作了view.digest中引用的dom,这样会导致view.redigest.end后续的view.digest中出错
+    
+                expect
+                view.digest=>dropdown.focusout=>view.digest.end=>view.redigest=>view.redigest.end
+    
+                如果在digest的过程中，多次调用自身的digest，则后续的进行排队。前面的执行完成后，排队中的一次执行完毕
+            */
+            digesting.push(resolve);
+            if (!digesting.i) {
+                Updater_Digest(me, digesting);
             }
-            return Promise.resolve();
+            else if (DEBUG) {
+                console.warn('Avoid redigest while updater is digesting');
+            }
         },
         /**
          * 获取当前数据状态的快照，配合altered方法可获得数据是否有变化
@@ -2826,7 +2856,7 @@ define('magix', ['$'], function (require) {
          */
         snapshot: function () {
             var me = this;
-            me['$d'] = JSONStringify(me['$a']);
+            me['$e'] = JSONStringify(me['$a']);
             return me;
         },
         /**
@@ -2853,8 +2883,8 @@ define('magix', ['$'], function (require) {
          */
         altered: function () {
             var me = this;
-            if (me['$d']) {
-                return me['$d'] != JSONStringify(me['$a']);
+            if (me['$e']) {
+                return me['$e'] != JSONStringify(me['$a']);
             }
         },
         /**
@@ -2872,31 +2902,6 @@ define('magix', ['$'], function (require) {
             return G_ParseExpr(origin, this['$a']);
         }
     });
-    /*
-    slot
-*/
-    var Slot_Default = 'default';
-    var Slot_Slot = 'slot';
-    var Slot_RemoveReg = /\s+slot(\s*=\s*"[^"]*")?/g;
-    var Slot = {
-        from: function (node) {
-            var map = {}, n, sn, dom = node.nodeType;
-            var named, nodes = dom ? node.childNodes : node['a'];
-            for (var _i = 0, nodes_1 = nodes; _i < nodes_1.length; _i++) {
-                n = nodes_1[_i];
-                if (dom ? n.nodeType == dom && n.hasAttribute(Slot_Slot) : G_Has(n['b'], Slot_Slot)) {
-                    named = 1;
-                    sn = (dom ? n.getAttribute(Slot_Slot) : n['b'][Slot_Slot]) || Slot_Default;
-                    map[sn] = (dom ? n.outerHTML : n['c']).replace(Slot_RemoveReg, '');
-                }
-            }
-            if (!named) {
-                map[Slot_Default] = (dom ? node.innerHTML : node['d']).replace(Slot_RemoveReg, '');
-            }
-            return map;
-        }
-    };
-    Magix.Slot = Slot;
     var View_EvtMethodReg = /^(\$?)([^<]*)<([^>]+)>$/;
     var processMixinsSameEvent = function (exist, additional, temp) {
         if (exist['a']) {
@@ -2918,7 +2923,7 @@ define('magix', ['$'], function (require) {
         p, c;
         for (p in cache) {
             c = cache[p];
-            if (lastly || c.x) {
+            if (lastly || c.x) { //destroy
                 View_DestroyResource(cache, p, 1);
             }
         }
@@ -2944,7 +2949,7 @@ define('magix', ['$'], function (require) {
                 args[_i] = arguments[_i];
             }
             me = this;
-            if (me['$a'] > 0) {
+            if (me['$a'] > 0) { //signature
                 me['$a']++;
                 me.fire('rendercall');
                 View_DestroyAllResources(me);
@@ -2991,7 +2996,7 @@ define('magix', ['$'], function (require) {
                         fn['b'] = 1;
                     }
                 }
-                else if (DEBUG && exist && p != 'extend' && p != G_SPLITER) {
+                else if (DEBUG && exist && p != 'extend' && p != G_SPLITER) { //只在开发中提示
                     Magix_Cfg.error(Error('merge duplicate:' + p));
                 }
                 temp[p] = fn;
@@ -3009,7 +3014,7 @@ define('magix', ['$'], function (require) {
      * @param  {Vom} vom vom
      */
     var View_Prepare = function (oView) {
-        if (!oView[G_SPLITER]) {
+        if (!oView[G_SPLITER]) { //只处理一次
             oView[G_SPLITER] = [];
             var prop = oView[G_PROTOTYPE], currentFn = void 0, matches = void 0, selectorOrCallback = void 0, events = void 0, eventsObject = {}, eventsList = [], selectorObject = {}, node = void 0, isSelector = void 0, p = void 0, item = void 0, mask = void 0;
             matches = prop.mixins;
@@ -3046,14 +3051,14 @@ define('magix', ['$'], function (require) {
                         item = selectorOrCallback + G_SPLITER + item;
                         node = prop[item];
                         //for in 就近遍历，如果有则忽略
-                        if (!node) {
+                        if (!node) { //未设置过
                             prop[item] = currentFn;
                         }
-                        else if (node['b']) {
-                            if (currentFn['b']) {
+                        else if (node['b']) { //现有的方法是mixins上的
+                            if (currentFn['b']) { //2者都是mixins上的事件，则合并
                                 prop[item] = processMixinsSameEvent(currentFn, node);
                             }
-                            else if (G_Has(prop, p)) {
+                            else if (G_Has(prop, p)) { //currentFn方法不是mixin上的，也不是继承来的，在当前view上，优先级最高
                                 prop[item] = currentFn;
                             }
                         }
@@ -3128,7 +3133,7 @@ define('magix', ['$'], function (require) {
      *      alert(e.type);//可通过type识别是哪种事件类型
      *  }
      */
-    var View = function (id, owner, ops, me) {
+    function View(id, owner, ops, me) {
         me = this;
         me.owner = owner;
         me.id = id;
@@ -3139,7 +3144,7 @@ define('magix', ['$'], function (require) {
         me['$a'] = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
         me.updater = me['$d'] = new Updater(me.id);
         G_ToTry(View_Ctors, ops, me);
-    };
+    }
     var ViewProto = View[G_PROTOTYPE];
     G_Assign(View, {
         /**
@@ -3218,10 +3223,10 @@ define('magix', ['$'], function (require) {
             var ctors = [];
             if (ctor)
                 ctors.push(ctor);
-            var NView = function (d, a, b, c) {
+            function NView(d, a, b, c) {
                 me.call(this, d, a, b);
                 G_ToTry(ctors.concat(c), b, this);
-            };
+            }
             NView.extend = me.extend;
             return G_Extend(NView, me, props, statics);
         }
@@ -3587,10 +3592,10 @@ define('magix', ['$'], function (require) {
      * @constructor
      * @property {String} id bag唯一标识
      */
-    var Bag = function () {
+    function Bag() {
         this.id = G_Id('b');
         this.$ = {};
-    };
+    }
     G_Assign(Bag[G_PROTOTYPE], {
         /**
          * @lends Bag#
@@ -3612,7 +3617,7 @@ define('magix', ['$'], function (require) {
          *     console.log(list);
          * });
          */
-        get: function (key, dValue, udfd) {
+        get: function (key, dValue) {
             var me = this;
             //let alen = arguments.length;
             /*
@@ -3630,7 +3635,6 @@ define('magix', ['$'], function (require) {
     
                 或者key本身就是数组
              */
-            var hasDValue = dValue != udfd;
             var attrs = me.$;
             if (key) {
                 var tks = G_IsArray(key) ? key.slice() : (key + G_EMPTY).split('.'), tk = void 0;
@@ -3638,17 +3642,17 @@ define('magix', ['$'], function (require) {
                     attrs = attrs[tk];
                 }
                 if (tk) {
-                    attrs = udfd;
+                    attrs = G_Undefined;
                 }
             }
             var type;
-            if (hasDValue && (type = G_Type(dValue)) != G_Type(attrs)) {
+            if (dValue !== G_Undefined && (type = G_Type(dValue)) != G_Type(attrs)) {
                 if (DEBUG) {
                     console.warn('type neq:' + key + ' is not a(n) ' + type);
                 }
                 attrs = dValue;
             }
-            if (DEBUG && me['$b'] && me['$b'].k) {
+            if (DEBUG && me['$b'] && me['$b'].k) { //缓存中的接口不让修改数据
                 attrs = Safeguard(attrs);
             }
             return attrs;
@@ -3668,13 +3672,13 @@ define('magix', ['$'], function (require) {
     });
     var Service_FetchFlags_ONE = 1;
     var Service_FetchFlags_ALL = 2;
-    var Service_CacheDone = function (cacheKey, err, fns) {
+    function Service_CacheDone(cacheKey, err, fns) {
         fns = this[cacheKey]; //取出当前的缓存信息
         if (fns) {
             delete this[cacheKey]; //先删除掉信息
             G_ToTry(fns, err, fns.e); //执行所有的回调
         }
-    };
+    }
     var Service_Task = function (done, host, service, total, flag, bagCache) {
         var doneArr = [];
         var errorArgs = G_NULL;
@@ -3690,44 +3694,44 @@ define('magix', ['$'], function (require) {
                 bag: bag,
                 error: error
             }, temp;
-            if (error) {
+            if (error) { //出错
                 errorArgs = error;
                 //errorArgs[idx] = err; //记录相应下标的错误信息
                 //G_Assign(errorArgs, err);
                 host.fire('fail', dispach);
                 newBag = 1; //标记当前是一个新完成的bag,尽管出错了
             }
-            else if (!bagCache.has(cacheKey)) {
-                if (cacheKey) {
+            else if (!bagCache.has(cacheKey)) { //如果缓存对象中不存在，则处理。注意在开始请求时，缓存与非缓存的都会调用当前函数，所以需要在该函数内部做判断处理
+                if (cacheKey) { //需要缓存
                     bagCache.set(cacheKey, bag); //缓存
                 }
                 //bag.set(data);
                 mm.t = G_Now(); //记录当前完成的时间
                 temp = mm.a;
-                if (temp) {
+                if (temp) { //有after
                     G_ToTry(temp, bag, bag);
                 }
                 temp = mm.x;
-                if (temp) {
+                if (temp) { //需要清理
                     host.clear(temp);
                 }
                 host.fire('done', dispach);
                 newBag = 1;
             }
-            if (!service['$d']) {
+            if (!service['$d']) { //service['$d'] 当前请求被销毁
                 var finish = currentDoneCount == total;
                 if (finish) {
                     service['$e'] = 0;
-                    if (flag == Service_FetchFlags_ALL) {
+                    if (flag == Service_FetchFlags_ALL) { //all
                         doneArr[0] = errorArgs;
                         G_ToTry(done, doneArr, service);
                     }
                 }
-                if (flag == Service_FetchFlags_ONE) {
+                if (flag == Service_FetchFlags_ONE) { //如果是其中一个成功，则每次成功回调一次
                     G_ToTry(done, [error || G_NULL, bag, finish, idx], service);
                 }
             }
-            if (newBag) {
+            if (newBag) { //不管当前request或回调是否销毁，均派发end事件，就像前面缓存一样，尽量让请求处理完成，该缓存的缓存，该派发事件派发事件。
                 host.fire('end', dispach);
             }
         };
@@ -3744,7 +3748,7 @@ define('magix', ['$'], function (require) {
     var Service_Send = function (me, attrs, done, flag, save) {
         if (me['$d'])
             return me; //如果已销毁，返回
-        if (me['$e']) {
+        if (me['$e']) { //繁忙，后续请求入队
             return me.enqueue(Service_Send.bind(me, me, attrs, done, flag, save));
         }
         me['$e'] = 1; //标志繁忙
@@ -3763,11 +3767,11 @@ define('magix', ['$'], function (require) {
                 var cacheKey = bagEntity['$b'].k; //从实体上获取缓存key
                 var complete = remoteComplete.bind(bagEntity, requestCount++); //包装当前的完成回调
                 var cacheList = void 0;
-                if (cacheKey && bagCacheKeys[cacheKey]) {
+                if (cacheKey && bagCacheKeys[cacheKey]) { //如果需要缓存，并且请求已发出
                     bagCacheKeys[cacheKey].push(complete); //放到队列中
                 }
-                else if (bagInfo.u) {
-                    if (cacheKey) {
+                else if (bagInfo.u) { //需要更新
+                    if (cacheKey) { //需要缓存
                         cacheList = [complete];
                         cacheList.e = bagEntity;
                         bagCacheKeys[cacheKey] = cacheList;
@@ -3775,7 +3779,7 @@ define('magix', ['$'], function (require) {
                     }
                     host['$s'](bagEntity, complete);
                 }
-                else {
+                else { //不需要更新时，直接回调
                     complete();
                 }
             }
@@ -3816,7 +3820,7 @@ define('magix', ['$'], function (require) {
      *     console.log(err,bag);
      * });
      */
-    var Service = function () {
+    function Service() {
         var me = this;
         me.id = G_Id('s');
         if (DEBUG) {
@@ -3828,7 +3832,7 @@ define('magix', ['$'], function (require) {
             }, 1000);
         }
         me['$g'] = [];
-    };
+    }
     G_Assign(Service[G_PROTOTYPE], {
         /**
          * @lends Service#
@@ -3947,7 +3951,7 @@ define('magix', ['$'], function (require) {
                 me['$e'] = 1;
                 Timeout(function () {
                     me['$e'] = 0;
-                    if (!me['$d']) {
+                    if (!me['$d']) { //不清除setTimeout,但在回调中识别是否调用了destroy方法
                         one = me['$g'].shift();
                         if (one) {
                             G_ToTry(one, me['$h'] = a);
@@ -4162,10 +4166,10 @@ define('magix', ['$'], function (require) {
             if (cacheKey) {
                 var requestCacheKeys = me['$f'];
                 var info = requestCacheKeys[cacheKey];
-                if (info) {
+                if (info) { //处于请求队列中的
                     entity = info.e;
                 }
-                else {
+                else { //缓存
                     entity = bagCache.get(cacheKey);
                     if (entity && G_Now() - entity['$b'].t > cache) {
                         bagCache.del(cacheKey);
@@ -4197,9 +4201,9 @@ define('magix', ['$'], function (require) {
      * },10,2);//最大缓存10个接口数据，缓冲区2个
      */
     Service.extend = function (sync, cacheMax, cacheBuffer) {
-        var NService = function () {
+        function NService() {
             Service.call(this);
-        };
+        }
         NService['$s'] = sync;
         NService['$c'] = new G_Cache(cacheMax, cacheBuffer);
         NService['$f'] = {};
@@ -4211,7 +4215,7 @@ define('magix', ['$'], function (require) {
     G_NOOP.extend = function extend(props, statics) {
         var me = this;
         var ctor = props && props.ctor;
-        var X = function () {
+        function X() {
             var a = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 a[_i] = arguments[_i];
@@ -4220,7 +4224,7 @@ define('magix', ['$'], function (require) {
             me.apply(t, a);
             if (ctor)
                 ctor.apply(t, a);
-        };
+        }
         X.extend = extend;
         return G_Extend(X, me, props, statics);
     };

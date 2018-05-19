@@ -11,15 +11,14 @@ let Router_LLoc = {
 };
 let Router_TrimHashReg = /(?:^.*\/\/[^\/]+|#.*$)/gi;
 let Router_TrimQueryReg = /^[^#]*#?!?/;
-let GetParam = function (key, params) {
-    params = this[G_PARAMS];
-    return params[key] || G_EMPTY;
-};
+function GetParam(key, defaultValue) {
+    return this[G_PARAMS][key] || defaultValue !== G_Undefined && defaultValue || G_EMPTY;
+}
 let Router_Edge = 0;
 /*#if(!modules.forceEdgeRouter){#*/
 let Router_Hashbang = G_HashKey + '!';
 let Router_UpdateHash = (path, replace) => {
-    path = `${Router_Hashbang}${path}`;
+    path = Router_Hashbang + path;
     if (replace) {
         Router_WinLoc.replace(path);
     } else {
@@ -422,8 +421,9 @@ let Router = {
             tParams = { ...lParams, ...tParams }; //复制原来的参数，合并新的参数
         }
         Router_Update(tPath, tParams, Router_LLoc, replace, silent, lQuery);
-    },
+    }/*#if(!modules.mini){#*/,
     ...MEvent
+    /*#}#*/
 
     /**
      * 当location.href有改变化后触发

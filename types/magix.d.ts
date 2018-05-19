@@ -101,8 +101,10 @@ declare namespace Magix {
         readonly view: string
         /**
          * 从params中获取参数值，当参数不存在时返回空字符串
+         * @param key key
+         * @param defaultValue 当值不存在时候返回的默认值
          */
-        get(key: string): string
+        get<TDefaultValueType=any>(key: string, defaultValue?: TDefaultValueType): string
 
     }
     /**
@@ -148,11 +150,6 @@ declare namespace Magix {
      * view更新器接口
      */
     interface Updater {
-        /**
-         * 把结果渲染到某个节点上，默认是当前view所在的节点
-         * @param id dom节点id
-         */
-        to(id: string): void
 
         /**
          * 获取设置的数据，当key未传递时，返回整个数据对象
@@ -174,8 +171,9 @@ declare namespace Magix {
         /**
          * 检测数据变化，更新界面，放入数据后需要显式调用该方法才可以把数据更新到界面
          * @param data 数据对象，如{a:20,b:30}
+         * @param resolve 完成更新后的回调
          */
-        digest(data?: { [key: string]: any }): this
+        digest(data?: { [key: string]: any }, resolve?: Function): void
 
         /**
          * 获取当前数据状态的快照，配合altered方法可获得数据是否有变化
@@ -202,16 +200,6 @@ declare namespace Magix {
      */
     interface MagixVDOM {
         [key: string]: any
-    }
-    /**
-     * slot接口
-     */
-    interface Slot {
-        /**
-         * 从节点对象中获取slot字符串
-         * @param node 节点对象
-         */
-        from<T extends object>(node: HTMLElement | MagixVDOM): T & { default: string }
     }
     /**
      * 数据载体接口
@@ -743,11 +731,6 @@ declare namespace Magix {
          */
         observeState(keys: string): void
         /**
-         * 包装mx-event事件，比如把mx-click="test({key:'field'})" 包装成 mx-click="magix_vf_root^test({key:'field})"，以方便识别交由哪个view处理
-         * @param tmpl 模板字符串
-         */
-        wrapEvent(tmpl: string): string
-        /**
          * 通知当前view某个节点即将开始进行html的更新，在该方法内部会派发prerender事件
          * @param id 哪块区域需要更新，默认当前view
          */
@@ -1087,10 +1070,6 @@ declare interface Magix {
      * 拥有事件on,off,fire的基类
      */
     Base: Magix.Base
-    /**
-     * slot对象
-     */
-    Slot: Magix.Slot
     default: Magix
 }
 

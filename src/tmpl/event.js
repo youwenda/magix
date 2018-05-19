@@ -1,3 +1,4 @@
+/*#if(!modules.mini){#*/
 /**
  * 多播事件对象
  * @name Event
@@ -92,3 +93,4 @@ let MEvent = {
     }
 };
 Magix.Event = MEvent;
+/*#}#*/

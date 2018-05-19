@@ -14,11 +14,11 @@ KISSY.add('magix', (S, SE, DOM) => {
     };
     let G_Extend = S.extend;
     let G_TargetMatchSelector = DOM.test;
-    let G_DOMGlobalProcessor = function (e, d) {
+    function G_DOMGlobalProcessor(e, d) {
         d = this;
         e.eventTarget = d.e;
         G_ToTry(d.f, e, d.v);
-    };
+    }
     /*#if(modules.eventEnterLeave){#*/
     let Specials = {
         mouseenter: 1,
@@ -66,21 +66,12 @@ KISSY.add('magix', (S, SE, DOM) => {
     Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe){#*/
     DOM[G_PROTOTYPE].invokeView = function (name, args) {
-        let l = this.length;
-        if (l) {
-            let e = this[0];
-            let vf = e.vframe;
-            if (args === undefined) {
-                return vf && vf.invoke(name);
-            } else {
-                for (e of this) {
-                    vf = e.vframe;
-                    if (vf) {
-                        vf.invoke(name, args);
-                    }
-                }
-            }
+        let returned = [], e, vf;
+        for (e of this) {
+            vf = e.vframe;
+            returned.push(vf && vf.invoke(name, args));
         }
+        return returned;
     };
     /*#}#*/
 
@@ -91,12 +82,14 @@ KISSY.add('magix', (S, SE, DOM) => {
     Inc('../tmpl/tmpl');
     /*#}#*/
     /*#if(modules.updaterVDOM){#*/
+    /*#if(modules.updaterQuick){#*/
+    Inc('../tmpl/quick');
+    /*#}else{#*/
     Inc('../tmpl/tovdom');
+    /*#}#*/
     Inc('../tmpl/vdom');
     /*#}else if(modules.updaterDOM){#*/
     Inc('../tmpl/dom');
-    /*#}else{#*/
-    Inc('../tmpl/partial');
     /*#}#*/
     Inc('../tmpl/updater');
     /*#}#*/
@@ -112,17 +105,7 @@ KISSY.add('magix', (S, SE, DOM) => {
     /*#}#*/
     Inc('../tmpl/base');
     /*#if(modules.defaultView){#*/
-    S.add(MxGlobalView, () => {
-        return View.extend(
-            /*#if(!modules.autoEndUpdate){#*/
-            {
-                render() {
-                    this.endUpdate();
-                }
-            }
-            /*#}#*/
-        );
-    });
+    S.add(MxGlobalView, () => View.extend());
     /*#}#*/
     return Magix;
 }, {

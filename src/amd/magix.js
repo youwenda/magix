@@ -12,15 +12,7 @@ define('magix', ['$'], $ => {
             /*#if(modules.defaultView){#*/
             if (MxGlobalView == name) {
                 if (!G_DefaultView) {
-                    G_DefaultView = View.extend(
-                        /*#if(!modules.autoEndUpdate){#*/
-                        {
-                            render() {
-                                this.endUpdate();
-                            }
-                        }
-                        /*#}#*/
-                    );
+                    G_DefaultView = View.extend();
                 }
                 fn(G_DefaultView);
             } else /*#}#*/
@@ -29,7 +21,7 @@ define('magix', ['$'], $ => {
                 } else {
                     try {
                         fn(require(name)); //获取过的直接返回
-                    } catch (e) {
+                    } catch (_magix) {
                         require([name], fn);
                     }
                 }
@@ -98,21 +90,12 @@ define('magix', ['$'], $ => {
     Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe){#*/
     $.fn.invokeView = function (name, args) {
-        let l = this.length;
-        if (l) {
-            let e = this[0];
-            let vf = e.vframe;
-            if (args === undefined) {
-                return vf && vf.invoke(name);
-            } else {
-                for (let e of this) {
-                    vf = e.vframe;
-                    if (vf) {
-                        vf.invoke(name, args);
-                    }
-                }
-            }
+        let returned = [], e, vf;
+        for (e of this) {
+            vf = e.vframe;
+            returned.push(vf && vf.invoke(name, args));
         }
+        return returned;
     };
     /*#}#*/
     Inc('../tmpl/body');
@@ -121,12 +104,14 @@ define('magix', ['$'], $ => {
     Inc('../tmpl/tmpl');
     /*#}#*/
     /*#if(modules.updaterVDOM){#*/
+    /*#if(modules.updaterQuick){#*/
+    Inc('../tmpl/quick');
+    /*#}else{#*/
     Inc('../tmpl/tovdom');
+    /*#}#*/
     Inc('../tmpl/vdom');
     /*#}else if(modules.updaterDOM){#*/
     Inc('../tmpl/dom');
-    /*#}else{#*/
-    Inc('../tmpl/partial');
     /*#}#*/
     Inc('../tmpl/updater');
     /*#}#*/
@@ -140,5 +125,8 @@ define('magix', ['$'], $ => {
     Inc('../tmpl/service');
     /*#}#*/
     Inc('../tmpl/base');
+    /*#if(modules.naked&&!modules.mini){#*/
+    Magix.fire = G_Trigger;
+    /*#}#*/
     return Magix;
 });

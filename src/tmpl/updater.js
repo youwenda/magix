@@ -1,3 +1,173 @@
+/*#if(modules.updaterQuick){#*/
+let Updater_VframesToVNodes = {};
+/*#}#*/
+/*#if(!modules.updaterAsync){#*/
+let Updater_Digest = (updater, digesting) => {
+    let keys = updater['@{updater#keys}'],
+        changed = updater['@{updater#data.changed}'],
+        selfId = updater['@{updater#view.id}'],
+        vf = Vframe_Vframes[selfId],
+        view = vf && vf['@{vframe#view.entity}'],
+        ref = { d: [], v: [] },
+        node = G_GetById(selfId),
+        tmpl, vdom, data = updater['@{updater#data}'],
+        /*#if(modules.updaterQuick){#*/
+        //vfsToVNodes = [],
+        /*#}#*/
+        redigest = trigger => {
+            if (digesting.i < digesting.length) {
+                Updater_Digest(updater, digesting);
+            } else {
+                ref = digesting.slice();
+                digesting.i = digesting.length = 0;
+                /*#if(!modules.mini){#*/
+                if (trigger) {
+                    view.fire('domready');
+                }
+                /*#}#*/
+                G_ToTry(ref);
+            }
+        };
+    digesting.i = digesting.length;
+    updater['@{updater#data.changed}'] = 0;
+    updater['@{updater#keys}'] = {};
+    if (changed &&
+        view &&
+        view['@{view#sign}'] > 0 &&
+        (tmpl = view['@{view#template.object}'])) {
+        delete Body_RangeEvents[selfId];
+        delete Body_RangeVframes[selfId];
+        console.time('[updater time:' + selfId + ']');
+        /*#if(modules.updaterVDOM){#*/
+        /*#if(modules.updaterQuick){#*/
+        vdom = tmpl(data, Q_Create, selfId, Q_Safeguard, Q_Encode, Q_EncodeURI, Q_Ref, Q_EncodeQ/*, vfsToVNodes*/);
+        //Updater_VframesToVNodes[selfId] = vfsToVNodes.reverse();
+        /*#}else{#*/
+        vdom = TO_VDOM(tmpl(data, selfId));
+        /*#}#*/
+        /*#}else{#*/
+        vdom = I_GetNode(tmpl(data, selfId), node);
+        /*#}#*/
+        /*#if(modules.updaterVDOM){#*/
+        V_SetChildNodes(node, updater['@{updater#vdom}'], vdom, ref, vf, keys);
+        updater['@{updater#vdom}'] = vdom;
+        /*#}else{#*/
+        I_SetChildNodes(node, vdom, ref, vf, keys);
+        /*#}#*/
+        for (vdom of ref.d) {
+            vdom[0].id = vdom[1];
+        }
+
+        for (vdom of ref.v) {
+            vdom['@{view#render.short}']();
+        }
+        if (ref.c || !view['@{view#rendered}']) {
+            view.endUpdate(selfId);
+        }
+        /*#if(!modules.mini){#*/
+        if (ref.c) {
+            /*#if(modules.naked){#*/
+            G_Trigger(G_DOCUMENT, 'htmlchanged', {
+                vId: selfId
+            });
+            /*#}else if(modules.kissy){#*/
+            G_DOC.fire('htmlchanged', {
+                vId: selfId
+            });
+            /*#}else{#*/
+            G_DOC.trigger({
+                type: 'htmlchanged',
+                vId: selfId
+            });
+            /*#}#*/
+        }
+        /*#}#*/
+        console.timeEnd('[updater time:' + selfId + ']');
+        redigest(1);
+    } else {
+        redigest();
+    }
+};
+/*#}else{#*/
+let Updater_Digest_Async = (updater, resolve) => {
+    let keys = updater['@{updater#keys}'],
+        changed = updater['@{updater#data.changed}'],
+        selfId = updater['@{updater#view.id}'],
+        vf = Vframe_Vframes[selfId],
+        view = vf && vf['@{vframe#view.entity}'],
+        ref = { d: [], v: [] },
+        node = G_GetById(selfId),
+        /*#if(modules.updaterQuick){#*/
+        //vfsToVNodes = [],
+        /*#}#*/
+        tmpl, vdom, data = updater['@{updater#data}'];
+    updater['@{updater#data.changed}'] = 0;
+    updater['@{updater#keys}'] = {};
+    if (changed &&
+        view &&
+        view['@{view#sign}'] > 0 &&
+        (tmpl = view['@{view#template.object}'])) {
+        delete Body_RangeEvents[selfId];
+        delete Body_RangeVframes[selfId];
+        Async_SetNewTask(vf, () => {
+            console.log('ui ready', selfId);
+            for (vdom of ref.d) {
+                vdom[0].id = vdom[1];
+            }
+
+            for (vdom of ref.v) {
+                vdom['@{view#render.short}']();
+            }
+            if (ref.c || !view['@{view#rendered}']) {
+                view.endUpdate(selfId);
+            }
+            if (ref.c) {
+                /*#if(modules.naked){#*/
+                G_Trigger(G_DOCUMENT, 'htmlchanged', {
+                    vId: selfId
+                });
+                /*#}else if(modules.kissy){#*/
+                G_DOC.fire('htmlchanged', {
+                    vId: selfId
+                });
+                /*#}else{#*/
+                G_DOC.trigger({
+                    type: 'htmlchanged',
+                    vId: selfId
+                });
+                /*#}#*/
+            }
+            /*#if(!modules.mini){#*/
+            view.fire('domready');
+            /*#}#*/
+            if (resolve) resolve();
+        });
+        Async_AddTask(vf, () => {
+            console.time('[updater time:' + selfId + ']');
+            /*#if(modules.updaterVDOM){#*/
+            /*#if(modules.updaterQuick){#*/
+            vdom = tmpl(data, Q_Create, selfId, Q_Safeguard, Q_Encode, Q_EncodeURI, Q_Ref, Q_EncodeQ/*, vfsToVNodes*/);
+            //Updater_VframesToVNodes[selfId] = vfsToVNodes.reverse();
+            /*#}else{#*/
+            vdom = TO_VDOM(tmpl(data, selfId));
+            /*#}#*/
+            /*#}else{#*/
+            vdom = I_GetNode(tmpl(data, selfId), node);
+            /*#}#*/
+            /*#if(modules.updaterVDOM){#*/
+            V_SetChildNodes(node, updater['@{updater#vdom}'], vdom, ref, vf, keys);
+            if (!updater['@{updater#vdom}']) updater['@{updater#vdom}'] = vdom;
+            /*#}else{#*/
+            I_SetChildNodes(node, vdom, ref, vf, keys);
+            /*#}#*/
+            console.timeEnd('[updater time:' + selfId + ']');
+            Async_CheckStatus(selfId);
+        });
+    } else {
+        if (resolve) resolve();
+    }
+};
+/*#}#*/
 /**
  * 使用mx-keys进行局部刷新的类
  * @constructor
@@ -7,30 +177,21 @@
  * @module updater
  * @param {String} viewId Magix.View对象Id
  */
-let Updater = function (viewId) {
+function Updater(viewId) {
     let me = this;
     me['@{updater#view.id}'] = viewId;
     me['@{updater#data.changed}'] = 1;
-    /*#if(!modules.updaterDOM&&!modules.updaterVDOM){#*/
-    me['@{updater#render.id}'] = viewId;
-    /*#}#*/
     me['@{updater#data}'] = {
         vId: viewId,
         [G_SPLITER]: 1
     };
+    me['@{updater#digesting.list}'] = [];
     me['@{updater#keys}'] = {};
-};
+}
 G_Assign(Updater[G_PROTOTYPE], {
     /**
      * @lends Updater#
      */
-    /*#if(!modules.updaterDOM&&!modules.updaterVDOM){#*/
-    to(id, me) {
-        me = this;
-        me['@{updater#render.id}'] = id;
-        return me;
-    },
-    /*#}#*/
     /**
      * 获取放入的数据
      * @param  {String} [key] key
@@ -98,111 +259,33 @@ G_Assign(Updater[G_PROTOTYPE], {
      *     }).digest();
      * }
      */
-    digest(data) {
-        let me = this.set(data),
-            keys = me['@{updater#keys}'],
-            changed = me['@{updater#data.changed}'];
-        me['@{updater#data.changed}'] = 0;
-        me['@{updater#keys}'] = {};
-        data = me['@{updater#data}'];
-        /*#if(modules.updaterVDOM||modules.updaterDOM){#*/
-        /*#if(modules.updaterAsync){#*/
-        return new Promise(resolve => {
-            /*#}#*/
-            let selfId = me['@{updater#view.id}'],
-                vf = Vframe_Vframes[selfId],
-                view = vf && vf['@{vframe#view.entity}'],
-                ref = { d: [], v: [] },
-                node = G_GetById(selfId),
-                tmpl, vdom;
-            if (changed && view && view['@{view#sign}'] > 0 &&
-                (tmpl = view['@{view#template.object}'])) {
-                delete Body_RangeEvents[selfId];
-                delete Body_RangeVframes[selfId];
-                /*#if(!modules.updaterAsync){#*/
-                console.time('[updater time:' + selfId + ']');
-                console.time('[html to dom:' + selfId + ']');
-                /*#if(modules.updaterVDOM){#*/
-                vdom = TO_VDOM(tmpl(data, selfId));
-                /*#}else{#*/
-                vdom = I_GetNode(tmpl(data, selfId), node);
-                /*#}#*/
-                console.timeEnd('[html to dom:' + selfId + ']');
-                /*#}#*/
-                /*#if(modules.updaterAsync){#*/
-                Async_SetNewTask(vf, () => {
-                    console.log('ui ready', selfId);
-                    /*#}else{#*/
-                    /*#if(modules.updaterVDOM){#*/
-                    V_SetChildNodes(node, me['@{updater#vdom}'], vdom, ref, vf, data, keys);
-                    me['@{updater#vdom}'] = vdom;
-                    /*#}else{#*/
-                    I_SetChildNodes(node, vdom, ref, vf, data, keys);
-                    /*#}#*/
-                    /*#}#*/
-                    for (vdom of ref.d) {
-                        vdom[0].id = vdom[1];
-                    }
+    digest(data, resolve) {
+        let me = this.set(data)/*#if(!modules.updaterAsync){#*/,
+            digesting = me['@{updater#digesting.list}']/*#}#*/;
+        /*
+            view:
+            <div>
+                <mx-dropdown mx-focusout="rerender()"/>
+            <div>
 
-                    for (vdom of ref.v) {
-                        vdom['@{view#render.short}']();
-                    }
-                    if (ref.c || !view['@{view#rendered}']) {
-                        view.endUpdate(selfId);
-                    }
-                    if (ref.c) {
-                        /*#if(modules.naked){#*/
-                        G_Trigger(G_DOCUMENT, 'htmlchanged', {
-                            vId: selfId
-                        });
-                        /*#}else if(modules.kissy){#*/
-                        G_DOC.fire('htmlchanged', {
-                            vId: selfId
-                        });
-                        /*#}else{#*/
-                        G_DOC.trigger({
-                            type: 'htmlchanged',
-                            vId: selfId
-                        });
-                        /*#}#*/
-                    }
-                    view.fire('domready');
-                    /*#if(modules.updaterAsync){#*/
-                    resolve();
-                });
-                Async_AddTask(vf, () => {
-                    console.time('[updater time:' + selfId + ']');
-                    console.time('[html to dom:' + selfId + ']');
-                    /*#if(modules.updaterVDOM){#*/
-                    vdom = TO_VDOM(tmpl(data, selfId));
-                    /*#}else{#*/
-                    vdom = I_GetNode(tmpl(data, selfId), node);
-                    /*#}#*/
-                    console.timeEnd('[html to dom:' + selfId + ']');
-                    /*#if(modules.updaterVDOM){#*/
-                    V_SetChildNodes(node, me['@{updater#vdom}'], vdom, ref, vf, data, keys);
-                    if (!me['@{updater#vdom}']) me['@{updater#vdom}'] = vdom;
-                    /*#}else{#*/
-                    I_SetChildNodes(node, vdom, ref, vf, data, keys);
-                    /*#}#*/
-                    console.timeEnd('[updater time:' + selfId + ']');
-                    Async_CheckStatus(selfId);
-                });
-                /*#}else{#*/
-                console.timeEnd('[updater time:' + selfId + ']');
-                /*#}#*/
-            }
-            /*#if(modules.updaterAsync){#*/
-            else {
-                resolve();
-            }
-        });
-        /*#}#*/
+            view.digest=>dropdown.focusout=>view.redigest=>view.redigest.end=>view.digest.end
+
+            view.digest中嵌套了view.redigest，view.redigest可能操作了view.digest中引用的dom,这样会导致view.redigest.end后续的view.digest中出错
+
+            expect
+            view.digest=>dropdown.focusout=>view.digest.end=>view.redigest=>view.redigest.end
+
+            如果在digest的过程中，多次调用自身的digest，则后续的进行排队。前面的执行完成后，排队中的一次执行完毕
+        */
+        /*#if(modules.updaterAsync){#*/
+        Updater_Digest_Async(me, resolve);
         /*#}else{#*/
-        changed && Partial_UpdateDOM(me, keys); //render
-        /*#}#*/
-        /*#if(!modules.updaterAsync){#*/
-        return Promise.resolve();
+        digesting.push(resolve);
+        if (!digesting.i) {
+            Updater_Digest(me, digesting);
+        } else if (DEBUG) {
+            console.warn('Avoid redigest while updater is digesting');
+        }
         /*#}#*/
     },
     /**

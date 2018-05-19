@@ -11,30 +11,10 @@ let TO_VDOM_SELF_CLOSE = {
     track: 1,
     wbr: 1
 };
-let TO_VDOM_SPECIAL_PROPS = {
-    input: [G_VALUE, 'checked'],
-    textarea: [G_VALUE],
-    option: ['selected']
-};
-let TO_VDOM_TEXT_NODE = G_COUNTER;
-if (DEBUG) {
-    TO_VDOM_TEXT_NODE = '#text';
-}
 let TO_VDOM_OpenReg = /^<([a-z\d]+)((?:\s+[-A-Za-z\d_]+(?:="[^"]*")?)*)\s*(\/?)>/,
     TO_VDOM_AttrReg = /([-A-Za-z\d_]+)(?:="([^"]*)")?/g,
     TO_VDOM_CloseReg = /^<\/[a-z\d]+>/;
 
-let TO_VDOM_UnescapeMap = {};
-let TO_VDOM_UnescapeReg = /&#?[^\W]+;?/g;
-let TO_VDOM_Temp = G_DOCUMENT.createElement('div');
-let TO_VDOM_UnescapeCallback = m => {
-    if (!G_Has(TO_VDOM_UnescapeMap, m)) {
-        TO_VDOM_Temp.innerHTML = m;
-        TO_VDOM_UnescapeMap[m] = TO_VDOM_Temp.innerText;
-    }
-    return TO_VDOM_UnescapeMap[m];
-};
-let TO_VDOM_Unescape = str => str.replace(TO_VDOM_UnescapeReg, TO_VDOM_UnescapeCallback);
 let TO_VDOM = input => {
     let count = input.length,
         current = 0,
@@ -52,6 +32,7 @@ let TO_VDOM = input => {
         attrs,
         stack = [currentParent],
         moveLength,
+        diffChildren,
         em,
         amap,
         text,
@@ -88,6 +69,7 @@ let TO_VDOM = input => {
                     attrs = [];
                     amap = {};
                     compareKey = G_EMPTY;
+                    diffChildren = V_SPECIAL_PROPS[tag];
                     match[2].replace(TO_VDOM_AttrReg, (m, key, value) => {
                         value = value || G_EMPTY;
                         if (key == 'id') {//如果有id优先使用
@@ -97,6 +79,8 @@ let TO_VDOM = input => {
                             compareKey = G_ParseUri(value)[G_PATH];
                         } else if (key == G_Tag_Key && !compareKey) {
                             compareKey = value;
+                        } else if (key == G_Tag_View_Key) {
+                            diffChildren = 1;
                         }
                         attrs.push({
                             '@{~v#node.attrs.key}': key,
@@ -104,6 +88,7 @@ let TO_VDOM = input => {
                         });
                         amap[key] = value;
                     });
+                    currentParent['@{~v#node.force.diff.children}'] = currentParent['@{~v#node.force.diff.children}'] || diffChildren;
                     unary = match[3] || G_Has(TO_VDOM_SELF_CLOSE, tag);
                     if (DEBUG) {
                         if (TO_VDOM_SELF_CLOSE[tag] && !match[3]) {
@@ -119,15 +104,14 @@ let TO_VDOM = input => {
                         '@{~v#node.children}': [],
                         '@{~v#node.reused}': {},
                         '@{~v#node.start.pos}': current,
+                        '@{~v#node.self.close}': unary,
                         '@{~v#content.start.pos}': current += moveLength = chars.length
                     };
                     if (compareKey) {
                         currentParent['@{~v#node.reused}'][compareKey] = 1;
                     }
                     currentParent['@{~v#node.children}'].push(em);
-                    if (unary) {
-                        em['@{~v#node.self.close}'] = 1;
-                    } else {
+                    if (!unary) {
                         stack.push(em);
                         if (DEBUG) {
                             stack[stack.length - 1]['@{~v#tag.start.pos}'] = current - match[0].length;
@@ -147,8 +131,8 @@ let TO_VDOM = input => {
             }
             current += moveLength = text.length;
             em = {
-                '@{~v#node.tag}': TO_VDOM_TEXT_NODE,
-                '@{~v#node.html}': text,
+                '@{~v#node.tag}': V_TEXT_NODE,
+                //'@{~v#node.html}': text,
                 '@{~v#node.outer.html}': text
             };
             currentParent['@{~v#node.children}'].push(em);
