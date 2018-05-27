@@ -2,9 +2,15 @@
 
 // Magix API
 Magix.version = '3.8.10';
-S.each(['isObject', 'isArray', 'isString', 'isFunction', 'isNumber'], k => Magix[k] = S[k]);
+S.each(['isObject', 'isArray', 'isString', 'isFunction', 'isNumber', 'isRegExp'], k => Magix[k] = S[k]);
 Magix.isNumeric = o => !isNaN(parseFloat(o)) && isFinite(o);
-Magix.pathToObject = G_ParseUri;
+Magix.pathToObject = path => {
+  const r = G_ParseUri(path);
+  return {
+    ...r,
+    pathname: r.path
+  }
+};
 Magix.noop = G_NOOP;
 
 const __local = {};
@@ -26,8 +32,6 @@ Magix.local = (key, value) => {
   }
 };
 
-G_Assign(Magix.local, Magix.Event);
-
 const __tmpl = {};
 Magix.tmpl = (moduleId, template) => {
   if (!moduleId || template == null) {
@@ -40,7 +44,12 @@ Magix.tmpl.get = moduleId => __tmpl[moduleId];
 Magix.cache = (...args) => new Magix.Cache(...args);
 
 Magix.safeExec = G_ToTry;
-Magix.listToMap = G_ToMap;
+Magix.listToMap = (list, key) => {
+  if (S.isString(list)) {
+    list = list.split(',');
+  }
+  return G_ToMap(list, key);
+};
 
 Safeguard = o => o;
 
@@ -617,6 +626,123 @@ View_Prepare = (View) => {
   }
 
   return origViewPrepare(View);
+};
+
+// Body
+const Body_EvtInfoReg = /(?:([\w\-]+)\x1e)?([^(<{]+)(?:<(\w+)>)?(\(?)([\s\S]*)?\)?/;
+const Body_RootEvents = {};
+const Body_SearchSelectorEvents = {};
+const EvtParamsReg = /(\w+):([^,]+)/g; 
+
+const G_DOMEventLibBind = (node, type, cb, remove, scope, selector) => {
+  if (Specials[type] === 1) {
+    selector = `[mx-${type}]`;
+    if (!Specials[`${type}fn`]) {
+      cb = Specials[`${type}fn`] = S.bind(cb, scope);     
+    }
+  } else {
+    selector = G_EMPTY;
+  }
+
+  if (scope || selector) {
+      SE[`${remove ? 'un' : G_EMPTY}delegate`](node, type, selector, cb, scope);
+  } else {
+      SE[remove ? 'detach' : 'on'](node, type, cb, scope);
+  }
+};
+
+const Body_DOMEventProcessor = domEvent => {
+  let { target, type } = domEvent;
+  let eventInfos;
+  let ignore;
+  let vframe, view, eventName, fn;
+  let lastVfId;
+  let params, arr = [];
+  while (target != G_DOCBODY) {
+    eventInfos = Body_FindVframeInfo(target, type);
+    if (eventInfos.length) {
+      arr = [];
+      for (let { v, r, n, i } of eventInfos) {
+        if (!v && DEBUG) {
+          return Magix_Cfg.error(Error(`bad ${type}:${r}`));
+        }
+        if (lastVfId != v) {
+          if (lastVfId && domEvent.isPropagationStopped()) {
+            break;
+          }
+          lastVfId = v;
+        }
+        vframe = Vframe_Vframes[v];
+        view = vframe && vframe['@{vframe#view.entity}'];
+        if (view) {
+          eventName = n + G_SPLITER + type;
+          fn = view[eventName];
+          if (fn) {
+            domEvent.eventTarget = target;
+            params = i ? G_ParseExpr(i, view['@{view#updater}']['@{updater#data}']) : {};
+            domEvent[G_PARAMS] = params;
+            G_ToTry(fn, domEvent, view);
+            //没发现实际的用途
+            /*if (domEvent.isImmediatePropagationStopped()) {
+                break;
+            }*/
+          }
+          if (DEBUG) {
+            if (!fn) { //检测为什么找不到处理函数
+              if (eventName[0] == '\u001f') {
+                console.error('use view.wrapEvent wrap your html');
+              } else {
+                console.error('can not find event processor:' + n + '<' + type + '> from view:' + vframe.path);
+              }
+            }
+          }
+        } else {//如果处于删除中的事件触发，则停止事件的传播
+          domEvent.stopPropagation();
+        }
+        if (DEBUG) {
+          if (!view && view !== 0) { //销毁
+            console.error('can not find vframe:' + v);
+          }
+        }
+      }
+    }
+    /*|| e.mxStop */
+    if (((ignore = Body_RangeEvents[fn = target['@{node#owner.vframe}']]) &&
+      (ignore = ignore[target['@{node#guid}']]) &&
+      ignore[type]) ||
+      domEvent.isPropagationStopped()) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
+      if (arr.length) {
+        arr.push(fn);
+      }
+      break;
+    } else {
+      arr.push(target);
+      lastVfId = target.id;
+      if (Vframe_Vframes[lastVfId]) {
+        arr.push(lastVfId);
+      }
+    }
+    target = target.parentNode || G_DOCBODY;
+  }
+  if ((fn = arr.length)) {
+    ignore = G_HashKey;
+    for (; fn--;) {
+      view = arr[fn];
+      if (view.nodeType) {
+        if (!(eventInfos = Body_RangeEvents[ignore])) {
+          eventInfos = Body_RangeEvents[ignore] = {};
+        }
+        lastVfId = view['@{node#guid}'] || (view['@{node#guid}'] = ++Body_Guid);
+        if (!(params = eventInfos[lastVfId])) {
+          params = eventInfos[lastVfId] = {};
+          view['@{node#owner.vframe}'] = ignore;
+        }
+        params[type] = 1;
+      } else {
+        ignore = view;
+      }
+    }
+  }
 };
 
 //////////////////////// Shim ////////////////////////

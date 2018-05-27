@@ -4,6 +4,10 @@
   "description": "view manager framewrok",
   "main": "dist/webpack/magix-debug.js",
   "types": "types/magix.d.ts",
+  "scripts": {
+    "build": "cd ./tool && npx gulp combine",
+    "test:qunit": "cd ./tool & npx gulp test:qunit"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/thx/magix.git"

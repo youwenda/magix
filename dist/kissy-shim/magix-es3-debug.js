@@ -4218,9 +4218,12 @@ KISSY.add('magix', function (S, SE, DOM) {
     //////////////////////// Shim ////////////////////////
     // Magix API
     Magix.version = '3.8.10';
-    S.each(['isObject', 'isArray', 'isString', 'isFunction', 'isNumber'], function (k) { return Magix[k] = S[k]; });
+    S.each(['isObject', 'isArray', 'isString', 'isFunction', 'isNumber', 'isRegExp'], function (k) { return Magix[k] = S[k]; });
     Magix.isNumeric = function (o) { return !isNaN(parseFloat(o)) && isFinite(o); };
-    Magix.pathToObject = G_ParseUri;
+    Magix.pathToObject = function (path) {
+        var r = G_ParseUri(path);
+        return G_Assign({}, r, { pathname: r.path });
+    };
     Magix.noop = G_NOOP;
     var __local = {};
     Magix.local = function (key, value) {
@@ -4240,7 +4243,6 @@ KISSY.add('magix', function (S, SE, DOM) {
                 break;
         }
     };
-    G_Assign(Magix.local, Magix.Event);
     var __tmpl = {};
     Magix.tmpl = function (moduleId, template) {
         if (!moduleId || template == null) {
@@ -4258,7 +4260,12 @@ KISSY.add('magix', function (S, SE, DOM) {
         var _a;
     };
     Magix.safeExec = G_ToTry;
-    Magix.listToMap = G_ToMap;
+    Magix.listToMap = function (list, key) {
+        if (S.isString(list)) {
+            list = list.split(',');
+        }
+        return G_ToMap(list, key);
+    };
     Safeguard = function (o) { return o; };
     Magix.start = function (cfg) {
         if (!cfg.ini && cfg.iniFile) {

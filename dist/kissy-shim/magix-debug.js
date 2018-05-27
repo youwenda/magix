@@ -4465,9 +4465,15 @@ Magix.Base = G_NOOP;
 
 // Magix API
 Magix.version = '3.8.10';
-S.each(['isObject', 'isArray', 'isString', 'isFunction', 'isNumber'], k => Magix[k] = S[k]);
+S.each(['isObject', 'isArray', 'isString', 'isFunction', 'isNumber', 'isRegExp'], k => Magix[k] = S[k]);
 Magix.isNumeric = o => !isNaN(parseFloat(o)) && isFinite(o);
-Magix.pathToObject = G_ParseUri;
+Magix.pathToObject = path => {
+  const r = G_ParseUri(path);
+  return {
+    ...r,
+    pathname: r.path
+  }
+};
 Magix.noop = G_NOOP;
 
 const __local = {};
@@ -4489,8 +4495,6 @@ Magix.local = (key, value) => {
   }
 };
 
-G_Assign(Magix.local, Magix.Event);
-
 const __tmpl = {};
 Magix.tmpl = (moduleId, template) => {
   if (!moduleId || template == null) {
@@ -4503,7 +4507,12 @@ Magix.tmpl.get = moduleId => __tmpl[moduleId];
 Magix.cache = (...args) => new Magix.Cache(...args);
 
 Magix.safeExec = G_ToTry;
-Magix.listToMap = G_ToMap;
+Magix.listToMap = (list, key) => {
+  if (S.isString(list)) {
+    list = list.split(',');
+  }
+  return G_ToMap(list, key);
+};
 
 Safeguard = o => o;
 

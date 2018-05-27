@@ -3,9 +3,11 @@
   "version": "3.0.0",
   "private": true,
   "scripts": {
-    "build": "gulp combine"
+    "build": "gulp combine",
+    "test:qunit": "gulp test:qunit"
   },
   "devDependencies": {
+    "browser-sync": "^2.24.4",
     "gulp": "^3.9.1",
     "gulp-rename": "^1.2.2",
     "qunitjs": "^2.4.1",
