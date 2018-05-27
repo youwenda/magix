@@ -51,6 +51,7 @@ let modules = {
 };
 rs.map({
     '@{vframe#view.entity}': '$v',
+    '@{view#sign}': '$s',
     '@{view#selector.events.object}': '$so',
     '@{view#shared.data}': '$sd',
     '@{view#events.object}': '$eo',

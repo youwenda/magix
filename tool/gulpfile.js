@@ -9,7 +9,7 @@ let pkg = require('../package.json');
 let ts = require('typescript');
 let customize = require('./customize');
 
-let type ='cmd,amd,kissy,webpack,module'; //打包kissy则type='kissy'
+let type ='kissy-shim'; //打包kissy则type='kissy'
 let enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM';
 
 //let enableModules = 'style,viewInit,router,viewMerge,tipRouter,updater,autoEndUpdate,linkage,state,updaterDOM,viewProtoMixins';
@@ -17,6 +17,9 @@ let enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttach
 //let enableModules='';
 //mobile
 //let enableModules='defaultView,autoEndUpdate,linkage,base,style,viewInit,resource,nodeAttachVframe,updater,mxViewAttr,layerVframe,state';
+
+// for shim
+enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM,eventEnterLeave';
 
 gulp.task('combine', () => {
     type.split(',').forEach(t => {

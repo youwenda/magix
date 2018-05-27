@@ -2,9 +2,13 @@
   "name": "magix-build",
   "version": "3.0.0",
   "private": true,
+  "scripts": {
+    "build": "gulp combine"
+  },
   "devDependencies": {
     "gulp": "^3.9.1",
     "gulp-rename": "^1.2.2",
+    "qunitjs": "^2.4.1",
     "typescript": "^2.8.3"
   },
   "dependencies": {
