@@ -30,3 +30,10 @@ Magix配套的[离线编译工具](https://github.com/thx/magix-combine)帮你�
 [magix-doc3](https://github.com/thx/magix-doc3) magix文档，seajs独立版本，不使用动态加载
 
 [点击这里查看更多](https://github.com/thx/magix/issues/15)
+
+### 打包及测试
+
+```shell
+  npm run build // 只打包shim版本
+  npm run test:qunit // 启动单元测试
+```
