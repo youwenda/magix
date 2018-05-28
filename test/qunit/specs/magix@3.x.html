@@ -19,7 +19,7 @@
     (function(win, S, Test) {
       S.use('magix', (S, Magix) => {
         Test.Api(Magix);
-        Test.Event(Magix.Event);
+        Test.Event(Magix, Magix.Event);
       });
     })(window, window.KISSY, window.Test || (window.Test = {}));
   </script>
