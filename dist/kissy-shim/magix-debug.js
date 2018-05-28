@@ -4514,19 +4514,27 @@ Magix.listToMap = (list, key) => {
   return G_ToMap(list, key);
 };
 
+const __deprecated = {};
+Magix.deprecated = (msg) => {
+  if (!__deprecated[msg]) {
+    console.warn(msg);
+    __deprecated[msg] = 1;
+  }
+};
+
 Safeguard = o => o;
 
 Magix.start = (cfg) => {
   if (!cfg.ini && cfg.iniFile) {
-    console.warn('Deprecated Config.iniFile,use Config.ini instead');
+    Magix.deprecated('Deprecated Config.iniFile,use Config.ini instead');
     cfg.ini = cfg.iniFile;
   }
   if (!cfg.exts && cfg.extensions) {
-    console.warn('Deprecated Config.extensions,use Config.exts instead');
+    Magix.deprecated('Deprecated Config.extensions,use Config.exts instead');
     cfg.exts = cfg.extensions;
   }
   if (cfg.execError) {
-    console.warn('Deprecated Config.execError,use Config.error instead');
+    Magix.deprecated('Deprecated Config.execError,use Config.error instead');
     cfg.error = cfg.execError;
   }
   Magix.boot(cfg);
@@ -4539,7 +4547,7 @@ Magix.Event.un = Magix.Event.off;
 let G_LocationChanged;
 const G_Location = {
   get(key) {
-    console.warn('Deprecated View#location,use Magix.Router.parse() instead。请查阅：http://gitlab.alibaba-inc.com/mm/afp/issues/2 View#location部分');
+    Magix.deprecated('Deprecated View#location,use Magix.Router.parse() instead。请查阅：http://gitlab.alibaba-inc.com/mm/afp/issues/2 View#location部分');
     return this.params[key] || G_EMPTY;
   }
 };
@@ -4677,7 +4685,7 @@ const Dispatcher_Update = (vframe,  stateKeys,  view, isChanged, cs, c) => {
 
     if (isChanged) { //检测view所关注的相应的参数是否发生了变化
       if (S.isFunction(view.locationChange)) {
-        console.warn('Deprecated View#locationChange');
+        Magix.deprecated('Deprecated View#locationChange');
         view.locationChange(args);
       }
       // TODO 判断如果当前view是magix-components(通过view.path即可)下的代码需要进行调用`render`方法
@@ -4799,11 +4807,11 @@ G_Assign(Vframe[G_PROTOTYPE], {
               '$s': 1,
               '$b': 1
             };
-            for (let p in view) {
-              if (G_Has(view, p) && viewProto[p]) {
-                throw new Error(`avoid write ${p} at file ${viewPath}!`);
-              }
-            }
+            // for (let p in view) {
+            //   if (G_Has(view, p) && viewProto[p]) {
+            //     console.warn(`avoid write ${p} at file ${viewPath}!`);
+            //   }
+            // }
             view = Safeguard(view, null, (key, value) => {
               if (G_Has(viewProto, key) ||
                 (G_Has(importantProps, key) &&
@@ -4814,14 +4822,6 @@ G_Assign(Vframe[G_PROTOTYPE], {
             });
           }
           G_ToTry(TView[G_PROTOTYPE].mxViewCtor, G_NULL, view);
-
-          // 为view补充的实例和原型属性
-          view.path = po[G_PATH];
-          Object.defineProperty(view, sign, {
-            get() {
-              return view['$s'];
-            }
-          });
 
           // ES6 Class babel解析后会把非方法的原型属性放在实例上，因此这里hack
           if (G_Has(view, 'events')) {
@@ -4890,7 +4890,7 @@ G_Assign(Vframe[G_PROTOTYPE], {
     
     let vframes = $(`${G_HashKey}${zoneId} vframe`);
     if (vframes.length) {
-      console.warn('Deprecated vframe tag, use div[mx-view] instead');
+      Magix.deprecated('Deprecated vframe tag, use div[mx-view] instead');
     }
     vframes = vframes.add($(`${G_HashKey}${zoneId} [${G_MX_VIEW}]`));
 
@@ -4943,14 +4943,14 @@ G_Assign(Vframe[G_PROTOTYPE], {
     }
   },
   unmountZoneVframes(node, params) {
-    console.warn('Deprecated Vframe#unmountZoneVframes use Vframe#unmountZone instead');
+    Magix.deprecated('Deprecated Vframe#unmountZoneVframes use Vframe#unmountZone instead');
     if (node && node.nodeType) {
       node = IdIt(node);
     }
     this.unmountZone(node, params);
   },
   mountZoneVframes: function(node, params) {
-    console.warn('Deprecated Vframe#mountZoneVframes use Vframe#mountZone instead');
+    Magix.deprecated('Deprecated Vframe#mountZoneVframes use Vframe#mountZone instead');
     if (node && node.nodeType) {
       node = IdIt(node);
     }
@@ -5053,6 +5053,18 @@ View_Prepare = (View) => {
 
   return origViewPrepare(View);
 };
+
+const View_Ctors = [
+  function() {
+    // 为view补充的实例和原型属性
+    this.path = this.owner['$j'];
+    Object.defineProperty(this, 'sign', {
+      get() {
+        return this['$s'];
+      }
+    });
+  }
+];
 
 // Body
 const Body_EvtInfoReg = /(?:([\w\-]+)\x1e)?([^(<{]+)(?:<(\w+)>)?(\(?)([\s\S]*)?\)?/;
@@ -5356,7 +5368,7 @@ const G_DOMEventLibBind = (node, type, cb, remove, scope, selector) => {
 
 
 View.mixin = (props, ctor) => {
-  console.warn('Deprecated Magix.View.mixin,use Magix.View.merge instead');
+  Magix.deprecated('Deprecated Magix.View.mixin,use Magix.View.merge instead');
   if (!props) props = {};
   if (ctor) {
     if (props.ctor) {
@@ -5429,7 +5441,7 @@ G_Assign(View[G_PROTOTYPE], {
   vom: Vframe,
   location: G_Location,
   $(id) {
-    console.warn('Deprecated view.prorotype.$,use Magix.node instead');
+    Magix.deprecated('Deprecated view.prorotype.$,use Magix.node instead');
     return Magix.node(id);
   },
   observeLocation(params, isObservePath) {
@@ -5459,20 +5471,21 @@ G_Assign(View[G_PROTOTYPE], {
     }
     return this['$s'];
   },
+  wrapEvent: View_SetEventOwner,
   wrapMxEvent(html) {
     return String(html);
   },
   navigate() {
-    console.warn('Deprecated View#navigate use Magix.Router.to instead。请查阅：http://gitlab.alibaba-inc.com/mm/afp/issues/2 View#navigate部分');
+    Magix.deprecated('Deprecated View#navigate use Magix.Router.to instead。请查阅：http://gitlab.alibaba-inc.com/mm/afp/issues/2 View#navigate部分');
     Router.to.apply(Router, arguments);
   },
   manage(key, res, destroyWhenCallRender) {
     let cache = this['$r'];
     let args = arguments;
     let wrapObj;
-    console.warn('Deprecated View#manage use View#capture instead. But This Very Different!');
+    Magix.deprecated('Deprecated View#manage use View#capture instead. But This Very Different!');
     if (args.length === 2) {
-      console.warn('View#manage VS View#capture When Using Explicit Key. They are different!');
+      Magix.deprecated('View#manage VS View#capture When Using Explicit Key. They are different!');
     }
     if (key && !res) {
       res = key;
@@ -5489,7 +5502,7 @@ G_Assign(View[G_PROTOTYPE], {
       if (DEBUG && res && (res.id + G_EMPTY).indexOf('\x1es') === 0) {
         res['$a'] = 1;
         if (!destroyWhenCallRender) {
-          console.warn('beware! May be you should set destroyWhenCallRender = true');
+          Magix.deprecated('beware! May be you should set destroyWhenCallRender = true');
         }
       }
     } else {
@@ -5499,11 +5512,11 @@ G_Assign(View[G_PROTOTYPE], {
     return res;
   },
   getManaged(key) {
-    console.warn('Deprecated View#getManaged use View#capture instead');
+    Magix.deprecated('Deprecated View#getManaged use View#capture instead');
     return this.capture(key);
   },
   removeManaged(key) {
-    console.warn('Deprecated View#removeManaged use View#release instead');
+    Magix.deprecated('Deprecated View#removeManaged use View#release instead');
     return this.release(key, 1);
   },
   destroyManaged(e) {
@@ -5511,6 +5524,49 @@ G_Assign(View[G_PROTOTYPE], {
   },
   load() {
     return Promise.resolve();
+  },
+  /**
+ * 通知当前view即将开始进行html的更新
+ * @param {String} [id] 哪块区域需要更新，默认整个view
+ */
+  beginUpdate(id, me) {
+    me = this;
+    if (me['$s'] > 0 && me['$e']) {
+      me.owner.unmountZone(id, 1);
+      me.fire('prerender', {
+        id: id
+      });
+    }
+  },
+  /**
+   * 通知当前view结束html的更新
+   * @param {String} [id] 哪块区域结束更新，默认整个view
+   */
+  endUpdate(id, inner, me , o, f ) {
+    me = this;
+    if (me['$s'] > 0) {
+      id = id || me.id;
+      me.fire('rendered', {
+        id
+      });
+      if (inner) {
+        f = inner;
+      } else {
+        
+        f = me['$e'];
+        
+        me['$e'] = 1;
+      }
+      
+      o = me.owner;
+      o.mountZone(id, inner);
+      if (!f) {
+        
+        Timeout(me.wrapAsync(Vframe_RunInvokes), 0, o);
+        
+      }
+      
+    }
   },
   /**
    * 恢复为Magix3.7.0的方法，设置view的html内容
