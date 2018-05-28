@@ -4533,7 +4533,7 @@ Magix.start = (cfg) => {
 };
 
 // Event
-Event.un = Event.off;
+Magix.Event.un = Magix.Event.off;
 
 // Router
 let G_LocationChanged;
@@ -4579,7 +4579,7 @@ const Router_Parse = function Router_Parse(href) {
     };
     if (Magix_Booted) {
       Router_AttachViewAndPath(result);
-      result.pathname = result.path;
+      result.pathname = result.path || result.hash.path;
       Router_HrefCache.set(href, result);
     }
   }
@@ -4590,6 +4590,7 @@ Router.un = Router.off;
 Router.navigate = Router.to;
 Router.on(G_CHANGED, e => {
   const location = Router.parse();
+  const changed = e;
   const occur = 1;
   for (let p in location) {
     if (G_Has(location, p) && p !== 'get') {
@@ -4601,13 +4602,10 @@ Router.on(G_CHANGED, e => {
   location.query.pathname = location.query.path;
 
   G_LocationChanged = G_Assign(e, {
-    occur,
+    changed,
     location,
-    changed: {
-      pathname: e[G_PATH],
-      [Router_VIEW]: e[Router_VIEW],
-      [G_PARAMS]: e[G_PARAMS]
-    },
+    occur,
+    pathname: e[G_PATH],
     isPathname: () => e[G_PATH],
     isView: () => e[Router_VIEW],
     isParam: (k) => e[G_PARAMS][k]
@@ -4750,6 +4748,10 @@ G_Assign(Vframe[G_PROTOTYPE], {
     }
     me.unmountView(/*keepPreHTML*/);
     me['$b'] = 0; //destroyed 详见unmountView
+    // 去除空vframe标签的情况
+    if (!viewPath) {
+      return;
+    }
     po = G_ParseUri(viewPath);
     view = po[G_PATH];
     if (node && view) {
@@ -6914,3 +6916,18 @@ KISSY.add("mxext/model", function (S, Magix) {
 }, {
     requires: ['event', 'node', 'dom']
 });
+
+(function (win, S) {
+  document.createElement('vframe');
+  if (!win.console) {
+    win.console = {
+      log: S.noop,
+      info: S.noop,
+      warn: S.noop,
+      error: S.noop
+    }
+  };
+  S.add('magix/magix', (S, Magix) => Magix, {
+    requires: ['magix']
+  });
+})(window, window.KISSY);

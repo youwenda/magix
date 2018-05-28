@@ -4283,7 +4283,7 @@ KISSY.add('magix', function (S, SE, DOM) {
         Magix.boot(cfg);
     };
     // Event
-    Event.un = Event.off;
+    Magix.Event.un = Magix.Event.off;
     // Router
     var G_LocationChanged;
     var G_Location = {
@@ -4319,7 +4319,7 @@ KISSY.add('magix', function (S, SE, DOM) {
             };
             if (Magix_Booted) {
                 Router_AttachViewAndPath(result);
-                result.pathname = result.path;
+                result.pathname = result.path || result.hash.path;
                 Router_HrefCache.set(href, result);
             }
         }
@@ -4330,6 +4330,7 @@ KISSY.add('magix', function (S, SE, DOM) {
     Router.navigate = Router.to;
     Router.on(G_CHANGED, function (e) {
         var location = Router.parse();
+        var changed = e;
         var occur = 1;
         for (var p in location) {
             if (G_Has(location, p) && p !== 'get') {
@@ -4339,20 +4340,15 @@ KISSY.add('magix', function (S, SE, DOM) {
         location.hash.pathname = location.hash.path;
         location.query.pathname = location.query.path;
         G_LocationChanged = G_Assign(e, {
-            occur: occur,
+            changed: changed,
             location: location,
-            changed: (_a = {
-                    pathname: e[G_PATH]
-                },
-                _a[Router_VIEW] = e[Router_VIEW],
-                _a[G_PARAMS] = e[G_PARAMS],
-                _a),
+            occur: occur,
+            pathname: e[G_PATH],
             isPathname: function () { return e[G_PATH]; },
             isView: function () { return e[Router_VIEW]; },
             isParam: function (k) { return e[G_PARAMS][k]; }
         });
         View[G_PROTOTYPE].location = location;
-        var _a;
     });
     // Vframe & Vom
     /**
@@ -4488,6 +4484,10 @@ KISSY.add('magix', function (S, SE, DOM) {
             }
             me.unmountView( /*keepPreHTML*/);
             me['$b'] = 0; //destroyed 详见unmountView
+            // 去除空vframe标签的情况
+            if (!viewPath) {
+                return;
+            }
             po = G_ParseUri(viewPath);
             view = po[G_PATH];
             if (node && view) {
@@ -6596,3 +6596,18 @@ KISSY.add('magix', function (S, SE, DOM) {
 }, {
     requires: ['event', 'node', 'dom']
 });
+(function (win, S) {
+    document.createElement('vframe');
+    if (!win.console) {
+        win.console = {
+            log: S.noop,
+            info: S.noop,
+            warn: S.noop,
+            error: S.noop
+        };
+    }
+    ;
+    S.add('magix/magix', function (S, Magix) { return Magix; }, {
+        requires: ['magix']
+    });
+})(window, window.KISSY);

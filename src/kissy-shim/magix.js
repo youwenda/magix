@@ -115,3 +115,5 @@ KISSY.add('magix', (S, SE, DOM) => {
 }, {
     requires: ['event', 'node', 'dom']
 });
+
+Inc('./iife');
