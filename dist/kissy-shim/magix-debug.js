@@ -5020,13 +5020,13 @@ const View_FixEvents = function (View, events) {
 const View_WrapMethod = (prop, fName, short, fn, me) => {
   fn = prop[fName];
   prop[fName] = prop[short] = function (...args) {
-      me = this;
-      if (me['$s'] > 0) { //signature
-          me['$s']++;
-          me.fire('rendercall');
-          View_DestroyAllResources(me);
-          return G_ToTry(fn, args, me);
-      }
+    me = this;
+    if (me['$s'] > 0) { //signature
+      me['$s']++;
+      me.fire('rendercall');
+      View_DestroyAllResources(me);
+      return G_ToTry(fn, args, me);
+    }
   };
 };
 
@@ -5100,10 +5100,29 @@ const Body_FindVframeInfo = (current, eventType) => {
         // method params
         i: match[5]
       };
-      // old events 参数进行处理成新的参数格式 in old events i === "{a:'a',b:'b'}" in new events i === "({a:'a',b:'b'})", 这里将参数处理成new events的写法
-      if (!match.c) {
+      // old events 参数进行处理成新的参数格式 in old events i === "{a:'a',b:'b'}" in new events i === "({a:'a',b:'b'})"
+      // 因为new events完全采用`updater`进行处理，因此老的模板，还是采用老的方式进行处理
+      if (match.e || !match.c) {
+        match.p = {};
         if (match.i) {
-          match.i = `(${S.trim(match.i)})`;
+          let i = S.trim(match.i);
+          if (i.charAt(0) == '{') i = i.slice(1);
+          if (i.charAt(i.length - 1) == '}') i = i.slice(0, -1);
+          i.replace(EvtParamsReg, (r, k, v) => {
+            match.p[k] = v;
+          });
+        }
+      } else if(match.i) {
+        // new events params because of Body_EvtInfoReg add ')' in last charcode in match.i
+        // TEST CASE
+        // let s = 'mx_223\x1echangeTabContent({type:cpc})';
+        // let nr = /(?:([\w\-]+)\x1e)?([^(]+)\(([\s\S]*)?\)/;
+        // => [, 'mx_223', 'changeTagContent', '{type:cpc}']
+        // s = 'mx_223\x1echangeTabContent({type:cpc})'
+        // let Body_EvtInfoReg = /(?:([\w\-]+)\x1e)?([^(<{]+)(?:<(\w+)>)?(\(?)([\s\S]*)?\)?/;
+        // => [, 'mx_223', 'changeTabContent', undefined, '(', '{type:cpc})']
+        if (match.i.charAt(match.i.length - 1) == ')') {
+          match.i = match.i.slice(0, -1);
         }
       }
       Body_EvtInfoCache.set(info, match);
@@ -5216,7 +5235,7 @@ const Body_DOMEventProcessor = domEvent => {
     eventInfos = Body_FindVframeInfo(target, type);
     if (eventInfos.length) {
       arr = [];
-      for (let { v, r, n, e, i } of eventInfos) {
+      for (let { v, r, n, e, i, p } of eventInfos) {
         if (!v && DEBUG) {
           return Magix_Cfg.error(Error(`bad ${type}:${r}`));
         }
@@ -5236,15 +5255,21 @@ const Body_DOMEventProcessor = domEvent => {
           eventName = n + G_SPLITER + type;
           fn = view[eventName];
           if (fn) {
-            domEvent.eventTarget = target;
-            domEvent.targetId = targetId;
-            domEvent.currentId = IdIt(target);
-            // TODO 测试一下Magix1的domEvent貌似是原生的domEvent?
-            domEvent.domEvent = domEvent;
-            domEvent.events = view.events;
-            domEvent.view = view;
+            G_Assign(domEvent, {
+              events: view.events,
+              eventTarget: target,
+              currentId: IdIt(target),
+              targetId,
+              // TODO 测试一下Magix1的domEvent貌似是原生的domEvent?
+              domEvent,
+              view
+            });
 
-            params = i ? G_ParseExpr(i, view['$b']['$a']) : {};
+            // 如果含有match.p, 则说明是老事件
+            params = p ? p
+                      : i ? G_ParseExpr(i, view['$b']['$a']) 
+                        : {};
+
             domEvent[G_PARAMS] = params;
             G_ToTry(fn, G_Assign(domEvent, WEvent), view);
             //没发现实际的用途
