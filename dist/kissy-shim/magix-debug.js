@@ -4625,70 +4625,71 @@ Router.on(G_CHANGED, e => {
  */
 const Dispatcher_Update = (vframe,  stateKeys,  view, isChanged, cs, c) => {
   if (vframe && vframe['$a'] != Dispatcher_UpdateTag &&
-      (view = vframe['$v']) &&
-      view['$s'] > 1) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
+    (view = vframe['$v']) &&
+    view['$s'] > 1) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
 
-      isChanged = stateKeys ? State_IsObserveChanged(view, stateKeys) : View_IsObserveChanged(view);
+    isChanged = stateKeys ? State_IsObserveChanged(view, stateKeys) : View_IsObserveChanged(view);
+    /**
+     * 事件对象
+     * @type {Object}
+     * @ignore
+     */
+    /*let args = {
+      location: RefLoc,
+      changed: RefG_LocationChanged,*/
+    /**
+     * 阻止向所有的子view传递
+     * @ignore
+     */
+    /* prevent: function() {
+        args.cs = EmptyArr;
+    },*/
+    /**
+     * 向特定的子view传递
+     * @param  {Array} c 子view数组
+     * @ignore
+     */
+    /*to: function(c) {
+        c = (c + EMPTY).split(COMMA);
+        args.cs = c;
+    }
+    };*/
+    
+    const args = {
+      location: G_Location,
+      changed: G_LocationChanged,
       /**
-       * 事件对象
-       * @type {Object}
-       * @ignore
-       */
-      /*let args = {
-              location: RefLoc,
-              changed: RefG_LocationChanged,*/
-      /**
-       * 阻止向所有的子view传递
-       * @ignore
-       */
-      /* prevent: function() {
-                  args.cs = EmptyArr;
-              },*/
+      * 阻止向所有的子view传递
+      */
+      prevent: function () {
+        this.cs = [];
+      },
       /**
        * 向特定的子view传递
        * @param  {Array} c 子view数组
-       * @ignore
        */
-      /*to: function(c) {
-                  c = (c + EMPTY).split(COMMA);
-                  args.cs = c;
-              }
-          };*/
-      
-      const args = {
-        location: G_Location,
-        changed: G_LocationChanged,
-        /**
-        * 阻止向所有的子view传递
-        */
-        prevent: function () {
-          this.cs = [];
-        },
-        /**
-         * 向特定的子view传递
-         * @param  {Array} c 子view数组
-         */
-        toChildren: function (c) {
-          c = c || [];
-          if (S.isString(c)) {
-            c = c.split(',');
-          }
-          this.cs = c;
+      toChildren: function (c) {
+        c = c || [];
+        if (S.isString(c)) {
+          c = c.split(',');
         }
-      };
+        this.cs = c;
+      }
+    };
 
-      if (isChanged) { //检测view所关注的相应的参数是否发生了变化
-        if (S.isFunction(view.locationChange)) {
-          console.warn('Deprecated View#locationChange');
-          view.locationChange(args);
-        }
-        // 兼容Magix1.0版本代码，如果没有`locationChange`方法，不进行渲染，但实际在Magix3中默认执行`render方法`
-        // view['$a']();
+    if (isChanged) { //检测view所关注的相应的参数是否发生了变化
+      if (S.isFunction(view.locationChange)) {
+        console.warn('Deprecated View#locationChange');
+        view.locationChange(args);
       }
-      cs = args.cs && args.cs.length && args.cs || vframe.children();
-      for (c of cs) {
-        Dispatcher_Update(Vframe_Vframes[c], stateKeys );
-      }
+      // TODO 判断如果当前view是magix-components(通过view.path即可)下的代码需要进行调用`render`方法
+      // 兼容Magix1.0版本代码，如果没有`locationChange`方法，不进行渲染，但实际在Magix3中默认执行`render方法`
+      // view['$a']();
+    }
+    cs = args.cs && args.cs.length && args.cs || vframe.children();
+    for (c of cs) {
+      Dispatcher_Update(Vframe_Vframes[c], stateKeys );
+    }
   }
 };
 
@@ -4989,9 +4990,25 @@ const View_FixEvents = function (View, events) {
           if (G_Has(events[type], fn) && S.isFunction(events[type][fn])) {
             let bound = S.bind(events[type][fn], events[type]);
             prop[fn + '<' + type + '>'] = bound;
+            // 针对于Babel解析events作为实例属性的Hack处理，处理同`View_Prepare`方法
             if (prop['$eo']) {
               prop['$eo'][type] = prop['$eo'][type] | 1;
-              prop[fn + G_SPLITER + type] = bound;
+              // 不能简单的进行赋值操作，而是要考虑到mixins的问题
+              // prop[fn + G_SPLITER + type] = bound;
+              let item = fn + G_SPLITER + type;
+              let node = prop[item];
+              
+              //for in 就近遍历，如果有则忽略
+              if (!node) { //未设置过
+                prop[item] = bound;
+              } else if (node['b']) { //现有的方法是mixins上的
+                if (bound['b']) { //2者都是mixins上的事件，则合并，早期事件肯定不是mixins的， 因此此判断永远为false，但谁又能保证不讲一个view作为mixins呢，因此判断暂时保留
+                  prop[item] = processMixinsSameEvent(bound, node);
+                } else { // bound方法肯定不是mixin上的，也不是继承来的（本身为Babel对events属性的判断）。在当前view上，优先级最高
+                  prop[item] = bound;
+                }
+              }
+              
             }
           }
         }
@@ -5037,25 +5054,153 @@ View_Prepare = (View) => {
 
 // Body
 const Body_EvtInfoReg = /(?:([\w\-]+)\x1e)?([^(<{]+)(?:<(\w+)>)?(\(?)([\s\S]*)?\)?/;
+const EvtParamsReg = /(\w+):([^,]+)/g;
+  
 const Body_RootEvents = {};
 const Body_SearchSelectorEvents = {};
-const EvtParamsReg = /(\w+):([^,]+)/g; 
+const Body_RangeEvents = {};
+const Body_RangeVframes = {};
+const Body_Guid = 0;
 
-const G_DOMEventLibBind = (node, type, cb, remove, scope, selector) => {
-  if (Specials[type] === 1) {
-    selector = `[mx-${type}]`;
-    if (!Specials[`${type}fn`]) {
-      cb = Specials[`${type}fn`] = S.bind(cb, scope);     
+const WEvent = {
+  prevent(e) {
+    e = e || this.domEvent;
+    e.preventDefault();
+  },
+  stop(e) {
+    e = e || this.domEvent;
+    e.stopPropagation();
+  },
+  halt(e) {
+    this.prevent(e);
+    this.stop(e);
+  }
+};
+
+const Body_FindVframeInfo = (current, eventType) => {
+  let vf, tempId, selectorObject, eventSelector, eventInfos = [],
+    begin = current,
+    info = current.getAttribute(`mx-${eventType}`),
+    match, view, vfs = [],
+    selectorVfId = G_HashKey,
+    backtrace = 0;
+  if (info) {
+    match = Body_EvtInfoCache.get(info);
+    if (!match) {
+      match = info.match(Body_EvtInfoReg) || G_EMPTY_ARRAY;
+      match = {
+        // vframe id
+        v: match[1],
+        // method name
+        n: match[2],
+        // event process including prevent | stop | halt
+        e: match[3],
+        // adapter old events in old events match[4] === '', in new events match[4] === '('
+        c: match[4],
+        // method params
+        i: match[5]
+      };
+      // old events 参数进行处理成新的参数格式 in old events i === "{a:'a',b:'b'}" in new events i === "({a:'a',b:'b'})", 这里将参数处理成new events的写法
+      if (!match.c) {
+        if (match.i) {
+          match.i = `(${S.trim(match.i)})`;
+        }
+      }
+      Body_EvtInfoCache.set(info, match);
     }
-  } else {
-    selector = G_EMPTY;
+    match = {
+      ...match,
+      
+      r: info
+    };
   }
+  //如果有匹配但没有处理的vframe或者事件在要搜索的选择器事件里
+  if ((match && !match.v) || Body_SearchSelectorEvents[eventType]) {
+    if ((selectorObject = Body_RangeVframes[tempId = begin['$d']])
+      && selectorObject[begin['$e']] == 1) {
+      view = 1;
+      selectorVfId = tempId;//如果节点有缓存，则使用缓存
+    }
+    if (!view) { //先找最近的vframe
+      vfs.push(begin);
+      while (begin != G_DOCBODY && (begin = begin.parentNode)) { //找最近的vframe,且节点上没有mx-autonomy属性
+        if (Vframe_Vframes[tempId = begin.id] ||
+          ((selectorObject = Body_RangeVframes[tempId = begin['$d']]) &&
+            selectorObject[begin['$e']] == 1)) {
+          selectorVfId = tempId;
+          break;
+        }
+        vfs.push(begin);
+      }
+      for (info of vfs) {
+        if (!(tempId = Body_RangeVframes[selectorVfId])) {
+          tempId = Body_RangeVframes[selectorVfId] = {};
+        }
+        selectorObject = info['$e'] || (info['$e'] = ++Body_Guid);
+        tempId[selectorObject] = 1;
+        info['$d'] = selectorVfId;
+      }
+    }
+    if (selectorVfId != G_HashKey) { //从最近的vframe向上查找带有选择器事件的view
+      
+      begin = current.id;
+      if (Vframe_Vframes[begin]) {
+        /*
+            如果当前节点是vframe的根节点，则把当前的vf置为该vframe
+            该处主要处理这样的边界情况
+            <mx-vrame src="./test" mx-click="parent()"/>
+            //.test.js
+            export default Magix.View.extend({
+                '$<click>'(){
+                    console.log('test clicked');
+                }
+            });
 
-  if (scope || selector) {
-      SE[`${remove ? 'un' : G_EMPTY}delegate`](node, type, selector, cb, scope);
-  } else {
-      SE[remove ? 'detach' : 'on'](node, type, cb, scope);
+            当click事件发生在mx-vframe节点上时，要先派发内部通过选择器绑定在根节点上的事件，然后再派发外部的事件
+        */
+        backtrace = selectorVfId = begin;
+      }
+      do {
+        vf = Vframe_Vframes[selectorVfId];
+        if (vf && (view = vf['$v'])) {
+          selectorObject = view['$so'];
+          eventSelector = selectorObject[eventType];
+          for (tempId in eventSelector) {
+            selectorObject = {
+              r: tempId,
+              v: selectorVfId,
+              n: tempId
+            };
+            if (tempId) {
+              /*
+                  事件发生时，做为临界的根节点只能触发`$`绑定的事件，其它事件不能触发
+              */
+              if (!backtrace &&
+                G_TargetMatchSelector(current, tempId)) {
+                eventInfos.push(selectorObject);
+              }
+            } else if (backtrace) {
+              eventInfos.unshift(selectorObject);
+            }
+          }
+          //防止跨view选中，到带模板的view时就中止或未指定
+          
+          if (view['$d'] && !backtrace) {
+            
+            if (match && !match.v) match.v = selectorVfId;
+            
+            break; //带界面的中止
+          }
+          backtrace = 0;
+        }
+      }
+      while (vf && (selectorVfId = vf.pId));
+    }
   }
+  if (match) {
+    eventInfos.push(match);
+  }
+  return eventInfos;
 };
 
 const Body_DOMEventProcessor = domEvent => {
@@ -5065,13 +5210,19 @@ const Body_DOMEventProcessor = domEvent => {
   let vframe, view, eventName, fn;
   let lastVfId;
   let params, arr = [];
+  // 记录target的id
+  let targetId = IdIt(target);
   while (target != G_DOCBODY) {
     eventInfos = Body_FindVframeInfo(target, type);
     if (eventInfos.length) {
       arr = [];
-      for (let { v, r, n, i } of eventInfos) {
+      for (let { v, r, n, e, i } of eventInfos) {
         if (!v && DEBUG) {
           return Magix_Cfg.error(Error(`bad ${type}:${r}`));
+        }
+        // 处理old events 的 process
+        if (e && WEvent[e]) {
+          WEvent[e](domEvent);
         }
         if (lastVfId != v) {
           if (lastVfId && domEvent.isPropagationStopped()) {
@@ -5086,9 +5237,16 @@ const Body_DOMEventProcessor = domEvent => {
           fn = view[eventName];
           if (fn) {
             domEvent.eventTarget = target;
+            domEvent.targetId = targetId;
+            domEvent.currentId = IdIt(target);
+            // TODO 测试一下Magix1的domEvent貌似是原生的domEvent?
+            domEvent.domEvent = domEvent;
+            domEvent.events = view.events;
+            domEvent.view = view;
+
             params = i ? G_ParseExpr(i, view['$b']['$a']) : {};
             domEvent[G_PARAMS] = params;
-            G_ToTry(fn, domEvent, view);
+            G_ToTry(fn, G_Assign(domEvent, WEvent), view);
             //没发现实际的用途
             /*if (domEvent.isImmediatePropagationStopped()) {
                 break;
@@ -5151,6 +5309,236 @@ const Body_DOMEventProcessor = domEvent => {
     }
   }
 };
+
+const G_DOMEventLibBind = (node, type, cb, remove, scope, selector) => {
+  if (Specials[type] === 1) {
+    selector = `[mx-${type}]`;
+    if (!Specials[selector]) {
+      cb = Specials[selector] = S.bind(cb, scope);     
+    }
+  } else {
+    selector = G_EMPTY;
+  }
+
+  if (scope || selector) {
+      SE[`${remove ? 'un' : G_EMPTY}delegate`](node, type, selector, cb, scope);
+  } else {
+      SE[remove ? 'detach' : 'on'](node, type, cb, scope);
+  }
+};
+
+
+View.mixin = (props, ctor) => {
+  console.warn('Deprecated Magix.View.mixin,use Magix.View.merge instead');
+  if (!props) props = {};
+  if (ctor) {
+    if (props.ctor) {
+      console.error('duplicate ctors');
+    }
+    props.ctor = ctor;
+  }
+  return View.merge(props);
+};
+
+
+
+const View_IsObserveChanged = view => {
+  let loc = view['$l'];
+  // TODO view.template来区分是否是新旧Magix的处理比较弱
+  let res = view.template ? 1 : 0; //兼容旧版，旧版对于没有observe参数时，默认是返回true的，然后由`locationChange`决定如何操作，新版则不是
+  let i, params;
+  // 调用过observeLocation方法
+  if (loc.f) {
+    if (loc.p) {
+      res = Router_LastChanged[G_PATH];
+    }
+    if (!res && loc.k) {
+      params = Router_LastChanged[G_PARAMS];
+      for (i of loc.k) {
+        res = G_Has(params, i);
+        if (res) break;
+      }
+    }
+    // if (res && loc.c) {
+    //     loc.c.call(view);
+    // }
+  }
+  return res;
+};
+
+
+// 处理Magix1早期的 postMessage and receiveMessage method
+const VOMEventsObject = {};
+const PrepareVOMMessage = function (Vframe) {
+  if (!PrepareVOMMessage.d) {
+    PrepareVOMMessage.d = 1;
+    Vframe.on('add', function (e) {
+      let vf = e.vframe;
+      let list = VOMEventsObject[vf.id];
+      if (list) {
+        for (let i = 0; i < list.length; i++) {
+          PostMessage(vf, list[i]);
+        }
+        delete VOMEventsObject[vf.id];
+      }
+    });
+    Vframe.on('remove', function (e) {
+      delete VOMEventsObject[e.vframe.id];
+    });
+    let vf = Vframe.root();
+    vf.on('created', function () {
+      VOMEventsObject = {};
+    });
+  }
+};
+const PostMessage = function (vframe, args) {
+  vframe.invoke('receiveMessage', args);
+};
+
+const View_ScopeReg = /\x1f/g;
+const View_SetEventOwner = (str, id) => (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
+const origObserveLocation = View[G_PROTOTYPE].observeLocation;
+G_Assign(View[G_PROTOTYPE], {
+  vom: Vframe,
+  location: G_Location,
+  $(id) {
+    console.warn('Deprecated view.prorotype.$,use Magix.node instead');
+    return Magix.node(id);
+  },
+  observeLocation(params, isObservePath) {
+    if (G_IsObject(params)) {
+      if (params.keys || params.pathname) {
+        console.log('update observeLocation: use params instead keys and path instead pathname')
+        origObserveLocation.call(this, params.keys, params.pathname);
+      } else {
+        origObserveLocation.call(this, params, isObservePath);
+      }
+      return;
+    }
+    origObserveLocation.call(this, params, isObservePath);
+  },
+  parentView() {
+    var p = this.owner.parent();
+    return p && p.view;
+  },
+  /**
+   * 通知当前view进行更新，与beginUpdate不同的是：begin是开始更新html，notify是开始调用更新的方法，通常render与renderUI已经自动做了处理，对于用户自定义的获取数据并更新界面时，在开始更新前，需要调用一下该方法
+   * @return {Integer} 当前view的签名
+   */
+  notifyUpdate() {
+    if (this['$s']) {
+      this['$s']++;
+      this.fire('rendercall');
+    }
+    return this['$s'];
+  },
+  wrapMxEvent(html) {
+    return String(html);
+  },
+  navigate() {
+    console.warn('Deprecated View#navigate use Magix.Router.to instead。请查阅：http://gitlab.alibaba-inc.com/mm/afp/issues/2 View#navigate部分');
+    Router.to.apply(Router, arguments);
+  },
+  manage(key, res, destroyWhenCallRender) {
+    let cache = this['$r'];
+    let args = arguments;
+    let wrapObj;
+    console.warn('Deprecated View#manage use View#capture instead. But This Very Different!');
+    if (args.length === 2) {
+      console.warn('View#manage VS View#capture When Using Explicit Key. They are different!');
+    }
+    if (key && !res) {
+      res = key;
+      key = G_Id();
+    }
+    if (res) {
+      // View_DestroyResource(cache, key, 1, res);
+      wrapObj = {
+        e: res,
+        x: destroyWhenCallRender
+      };
+      cache[key] = wrapObj;
+      //service托管检查
+      if (DEBUG && res && (res.id + G_EMPTY).indexOf('\x1es') === 0) {
+        res.$c = 1;
+        if (!destroyWhenCallRender) {
+          console.warn('beware! May be you should set destroyWhenCallRender = true');
+        }
+      }
+    } else {
+      wrapObj = cache[key];
+      res = wrapObj && wrapObj.e || res;
+    }
+    return res;
+  },
+  getManaged(key) {
+    console.warn('Deprecated View#getManaged use View#capture instead');
+    return this.capture(key);
+  },
+  removeManaged(key) {
+    console.warn('Deprecated View#removeManaged use View#release instead');
+    return this.release(key);
+  },
+  destroyManaged(e) {
+    View_DestroyAllResources(this, 1);
+  },
+  load() {
+    return Promise.resolve();
+  },
+  /**
+   * 恢复为Magix3.7.0的方法，设置view的html内容
+   * @param {String} id 更新节点的id
+   * @param {Strig} html html字符串
+   * @example
+   * render:function(){
+   *     this.setHTML(this.id,this.tmpl);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
+   * }
+   */
+  setHTML(id, html) {
+    this.beginUpdate(id);
+    if (this['$s'] > 0) {
+      let node = G_GetById(id);
+      if (node) {
+        $(node).html(View_SetEventOwner(html, this.id));
+      }
+    }
+    this.endUpdate(id);
+  },
+  setViewHTML: function (html) {
+    this.setHTML(this.id, html);
+  },
+  /**
+   * 用于接受其它view通过postMessageTo方法发来的消息，供最终的view开发人员进行覆盖
+   * @function
+   * @param {Object} e 通过postMessageTo传递的第二个参数
+   */
+  receiveMessage: G_NOOP,
+  /**
+   * 向某个vframe发送消息
+   * @param {Array|String} aims  目标vframe id数组
+   * @param {Object} args 消息对象
+   */
+  postMessageTo(aims, args) {
+    PrepareVOMMessage(Vframe);
+
+    if (!Magix.isArray(aims)) {
+      aims = [aims];
+    }
+    if (!args) args = {};
+    for (let i = 0, it; i < aims.length; i++) {
+      it = aims[i];
+      let vframe = Vframe.get(it);
+      if (vframe) {
+        PostMessage(vframe, args);
+      } else {
+        if (!VOMEventsObject[it]) {
+          VOMEventsObject[it] = [];
+        }
+        VOMEventsObject[it].push(args);
+      }
+    }
+  }
+});
 
 //////////////////////// Shim ////////////////////////
     return Magix;
