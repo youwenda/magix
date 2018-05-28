@@ -108,7 +108,10 @@ KISSY.add('magix', (S, SE, DOM) => {
     S.add(MxGlobalView, () => View.extend());
     /*#}#*/
     Inc('./shim');
+    Inc('./manager');
+
+    window.Magix = Magix;
     return Magix;
 }, {
-        requires: ['event', 'node', 'dom']
-    });
+    requires: ['event', 'node', 'dom']
+});

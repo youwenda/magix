@@ -416,7 +416,7 @@ G_Assign(Vframe[G_PROTOTYPE], {
               View_DelegateEvents(view);
               view.fire('interact');
               /*#if(modules.viewInit){#*/
-              G_ToTry(view.init, /*#if(modules.viewSlot){#*/[params, vNodes]/*#}else{#*/params/*#}#*/, view);
+              G_ToTry(view.init, params, view);
               /*#}#*/
 
               view['@{view#render.short}']();
@@ -1094,7 +1094,7 @@ G_Assign(View[G_PROTOTYPE], {
       cache[key] = wrapObj;
       //service托管检查
       if (DEBUG && res && (res.id + G_EMPTY).indexOf('\x1es') === 0) {
-        res.$c = 1;
+        res['@{service#captured}'] = 1;
         if (!destroyWhenCallRender) {
           console.warn('beware! May be you should set destroyWhenCallRender = true');
         }
@@ -1111,7 +1111,7 @@ G_Assign(View[G_PROTOTYPE], {
   },
   removeManaged(key) {
     console.warn('Deprecated View#removeManaged use View#release instead');
-    return this.release(key);
+    return this.release(key, 1);
   },
   destroyManaged(e) {
     View_DestroyAllResources(this, 1);
@@ -1174,4 +1174,11 @@ G_Assign(View[G_PROTOTYPE], {
   }
 });
 
+S.add('magix/magix', () => Magix);
+S.add('magix/event', () => Magix.Event);
+S.add('magix/router', () => Router);
+S.add('magix/vframe', () => Vframe);
+S.add('magix/vom', () => Vframe);
+S.add('magix/view', () => View);
+S.add('mxext/view', () => View);
 //////////////////////// Shim ////////////////////////
