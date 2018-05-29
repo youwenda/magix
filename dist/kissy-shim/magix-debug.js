@@ -4875,6 +4875,8 @@ G_Assign(Vframe[G_PROTOTYPE], {
   /**
    * 加载某个区域下的view
    * @param {HTMLElement|String} zoneId 节点对象或id
+   * @deprecated @param {Object|undefined} 向view传递的参数，在Magix3.8.10中已经废弃，因某个区域下面可能会有很多view，如果传递，所有view都会接受这个参数
+   * 
    * @example
    * // html
    * // &lt;div id="zone"&gt;
@@ -4883,7 +4885,7 @@ G_Assign(Vframe[G_PROTOTYPE], {
    *
    * view.onwer.mountZone('zone');//即可完成zone节点下的view渲染
    */
-  mountZone(zoneId, inner /*,keepPreHTML*/) {
+  mountZone(zoneId, viewInitParams, inner /*,keepPreHTML*/) {
     let me = this;
     let vf, id, vfs = [];
     zoneId = zoneId || me.id;
@@ -4931,10 +4933,10 @@ G_Assign(Vframe[G_PROTOTYPE], {
         if (vfs[id]) {
           Magix_Cfg.error(Error(`vf.id duplicate:${id} at ${me[G_PATH]}`));
         } else {
-          me.mountVframe(vfs[id] = id, vf);
+          me.mountVframe(vfs[id] = id, vf, viewInitParams);
         }
       } else {
-        me.mountVframe(id, vf);
+        me.mountVframe(id, vf, viewInitParams);
       }
     }
     me['$d'] = 0;
@@ -5528,6 +5530,7 @@ G_Assign(View[G_PROTOTYPE], {
   /**
  * 通知当前view即将开始进行html的更新
  * @param {String} [id] 哪块区域需要更新，默认整个view
+ * @deprecated Magix3.8.10中不再fire `prerender`事件
  */
   beginUpdate(id, me) {
     me = this;
@@ -5541,6 +5544,7 @@ G_Assign(View[G_PROTOTYPE], {
   /**
    * 通知当前view结束html的更新
    * @param {String} [id] 哪块区域结束更新，默认整个view
+   * @deprecated Magix3.8.10不再fire `rendered`事件
    */
   endUpdate(id, inner, me , o, f ) {
     me = this;
@@ -5559,7 +5563,7 @@ G_Assign(View[G_PROTOTYPE], {
       }
       
       o = me.owner;
-      o.mountZone(id, inner);
+      o.mountZone(id, G_Undefined, inner);
       if (!f) {
         
         Timeout(me.wrapAsync(Vframe_RunInvokes), 0, o);
@@ -5569,7 +5573,7 @@ G_Assign(View[G_PROTOTYPE], {
     }
   },
   /**
-   * 恢复为Magix3.7.0的方法，设置view的html内容
+   * @deprecated 恢复为Magix3.7.0的方法，设置view的html内容
    * @param {String} id 更新节点的id
    * @param {Strig} html html字符串
    * @example
