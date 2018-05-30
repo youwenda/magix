@@ -104,8 +104,8 @@ const Router_Parse = function Router_Parse(href) {
       pathname: query.path
     });
 
-    G_Assign(query, {
-      pathname: query.path
+    G_Assign(hash, {
+      pathname: hash.path
     });
 
     params = {

@@ -1,4 +1,4 @@
-KISSY.add('magix', (S, SE, DOM) => {
+KISSY.add('magix', (S, SE, Node, DOM) => {
     if (typeof DEBUG == 'undefined') window.DEBUG = true;
     let $ = S.all;
     let G_IsObject = S.isObject;
@@ -65,7 +65,7 @@ KISSY.add('magix', (S, SE, DOM) => {
     /*#}#*/
     Inc('../tmpl/vframe');
     /*#if(modules.nodeAttachVframe){#*/
-    DOM[G_PROTOTYPE].invokeView = function (name, args) {
+    Node[G_PROTOTYPE].invokeView = function (name, args) {
         let returned = [], e, vf;
         for (e of this) {
             vf = e.vframe;

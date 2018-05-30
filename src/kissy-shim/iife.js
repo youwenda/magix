@@ -7,7 +7,7 @@
       warn: S.noop,
       error: S.noop
     }
-  };
+  }
   S.add('magix/magix', (S, Magix) => Magix, {
     requires: ['magix']
   });

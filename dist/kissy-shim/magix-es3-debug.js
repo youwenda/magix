@@ -5,11 +5,11 @@
 /*
 author:kooboy_li@163.com
 loader:kissy-shim
-enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM,eventEnterLeave
+enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM,eventEnterLeave,kissy
 
 optionals:updaterVDOM,updaterAsync,serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,viewSlot,share,mxViewAttr,keepHTML,naked,vdom
 */
-KISSY.add('magix', function (S, SE, DOM) {
+KISSY.add('magix', function (S, SE, Node, DOM) {
     if (typeof DEBUG == 'undefined')
         window.DEBUG = true;
     var $ = S.all;
@@ -2007,7 +2007,7 @@ KISSY.add('magix', function (S, SE, DOM) {
      *
      *      fca firstChildrenAlter  fcc firstChildrenCreated
      */
-    DOM[G_PROTOTYPE].invokeView = function (name, args) {
+    Node[G_PROTOTYPE].invokeView = function (name, args) {
         var returned = [], e, vf;
         for (var _i = 0, _a = this; _i < _a.length; _i++) {
             e = _a[_i];
@@ -2666,8 +2666,7 @@ KISSY.add('magix', function (S, SE, DOM) {
                 view.endUpdate(selfId);
             }
             if (ref.c) {
-                G_DOC.trigger({
-                    type: 'htmlchanged',
+                G_DOC.fire('htmlchanged', {
                     vId: selfId
                 });
             }
@@ -4311,8 +4310,8 @@ KISSY.add('magix', function (S, SE, DOM) {
             G_Assign(query, {
                 pathname: query.path
             });
-            G_Assign(query, {
-                pathname: query.path
+            G_Assign(hash, {
+                pathname: hash.path
             });
             params = G_Assign({}, query[G_PARAMS], hash[G_PARAMS]);
             result = {
@@ -6662,7 +6661,6 @@ KISSY.add('magix', function (S, SE, DOM) {
             error: S.noop
         };
     }
-    ;
     S.add('magix/magix', function (S, Magix) { return Magix; }, {
         requires: ['magix']
     });
