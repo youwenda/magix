@@ -4,9 +4,9 @@
 (function(win, S, QUnit, Test, EMPTY) {
   function Api(Magix) {
     QUnit.module(' Api ');
-    const isMagix1 = win.Magix || S.Env.mods['magix/magix'];
-    const isMagix3 = !Magix.version && S.Env.mods['magix'];
-    const isMagix3Shim = Magix.version && S.Env.mods['magix'];
+    // const isMagix1 = win.Magix || S.Env.mods['magix/magix'];
+    // const isMagix3 = !Magix.version && S.Env.mods['magix'];
+    // const isMagix3Shim = Magix.version && S.Env.mods['magix'];
     
     QUnit.test('isArray, isFunction, isObject, isRegExp, isString, isNumber', assert => {
       if (isMagix1 || isMagix3Shim) {

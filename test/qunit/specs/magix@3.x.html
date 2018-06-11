@@ -8,6 +8,7 @@
   <link rel="stylesheet" type="text/css" href="../../../tool/node_modules/qunitjs/qunit/qunit.css" />
 </head>
 <body>
+  <div id="J_app_main"></div>
   <div id="qunit"></div>
   <div id="qunit-fixture"></div>
   <script type="text/javascript" src="../../../tool/node_modules/qunitjs/qunit/qunit.js"></script>
@@ -15,11 +16,29 @@
   <script src="../../../dist/kissy/magix-es3-debug.js"></script>
   <script src="./api.js"></script>
   <script src="./event.js"></script>
+  <script src="./router.js"></script>
+  <script src="./vframe.js"></script>
   <script>
     (function(win, S, Test) {
+      window.isMagix1 = 0;
+      window.isMagix3Shim = 0;
+      window.isMagix3 = 1;
       S.use('magix', (S, Magix) => {
+        S.config({
+          base: '/test/qunit/specs/app'
+        });
+        Magix.boot({
+          rootId: 'J_app_main',
+          defaultView: 'view/default',
+          defaultPath: '/home',
+          routes: {
+            "/home":"view/default"
+          }
+        });
+        Test.Vframe(Magix, Magix.Vframe);
         Test.Api(Magix);
         Test.Event(Magix, Magix.Event);
+        Test.Router(Magix, Magix.Router);
       });
     })(window, window.KISSY, window.Test || (window.Test = {}));
   </script>
