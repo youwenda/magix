@@ -9,6 +9,7 @@ enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,
 
 optionals:updaterVDOM,updaterAsync,serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,viewSlot,share,mxViewAttr,keepHTML,naked,vdom
 */
+// xxx
 KISSY.add('magix', function (S, SE, Node, DOM) {
     if (typeof DEBUG == 'undefined')
         window.DEBUG = true;
