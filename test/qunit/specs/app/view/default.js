@@ -5,10 +5,13 @@ KISSY.add("view/default", function (S, View) {
         init: function (){
             this.owner.fire('mounted');
         },
+        'fold<click>'(e) {
+            console.log('xx');
+        },
         events: {
             click: {
                 a: function () {
-                    console.log('a0');
+                    return 'a0'
                 }
             }
         }

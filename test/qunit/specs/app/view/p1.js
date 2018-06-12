@@ -5,13 +5,13 @@ KISSY.add("view/p1", function (S, View) {
         events: {
             click: {
                 a: function () {
-                    console.log('a');
+                    return 'a1'
                 },
                 b: function () {
-                    console.log('b');
+                    return 'b1'
                 },
                 c: function () {
-                    console.log('c');
+                    return 'c1'
                 }
             }
         }
