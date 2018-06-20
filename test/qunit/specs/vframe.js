@@ -14,7 +14,7 @@
           vframe.on('mounted', () => {
             const proto = vframe.view.__proto__;
             assert.ok(vframe.view instanceof Magix.View, 'vframe中存在view对象');
-            assert.equal(proto.tmpl, '<div>111</div>');
+            assert.ok(S.isFunction(proto.tmpl));
             assert.equal(vframe.view['sign'], vframe.view.$s);
             // View_prepare
             assert.ok(S.isFunction(proto['a<click>']), '存在a方法');
@@ -30,8 +30,39 @@
             assert.equal(vframe.view.sign, vframe.view.$s, 'view有sign属性，与$s相等');
             vframe.view.sign = '?';
             assert.notEqual(vframe.view.sign, '?', 'view的sign参数不能被重写');
+            // mountZone
+            assert.deepEqual(Object.keys(Vframe.all()), ['J_app_main', 'mx_25', 'mx_26']);
+            assert.equal(vframe.$d, 0);
+            // event
             done();
           })
+        });
+        QUnit.test('vframe.event', assert => {
+          let done = assert.async();
+          const vframe = Magix.Vframe.get('mx_26');
+          vframe.on('content2mounted', () => {
+            assert.equal(vframe.num, undefined);
+            S.one('input.btn').fire('click');
+            assert.equal(vframe.num, 2);
+            done();
+          });
+        });
+        QUnit.test('vframe.setHTML', assert => {
+          let done = assert.async();
+          const vframe = Magix.Vframe.get('mx_26');
+          vframe.on('content2html', () => {
+            assert.equal(S.one('#mx_26').html(), '<p>1111</p>')
+            done();
+          });
+        });
+        QUnit.test('vframe.postMessageTo', assert => {
+          let done = assert.async();
+          const vframe1 = Magix.Vframe.get('mx_25');
+          const vframe2 = Magix.Vframe.get('mx_26');
+          vframe2.on('content2postmessage', () => {
+            assert.equal(vframe1.receive, 1);
+            done();
+          });
         });
         QUnit.test('View.prototype', assert => {
           const view = data.vframe.view;
@@ -47,7 +78,6 @@
           assert.deepEqual(view.getManaged('dialog'), {id: 1}, 'getManaged ok');
           view.removeManaged('dialog');
           assert.ok(!view.$r.dialog, 'removeManaged ok');
-          // view load?  wrapMxEvent?
         });
         QUnit.test('vframe.unmountView', assert => {
           const vframe = data.vframe;

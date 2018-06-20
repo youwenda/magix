@@ -9,8 +9,7 @@ enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,
 
 optionals:updaterVDOM,updaterAsync,serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,viewSlot,share,mxViewAttr,keepHTML,naked,vdom
 */
-// xxx
-KISSY.add('magix', function (S, SE, Node, DOM) {
+KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
     if (typeof DEBUG == 'undefined')
         window.DEBUG = true;
     var $ = S.all;
@@ -6650,7 +6649,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
     window.Magix = Magix;
     return Magix;
 }, {
-    requires: ['event', 'node', 'dom']
+    requires: ['event', 'node', 'dom', 'sizzle']
 });
 (function (win, S) {
     document.createElement('vframe');
