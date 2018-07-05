@@ -6,8 +6,10 @@
   "types": "types/magix.d.ts",
   "scripts": {
     "build": "cd ./tool && npx gulp combine",
-    "test:qunit": "cd ./tool & npx gulp test:qunit",
-    "test:shim": "./node_modules/.bin/karma start karma.conf-magix3-shim"
+    "test:qunit": "cd ./tool & npx gulp test:qunit --single-run",
+    "test:shim": "./node_modules/.bin/karma start karma.conf-magix3-shim ",
+    "test:3.0": "./node_modules/.bin/karma start karma.conf-magix3 ",
+    "test:1.0": "./node_modules/.bin/karma start karma.conf-magix1 "
   },
   "repository": {
     "type": "git",

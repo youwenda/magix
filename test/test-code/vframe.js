@@ -1,98 +1,119 @@
 /**
  * @description https://lark.alipay.com/jintai.yzq/subway/magix1to3
  */
-(function (win, S, QUnit, Test, EMPTY) {
+(function (win, S, Test, EMPTY) {
   const $ = S.all;
-  function Vframe(Magix, Vframe) {
-    QUnit.module(' Vframe ');
+  const expect = chai.expect;
 
-    if (isMagix3Shim) {
-      Magix.Vframe.on('add', function (data) {
-        QUnit.test('vframe.mountView', assert => {
-          let done = assert.async();
-          const vframe = data.vframe;
-          vframe.on('mounted', () => {
-            const proto = vframe.view.__proto__;
-            assert.ok(vframe.view instanceof Magix.View, 'vframe中存在view对象');
-            assert.ok(S.isFunction(proto.tmpl));
-            assert.equal(vframe.view['sign'], vframe.view.$s);
-            // View_prepare
-            assert.ok(S.isFunction(proto['a<click>']), '存在a方法');
-            assert.equal(proto['a<click>'](), 'a0', '自身的a方法');
-            assert.ok(S.isFunction(proto['b<click>']), '存在b方法');
-            assert.equal(proto['b<click>'](), 'b1', '一级父view的b方法');
-            assert.ok(S.isFunction(proto['c<click>']), '存在c方法');
-            assert.equal(proto['c<click>'](), 'c1', '一级父view的c方法');
-            assert.ok(S.isFunction(proto['d<click>']), '存在d方法');
-            assert.equal(proto['d<click>'](), 'd2', '二级父view的d方法');
-            // View_Ctors
-            assert.equal(vframe.view.path, vframe.$j, 'view有path属性，与vframe$j相等');
-            assert.equal(vframe.view.sign, vframe.view.$s, 'view有sign属性，与$s相等');
-            vframe.view.sign = '?';
-            assert.notEqual(vframe.view.sign, '?', 'view的sign参数不能被重写');
-            // mountZone
-            assert.deepEqual(Object.keys(Vframe.all()), ['J_app_main', 'mx_25', 'mx_26']);
-            assert.equal(vframe.$d, 0);
-            // event
-            done();
-          })
+  function Vframe() {
+    describe('Vframe', () => {
+      if (isMagix3Shim) {
+        it('vframe.mountView', () => {
+          const Vframe = Magix.Vframe;
+          const vframe = win.addFrameData.vframe;
+
+          const proto = vframe.view.__proto__;
+
+          expect(vframe.view instanceof Magix.View).to.be.ok;
+          expect(S.isFunction(proto.tmpl)).to.be.ok;
+          expect(vframe.view['sign']).to.be.equal(vframe.view.$s);
+          // View_prepare
+          expect(S.isFunction(proto['a<click>'])).to.be.ok; // 存在a方法
+          expect(proto['a<click>']()).to.be.equal('a0'); // 自身的a方法
+          expect(S.isFunction(proto['b<click>'])).to.be.ok; // 存在b方法
+          expect(proto['b<click>']()).to.be.equal('b1'); // 一级父view的b方法
+          expect(S.isFunction(proto['c<click>'])).to.be.ok; // 存在c方法
+          expect(proto['c<click>']()).to.be.equal('c1'); // 一级父view的c方法
+          expect(S.isFunction(proto['d<click>'])).to.be.ok; // 存在d方法
+          expect(proto['d<click>']()).to.be.equal('d2'); // 二级父view的d方法
+          // View_Ctors
+          expect(vframe.view.path).to.be.equal(vframe.$j); // view有path属性，与vframe$j相等
+          expect(vframe.view.sign).to.be.equal(vframe.view.$s); // view有sign属性，与$s相等
+          vframe.view.sign = '?';
+          expect(vframe.view.sign).to.be.not.equal('?'); // view的sign参数不能被重写
+          // mountZone
+          expect(Object.keys(Vframe.all())).to.be.deep.equal(['J_app_main', 'mx_25', 'mx_26']);
+          expect(vframe.$d).to.be.equal(0);
         });
-        QUnit.test('vframe.event', assert => {
-          let done = assert.async();
+
+        it('vframe.event', done => {
           const vframe = Magix.Vframe.get('mx_26');
-          vframe.on('content2mounted', () => {
-            assert.equal(vframe.num, undefined);
-            S.one('input.btn').fire('click');
-            assert.equal(vframe.num, 2);
-            done();
-          });
+          const testEvent = () => {
+            if (vframe.$v) {
+              expect(vframe.num).to.be.equal(undefined);
+              S.one('input.btn').fire('click');
+              expect(vframe.num).to.be.equal(2);
+              done();
+            } else {
+              setTimeout(testEvent, 25);
+            }
+          };
+
+          testEvent();
         });
-        QUnit.test('vframe.setHTML', assert => {
-          let done = assert.async();
+
+        it('vframe.setHTML', done => {
           const vframe = Magix.Vframe.get('mx_26');
+
           vframe.on('content2html', () => {
-            assert.equal(S.one('#mx_26').html(), '<p>1111</p>')
+            expect(S.one('#mx_26').html()).to.be.equal('<p>1111</p>');
             done();
           });
-        });
-        QUnit.test('vframe.postMessageTo', assert => {
-          let done = assert.async();
+        })
+
+        it('vframe.postMessageTo', done => {
           const vframe1 = Magix.Vframe.get('mx_25');
           const vframe2 = Magix.Vframe.get('mx_26');
+
           vframe2.on('content2postmessage', () => {
-            assert.equal(vframe1.receive, 1);
+            expect(vframe1.receive).to.be.equal(1);
             done();
           });
         });
-        QUnit.test('View.prototype', assert => {
-          const view = data.vframe.view;
-          assert.deepEqual(view.vom, Magix.Vframe, '存在vom');
-          assert.equal(view.location.get('row'), 4);
-          assert.deepEqual(view.$('#J_app_main'), Magix.node('#J_app_main'));
-          assert.ok(view.parentView);
-          assert.equal(view.notifyUpdate(), view.$s, '存在notifyUpdate');
-          assert.ok(view.wrapEvent);
-          assert.strictEqual(view.wrapMxEvent(1), '1');
+
+        it('View.prototype', () => {
+          const view = win.addFrameData.vframe.view;
+
+          expect(view.vom).to.be.deep.equal(Magix.Vframe); // 存在vom
+          expect(view.location.get('row')).to.be.equal('4');
+          expect(view.$('#J_app_main')).to.be.deep.equal(Magix.node('#J_app_main'));
+          expect(view.parentView).to.be.ok;
+          expect(view.notifyUpdate()).to.be.equal(view.$s);
+          expect(view.wrapEvent).to.be.ok;
+          expect(view.wrapMxEvent(1)).to.be.equal('1');
+
           view.manage('dialog', {id: 1});
-          assert.ok(view.$r.dialog, 'dialog被托管');
-          assert.deepEqual(view.getManaged('dialog'), {id: 1}, 'getManaged ok');
+
+          expect(view.$r.dialog).to.be.ok; // dialog被托管
+          expect(view.getManaged('dialog')).to.be.deep.equal({id: 1}); // getManaged ok
+
           view.removeManaged('dialog');
-          assert.ok(!view.$r.dialog, 'removeManaged ok');
+
+          expect(view.$r.dialog).not.to.be.ok; // removeManaged ok
         });
-        QUnit.test('vframe.unmountView', assert => {
-          const vframe = data.vframe;
+
+        it('vframe.unmountView', () => {
+          const vframe = win.addFrameData.vframe;
+
           vframe.unmountView();
-          assert.ok(S.isObject(vframe.view.owner), 'ok');
-          assert.ok(!vframe.view.owner.id, 'ok');
+
+          expect(S.isObject(vframe.view.owner)).to.be.ok;
+          expect(vframe.view.owner.id).not.to.be.ok;
         });
-      });
-      QUnit.test('vframe.defineProperties', assert => {
-        Vframe.prototype.mountZoneVframes = 1
-        Vframe.prototype.unmountZoneVframes = 1
-        assert.ok(Vframe.prototype.mountZoneVframes != 1, 'mountZoneVframes方法不能被重写');
-        assert.ok(Vframe.prototype.unmountZoneVframes != 1, 'unmountZoneVframes方法不能被重写');
-      });
-    }
+
+        it('vframe.defineProperties', () => {
+          const Vframe = Magix.Vframe;
+
+          Vframe.prototype.mountZoneVframes = 1
+          Vframe.prototype.unmountZoneVframes = 1
+
+          console.log(Object.getOwnPropertyDescriptor(Vframe.prototype, 'mountZoneVframes'));
+
+          expect(Vframe.prototype.mountZoneVframes).not.equal(1); // mountZoneVframes方法不能被重写
+          expect(Vframe.prototype.unmountZoneVframes).not.equal(1); // unmountZoneVframes方法不能被重写
+        });
+      }
+    });
   }
   Test.Vframe = Vframe;
-})(window, window.KISSY, window.QUnit, window.Test || (window.Test = {}), '');
+})(window, window.KISSY, window.Test || (window.Test = {}), '');

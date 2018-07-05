@@ -5,40 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>KISSY Magix 3.x</title>
-  <link rel="stylesheet" type="text/css" href="../../../tool/node_modules/qunitjs/qunit/qunit.css" />
 </head>
 <body>
   <div id="J_app_main"></div>
   <div id="qunit"></div>
   <div id="qunit-fixture"></div>
-  <script type="text/javascript" src="../../../tool/node_modules/qunitjs/qunit/qunit.js"></script>
-  <script type="text/javascript" src="https://g.alicdn.com/kissy/k/1.3.2/seed.js"></script>
-  <script src="../../../dist/kissy/magix-es3-debug.js"></script>
-  <script src="./api.js"></script>
-  <script src="./event.js"></script>
-  <script src="./router.js"></script>
-  <script src="./vframe.js"></script>
   <script>
     (function(win, S, Test) {
       window.isMagix1 = 0;
       window.isMagix3Shim = 0;
       window.isMagix3 = 1;
-      S.use('magix', (S, Magix) => {
-        S.config({
-          base: '/test/qunit/specs/app'
+      window.DEBUG = false;
+
+      S.config({
+        packages: [{
+          name: 'app',
+          base: '/test'
+        }]
+      });
+
+      describe('Magix test', () => {
+        before(done => {
+          iniMagix().then(() => {
+            if (!win.magixStarted) {
+              Magix.Vframe.on('mounted', () => {
+                win.magixStarted = true;
+                done();
+              });
+
+              Magix.Vframe.on('add', data => {
+                if (data.vframe.id === 'J_app_main') {
+                  win.addFrameData = data;
+                }
+              })
+
+              Magix.boot({
+                rootId: 'J_app_main',
+                defaultView: 'app/view/default',
+                defaultPath: '/home',
+                routes: {
+                  "/home": "app/view/default"
+                }
+              });
+
+              return;
+            } 
+            
+            done();
+          });
         });
-        Magix.boot({
-          rootId: 'J_app_main',
-          defaultView: 'view/default',
-          defaultPath: '/home',
-          routes: {
-            "/home":"view/default"
-          }
-        });
-        Test.Vframe(Magix, Magix.Vframe);
-        Test.Api(Magix);
-        Test.Event(Magix, Magix.Event);
-        Test.Router(Magix, Magix.Router);
+
+        Test.Api();
+        Test.Event();
+        Test.Router();
+        Test.Vframe();
       });
     })(window, window.KISSY, window.Test || (window.Test = {}));
   </script>

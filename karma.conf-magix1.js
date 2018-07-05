@@ -10,13 +10,13 @@ module.exports = function (config) {
       'test/test-code/common.js',
       'node_modules/chai/chai.js',
       'node_modules/chai-dom/chai-dom.js',
-      'dist/kissy/magix-es3-debug.js',
+      'https://g.alicdn.com/thx/magix/1.0/kissy-magix-mxext.js',
       'test/app/**/*.js',
       'test/test-code/*.js',
-      'test/test-code/magix@3.x.html'
+      'test/test-code/magix@1.0.html'
     ],
     preprocessors: {
-      'dist/kissy/magix-es3-debug.js': ['coverage']
+      'https://g.alicdn.com/thx/magix/1.0/kissy-magix-mxext.js': ['coverage']
     },
     plugins: ['karma-mocha', 'karma-chai', 'karma-coverage', 'karma-spec-reporter', 'karma-chrome-launcher'],
     browsers: ['Chrome'],

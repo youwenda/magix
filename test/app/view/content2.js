@@ -1,4 +1,6 @@
-KISSY.add("app/view/content2", function (S, View) {
+KISSY.add("app/view/content2", function (S) {
+  const View = Magix.View;
+
   return View.extend({
       tmpl: ($$,$viewId)=>{let $g='',$_temp,$p='',$em={'&':'amp','<':'lt','>':'gt','"':'#34','\'':'#39','`':'#96'},$er=/[&<>"'`]/g,$n=v=>''+(v==null?'':v),$ef=m=>`&${$em[m]};`,$e=v=>$n(v).replace($er,$ef),$um={'!':'%21','\'':'%27','(':'%28',')':'%29','*':'%2A'},$uf=m=>$um[m],$uq=/[!')(*]/g,$eu=v=>encodeURIComponent($n(v)).replace($uq,$uf),$qr=/[\\'"]/g,$eq=v=>$n(v).replace($qr,'\\$&');$p+='<div mxv>content2 <input mxs="subwayb:c" type="button" class="btn" value="提交" mx-click="'+$viewId+'submit({num:2})"></div>';return $p},
       init: function (){
@@ -22,8 +24,4 @@ KISSY.add("app/view/content2", function (S, View) {
         me.owner.num = num;
       }
   });
-}, {
-  requires: [
-    'mxext/view'
-  ]
 });
