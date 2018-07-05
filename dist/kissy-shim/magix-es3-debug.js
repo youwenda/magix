@@ -9,7 +9,7 @@ enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,
 
 optionals:updaterVDOM,updaterAsync,serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,viewSlot,share,mxViewAttr,keepHTML,naked,vdom
 */
-KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
+KISSY.add('magix', function (S, SE, Node, DOM) {
     if (typeof DEBUG == 'undefined')
         window.DEBUG = true;
     var $ = S.all;
@@ -1823,6 +1823,7 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
          * view.onwer.mountZone('zone');//即可完成zone节点下的view渲染
          */
         mountZone: function (zoneId, inner /*,keepPreHTML*/) {
+            var _a;
             var me = this;
             var vf, id, vfs = [];
             zoneId = zoneId || me.id;
@@ -1851,8 +1852,8 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
                     vfs.push([id, vf.getAttribute(G_MX_VIEW)]);
                 }
             }
-            for (var _a = 0, vfs_1 = vfs; _a < vfs_1.length; _a++) {
-                _b = vfs_1[_a], id = _b[0], vf = _b[1];
+            for (var _b = 0, vfs_1 = vfs; _b < vfs_1.length; _b++) {
+                _a = vfs_1[_b], id = _a[0], vf = _a[1];
                 if (DEBUG && document.querySelectorAll("#" + id).length > 1) {
                     Magix_Cfg.error(Error("dom id:\"" + id + "\" duplicate"));
                 }
@@ -1872,7 +1873,6 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
             if (!inner) {
                 Vframe_NotifyCreated(me);
             }
-            var _b;
         },
         /**
          * 销毁vframe
@@ -2687,6 +2687,7 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
      * @param {String} viewId Magix.View对象Id
      */
     function Updater(viewId) {
+        var _a;
         var me = this;
         me['$b'] = viewId;
         me['$c'] = 1;
@@ -2697,7 +2698,6 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
             _a);
         me['$d'] = [];
         me['$k'] = {};
-        var _a;
     }
     G_Assign(Updater[G_PROTOTYPE], {
         /**
@@ -3626,11 +3626,11 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
          * @param {Object} [val] 属性值
          */
         set: function (key, val) {
+            var _a;
             if (!G_IsObject(key)) {
                 key = (_a = {}, _a[key] = val, _a);
             }
             G_Assign(this.$, key);
-            var _a;
         }
     });
     var Service_FetchFlags_ONE = 1;
@@ -4255,8 +4255,8 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
         for (var _i = 0; _i < arguments.length; _i++) {
             args[_i] = arguments[_i];
         }
-        return new ((_a = Magix.Cache).bind.apply(_a, [void 0].concat(args)))();
         var _a;
+        return new ((_a = Magix.Cache).bind.apply(_a, [void 0].concat(args)))();
     };
     Magix.safeExec = G_ToTry;
     Magix.listToMap = function (list, key) {
@@ -4604,6 +4604,7 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
          * view.onwer.mountZone('zone');//即可完成zone节点下的view渲染
          */
         mountZone: function (zoneId, viewInitParams, inner /*,keepPreHTML*/) {
+            var _a;
             var me = this;
             var vf, id, vfs = [];
             zoneId = zoneId || me.id;
@@ -4636,8 +4637,8 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
                     vfs.push([id, vf.getAttribute(G_MX_VIEW)]);
                 }
             }
-            for (var _a = 0, vfs_3 = vfs; _a < vfs_3.length; _a++) {
-                _b = vfs_3[_a], id = _b[0], vf = _b[1];
+            for (var _b = 0, vfs_3 = vfs; _b < vfs_3.length; _b++) {
+                _a = vfs_3[_b], id = _a[0], vf = _a[1];
                 if (DEBUG && document.querySelectorAll("#" + id).length > 1) {
                     Magix_Cfg.error(Error("dom id:\"" + id + "\" duplicate"));
                 }
@@ -4657,7 +4658,6 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
             if (!inner) {
                 Vframe_NotifyCreated(me);
             }
-            var _b;
         },
         unmountZoneVframes: function (node, params) {
             Magix.deprecated('Deprecated Vframe#unmountZoneVframes use Vframe#unmountZone instead');
@@ -6649,7 +6649,7 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
     window.Magix = Magix;
     return Magix;
 }, {
-    requires: ['event', 'node', 'dom', 'sizzle']
+    requires: ['event', 'node', 'dom']
 });
 (function (win, S) {
     document.createElement('vframe');
