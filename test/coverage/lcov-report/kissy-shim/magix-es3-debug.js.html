@@ -20,9 +20,9 @@
     </h1>
     <div class='clearfix'>
       <div class='fl pad1y space-right2'>
-        <span class="strong">43.06% </span>
+        <span class="strong">43.1% </span>
         <span class="quiet">Statements</span>
-        <span class='fraction'>1157/2687</span>
+        <span class='fraction'>1158/2687</span>
       </div>
       <div class='fl pad1y space-right2'>
         <span class="strong">26.12% </span>
@@ -35,9 +35,9 @@
         <span class='fraction'>132/335</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">42.99% </span>
+        <span class="strong">43.03% </span>
         <span class="quiet">Lines</span>
-        <span class='fraction'>1144/2661</span>
+        <span class='fraction'>1145/2661</span>
       </div>
     </div>
   </div>
@@ -8539,6 +8539,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -8584,7 +8585,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -9403,11 +9403,11 @@
 <span class="cline-any cline-yes">3×</span>
 <span class="cline-any cline-yes">3×</span>
 <span class="cline-any cline-yes">3×</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3×</span>
 <span class="cline-any cline-yes">3×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -10340,8 +10340,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -10968,7 +10968,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1×</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1×</span>
 <span class="cline-any cline-yes">1×</span>
@@ -11321,6 +11321,7 @@
 <span class="cline-any cline-yes">4×</span>
 <span class="cline-any cline-yes">4×</span>
 <span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4×</span>
@@ -11369,7 +11370,6 @@
 <span class="cline-any cline-yes">4×</span>
 <span class="cline-any cline-yes">4×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -13388,7 +13388,7 @@ enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,
 &nbsp;
 optionals:updaterVDOM,updaterAsync,serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,viewSlot,share,mxViewAttr,keepHTML,naked,vdom
 */
-KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
+KISSY.add('magix', function (S, SE, Node, DOM) {
     <span class="missing-if-branch" title="else path not taken" >E</span>if (typeof DEBUG == 'undefined')
         window.DEBUG = true;
     var $ = S.all;
@@ -15202,6 +15202,7 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
          * view.onwer.mountZone('zone');//即可完成zone节点下的view渲染
          */
         mountZone: <span class="fstat-no" title="function not covered" >function (zoneId, inner /*,keepPreHTML*/) {</span>
+<span class="cstat-no" title="statement not covered" >            var _a;</span>
 <span class="cstat-no" title="statement not covered" >            var me = this;</span>
 <span class="cstat-no" title="statement not covered" >            var vf, id, vfs = [];</span>
 <span class="cstat-no" title="statement not covered" >            zoneId = zoneId || me.id;</span>
@@ -15230,8 +15231,8 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
 <span class="cstat-no" title="statement not covered" >                    vfs.push([id, vf.getAttribute(G_MX_VIEW)]);</span>
                 }
             }
-<span class="cstat-no" title="statement not covered" >            for (var _a = 0, vfs_1 = vfs; _a &lt; vfs_1.length; _a++) {</span>
-<span class="cstat-no" title="statement not covered" >                _b = vfs_1[_a], id = _b[0], vf = _b[1];</span>
+<span class="cstat-no" title="statement not covered" >            for (var _b = 0, vfs_1 = vfs; _b &lt; vfs_1.length; _b++) {</span>
+<span class="cstat-no" title="statement not covered" >                _a = vfs_1[_b], id = _a[0], vf = _a[1];</span>
 <span class="cstat-no" title="statement not covered" >                if (DEBUG &amp;&amp; document.querySelectorAll("#" + id).length &gt; 1) {</span>
 <span class="cstat-no" title="statement not covered" >                    Magix_Cfg.error(Error("dom id:\"" + id + "\" duplicate"));</span>
                 }
@@ -15251,7 +15252,6 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
 <span class="cstat-no" title="statement not covered" >            if (!inner) {</span>
 <span class="cstat-no" title="statement not covered" >                Vframe_NotifyCreated(me);</span>
             }
-<span class="cstat-no" title="statement not covered" >            var _b;</span>
         },
         /**
          * 销毁vframe
@@ -16066,6 +16066,7 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
      * @param {String} viewId Magix.View对象Id
      */
     function Updater(viewId) {
+        var _a;
         var me = this;
         me['$b'] = viewId;
         me['$c'] = 1;
@@ -16076,7 +16077,6 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
             _a);
         me['$d'] = [];
         me['$k'] = {};
-        var _a;
     }
     G_Assign(Updater[G_PROTOTYPE], {
         /**
@@ -17005,11 +17005,11 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
          * @param {Object} [val] 属性值
          */
         set: <span class="fstat-no" title="function not covered" >function (key, val) {</span>
+<span class="cstat-no" title="statement not covered" >            var _a;</span>
 <span class="cstat-no" title="statement not covered" >            if (!G_IsObject(key)) {</span>
 <span class="cstat-no" title="statement not covered" >                key = (_a = {}, _a[key] = val, _a);</span>
             }
 <span class="cstat-no" title="statement not covered" >            G_Assign(this.$, key);</span>
-<span class="cstat-no" title="statement not covered" >            var _a;</span>
         }
     });
     var Service_FetchFlags_ONE = 1;
@@ -17634,8 +17634,8 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
         for (var _i = 0; _i &lt; arguments.length; _i++) {
 <span class="cstat-no" title="statement not covered" >            args[_i] = arguments[_i];</span>
         }
+        var _a;
         return new ((_a = Magix.Cache).bind.apply(_a, [void 0].concat(args)))();
-<span class="cstat-no" title="statement not covered" >        var _a;</span>
     };
     Magix.safeExec = G_ToTry;
     Magix.listToMap = function (list, key) {
@@ -17983,6 +17983,7 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
          * view.onwer.mountZone('zone');//即可完成zone节点下的view渲染
          */
         mountZone: function (zoneId, viewInitParams, inner /*,keepPreHTML*/) {
+            var _a;
             var me = this;
             var vf, id, vfs = [];
             zoneId = zoneId || <span class="branch-1 cbranch-no" title="branch not covered" >me.id;</span>
@@ -18015,8 +18016,8 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
                     vfs.push([id, vf.getAttribute(G_MX_VIEW)]);
                 }
             }
-            for (var _a = 0, vfs_3 = vfs; _a &lt; vfs_3.length; _a++) {
-                _b = vfs_3[_a], id = _b[0], vf = _b[1];
+            for (var _b = 0, vfs_3 = vfs; _b &lt; vfs_3.length; _b++) {
+                _a = vfs_3[_b], id = _a[0], vf = _a[1];
                 <span class="missing-if-branch" title="if path not taken" >I</span>if (DEBUG &amp;&amp; document.querySelectorAll("#" + id).length &gt; 1) {
 <span class="cstat-no" title="statement not covered" >                    Magix_Cfg.error(Error("dom id:\"" + id + "\" duplicate"));</span>
                 }
@@ -18036,7 +18037,6 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
             <span class="missing-if-branch" title="else path not taken" >E</span>if (!inner) {
                 Vframe_NotifyCreated(me);
             }
-            var _b;
         },
         unmountZoneVframes: <span class="fstat-no" title="function not covered" >function (node, params) {</span>
 <span class="cstat-no" title="statement not covered" >            Magix.deprecated('Deprecated Vframe#unmountZoneVframes use Vframe#unmountZone instead');</span>
@@ -20028,7 +20028,7 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
     window.Magix = Magix;
     return Magix;
 }, {
-    requires: ['event', 'node', 'dom', 'sizzle']
+    requires: ['event', 'node', 'dom']
 });
 (function (win, S) {
     document.createElement('vframe');
@@ -20050,7 +20050,7 @@ KISSY.add('magix', function (S, SE, Node, DOM, Sizzle) {
 </div><!-- /wrapper -->
 <div class='footer quiet pad2 space-top1 center small'>
   Code coverage
-  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Jul 05 2018 15:33:52 GMT+0800 (CST)
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Jul 05 2018 17:39:05 GMT+0800 (CST)
 </div>
 </div>
 <script src="../prettify.js"></script>
