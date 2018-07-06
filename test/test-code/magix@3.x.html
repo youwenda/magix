@@ -45,6 +45,11 @@
                 defaultPath: '/home',
                 routes: {
                   "/home": "app/view/default"
+                },
+                ini: 'app/ini',
+                unmatchView: 'app/view/error',
+                error (e) {
+                  return 'error msg: ' + e;
                 }
               });
 
@@ -57,8 +62,8 @@
 
         Test.Api();
         Test.Event();
-        Test.Router();
         Test.Vframe();
+        Test.Router();
       });
     })(window, window.KISSY, window.Test || (window.Test = {}));
   </script>

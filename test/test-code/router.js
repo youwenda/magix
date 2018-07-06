@@ -94,7 +94,7 @@
                 p1: '111',
                 p2: 'aaa'
               },
-              view: 'app/view/default'
+              view: 'app/view/error'
             }]
           }
         ]
