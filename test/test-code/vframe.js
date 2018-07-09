@@ -32,12 +32,14 @@
           vframe.view.sign = '?';
           expect(vframe.view.sign).to.be.not.equal('?'); // view的sign参数不能被重写
           // mountZone
-          expect(Object.keys(Vframe.all())).to.be.deep.equal(['J_app_main', 'mx_25', 'mx_26']);
+          expect(Object.keys(Vframe.all())).to.be.deep.equal(['J_app_main', 'mx_64', 'mx_65']);
           expect(vframe.$d).to.be.equal(0);
         });
 
-        it('vframe.event', done => {
-          const vframe = Magix.Vframe.get('mx_26');
+        it('vframe.event', function(done) {
+          this.timeout(10000);
+
+          const vframe = Magix.Vframe.get('mx_65');
           const testEvent = () => {
             if (vframe.$v) {
               expect(vframe.num).to.be.equal(undefined);
@@ -52,18 +54,20 @@
           testEvent();
         });
 
-        it('vframe.setHTML', done => {
-          const vframe = Magix.Vframe.get('mx_26');
+        it('vframe.setHTML', function(done) {
+          this.timeout(10000);
+          const vframe = Magix.Vframe.get('mx_65');
 
           vframe.on('content2html', () => {
-            expect(S.one('#mx_26').html()).to.be.equal('<p>1111</p>');
+            expect(S.one('#mx_65').html()).to.be.equal('<p>1111</p>');
             done();
           });
         })
 
-        it('vframe.postMessageTo', done => {
-          const vframe1 = Magix.Vframe.get('mx_25');
-          const vframe2 = Magix.Vframe.get('mx_26');
+        it('vframe.postMessageTo', function(done) {
+          this.timeout(10000);
+          const vframe1 = Magix.Vframe.get('mx_64');
+          const vframe2 = Magix.Vframe.get('mx_65');
 
           vframe2.on('content2postmessage', () => {
             expect(vframe1.receive).to.be.equal(1);

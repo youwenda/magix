@@ -25,7 +25,7 @@
     window.isMagix1 = 0;
     window.isMagix3Shim = 1;
     window.isMagix3 = 0;
-    S.use('magix', (S, Magix) => {
+    S.use('magix, sizzle', (S, Magix) => {
       S.config({
         base: '/test/qunit/specs/app'
       });
@@ -41,7 +41,7 @@
       Test.Vframe(Magix, Magix.Vframe);
       Test.Api(Magix);
       Test.Event(Magix, Magix.Event);
-      Test.Router(Magix, Magix.Router);
+      // Test.Router(Magix, Magix.Router);
     });
   })(window, window.KISSY, window.Test || (window.Test = {}));
   </script>

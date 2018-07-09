@@ -261,6 +261,13 @@
       
           expect(config.exts).to.have.members(['app/extview']);
           expect(config.error('404')).to.equal('error msg: 404');
+
+          Magix.config({
+            error(e) {
+              throw e;
+            },
+          });
+
           expect(config.routes).to.include({ "/home": "app/view/default" });
       
           //Vframe加载完成
@@ -277,14 +284,14 @@
           expect(document.querySelector('#state-param')).to.have.text('state');
   
           //验证 State 监听 changed 事件， Vframe_NotifyChange 方法的执行
-          window.location.hash += '&loc-param=1';
+          window.location.hash += '&locparam=1';
 
           vf.on('canTest', () => {
             //验证 View_IsObserveChanged
             expect(document.querySelector('#loc-param')).to.have.text('1');
             
             Magix.State.digest({
-              'state-param': '2'
+              'stateparam': '2'
             });
     
             //验证 State_IsObserveChanged

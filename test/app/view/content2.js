@@ -13,13 +13,16 @@ KISSY.add("app/view/content2", S => {
             
             this.owner.fire('content2html');
           }, 1000);
-          setTimeout(() => {
-            this.postMessageTo('mx_25', {
-              action: 'reload',
-              param: 1
-            });
-            this.owner.fire('content2postmessage');
-          }, 2000);
+
+          if (isMagix3Shim) {
+            setTimeout(() => {
+              this.postMessageTo('mx_64', {
+                action: 'reload',
+                param: 1
+              });
+              this.owner.fire('content2postmessage');
+            }, 2000);
+          }
       },
       'submit<click>'(e) {
         const num = +e.params.num;
