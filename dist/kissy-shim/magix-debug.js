@@ -4991,7 +4991,9 @@ const View_FixEvents = function (View, events) {
       if (G_Has(events, type)) {
         for (let fn in events[type]) {
           if (G_Has(events[type], fn) && S.isFunction(events[type][fn])) {
-            let bound = S.bind(events[type][fn], events[type]);
+            // let bound = S.bind(events[type][fn], events[type]);
+            // Function.prototype doesn't have a prototype property
+            let bound = events[type][fn].bind(events[type]);
             prop[fn + '<' + type + '>'] = bound;
             // 针对于Babel解析events作为实例属性的Hack处理，处理同`View_Prepare`方法
             if (prop['$eo']) {
