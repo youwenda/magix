@@ -4867,6 +4867,8 @@ G_Assign(Vframe[G_PROTOTYPE], {
   unmountView ( /*keepPreHTML*/) {
     const view = this['$v'];
     origUnmountView.apply(this, arguments);
+    // 连同新添加的兼容属性view一起删除
+    this.view = 0;
     if (view) {
       view.owner = G_Assign({}, VframeNoopProto);
     }
