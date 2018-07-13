@@ -5056,7 +5056,12 @@ View_Prepare = (View) => {
     View_FixEvents(View, events);
   }
 
-  return origViewPrepare(View);
+  c = origViewPrepare(View);
+  // 对于Babel使用class extends 方式，需要重新包装render方法
+  if (!G_Has(prop, '$a')) {
+    View_WrapMethod(prop, 'render', '$a');
+  }
+  return c;
 };
 
 const View_Ctors = [

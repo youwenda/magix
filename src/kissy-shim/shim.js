@@ -654,7 +654,12 @@ View_Prepare = (View) => {
     View_FixEvents(View, events);
   }
 
-  return origViewPrepare(View);
+  c = origViewPrepare(View);
+  // 对于Babel使用class extends 方式，需要重新包装render方法
+  if (!G_Has(prop, '@{view#render.short}')) {
+    View_WrapMethod(prop, 'render', '@{view#render.short}');
+  }
+  return c;
 };
 
 const View_Ctors = [
