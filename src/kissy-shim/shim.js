@@ -588,32 +588,13 @@ const View_FixEvents = function (View, events) {
         for (let fn in events[type]) {
           if (G_Has(events[type], fn) && S.isFunction(events[type][fn])) {
             // let bound = S.bind(events[type][fn], events[type]);
-            // Function.prototype doesn't have a prototype property
+            // Function.prototype in ES6 may be donnt have a prototype property
             let bound = events[type][fn].bind(events[type]);
             prop[fn + '<' + type + '>'] = bound;
             // 针对于Babel解析events作为实例属性的Hack处理，处理同`View_Prepare`方法
             if (prop['@{view#events.object}']) {
               prop['@{view#events.object}'][type] = prop['@{view#events.object}'][type] | 1;
-              // 不能简单的进行赋值操作，而是要考虑到mixins的问题
-              // prop[fn + G_SPLITER + type] = bound;
-              let item = fn + G_SPLITER + type;
-              let node = prop[item];
-              /*#if(modules.viewProtoMixins){#*/
-              //for in 就近遍历，如果有则忽略
-              if (!node) { //未设置过
-                prop[item] = bound;
-              } else if (node['@{~viewmixin#is.mixin}']) { //现有的方法是mixins上的
-                if (bound['@{~viewmixin#is.mixin}']) { //2者都是mixins上的事件，则合并，早期事件肯定不是mixins的， 因此此判断永远为false，但谁又能保证不讲一个view作为mixins呢，因此判断暂时保留
-                  prop[item] = processMixinsSameEvent(bound, node);
-                } else { // bound方法肯定不是mixin上的，也不是继承来的（本身为Babel对events属性的判断）。在当前view上，优先级最高
-                  prop[item] = bound;
-                }
-              }
-              /*#}else{#*/
-              if (!node) {
-                prop[item] = bound;
-              }
-              /*#}#*/
+              prop[fn + G_SPLITER + type] = bound;
             }
           }
         }
