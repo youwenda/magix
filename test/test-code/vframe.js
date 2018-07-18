@@ -98,11 +98,11 @@
 
         it('vframe.unmountView', () => {
           const vframe = win.addFrameData.vframe;
-
+          const view = vframe.view;
           vframe.unmountView();
 
-          expect(S.isObject(vframe.view.owner)).to.be.ok;
-          expect(vframe.view.owner.id).not.to.be.ok;
+          expect(S.isObject(view.owner)).to.be.ok;
+          expect(view.owner.id).not.to.be.ok;
         });
 
         it('vframe.defineProperties', () => {
