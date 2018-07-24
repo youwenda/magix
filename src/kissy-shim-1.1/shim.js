@@ -622,7 +622,8 @@ View_Prepare = (View) => {
   let prop = View[G_PROTOTYPE];
   let parent = View.superclass;
   let c;
-
+  // 对于模板属性的兼容处理
+  prop.tmpl = prop.tmpl || prop.template;
   // 对于事件的兼容处理
   if (!set) {
     while (parent) {

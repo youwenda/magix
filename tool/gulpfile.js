@@ -10,7 +10,7 @@ let pkg = require('../package.json');
 let ts = require('typescript');
 let customize = require('./customize');
 
-let type = 'kissy-shim'; //打包kissy则type='kissy'
+let type = 'kissy-shim-1.1'; //打包kissy则type='kissy'
 let enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM';
 
 //let enableModules = 'style,viewInit,router,viewMerge,tipRouter,updater,autoEndUpdate,linkage,state,updaterDOM,viewProtoMixins';
