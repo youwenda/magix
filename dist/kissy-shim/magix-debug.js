@@ -2614,13 +2614,13 @@ let I_SetChildNodes = (oldParent, newParent, ref, vframe, keys) => {
             nodeKey.push(oldNode);
         }
         oldNode = oldNode.previousSibling;
-        if (newNode) {
-            nodeKey = I_GetCompareKey(newNode);
-            if (nodeKey) {
-                newKeyedNodes[nodeKey] = 1;
-            }
-            newNode = newNode.nextSibling;
-        }
+        // if (newNode) {
+        //     nodeKey = I_GetCompareKey(newNode);
+        //     if (nodeKey) {
+        //         newKeyedNodes[nodeKey] = 1;
+        //     }
+        //     newNode = newNode.nextSibling;
+        // }
     }
     while (newNode) {
         nodeKey = I_GetCompareKey(newNode);
@@ -2720,37 +2720,44 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, keys, hasMXV) => {
                     view,
                     uri = newMxView && G_ParseUri(newMxView),
                     params,
-                    htmlChanged, urlChanged, paramsChanged;
+                    htmlChanged, paramsChanged;
                 if (newMxView && oldVf &&
                     (!newNode.id || newNode.id == oldNode.id) &&
                     oldVf['$j'] == uri[G_PATH] &&
                     (view = oldVf['$v'])) {
                     htmlChanged = newHTML != oldVf['$i'];
-                    urlChanged = newMxView != oldVf[G_PATH];
-                    paramsChanged = urlChanged;
+                    paramsChanged = newMxView != oldVf[G_PATH];
                     assign = oldNode.getAttribute(G_Tag_View_Key);
+                    //如果组件内html没改变，参数也没改变
+                    //我们要检测引用参数是否发生了改变
                     if (!htmlChanged && !paramsChanged && assign) {
+                        //对于mxv属性，带value的必定是组件
+                        //所以对组件，我们只检测参数与html，所以组件的hasMXV=0
+                        hasMXV = 0;
                         params = assign.split(G_COMMA);
                         for (assign of params) {
-                            if (G_Has(keys, assign)) {
+                            //支持模板内使用this获取整个数据对象
+                            //如果使用this来传递数据，我们把this的key处理成#号
+                            //遇到#号则任意的数据改变都需要更新当前这个组件
+                            if (assign == G_HashKey || G_Has(keys, assign)) {
                                 paramsChanged = 1;
                                 break;
                             }
                         }
                     }
                     if (paramsChanged || htmlChanged || hasMXV) {
-                        assign = view['$f'];
+                        assign = view['$e'] && view['$f'];
                         if (assign) {
                             params = uri[G_PARAMS];
                             //处理引用赋值
-                            Vframe_TranslateQuery( oldVf.pId, newMxView, params);
+                            Vframe_TranslateQuery(oldVf.pId, newMxView, params);
                             oldVf['$i'] = newHTML;
                             //oldVf['$o'] = newDataStringify;
                             oldVf[G_PATH] = newMxView;//update ref
                             uri = {
                                 node: newNode,
-                                html: newHTML,
-                                deep: !view['$d'],
+                                //html: newHTML,
+                                deep: !view.tmpl,
                                 mxv: hasMXV,
                                 inner: htmlChanged,
                                 query: paramsChanged,
