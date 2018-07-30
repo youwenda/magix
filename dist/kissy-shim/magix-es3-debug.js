@@ -4953,10 +4953,6 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                     if (!v && DEBUG) {
                         return Magix_Cfg.error(Error("bad " + type + ":" + r));
                     }
-                    // 处理old events 的 process
-                    if (e && WEvent[e]) {
-                        WEvent[e](domEvent);
-                    }
                     if (lastVfId != v) {
                         if (lastVfId && domEvent.isPropagationStopped()) {
                             break;
@@ -4969,6 +4965,10 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                         eventName = n + G_SPLITER + type;
                         fn = view[eventName];
                         if (fn) {
+                            // 处理old events 的 process
+                            if (e && WEvent[e]) {
+                                WEvent[e](domEvent);
+                            }
                             G_Assign(domEvent, {
                                 events: view.events,
                                 eventTarget: target,
