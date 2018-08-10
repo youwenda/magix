@@ -2442,13 +2442,13 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                 nodeKey.push(oldNode);
             }
             oldNode = oldNode.previousSibling;
-            if (newNode) {
-                nodeKey = I_GetCompareKey(newNode);
-                if (nodeKey) {
-                    newKeyedNodes[nodeKey] = 1;
-                }
-                newNode = newNode.nextSibling;
-            }
+            // if (newNode) {
+            //     nodeKey = I_GetCompareKey(newNode);
+            //     if (nodeKey) {
+            //         newKeyedNodes[nodeKey] = 1;
+            //     }
+            //     newNode = newNode.nextSibling;
+            // }
         }
         while (newNode) {
             nodeKey = I_GetCompareKey(newNode);
@@ -2539,27 +2539,34 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                     var newMxView = newNode.getAttribute(G_MX_VIEW), newHTML = newNode.innerHTML;
                     var newStaticAttrKey = newNode.getAttribute(G_Tag_Attr_Key);
                     var updateAttribute = !newStaticAttrKey ||
-                        newStaticAttrKey != oldNode.getAttribute(G_Tag_Attr_Key), updateChildren = void 0, unmountOld = void 0, oldVf = Vframe_Vframes[oldNode.id], assign = void 0, view = void 0, uri = newMxView && G_ParseUri(newMxView), params = void 0, htmlChanged = void 0, urlChanged = void 0, paramsChanged = void 0;
+                        newStaticAttrKey != oldNode.getAttribute(G_Tag_Attr_Key), updateChildren = void 0, unmountOld = void 0, oldVf = Vframe_Vframes[oldNode.id], assign = void 0, view = void 0, uri = newMxView && G_ParseUri(newMxView), params = void 0, htmlChanged = void 0, paramsChanged = void 0;
                     if (newMxView && oldVf &&
                         (!newNode.id || newNode.id == oldNode.id) &&
                         oldVf['$j'] == uri[G_PATH] &&
                         (view = oldVf['$v'])) {
                         htmlChanged = newHTML != oldVf['$i'];
-                        urlChanged = newMxView != oldVf[G_PATH];
-                        paramsChanged = urlChanged;
+                        paramsChanged = newMxView != oldVf[G_PATH];
                         assign = oldNode.getAttribute(G_Tag_View_Key);
+                        //如果组件内html没改变，参数也没改变
+                        //我们要检测引用参数是否发生了改变
                         if (!htmlChanged && !paramsChanged && assign) {
+                            //对于mxv属性，带value的必定是组件
+                            //所以对组件，我们只检测参数与html，所以组件的hasMXV=0
+                            hasMXV = 0;
                             params = assign.split(G_COMMA);
                             for (var _i = 0, params_1 = params; _i < params_1.length; _i++) {
                                 assign = params_1[_i];
-                                if (G_Has(keys, assign)) {
+                                //支持模板内使用this获取整个数据对象
+                                //如果使用this来传递数据，我们把this的key处理成#号
+                                //遇到#号则任意的数据改变都需要更新当前这个组件
+                                if (assign == G_HashKey || G_Has(keys, assign)) {
                                     paramsChanged = 1;
                                     break;
                                 }
                             }
                         }
                         if (paramsChanged || htmlChanged || hasMXV) {
-                            assign = view['$f'];
+                            assign = view['$e'] && view['$f'];
                             if (assign) {
                                 params = uri[G_PARAMS];
                                 //处理引用赋值
@@ -2569,8 +2576,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                                 oldVf[G_PATH] = newMxView; //update ref
                                 uri = {
                                     node: newNode,
-                                    html: newHTML,
-                                    deep: !view['$d'],
+                                    //html: newHTML,
+                                    deep: !view.tmpl,
                                     mxv: hasMXV,
                                     inner: htmlChanged,
                                     query: paramsChanged,
@@ -4954,10 +4961,6 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                     if (!v && DEBUG) {
                         return Magix_Cfg.error(Error("bad " + type + ":" + r));
                     }
-                    // 处理old events 的 process
-                    if (e && WEvent[e]) {
-                        WEvent[e](domEvent);
-                    }
                     if (lastVfId != v) {
                         if (lastVfId && domEvent.isPropagationStopped()) {
                             break;
@@ -4970,6 +4973,10 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                         eventName = n + G_SPLITER + type;
                         fn = view[eventName];
                         if (fn) {
+                            // 处理old events 的 process
+                            if (e && WEvent[e]) {
+                                WEvent[e](domEvent);
+                            }
                             G_Assign(domEvent, {
                                 events: view.events,
                                 eventTarget: target,
@@ -6352,7 +6359,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         var GUID = +new Date();
         var Encode = encodeURIComponent;
         var Has = Magix.has;
-        var IsObject = G_IsObject;
+        var IsObject = Magix.isObject;
         var ToString = Magix.toString;
         var Model = function (ops) {
             this.set(ops);
