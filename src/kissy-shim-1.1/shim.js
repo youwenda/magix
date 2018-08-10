@@ -562,6 +562,12 @@ Object.defineProperties(Vframe[G_PROTOTYPE], {
   },
   unmountZoneVframes: {
     writable: false
+  },
+  invokeView: {
+    writable: false
+  },
+  parentView: {
+    writable: false
   }
 });
 

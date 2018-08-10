@@ -1042,7 +1042,7 @@
       var GUID = +new Date();
       var Encode = encodeURIComponent;
       var Has = Magix.has;
-      var IsObject = Magix.IsObject;
+      var IsObject = Magix.isObject;
       var ToString = Magix.toString;
       var Model = function (ops) {
           this.set(ops);

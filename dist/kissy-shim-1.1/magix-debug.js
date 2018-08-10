@@ -4968,6 +4968,12 @@ Object.defineProperties(Vframe[G_PROTOTYPE], {
   },
   unmountZoneVframes: {
     writable: false
+  },
+  invokeView: {
+    writable: false
+  },
+  parentView: {
+    writable: false
   }
 });
 
@@ -5028,7 +5034,8 @@ View_Prepare = (View) => {
   let prop = View[G_PROTOTYPE];
   let parent = View.superclass;
   let c;
-
+  // 对于模板属性的兼容处理
+  prop.tmpl = prop.tmpl || prop.template;
   // 对于事件的兼容处理
   if (!set) {
     while (parent) {
@@ -6672,7 +6679,7 @@ S.add('mxext/view', () => View);
       var GUID = +new Date();
       var Encode = encodeURIComponent;
       var Has = Magix.has;
-      var IsObject = Magix._o;
+      var IsObject = G_IsObject;
       var ToString = Magix.toString;
       var Model = function (ops) {
           this.set(ops);
@@ -6784,7 +6791,7 @@ S.add('mxext/view', () => View);
               var v;
               for (var p in params) {
                   v = params[p];
-                  if (!Magix._a(v)) {
+                  if (!Magix.isArray(v)) {
                       v = [v];
                   }
                   for (var i = 0; i < v.length; i++) {

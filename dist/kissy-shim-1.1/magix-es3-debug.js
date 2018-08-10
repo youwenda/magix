@@ -1823,7 +1823,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
          * view.onwer.mountZone('zone');//即可完成zone节点下的view渲染
          */
         mountZone: function (zoneId, inner /*,keepPreHTML*/) {
-            var _b;
+            var _a;
             var me = this;
             var vf, id, vfs = [];
             zoneId = zoneId || me.id;
@@ -1852,8 +1852,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                     vfs.push([id, vf.getAttribute(G_MX_VIEW)]);
                 }
             }
-            for (var _c = 0, vfs_1 = vfs; _c < vfs_1.length; _c++) {
-                _b = vfs_1[_c], id = _b[0], vf = _b[1];
+            for (var _b = 0, vfs_1 = vfs; _b < vfs_1.length; _b++) {
+                _a = vfs_1[_b], id = _a[0], vf = _a[1];
                 if (DEBUG && document.querySelectorAll("#" + id).length > 1) {
                     Magix_Cfg.error(Error("dom id:\"" + id + "\" duplicate"));
                 }
@@ -2009,8 +2009,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
      */
     Node[G_PROTOTYPE].invokeView = function (name, args) {
         var returned = [], e, vf;
-        for (var _i = 0, _b = this; _i < _b.length; _i++) {
-            e = _b[_i];
+        for (var _i = 0, _a = this; _i < _a.length; _i++) {
+            e = _a[_i];
             vf = e.vframe;
             returned.push(vf && vf.invoke(name, args));
         }
@@ -2181,7 +2181,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             if (eventInfos.length) {
                 arr = [];
                 for (var _i = 0, eventInfos_1 = eventInfos; _i < eventInfos_1.length; _i++) {
-                    var _b = eventInfos_1[_i], v = _b.v, r = _b.r, n = _b.n, i = _b.i;
+                    var _a = eventInfos_1[_i], v = _a.v, r = _a.r, n = _a.n, i = _a.i;
                     if (!v && DEBUG) {
                         return Magix_Cfg.error(Error("bad " + type + ":" + r));
                     }
@@ -2654,12 +2654,12 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             console.time('[updater time:' + selfId + ']');
             vdom = I_GetNode(tmpl(data, selfId), node);
             I_SetChildNodes(node, vdom, ref, vf, keys);
-            for (var _i = 0, _b = ref.d; _i < _b.length; _i++) {
-                vdom = _b[_i];
+            for (var _i = 0, _a = ref.d; _i < _a.length; _i++) {
+                vdom = _a[_i];
                 vdom[0].id = vdom[1];
             }
-            for (var _c = 0, _d = ref.v; _c < _d.length; _c++) {
-                vdom = _d[_c];
+            for (var _b = 0, _c = ref.v; _b < _c.length; _b++) {
+                vdom = _c[_b];
                 vdom['$a']();
             }
             if (ref.c || !view['$e']) {
@@ -2687,15 +2687,15 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
      * @param {String} viewId Magix.View对象Id
      */
     function Updater(viewId) {
-        var _b;
+        var _a;
         var me = this;
         me['$b'] = viewId;
         me['$c'] = 1;
-        me['$a'] = (_b = {
+        me['$a'] = (_a = {
                 vId: viewId
             },
-            _b[G_SPLITER] = 1,
-            _b);
+            _a[G_SPLITER] = 1,
+            _a);
         me['$d'] = [];
         me['$k'] = {};
     }
@@ -3047,8 +3047,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             }
             if (!res && loc.k) {
                 params = Router_LastChanged[G_PARAMS];
-                for (var _i = 0, _b = loc.k; _i < _b.length; _i++) {
-                    i = _b[_i];
+                for (var _i = 0, _a = loc.k; _i < _a.length; _i++) {
+                    i = _a[_i];
                     res = G_Has(params, i);
                     if (res)
                         break;
@@ -3626,9 +3626,9 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
          * @param {Object} [val] 属性值
          */
         set: function (key, val) {
-            var _b;
+            var _a;
             if (!G_IsObject(key)) {
-                key = (_b = {}, _b[key] = val, _b);
+                key = (_a = {}, _a[key] = val, _a);
             }
             G_Assign(this.$, key);
         }
@@ -4255,8 +4255,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         for (var _i = 0; _i < arguments.length; _i++) {
             args[_i] = arguments[_i];
         }
-        var _b;
-        return new ((_b = Magix.Cache).bind.apply(_b, [void 0].concat(args)))();
+        var _a;
+        return new ((_a = Magix.Cache).bind.apply(_a, [void 0].concat(args)))();
     };
     Magix.safeExec = G_ToTry;
     Magix.listToMap = function (list, key) {
@@ -4606,7 +4606,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
          * view.onwer.mountZone('zone');//即可完成zone节点下的view渲染
          */
         mountZone: function (zoneId, viewInitParams, inner /*,keepPreHTML*/) {
-            var _b;
+            var _a;
             var me = this;
             var vf, id, vfs = [];
             zoneId = zoneId || me.id;
@@ -4639,8 +4639,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                     vfs.push([id, vf.getAttribute(G_MX_VIEW)]);
                 }
             }
-            for (var _c = 0, vfs_3 = vfs; _c < vfs_3.length; _c++) {
-                _b = vfs_3[_c], id = _b[0], vf = _b[1];
+            for (var _b = 0, vfs_3 = vfs; _b < vfs_3.length; _b++) {
+                _a = vfs_3[_b], id = _a[0], vf = _a[1];
                 if (DEBUG && document.querySelectorAll("#" + id).length > 1) {
                     Magix_Cfg.error(Error("dom id:\"" + id + "\" duplicate"));
                 }
@@ -4682,6 +4682,12 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             writable: false
         },
         unmountZoneVframes: {
+            writable: false
+        },
+        invokeView: {
+            writable: false
+        },
+        parentView: {
             writable: false
         }
     });
@@ -4742,6 +4748,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         var prop = View[G_PROTOTYPE];
         var parent = View.superclass;
         var c;
+        // 对于模板属性的兼容处理
+        prop.tmpl = prop.tmpl || prop.template;
         // 对于事件的兼容处理
         if (!set) {
             while (parent) {
@@ -4942,7 +4950,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             if (eventInfos.length) {
                 arr = [];
                 for (var _i = 0, eventInfos_2 = eventInfos; _i < eventInfos_2.length; _i++) {
-                    var _b = eventInfos_2[_i], v = _b.v, r = _b.r, n = _b.n, e = _b.e, i = _b.i, p = _b.p;
+                    var _a = eventInfos_2[_i], v = _a.v, r = _a.r, n = _a.n, e = _a.e, i = _a.i, p = _a.p;
                     if (!v && DEBUG) {
                         return Magix_Cfg.error(Error("bad " + type + ":" + r));
                     }
@@ -5084,8 +5092,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             }
             if (!res && loc.k) {
                 params = Router_LastChanged[G_PARAMS];
-                for (var _i = 0, _b = loc.k; _i < _b.length; _i++) {
-                    i = _b[_i];
+                for (var _i = 0, _a = loc.k; _i < _a.length; _i++) {
+                    i = _a[_i];
                     res = G_Has(params, i);
                     if (res)
                         break;
@@ -6344,7 +6352,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         var GUID = +new Date();
         var Encode = encodeURIComponent;
         var Has = Magix.has;
-        var IsObject = Magix._o;
+        var IsObject = G_IsObject;
         var ToString = Magix.toString;
         var Model = function (ops) {
             this.set(ops);
@@ -6452,7 +6460,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                 var v;
                 for (var p in params) {
                     v = params[p];
-                    if (!Magix._a(v)) {
+                    if (!Magix.isArray(v)) {
                         v = [v];
                     }
                     for (var i = 0; i < v.length; i++) {
