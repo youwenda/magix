@@ -246,7 +246,7 @@ G_Assign(Updater[G_PROTOTYPE], {
      */
     set(obj) {
         let me = this;
-        me['@{updater#data.changed}'] = G_Set(obj, me['@{upater#data}'], me['@{updater#keys}']) || me['@{updater#data.changed}'];
+        me['@{updater#data.changed}'] = G_Set(obj, me['@{updater#data}'], me['@{updater#keys}']) || me['@{updater#data.changed}'];
         return me;
     },
     /**
