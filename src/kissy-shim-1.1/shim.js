@@ -3,7 +3,7 @@
 // Magix API
 Magix.version = '3.8.10';
 // S.each(['isObject', 'isArray', 'isString', 'isFunction', 'isNumber', 'isRegExp'], k => Magix[k] = S[k]);
-G_Assign(Maigx, {
+G_Assign(Magix, {
   _a: S.isArray,
   _f: S.isFunction,
   _o: S.isObject,
@@ -11,6 +11,10 @@ G_Assign(Maigx, {
   _n: S.isNumber
 });
 
+Magix_Cfg = {
+  ...Magix_Cfg,
+  rootId: 'magix_vf_root'
+};
 
 Magix.pathToObject = path => {
   const r = G_ParseUri(path);
@@ -24,9 +28,9 @@ Magix.noop = G_NOOP;
 const __local = {};
 Magix.local = (key, value) => {
   const args = arguments;
-  switch(args.length) {
+  switch (args.length) {
     case 0:
-      return { ...__local };
+      return {...__local};
       break;
     case 1:
       if (typeof key === 'string') {
@@ -150,7 +154,7 @@ Router.on(G_CHANGED, e => {
       G_Location[p] = location[p];
     }
   }
-  
+
   location.hash.pathname = location.hash.path;
   location.query.pathname = location.query.path;
 
@@ -205,13 +209,13 @@ const Dispatcher_Update = (vframe, /*#if(modules.state){#*/ stateKeys, /*#}#*/ v
         args.cs = c;
     }
     };*/
-    
+
     const args = {
       location: G_Location,
       changed: G_LocationChanged,
       /**
-      * 阻止向所有的子view传递
-      */
+       * 阻止向所有的子view传递
+       */
       prevent: function () {
         this.cs = [];
       },
@@ -288,17 +292,18 @@ G_Assign(Vframe[G_PROTOTYPE], {
    * 加载对应的view
    * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的view路径
    * @param {Object|Null} [viewInitParams] 调用view的init方法时传递的参数
-  */
+   */
   mountView(viewPath, viewInitParams = {} /*,keepPreHTML*/) {
     let me = this;
-    let { id, pId, '@{vframe#sign}': s } = me;
+    let {id, pId, '@{vframe#sign}': s} = me;
     let node = G_GetById(id),
       /*#if(modules.viewSlot){#*/
       vNodes = {
         nodes: node['@{node#vnodes}']
       },
       /*#}#*/
-      po, sign, view, params /*#if(modules.viewProtoMixins){#*/, ctors /*#}#*/ /*#if(modules.updater){#*/, parentVf/*#}#*/;
+      po, sign, view, params /*#if(modules.viewProtoMixins){#*/, ctors /*#}#*/ /*#if(modules.updater){#*/,
+      parentVf/*#}#*/;
     if (!me['@{vframe#alter.node}'] && node) { //alter
       me['@{vframe#alter.node}'] = 1;
       me['@{vframe#template}'] = node.innerHTML; //.replace(ScriptsReg, ''); template
@@ -363,7 +368,7 @@ G_Assign(Vframe[G_PROTOTYPE], {
           }
           let tmpl = Magix.tmpl.get(po[G_PATH]);
           // 对于继承的View，单纯的判断TView的原型链有误，因此使用hasOwnProperty判断 同时Magix3的tmpl是一个方法
-          if (tmpl && (!G_Has(TView[G_PROTOTYPE], 'tmpl') || !S.isFunction(TView[G_PROTOTYPE].tmpl)) ) {
+          if (tmpl && (!G_Has(TView[G_PROTOTYPE], 'tmpl') || !S.isFunction(TView[G_PROTOTYPE].tmpl))) {
             if (typeof tmpl === 'string') {
               tmpl = tmpl.replace(MxEvent, '$&' + me.id + G_SPLITER);
             }
@@ -414,7 +419,7 @@ G_Assign(Vframe[G_PROTOTYPE], {
           /*#if(modules.router||modules.state){#*/
           me['@{vframe#update.tag}'] = Dispatcher_UpdateTag;
           /*#}#*/
-          
+
           new Promise(resolve => {
             const fn = view.load();
             if (fn && fn.then) {
@@ -444,8 +449,8 @@ G_Assign(Vframe[G_PROTOTYPE], {
   },
   /**
    * 销毁对应的view, Magix1销毁view时，view.owner属性不会销毁，Magix3进行了销毁设置为NULL,这里兼容
-  */
-  unmountView ( /*keepPreHTML*/) {
+   */
+  unmountView(/*keepPreHTML*/) {
     const view = this['@{vframe#view.entity}'];
     origUnmountView.apply(this, arguments);
     // 连同新添加的兼容属性view一起删除
@@ -458,7 +463,7 @@ G_Assign(Vframe[G_PROTOTYPE], {
    * 加载某个区域下的view
    * @param {HTMLElement|String} zoneId 节点对象或id
    * @deprecated @param {Object|undefined} 向view传递的参数，在Magix3.8.10中已经废弃，因某个区域下面可能会有很多view，如果传递，所有view都会接受这个参数
-   * 
+   *
    * @example
    * // html
    * // &lt;div id="zone"&gt;
@@ -471,7 +476,7 @@ G_Assign(Vframe[G_PROTOTYPE], {
     let me = this;
     let vf, id, vfs = [];
     zoneId = zoneId || me.id;
-    
+
     let vframes = $(`${G_HashKey}${zoneId} vframe`);
     if (vframes.length) {
       Magix.deprecated('Deprecated vframe tag, use div[mx-view] instead');
@@ -554,7 +559,7 @@ G_Assign(Vframe[G_PROTOTYPE], {
     }
     this.unmountZone(node, params);
   },
-  mountZoneVframes: function(node, params) {
+  mountZoneVframes: function (node, params) {
     Magix.deprecated('Deprecated Vframe#mountZoneVframes use Vframe#mountZone instead');
     if (node && node.nodeType) {
       node = IdIt(node);
@@ -659,7 +664,7 @@ View_Prepare = (View) => {
 };
 
 const View_Ctors = [
-  function() {
+  function () {
     // 为view补充的实例和原型属性
     this.path = this.owner['@{vframe#view.path}'];
     Object.defineProperty(this, 'sign', {
@@ -673,7 +678,7 @@ const View_Ctors = [
 // Body
 const Body_EvtInfoReg = /(?:([\w\-]+)\x1e)?([^(<{]+)(?:<(\w+)>)?(\(?)([\s\S]*)?\)?/;
 const EvtParamsReg = /(\w+):([^,]+)/g;
-  
+
 const Body_RootEvents = {};
 const Body_SearchSelectorEvents = {};
 const Body_RangeEvents = {};
@@ -730,7 +735,7 @@ const Body_FindVframeInfo = (current, eventType) => {
             match.p[k] = v;
           });
         }
-      } else if(match.i) {
+      } else if (match.i) {
         // new events params because of Body_EvtInfoReg add ')' in last charcode in match.i
         // TEST CASE
         // let s = 'mx_223\x1echangeTabContent({type:cpc})';
@@ -789,7 +794,7 @@ const Body_FindVframeInfo = (current, eventType) => {
         /*
             如果当前节点是vframe的根节点，则把当前的vf置为该vframe
             该处主要处理这样的边界情况
-            <mx-vrame src="./test" mx-click="parent()"/>
+            <mx-vframe src="./test" mx-click="parent()"/>
             //.test.js
             export default Magix.View.extend({
                 '$<click>'(){
@@ -828,7 +833,7 @@ const Body_FindVframeInfo = (current, eventType) => {
           /*#if(modules.layerVframe){#*/
           if (findParent) {
             if (match.v) {
-              eventInfos.push({ ...match, v: selectorVfId });
+              eventInfos.push({...match, v: selectorVfId});
             } else {
               match.v = selectorVfId;
             }
@@ -853,7 +858,7 @@ const Body_FindVframeInfo = (current, eventType) => {
 };
 
 const Body_DOMEventProcessor = domEvent => {
-  let { target, type } = domEvent;
+  let {target, type} = domEvent;
   let eventInfos;
   let ignore;
   let vframe, view, eventName, fn;
@@ -865,7 +870,7 @@ const Body_DOMEventProcessor = domEvent => {
     eventInfos = Body_FindVframeInfo(target, type);
     if (eventInfos.length) {
       arr = [];
-      for (let { v, r, n, e, i, p } of eventInfos) {
+      for (let {v, r, n, e, i, p} of eventInfos) {
         if (!v && DEBUG) {
           return Magix_Cfg.error(Error(`bad ${type}:${r}`));
         }
@@ -897,8 +902,8 @@ const Body_DOMEventProcessor = domEvent => {
 
             // 如果含有match.p, 则说明是老事件
             params = p ? p
-                      : i ? G_ParseExpr(i, view['@{view#updater}']['@{updater#data}']) 
-                        : {};
+              : i ? G_ParseExpr(i, view['@{view#updater}']['@{updater#data}'])
+                : {};
 
             domEvent[G_PARAMS] = params;
             G_ToTry(fn, G_Assign(domEvent, WEvent), view);
@@ -928,8 +933,8 @@ const Body_DOMEventProcessor = domEvent => {
     }
     /*|| e.mxStop */
     if (((ignore = Body_RangeEvents[fn = target['@{node#owner.vframe}']]) &&
-      (ignore = ignore[target['@{node#guid}']]) &&
-      ignore[type]) ||
+        (ignore = ignore[target['@{node#guid}']]) &&
+        ignore[type]) ||
       domEvent.isPropagationStopped()) { //避免使用停止事件冒泡，比如别处有一个下拉框，弹开，点击到阻止冒泡的元素上，弹出框不隐藏
       if (arr.length) {
         arr.push(fn);
@@ -969,16 +974,16 @@ const G_DOMEventLibBind = (node, type, cb, remove, scope, selector) => {
   if (Specials[type] === 1) {
     selector = `[mx-${type}]`;
     if (!Specials[selector]) {
-      cb = Specials[selector] = S.bind(cb, scope);     
+      cb = Specials[selector] = S.bind(cb, scope);
     }
   } else {
     selector = G_EMPTY;
   }
 
   if (scope || selector) {
-      SE[`${remove ? 'un' : G_EMPTY}delegate`](node, type, selector, cb, scope);
+    SE[`${remove ? 'un' : G_EMPTY}delegate`](node, type, selector, cb, scope);
   } else {
-      SE[remove ? 'detach' : 'on'](node, type, cb, scope);
+    SE[remove ? 'detach' : 'on'](node, type, cb, scope);
   }
 };
 
@@ -1025,6 +1030,9 @@ const View_IsObserveChanged = view => {
 const View_ScopeReg = /\x1f/g;
 const View_SetEventOwner = (str, id) => (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
 const origObserveLocation = View[G_PROTOTYPE].observeLocation;
+// noinspection JSCommentMatchesSignature
+// noinspection JSCommentMatchesSignature
+// noinspection JSValidateJSDoc
 G_Assign(View[G_PROTOTYPE], {
   vom: Vframe,
   location: G_Location,
@@ -1050,7 +1058,7 @@ G_Assign(View[G_PROTOTYPE], {
   },
   /**
    * 通知当前view进行更新，与beginUpdate不同的是：begin是开始更新html，notify是开始调用更新的方法，通常render与renderUI已经自动做了处理，对于用户自定义的获取数据并更新界面时，在开始更新前，需要调用一下该方法
-   * @return {Integer} 当前view的签名
+   * @return {Int} 当前view的签名
    */
   notifyUpdate() {
     if (this['@{view#sign}']) {
@@ -1085,10 +1093,10 @@ G_Assign(View[G_PROTOTYPE], {
     return Promise.resolve();
   },
   /**
- * 通知当前view即将开始进行html的更新
- * @param {String} [id] 哪块区域需要更新，默认整个view
- * @deprecated Magix3.8.10中不再fire `prerender`事件
- */
+   * 通知当前view即将开始进行html的更新
+   * @param {String} [id] 哪块区域需要更新，默认整个view
+   * @deprecated Magix3.8.10中不再fire `prerender`事件
+   */
   beginUpdate(id, me) {
     me = this;
     if (me['@{view#sign}'] > 0 && me['@{view#rendered}']) {
@@ -1138,7 +1146,7 @@ G_Assign(View[G_PROTOTYPE], {
   /**
    * @deprecated 恢复为Magix3.7.0的方法，设置view的html内容
    * @param {String} id 更新节点的id
-   * @param {Strig} html html字符串
+   * @param {String} html html字符串
    * @example
    * render:function(){
    *     this.setHTML(this.id,this.tmpl);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
