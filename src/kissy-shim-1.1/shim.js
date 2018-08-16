@@ -2,8 +2,16 @@
 
 // Magix API
 Magix.version = '3.8.10';
-S.each(['isObject', 'isArray', 'isString', 'isFunction', 'isNumber', 'isRegExp'], k => Magix[k] = S[k]);
-Magix.isNumeric = o => !isNaN(parseFloat(o)) && isFinite(o);
+// S.each(['isObject', 'isArray', 'isString', 'isFunction', 'isNumber', 'isRegExp'], k => Magix[k] = S[k]);
+G_Assign(Maigx, {
+  _a: S.isArray,
+  _f: S.isFunction,
+  _o: S.isObject,
+  _s: S.isString,
+  _n: S.isNumber
+});
+
+
 Magix.pathToObject = path => {
   const r = G_ParseUri(path);
   return {
@@ -1014,34 +1022,6 @@ const View_IsObserveChanged = view => {
 };
 /*#}#*/
 
-// 处理Magix1早期的 postMessage and receiveMessage method
-const VOMEventsObject = {};
-const PrepareVOMMessage = function (Vframe) {
-  if (!PrepareVOMMessage.d) {
-    PrepareVOMMessage.d = 1;
-    Vframe.on('add', function (e) {
-      let vf = e.vframe;
-      let list = VOMEventsObject[vf.id];
-      if (list) {
-        for (let i = 0; i < list.length; i++) {
-          PostMessage(vf, list[i]);
-        }
-        delete VOMEventsObject[vf.id];
-      }
-    });
-    Vframe.on('remove', function (e) {
-      delete VOMEventsObject[e.vframe.id];
-    });
-    let vf = Vframe.root();
-    vf.on('created', function () {
-      VOMEventsObject = {};
-    });
-  }
-};
-const PostMessage = function (vframe, args) {
-  vframe.invoke('receiveMessage', args);
-};
-
 const View_ScopeReg = /\x1f/g;
 const View_SetEventOwner = (str, id) => (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
 const origObserveLocation = View[G_PROTOTYPE].observeLocation;
@@ -1087,37 +1067,8 @@ G_Assign(View[G_PROTOTYPE], {
     Magix.deprecated('Deprecated View#navigate use Magix.Router.to instead。请查阅：http://gitlab.alibaba-inc.com/mm/afp/issues/2 View#navigate部分');
     Router.to.apply(Router, arguments);
   },
-  manage(key, res, destroyWhenCallRender) {
-    let cache = this['@{view#resource}'];
-    let args = arguments;
-    let wrapObj;
-    Magix.deprecated('Deprecated View#manage use View#capture instead. But This Very Different!');
-    if (args.length === 2) {
-      Magix.deprecated('View#manage VS View#capture When Using Explicit Key. They are different!');
-    }
-    if (key && !res) {
-      res = key;
-      key = G_Id();
-    }
-    if (res) {
-      // View_DestroyResource(cache, key, 1, res);
-      wrapObj = {
-        e: res,
-        x: destroyWhenCallRender
-      };
-      cache[key] = wrapObj;
-      //service托管检查
-      if (DEBUG && res && (res.id + G_EMPTY).indexOf('\x1es') === 0) {
-        res['@{service#captured}'] = 1;
-        if (!destroyWhenCallRender) {
-          Magix.deprecated('beware! May be you should set destroyWhenCallRender = true');
-        }
-      }
-    } else {
-      wrapObj = cache[key];
-      res = wrapObj && wrapObj.e || res;
-    }
-    return res;
+  manage(...args) {
+    return this.capture(...args);
   },
   getManaged(key) {
     Magix.deprecated('Deprecated View#getManaged use View#capture instead');
@@ -1205,37 +1156,6 @@ G_Assign(View[G_PROTOTYPE], {
   },
   setViewHTML: function (html) {
     this.setHTML(this.id, html);
-  },
-  /**
-   * 用于接受其它view通过postMessageTo方法发来的消息，供最终的view开发人员进行覆盖
-   * @function
-   * @param {Object} e 通过postMessageTo传递的第二个参数
-   */
-  receiveMessage: G_NOOP,
-  /**
-   * 向某个vframe发送消息
-   * @param {Array|String} aims  目标vframe id数组
-   * @param {Object} args 消息对象
-   */
-  postMessageTo(aims, args) {
-    PrepareVOMMessage(Vframe);
-
-    if (!Magix.isArray(aims)) {
-      aims = [aims];
-    }
-    if (!args) args = {};
-    for (let i = 0, it; i < aims.length; i++) {
-      it = aims[i];
-      let vframe = Vframe.get(it);
-      if (vframe) {
-        PostMessage(vframe, args);
-      } else {
-        if (!VOMEventsObject[it]) {
-          VOMEventsObject[it] = [];
-        }
-        VOMEventsObject[it].push(args);
-      }
-    }
   }
 });
 
