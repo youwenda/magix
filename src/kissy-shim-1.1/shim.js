@@ -897,6 +897,7 @@ const Body_DOMEventProcessor = domEvent => {
               targetId,
               // TODO 测试一下Magix1的domEvent貌似是原生的domEvent?
               domEvent,
+              srcEvent: domEvent,
               view
             });
 
