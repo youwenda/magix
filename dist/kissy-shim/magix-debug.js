@@ -4784,6 +4784,9 @@ G_Assign(Vframe[G_PROTOTYPE], {
       params = S.mix(viewInitParams, params, {
         overwrite: false
       });
+      if (DEBUG) {
+        me.__HMR_PARAMS__ = params;
+      }
       G_Require(view, TView => {
         if (sign == me['$g']) { //有可能在view载入后，vframe已经卸载了
           if (!TView) {
