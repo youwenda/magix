@@ -1823,7 +1823,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
          * view.onwer.mountZone('zone');//即可完成zone节点下的view渲染
          */
         mountZone: function (zoneId, inner /*,keepPreHTML*/) {
-            var _a;
+            var _b;
             var me = this;
             var vf, id, vfs = [];
             zoneId = zoneId || me.id;
@@ -1852,8 +1852,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                     vfs.push([id, vf.getAttribute(G_MX_VIEW)]);
                 }
             }
-            for (var _b = 0, vfs_1 = vfs; _b < vfs_1.length; _b++) {
-                _a = vfs_1[_b], id = _a[0], vf = _a[1];
+            for (var _c = 0, vfs_1 = vfs; _c < vfs_1.length; _c++) {
+                _b = vfs_1[_c], id = _b[0], vf = _b[1];
                 if (DEBUG && document.querySelectorAll("#" + id).length > 1) {
                     Magix_Cfg.error(Error("dom id:\"" + id + "\" duplicate"));
                 }
@@ -2009,8 +2009,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
      */
     Node[G_PROTOTYPE].invokeView = function (name, args) {
         var returned = [], e, vf;
-        for (var _i = 0, _a = this; _i < _a.length; _i++) {
-            e = _a[_i];
+        for (var _i = 0, _b = this; _i < _b.length; _i++) {
+            e = _b[_i];
             vf = e.vframe;
             returned.push(vf && vf.invoke(name, args));
         }
@@ -2181,7 +2181,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             if (eventInfos.length) {
                 arr = [];
                 for (var _i = 0, eventInfos_1 = eventInfos; _i < eventInfos_1.length; _i++) {
-                    var _a = eventInfos_1[_i], v = _a.v, r = _a.r, n = _a.n, i = _a.i;
+                    var _b = eventInfos_1[_i], v = _b.v, r = _b.r, n = _b.n, i = _b.i;
                     if (!v && DEBUG) {
                         return Magix_Cfg.error(Error("bad " + type + ":" + r));
                     }
@@ -2661,12 +2661,12 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             console.time('[updater time:' + selfId + ']');
             vdom = I_GetNode(tmpl(data, selfId), node);
             I_SetChildNodes(node, vdom, ref, vf, keys);
-            for (var _i = 0, _a = ref.d; _i < _a.length; _i++) {
-                vdom = _a[_i];
+            for (var _i = 0, _b = ref.d; _i < _b.length; _i++) {
+                vdom = _b[_i];
                 vdom[0].id = vdom[1];
             }
-            for (var _b = 0, _c = ref.v; _b < _c.length; _b++) {
-                vdom = _c[_b];
+            for (var _c = 0, _d = ref.v; _c < _d.length; _c++) {
+                vdom = _d[_c];
                 vdom['$a']();
             }
             if (ref.c || !view['$e']) {
@@ -2694,15 +2694,15 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
      * @param {String} viewId Magix.View对象Id
      */
     function Updater(viewId) {
-        var _a;
+        var _b;
         var me = this;
         me['$b'] = viewId;
         me['$c'] = 1;
-        me['$a'] = (_a = {
+        me['$a'] = (_b = {
                 vId: viewId
             },
-            _a[G_SPLITER] = 1,
-            _a);
+            _b[G_SPLITER] = 1,
+            _b);
         me['$d'] = [];
         me['$k'] = {};
     }
@@ -3054,8 +3054,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             }
             if (!res && loc.k) {
                 params = Router_LastChanged[G_PARAMS];
-                for (var _i = 0, _a = loc.k; _i < _a.length; _i++) {
-                    i = _a[_i];
+                for (var _i = 0, _b = loc.k; _i < _b.length; _i++) {
+                    i = _b[_i];
                     res = G_Has(params, i);
                     if (res)
                         break;
@@ -3633,9 +3633,9 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
          * @param {Object} [val] 属性值
          */
         set: function (key, val) {
-            var _a;
+            var _b;
             if (!G_IsObject(key)) {
-                key = (_a = {}, _a[key] = val, _a);
+                key = (_b = {}, _b[key] = val, _b);
             }
             G_Assign(this.$, key);
         }
@@ -4224,8 +4224,15 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
     //////////////////////// Shim ////////////////////////
     // Magix API
     Magix.version = '3.8.10';
-    S.each(['isObject', 'isArray', 'isString', 'isFunction', 'isNumber', 'isRegExp'], function (k) { return Magix[k] = S[k]; });
-    Magix.isNumeric = function (o) { return !isNaN(parseFloat(o)) && isFinite(o); };
+    // S.each(['isObject', 'isArray', 'isString', 'isFunction', 'isNumber', 'isRegExp'], k => Magix[k] = S[k]);
+    G_Assign(Magix, {
+        _a: S.isArray,
+        _f: S.isFunction,
+        _o: S.isObject,
+        _s: S.isString,
+        _n: S.isNumber
+    });
+    Magix_Cfg = G_Assign({}, Magix_Cfg, { rootId: 'magix_vf_root' });
     Magix.pathToObject = function (path) {
         var r = G_ParseUri(path);
         return G_Assign({}, r, { pathname: r.path });
@@ -4262,8 +4269,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         for (var _i = 0; _i < arguments.length; _i++) {
             args[_i] = arguments[_i];
         }
-        var _a;
-        return new ((_a = Magix.Cache).bind.apply(_a, [void 0].concat(args)))();
+        var _b;
+        return new ((_b = Magix.Cache).bind.apply(_b, [void 0].concat(args)))();
     };
     Magix.safeExec = G_ToTry;
     Magix.listToMap = function (list, key) {
@@ -4403,8 +4410,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                 location: G_Location,
                 changed: G_LocationChanged,
                 /**
-                * 阻止向所有的子view传递
-                */
+                 * 阻止向所有的子view传递
+                 */
                 prevent: function () {
                     this.cs = [];
                 },
@@ -4485,7 +4492,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
          * 加载对应的view
          * @param {String} viewPath 形如:app/views/home?type=1&page=2 这样的view路径
          * @param {Object|Null} [viewInitParams] 调用view的init方法时传递的参数
-        */
+         */
         mountView: function (viewPath, viewInitParams /*,keepPreHTML*/) {
             if (viewInitParams === void 0) { viewInitParams = {}; }
             var me = this;
@@ -4519,13 +4526,13 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                         if (!TView) {
                             return Magix_Cfg.error(Error("id:" + id + " cannot load:" + view));
                         }
-                        var tmpl = Magix.tmpl.get(po[G_PATH]);
-                        // 对于继承的View，单纯的判断TView的原型链有误，因此使用hasOwnProperty判断 同时Magix3的tmpl是一个方法
-                        if (tmpl && (!G_Has(TView[G_PROTOTYPE], 'tmpl') || !S.isFunction(TView[G_PROTOTYPE].tmpl))) {
+                        if (!TView[G_PROTOTYPE].tmplWrapped) {
+                            var tmpl = TView[G_PROTOTYPE].tmpl;
                             if (typeof tmpl === 'string') {
                                 tmpl = tmpl.replace(MxEvent, '$&' + me.id + G_SPLITER);
+                                TView[G_PROTOTYPE].tmpl = TView[G_PROTOTYPE].template = tmpl;
                             }
-                            TView[G_PROTOTYPE].tmpl = TView[G_PROTOTYPE].template = tmpl;
+                            TView[G_PROTOTYPE].tmplWrapped = true;
                         }
                         ctors = View_Prepare(TView);
                         view = new TView(id, me, params, ctors);
@@ -4589,7 +4596,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         },
         /**
          * 销毁对应的view, Magix1销毁view时，view.owner属性不会销毁，Magix3进行了销毁设置为NULL,这里兼容
-        */
+         */
         unmountView: function ( /*keepPreHTML*/) {
             var view = this['$v'];
             origUnmountView.apply(this, arguments);
@@ -4613,7 +4620,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
          * view.onwer.mountZone('zone');//即可完成zone节点下的view渲染
          */
         mountZone: function (zoneId, viewInitParams, inner /*,keepPreHTML*/) {
-            var _a;
+            var _b;
             var me = this;
             var vf, id, vfs = [];
             zoneId = zoneId || me.id;
@@ -4646,8 +4653,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                     vfs.push([id, vf.getAttribute(G_MX_VIEW)]);
                 }
             }
-            for (var _b = 0, vfs_3 = vfs; _b < vfs_3.length; _b++) {
-                _a = vfs_3[_b], id = _a[0], vf = _a[1];
+            for (var _c = 0, vfs_3 = vfs; _c < vfs_3.length; _c++) {
+                _b = vfs_3[_c], id = _b[0], vf = _b[1];
                 if (DEBUG && document.querySelectorAll("#" + id).length > 1) {
                     Magix_Cfg.error(Error("dom id:\"" + id + "\" duplicate"));
                 }
@@ -4755,7 +4762,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         var prop = View[G_PROTOTYPE];
         var parent = View.superclass;
         var c;
-        // 对于模板属性的兼容处理
+        // 对模板属性名称做兼容处理
         prop.tmpl = prop.tmpl || prop.template;
         // 对于事件的兼容处理
         if (!set) {
@@ -4891,7 +4898,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                     /*
                         如果当前节点是vframe的根节点，则把当前的vf置为该vframe
                         该处主要处理这样的边界情况
-                        <mx-vrame src="./test" mx-click="parent()"/>
+                        <mx-vframe src="./test" mx-click="parent()"/>
                         //.test.js
                         export default Magix.View.extend({
                             '$<click>'(){
@@ -4957,7 +4964,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             if (eventInfos.length) {
                 arr = [];
                 for (var _i = 0, eventInfos_2 = eventInfos; _i < eventInfos_2.length; _i++) {
-                    var _a = eventInfos_2[_i], v = _a.v, r = _a.r, n = _a.n, e = _a.e, i = _a.i, p = _a.p;
+                    var _b = eventInfos_2[_i], v = _b.v, r = _b.r, n = _b.n, e = _b.e, i = _b.i, p = _b.p;
                     if (!v && DEBUG) {
                         return Magix_Cfg.error(Error("bad " + type + ":" + r));
                     }
@@ -4984,6 +4991,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                                 targetId: targetId,
                                 // TODO 测试一下Magix1的domEvent貌似是原生的domEvent?
                                 domEvent: domEvent,
+                                srcEvent: domEvent,
                                 view: view
                             });
                             // 如果含有match.p, 则说明是老事件
@@ -5099,8 +5107,8 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             }
             if (!res && loc.k) {
                 params = Router_LastChanged[G_PARAMS];
-                for (var _i = 0, _a = loc.k; _i < _a.length; _i++) {
-                    i = _a[_i];
+                for (var _i = 0, _b = loc.k; _i < _b.length; _i++) {
+                    i = _b[_i];
                     res = G_Has(params, i);
                     if (res)
                         break;
@@ -5112,36 +5120,12 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         }
         return res;
     };
-    // 处理Magix1早期的 postMessage and receiveMessage method
-    var VOMEventsObject = {};
-    var PrepareVOMMessage = function (Vframe) {
-        if (!PrepareVOMMessage.d) {
-            PrepareVOMMessage.d = 1;
-            Vframe.on('add', function (e) {
-                var vf = e.vframe;
-                var list = VOMEventsObject[vf.id];
-                if (list) {
-                    for (var i = 0; i < list.length; i++) {
-                        PostMessage(vf, list[i]);
-                    }
-                    delete VOMEventsObject[vf.id];
-                }
-            });
-            Vframe.on('remove', function (e) {
-                delete VOMEventsObject[e.vframe.id];
-            });
-            var vf = Vframe.root();
-            vf.on('created', function () {
-                VOMEventsObject = {};
-            });
-        }
-    };
-    var PostMessage = function (vframe, args) {
-        vframe.invoke('receiveMessage', args);
-    };
     var View_ScopeReg = /\x1f/g;
     var View_SetEventOwner = function (str, id) { return (str + G_EMPTY).replace(View_ScopeReg, id || _this.id); };
     var origObserveLocation = View[G_PROTOTYPE].observeLocation;
+    // noinspection JSCommentMatchesSignature
+    // noinspection JSCommentMatchesSignature
+    // noinspection JSValidateJSDoc
     G_Assign(View[G_PROTOTYPE], {
         vom: Vframe,
         location: G_Location,
@@ -5168,7 +5152,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         },
         /**
          * 通知当前view进行更新，与beginUpdate不同的是：begin是开始更新html，notify是开始调用更新的方法，通常render与renderUI已经自动做了处理，对于用户自定义的获取数据并更新界面时，在开始更新前，需要调用一下该方法
-         * @return {Integer} 当前view的签名
+         * @return {Int} 当前view的签名
          */
         notifyUpdate: function () {
             if (this['$s']) {
@@ -5185,38 +5169,12 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             Magix.deprecated('Deprecated View#navigate use Magix.Router.to instead。请查阅：http://gitlab.alibaba-inc.com/mm/afp/issues/2 View#navigate部分');
             Router.to.apply(Router, arguments);
         },
-        manage: function (key, res, destroyWhenCallRender) {
-            var cache = this['$r'];
-            var args = arguments;
-            var wrapObj;
-            Magix.deprecated('Deprecated View#manage use View#capture instead. But This Very Different!');
-            if (args.length === 2) {
-                Magix.deprecated('View#manage VS View#capture When Using Explicit Key. They are different!');
+        manage: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
             }
-            if (key && !res) {
-                res = key;
-                key = G_Id();
-            }
-            if (res) {
-                // View_DestroyResource(cache, key, 1, res);
-                wrapObj = {
-                    e: res,
-                    x: destroyWhenCallRender
-                };
-                cache[key] = wrapObj;
-                //service托管检查
-                if (DEBUG && res && (res.id + G_EMPTY).indexOf('\x1es') === 0) {
-                    res['$a'] = 1;
-                    if (!destroyWhenCallRender) {
-                        Magix.deprecated('beware! May be you should set destroyWhenCallRender = true');
-                    }
-                }
-            }
-            else {
-                wrapObj = cache[key];
-                res = wrapObj && wrapObj.e || res;
-            }
-            return res;
+            return this.capture.apply(this, args);
         },
         getManaged: function (key) {
             Magix.deprecated('Deprecated View#getManaged use View#capture instead');
@@ -5233,10 +5191,10 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             return Promise.resolve();
         },
         /**
-       * 通知当前view即将开始进行html的更新
-       * @param {String} [id] 哪块区域需要更新，默认整个view
-       * @deprecated Magix3.8.10中不再fire `prerender`事件
-       */
+         * 通知当前view即将开始进行html的更新
+         * @param {String} [id] 哪块区域需要更新，默认整个view
+         * @deprecated Magix3.8.10中不再fire `prerender`事件
+         */
         beginUpdate: function (id, me) {
             me = this;
             if (me['$s'] > 0 && me['$e']) {
@@ -5277,7 +5235,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         /**
          * @deprecated 恢复为Magix3.7.0的方法，设置view的html内容
          * @param {String} id 更新节点的id
-         * @param {Strig} html html字符串
+         * @param {String} html html字符串
          * @example
          * render:function(){
          *     this.setHTML(this.id,this.tmpl);//渲染界面，当界面复杂时，请考虑用其它方案进行更新
@@ -5295,38 +5253,6 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         },
         setViewHTML: function (html) {
             this.setHTML(this.id, html);
-        },
-        /**
-         * 用于接受其它view通过postMessageTo方法发来的消息，供最终的view开发人员进行覆盖
-         * @function
-         * @param {Object} e 通过postMessageTo传递的第二个参数
-         */
-        receiveMessage: G_NOOP,
-        /**
-         * 向某个vframe发送消息
-         * @param {Array|String} aims  目标vframe id数组
-         * @param {Object} args 消息对象
-         */
-        postMessageTo: function (aims, args) {
-            PrepareVOMMessage(Vframe);
-            if (!Magix.isArray(aims)) {
-                aims = [aims];
-            }
-            if (!args)
-                args = {};
-            for (var i = 0, it = void 0; i < aims.length; i++) {
-                it = aims[i];
-                var vframe = Vframe.get(it);
-                if (vframe) {
-                    PostMessage(vframe, args);
-                }
-                else {
-                    if (!VOMEventsObject[it]) {
-                        VOMEventsObject[it] = [];
-                    }
-                    VOMEventsObject[it].push(args);
-                }
-            }
         }
     });
     S.add('magix/magix', function () { return Magix; });
@@ -5345,7 +5271,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
     KISSY.add("mxext/mmanager", function (S, Magix, Event) {
         /*
             #begin mm_fetchall_1#
-            KISSY.add('testMM',function(S,MM,Model){
+            LIB.add('testMM',function(S,MM,Model){
             #end#
   
             #begin mm_fetchall_2#
@@ -5355,13 +5281,12 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             #end#
   
             #begin mm_fetchall_3#
-            KISSY.use('testMM',function(S,TM){
+            LIB.use('testMM',function(S,TM){
             #end#
          */
         var Has = Magix.has;
         var SafeExec = Magix.safeExec;
-        var IsArray = Magix.isArray;
-        var NULL = null;
+        var IsArray = Magix._a;
         var Mix = Magix.mix;
         var Prefix = 'mr';
         var Split = String.fromCharCode(26);
@@ -5516,7 +5441,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                 if (flag == FetchFlags.ONE) { //如果是其中一个成功，则每次成功回调一次
                     var m = doneIsArray ? done[idx] : done;
                     if (m) {
-                        doneArgs[idx] = SafeExec(m, [currentError ? errorArgs : NULL, model, errorArgs], request);
+                        doneArgs[idx] = SafeExec(m, [currentError ? errorArgs : G_NULL, model, errorArgs], request);
                     }
                 }
                 else if (flag == FetchFlags.ORDER) {
@@ -5533,13 +5458,13 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                             errorArgs.msg = t.s;
                             errorArgs[i] = t.s;
                         }
-                        doneArgs[i] = SafeExec(d, [t.e ? errorArgs : NULL, t.m, errorArgs].concat(doneArgs), request);
+                        doneArgs[i] = SafeExec(d, [t.e ? errorArgs : G_NULL, t.m, errorArgs].concat(doneArgs), request);
                     }
                     orderlyArr.i = i;
                 }
                 if (ops.b == ops.h) { //ops.h total count
                     if (!ops.e) {
-                        errorArgs = NULL;
+                        errorArgs = G_NULL;
                     }
                     if (flag == FetchFlags.ALL) {
                         doneArr.unshift(errorArgs);
@@ -5806,17 +5731,17 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
              * @param  {Function} callback 当前面的任务完成后调用该回调
              * @return {MRequest}
              * @example
-                var r=MM.fetchAll([
-                    {name:'M1'},
-                    {name:'M2'}
-                ],function(err,m1,m2){
-  
-                    return 'fetchAllReturned';
-                });
-  
-                r.next(function(err,fetchAllReturned){
-                    alert(fetchAllReturned);
-                });
+             var r=MM.fetchAll([
+             {name:'M1'},
+             {name:'M2'}
+             ],function(err,m1,m2){
+    
+                        return 'fetchAllReturned';
+                    });
+    
+             r.next(function(err,fetchAllReturned){
+                        alert(fetchAllReturned);
+                    });
              */
             next: function (callback) {
                 var me = this;
@@ -5873,10 +5798,10 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                         urlParams:{},
                         postParams:{},
                         before:function(m){
-  
+      
                         },
                         after:function(m){
-  
+      
                         }
                      */
                 var me = this;
@@ -5915,13 +5840,13 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
              * @example
              * var MM=MManager.create(Model);
              * MM.registerMethods({
-             *     methodA:function(args,done,error){
-             *
-             *     },
-             *     methodB:function(args,done,error){
-             *
-             *     }
-             * });
+                 *     methodA:function(args,done,error){
+                 *
+                 *     },
+                 *     methodB:function(args,done,error){
+                 *
+                 *     }
+                 * });
              *
              * //...
              * //使用时：
@@ -5930,10 +5855,10 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
              *     {name:'methodA',params:['a']},
              *     {name:'methodB',params:['b']}
              * ],function(f1Result,f2Result){
-             *
-             * },function(msg){
-             *     alert(msg)
-             * })
+                 *
+                 * },function(msg){
+                 *     alert(msg)
+                 * })
              */
             /*callMethods:function(args,done,error){
                     var me=this,
@@ -5978,7 +5903,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                         if(fn){
                             if(!one.params)one.params=[];
                             if(!S.isArray(one.params))one.params=[one.params];
-  
+    
                             one.params.push(check(i,1),check(i));
                             fn.apply(me,one.params);
                         }else{
@@ -6088,39 +6013,39 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
              * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
              * @return {MRequest}
              * @example
-                //定义
-                
-                KISSY.add('testMM',function(S,MM,Model){
-                
-                    var TestMM=MM.create(Model);
-                    TestMM.registerModels([{
-                        name:'Test1',
-                        url:'/api/test1.json'
+             //定义
+    
+             LIB.add('testMM',function(S,MM,Model){
+                    
+                        var TestMM=MM.create(Model);
+                        TestMM.registerModels([{
+                            name:'Test1',
+                            url:'/api/test1.json'
+                        },{
+                            name:'Test2',
+                            url:'/api/test2.json',
+                            urlParams:{
+                                type:'2'
+                            }
+                        }]);
+                        return TestMM;
+                    
                     },{
-                        name:'Test2',
-                        url:'/api/test2.json',
-                        urlParams:{
-                            type:'2'
-                        }
-                    }]);
-                    return TestMM;
-                
-                },{
-                    requires:["mxext/mmanager","mxext/model"]
-                });
-                
-                //使用
-                
-                KISSY.use('testMM',function(S,TM){
-                
-                    TM.fetchAll([{
-                        name:'Test1'
-                    },{
-                        name:'Test2'
-                    }],function(err,m1,m2){
-  
+                        requires:["mxext/mmanager","mxext/model"]
                     });
-                });
+    
+             //使用
+    
+             LIB.use('testMM',function(S,TM){
+                    
+                        TM.fetchAll([{
+                            name:'Test1'
+                        },{
+                            name:'Test2'
+                        }],function(err,m1,m2){
+    
+                        });
+                    });
              */
             fetchAll: GenMRequest('fetchAll'),
             /**
@@ -6140,38 +6065,38 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
              * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
              * @return {MRequest}
              * @example
-                //代码片断：
-                //1：当按顺序获取多个model，回调只有一个时
-                var r=MM.fetchOrder([
-                    {name:'M1'},
-                    {name:'M2'},
-                    {name:'M3'}
-                ],function(err,model){//回调按M1,M2,M3的顺序被调用3次
-                    if(err){
-                        alert(err.msg);
-                    }else{
-                        alert(model.get('name'));
-                    }
-                });
-  
-                //2:当按顺序获取多个model，回调多于一个时
-                var r=MM.fetchOrder([
-                    {name:'M1'},
-                    {name:'M2'},
-                    {name:'M3'}
-                ],function(err,model){//首先被调用
-                    if(err){
-                        alert(err.msg);
-                    }else{
-                        alert(model.get('name'));
-                    }
-                },function(err,model){//其次被调用
-                    if(err){
-                        alert(err.msg);
-                    }else{
-                        alert(model.get('name'));
-                    }
-                });
+             //代码片断：
+             //1：当按顺序获取多个model，回调只有一个时
+             var r=MM.fetchOrder([
+             {name:'M1'},
+             {name:'M2'},
+             {name:'M3'}
+             ],function(err,model){//回调按M1,M2,M3的顺序被调用3次
+                        if(err){
+                            alert(err.msg);
+                        }else{
+                            alert(model.get('name'));
+                        }
+                    });
+    
+             //2:当按顺序获取多个model，回调多于一个时
+             var r=MM.fetchOrder([
+             {name:'M1'},
+             {name:'M2'},
+             {name:'M3'}
+             ],function(err,model){//首先被调用
+                        if(err){
+                            alert(err.msg);
+                        }else{
+                            alert(model.get('name'));
+                        }
+                    },function(err,model){//其次被调用
+                        if(err){
+                            alert(err.msg);
+                        }else{
+                            alert(model.get('name'));
+                        }
+                    });
              */
             fetchOrder: GenMRequest('fetchOrder'),
             /**
@@ -6191,38 +6116,38 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
              * @param {MxView} [view] 当传递MxView对象时，自动帮你托管MRequest
              * @return {MRequest}
              * @example
-                //代码片断：
-                //1：获取多个model，回调只有一个时
-                var r=MM.fetchOrder([
-                    {name:'M1'},
-                    {name:'M2'},
-                    {name:'M3'}
-                ],function(err,model){//m1,m2,m3，谁快先调用谁，且被调用三次
-                    if(err){
-                        alert(err.msg);
-                    }else{
-                        alert(model.get('name'));
-                    }
-                });
-  
-                //2:获取多个model，回调多于一个时
-                var r=MM.fetchOrder([
-                    {name:'M1'},
-                    {name:'M2'},
-                    {name:'M3'}
-                ],function(err,model){//m1什么时间返回，该回调什么时间被调用
-                    if(err){
-                        alert(err.msg);
-                    }else{
-                        alert(model.get('name'));
-                    }
-                },function(err,model){//m2什么时间返回，该回调什么时间被调用
-                    if(err){
-                        alert(err.msg);
-                    }else{
-                        alert(model.get('name'));
-                    }
-                });
+             //代码片断：
+             //1：获取多个model，回调只有一个时
+             var r=MM.fetchOrder([
+             {name:'M1'},
+             {name:'M2'},
+             {name:'M3'}
+             ],function(err,model){//m1,m2,m3，谁快先调用谁，且被调用三次
+                        if(err){
+                            alert(err.msg);
+                        }else{
+                            alert(model.get('name'));
+                        }
+                    });
+    
+             //2:获取多个model，回调多于一个时
+             var r=MM.fetchOrder([
+             {name:'M1'},
+             {name:'M2'},
+             {name:'M3'}
+             ],function(err,model){//m1什么时间返回，该回调什么时间被调用
+                        if(err){
+                            alert(err.msg);
+                        }else{
+                            alert(model.get('name'));
+                        }
+                    },function(err,model){//m2什么时间返回，该回调什么时间被调用
+                        if(err){
+                            alert(err.msg);
+                        }else{
+                            alert(model.get('name'));
+                        }
+                    });
              */
             fetchOne: GenMRequest('fetchOne'),
             /**
@@ -6274,7 +6199,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             getCachedModel: function (modelAttrs) {
                 var me = this;
                 var modelsCache = me.$mCache;
-                var entity = NULL;
+                var entity = G_NULL;
                 var cacheKey;
                 var meta = me.getModelMeta(modelAttrs);
                 var cache = ProcessCache(modelAttrs) || meta.cache;
@@ -6359,7 +6284,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         var GUID = +new Date();
         var Encode = encodeURIComponent;
         var Has = Magix.has;
-        var IsObject = Magix.isObject;
+        var IsObject = Magix._o;
         var ToString = Magix.toString;
         var Model = function (ops) {
             this.set(ops);
@@ -6396,7 +6321,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
              * @type {Object}
              */
             /*urlMap: {
-  
+      
             },*/
             /**
              * Model调用request方法后，与服务器同步的方法，供应用开发人员覆盖
@@ -6467,7 +6392,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                 var v;
                 for (var p in params) {
                     v = params[p];
-                    if (!Magix.isArray(v)) {
+                    if (!Magix._a(v)) {
                         v = [v];
                     }
                     for (var i = 0; i < v.length; i++) {
@@ -6583,15 +6508,15 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
              * @return {Object}
              * @example
              * MM.fetchAll({
-             *     name:'Test'
-             * },function(e,m){
-             *     var obj=m.get();//获取所有数据
-             *
-             *     var list=m.get('list',[]);//获取list数据，如果不存在list则使用空数组
-             *
-             *     var count=m.get('data.info.count',0);//获取data下面info下count的值，您无须关心data下是否有info属性
-             *
-             * });
+                   *     name:'Test'
+                   * },function(e,m){
+                   *     var obj=m.get();//获取所有数据
+                   *
+                   *     var list=m.get('list',[]);//获取list数据，如果不存在list则使用空数组
+                   *
+                   *     var count=m.get('data.info.count',0);//获取data下面info下count的值，您无须关心data下是否有info属性
+                   *
+                   * });
              */
             get: function (key, dValue, udfd) {
                 var me = this;

@@ -366,14 +366,16 @@ G_Assign(Vframe[G_PROTOTYPE], {
           if (!TView) {
             return Magix_Cfg.error(Error(`id:${id} cannot load:${view}`));
           }
-          let tmpl = Magix.tmpl.get(po[G_PATH]);
-          // 对于继承的View，单纯的判断TView的原型链有误，因此使用hasOwnProperty判断 同时Magix3的tmpl是一个方法
-          if (tmpl && (!G_Has(TView[G_PROTOTYPE], 'tmpl') || !S.isFunction(TView[G_PROTOTYPE].tmpl))) {
+
+          if(!TView[G_PROTOTYPE].tmplWrapped) {
+            let tmpl = TView[G_PROTOTYPE].tmpl;
             if (typeof tmpl === 'string') {
               tmpl = tmpl.replace(MxEvent, '$&' + me.id + G_SPLITER);
+              TView[G_PROTOTYPE].tmpl = TView[G_PROTOTYPE].template = tmpl;
             }
-            TView[G_PROTOTYPE].tmpl = TView[G_PROTOTYPE].template = tmpl;
+            TView[G_PROTOTYPE].tmplWrapped = true;
           }
+        
           /*#if(modules.viewProtoMixins){#*/
           ctors = View_Prepare(TView);
           /*#}else{#*/
@@ -641,7 +643,7 @@ View_Prepare = (View) => {
   let prop = View[G_PROTOTYPE];
   let parent = View.superclass;
   let c;
-  // 对于模板属性的兼容处理
+  // 对模板属性名称做兼容处理
   prop.tmpl = prop.tmpl || prop.template;
   // 对于事件的兼容处理
   if (!set) {
