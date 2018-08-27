@@ -367,6 +367,13 @@ G_Assign(Vframe[G_PROTOTYPE], {
             return Magix_Cfg.error(Error(`id:${id} cannot load:${view}`));
           }
 
+        
+          /*#if(modules.viewProtoMixins){#*/
+          ctors = View_Prepare(TView);
+          /*#}else{#*/
+          View_Prepare(TView);
+          /*#}#*/
+
           if(!TView[G_PROTOTYPE].tmplWrapped) {
             let tmpl = TView[G_PROTOTYPE].tmpl;
             if (typeof tmpl === 'string') {
@@ -375,12 +382,7 @@ G_Assign(Vframe[G_PROTOTYPE], {
             }
             TView[G_PROTOTYPE].tmplWrapped = true;
           }
-        
-          /*#if(modules.viewProtoMixins){#*/
-          ctors = View_Prepare(TView);
-          /*#}else{#*/
-          View_Prepare(TView);
-          /*#}#*/
+          
           view = new TView(id, me, params/*#if(modules.viewSlot){#*/, vNodes /*#}#*//*#if(modules.viewProtoMixins){#*/, ctors /*#}#*/);
 
           if (DEBUG) {
