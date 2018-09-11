@@ -16,24 +16,24 @@
 
           expect(vframe.view instanceof Magix.View).to.be.ok;
           expect(S.isFunction(proto.tmpl)).to.be.ok;
-          expect(vframe.view['sign']).to.be.equal(vframe.view.$s);
+          expect(vframe.view['sign']).to.equal(vframe.view.$s);
           // View_prepare
           expect(S.isFunction(proto['a<click>'])).to.be.ok; // 存在a方法
-          expect(proto['a<click>']()).to.be.equal('a0'); // 自身的a方法
+          expect(proto['a<click>']()).to.equal('a0'); // 自身的a方法
           expect(S.isFunction(proto['b<click>'])).to.be.ok; // 存在b方法
-          expect(proto['b<click>']()).to.be.equal('b1'); // 一级父view的b方法
+          expect(proto['b<click>']()).to.equal('b1'); // 一级父view的b方法
           expect(S.isFunction(proto['c<click>'])).to.be.ok; // 存在c方法
-          expect(proto['c<click>']()).to.be.equal('c1'); // 一级父view的c方法
+          expect(proto['c<click>']()).to.equal('c1'); // 一级父view的c方法
           expect(S.isFunction(proto['d<click>'])).to.be.ok; // 存在d方法
-          expect(proto['d<click>']()).to.be.equal('d2'); // 二级父view的d方法
+          expect(proto['d<click>']()).to.equal('d2'); // 二级父view的d方法
           // View_Ctors
-          expect(vframe.view.path).to.be.equal(vframe.$j); // view有path属性，与vframe$j相等
-          expect(vframe.view.sign).to.be.equal(vframe.view.$s); // view有sign属性，与$s相等
+          expect(vframe.view.path).to.equal(vframe.$j); // view有path属性，与vframe$j相等
+          expect(vframe.view.sign).to.equal(vframe.view.$s); // view有sign属性，与$s相等
           vframe.view.sign = '?';
           expect(vframe.view.sign).to.be.not.equal('?'); // view的sign参数不能被重写
           // mountZone
           expect(Object.keys(Vframe.all())).to.be.deep.equal(['J_app_main', 'mx_64', 'mx_65']);
-          expect(vframe.$d).to.be.equal(0);
+          expect(vframe.$d).to.equal(0);
         });
 
         it('vframe.event', function(done) {
@@ -42,9 +42,9 @@
           const vframe = Magix.Vframe.get('mx_65');
           const testEvent = () => {
             if (vframe.$v) {
-              expect(vframe.num).to.be.equal(undefined);
+              expect(vframe.num).to.equal(undefined);
               S.one('input.btn').fire('click');
-              expect(vframe.num).to.be.equal(2);
+              expect(vframe.num).to.equal(2);
               done();
             } else {
               setTimeout(testEvent, 25);
@@ -59,7 +59,7 @@
           const vframe = Magix.Vframe.get('mx_65');
 
           vframe.on('content2html', () => {
-            expect(S.one('#mx_65').html()).to.be.equal('<p>1111</p>');
+            expect(S.one('#mx_65').html()).to.equal('<p>1111</p>');
             done();
           });
         })
@@ -70,7 +70,7 @@
           const vframe2 = Magix.Vframe.get('mx_65');
 
           vframe2.on('content2postmessage', () => {
-            expect(vframe1.receive).to.be.equal(1);
+            expect(vframe1.receive).to.equal(1);
             done();
           });
         });
@@ -79,12 +79,12 @@
           const view = win.addFrameData.vframe.view;
 
           expect(view.vom).to.be.deep.equal(Magix.Vframe); // 存在vom
-          expect(view.location.get('row')).to.be.equal('4');
+          expect(view.location.get('row')).to.equal('4');
           expect(view.$('#J_app_main')).to.be.deep.equal(Magix.node('#J_app_main'));
           expect(view.parentView).to.be.ok;
-          expect(view.notifyUpdate()).to.be.equal(view.$s);
+          expect(view.notifyUpdate()).to.equal(view.$s);
           expect(view.wrapEvent).to.be.ok;
-          expect(view.wrapMxEvent(1)).to.be.equal('1');
+          expect(view.wrapMxEvent(1)).to.equal('1');
 
           view.manage('dialog', {id: 1});
 

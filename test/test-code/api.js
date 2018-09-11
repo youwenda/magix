@@ -337,6 +337,99 @@
       
           done();
         });
+
+        it('toMap', () => {
+          const simpleMap = Magix.toMap([1, 2, 3]);
+          const mapWithKey = Magix.toMap([
+            { id: 20 },
+            { id: 30 },
+            { id: 40 }
+          ], 'id');
+
+          expect(simpleMap).to.deep.equal({
+            1: 1,
+            2: 1, 
+            3: 1
+          });
+
+          expect(mapWithKey).to.deep.equal({
+            20: { id: 20 },
+            30: { id: 30 },
+            40: { id: 40 }
+          });
+        });
+
+        it('toTry', () => {
+          let error;
+          let result1;
+          let result2;
+
+          Magix.config({
+            error(e) {
+              error = e.message;
+            }
+          });
+
+          Magix.toTry(num => {
+            result1 = num;
+          }, 1);
+
+          expect(result1).to.equal(1);
+
+          Magix.toTry([
+            (a, b) => {
+              result1 = a + b;
+            },
+            (a, b) => {
+              result2 = a * b;
+            }
+          ], [1, 2]);
+
+          expect(result1).to.equal(3);
+          expect(result2).to.equal(2);
+
+          Magix.toTry(() => {
+            throw new Error('test error');
+          });
+
+          expect(error).to.equal('test error');
+        });
+
+        it('mix', () => {
+          const aim = { a: 10 };
+
+          Magix.mix(aim, { b: 20, c: 30 });
+          expect(aim).to.deep.equal({ a: 10, b: 20, c: 30 });
+        });
+
+        it('toUrl', () => {
+          let str = Magix.toUrl('/xxx/',{ a: 'b', c: 'd' });
+
+          expect(str).to.equal('/xxx/?a=b&c=d');
+          str = Magix.toUrl('/xxx/',{ a: '', c: 2 });
+          expect(str).to.equal('/xxx/?a=&c=2');
+          str = Magix.toUrl('/xxx/',{ a: '', c: 2 }, { c: 1 });
+          expect(str).to.equal('/xxx/?c=2');
+          str = Magix.toUrl('/xxx/',{ a: '', c: 2 }, { a: 1, c: 1 });
+          expect(str).to.equal('/xxx/?a=&c=2');
+        });
+
+        it('has', () => {
+          const obj = {
+            key1: undefined,
+            key2: 0
+          };
+
+          expect(Magix.has(obj,'key1')).to.be.ok;
+          expect(Magix.has(obj,'key2')).to.be.ok;
+          expect(Magix.has(obj,'key3')).not.to.be.ok;
+        });
+
+        it('keys', () => {
+          const obj = { a: 1, b: 2, c: 3};
+
+          expect(Magix.keys(obj)).to.include.members([ 'a', 'b', 'c' ]);
+        })
       }
     });
   }
