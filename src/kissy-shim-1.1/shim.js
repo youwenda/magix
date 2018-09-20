@@ -373,14 +373,14 @@ G_Assign(Vframe[G_PROTOTYPE], {
           /*#}else{#*/
           View_Prepare(TView);
           /*#}#*/
-
-          if(!TView[G_PROTOTYPE].tmplWrapped) {
-            let tmpl = TView[G_PROTOTYPE].tmpl;
+          // 反复 mountView 的时候 viewId 会改变，我们需要从原始模板重复替换
+          if(TView[G_PROTOTYPE].tmplWrappedViewId !== me.id) {
+            let tmpl = TView[G_PROTOTYPE]._originTmpl;
             if (typeof tmpl === 'string') {
               tmpl = tmpl.replace(MxEvent, '$&' + me.id + G_SPLITER);
               TView[G_PROTOTYPE].tmpl = TView[G_PROTOTYPE].template = tmpl;
             }
-            TView[G_PROTOTYPE].tmplWrapped = true;
+            TView[G_PROTOTYPE].tmplWrappedViewId = me.id;
           }
           
           view = new TView(id, me, params/*#if(modules.viewSlot){#*/, vNodes /*#}#*//*#if(modules.viewProtoMixins){#*/, ctors /*#}#*/);
@@ -647,6 +647,7 @@ View_Prepare = (View) => {
   let c;
   // 对模板属性名称做兼容处理
   prop.tmpl = prop.tmpl || prop.template;
+  prop._originTmpl = prop._originTmpl || prop.tmpl;
   // 对于事件的兼容处理
   if (!set) {
     while (parent) {

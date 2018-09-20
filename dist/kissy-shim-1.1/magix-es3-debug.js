@@ -4526,15 +4526,16 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                         if (!TView) {
                             return Magix_Cfg.error(Error("id:" + id + " cannot load:" + view));
                         }
-                        if (!TView[G_PROTOTYPE].tmplWrapped) {
-                            var tmpl = TView[G_PROTOTYPE].tmpl;
+                        ctors = View_Prepare(TView);
+                        // 反复 mountView 的时候 viewId 会改变，我们需要从原始模板重复替换
+                        if (TView[G_PROTOTYPE].tmplWrappedViewId !== me.id) {
+                            var tmpl = TView[G_PROTOTYPE]._originTmpl;
                             if (typeof tmpl === 'string') {
                                 tmpl = tmpl.replace(MxEvent, '$&' + me.id + G_SPLITER);
                                 TView[G_PROTOTYPE].tmpl = TView[G_PROTOTYPE].template = tmpl;
                             }
-                            TView[G_PROTOTYPE].tmplWrapped = true;
+                            TView[G_PROTOTYPE].tmplWrappedViewId = me.id;
                         }
-                        ctors = View_Prepare(TView);
                         view = new TView(id, me, params, ctors);
                         if (DEBUG) {
                             var viewProto_2 = TView.prototype;
@@ -4764,6 +4765,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         var c;
         // 对模板属性名称做兼容处理
         prop.tmpl = prop.tmpl || prop.template;
+        prop._originTmpl = prop._originTmpl || prop.tmpl;
         // 对于事件的兼容处理
         if (!set) {
             while (parent) {
