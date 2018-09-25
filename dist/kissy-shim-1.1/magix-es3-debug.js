@@ -4272,6 +4272,11 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
         var _b;
         return new ((_b = Magix.Cache).bind.apply(_b, [void 0].concat(args)))();
     };
+    G_Assign(G_Cache[G_PROTOTYPE], {
+        list: function () {
+            return this.c;
+        }
+    });
     Magix.safeExec = G_ToTry;
     Magix.listToMap = function (list, key) {
         if (S.isString(list)) {
