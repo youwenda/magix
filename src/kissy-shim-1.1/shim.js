@@ -55,6 +55,12 @@ Magix.tmpl.get = moduleId => __tmpl[moduleId];
 
 Magix.cache = (...args) => new Magix.Cache(...args);
 
+G_Assign(G_Cache[G_PROTOTYPE], {
+  list: function() {
+    return this.c;
+  }
+})
+
 Magix.safeExec = G_ToTry;
 Magix.listToMap = (list, key) => {
   if (S.isString(list)) {
