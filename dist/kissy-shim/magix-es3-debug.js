@@ -4420,6 +4420,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                     this.cs = c;
                 }
             };
+            // @NOTE：增加stateKey 变化传递参数
             if (stateKeys) {
                 args.stateKeys = stateKeys;
             }

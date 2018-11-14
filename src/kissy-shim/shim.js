@@ -220,6 +220,7 @@ const Dispatcher_Update = (vframe, /*#if(modules.state){#*/ stateKeys, /*#}#*/ v
       }
     };
 
+    // @NOTE：增加stateKey 变化传递参数
     if (stateKeys) {
       args.stateKeys = stateKeys;
     }
