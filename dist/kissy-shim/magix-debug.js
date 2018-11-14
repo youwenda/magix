@@ -4689,6 +4689,10 @@ const Dispatcher_Update = (vframe,  stateKeys,  view, isChanged, cs, c) => {
       }
     };
 
+    if (stateKeys) {
+      args.stateKeys = stateKeys;
+    }
+
     if (isChanged) { //检测view所关注的相应的参数是否发生了变化
       if (S.isFunction(view.locationChange)) {
         Magix.deprecated('Deprecated View#locationChange');
