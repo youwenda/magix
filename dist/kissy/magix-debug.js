@@ -5,9 +5,9 @@
 /*
 author:kooboy_li@163.com
 loader:kissy
-enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM
+enables:style,viewInit,service,ceach,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM,eventEnterLeave,kissy
 
-optionals:updaterVDOM,updaterAsync,serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,viewSlot,share,mxViewAttr,keepHTML,eventEnterLeave,naked,vdom
+optionals:updaterVDOM,updaterAsync,serviceCombine,tipLockUrlRouter,edgeRouter,forceEdgeRouter,cnum,collectView,layerVframe,viewSlot,share,mxViewAttr,keepHTML,naked,vdom
 */
 KISSY.add('magix', (S, SE, DOM) => {
     if (typeof DEBUG == 'undefined') window.DEBUG = true;
@@ -317,9 +317,16 @@ G_Assign(G_Cache[G_PROTOTYPE], {
         G_ToTry(d.f, e, d.v);
     }
     
-    let G_DOMEventLibBind = (node, type, cb, remove, scope) => {
-        if (scope) {
-            SE[`${remove ? 'un' : G_EMPTY}delegate`](node, type, cb, scope);
+    let Specials = {
+        mouseenter: 1,
+        mouseleave: 1,
+        pointerenter: 1,
+        pointerleave: 1
+    };
+    let G_DOMEventLibBind = (node, type, cb, remove, scope, selector) => {
+        selector = Specials[type] === 1 ? `[mx-${type}]` : G_EMPTY;
+        if (scope || selector) {
+            SE[`${remove ? 'un' : G_EMPTY}delegate`](node, type, selector, cb, scope);
         } else {
             SE[remove ? 'detach' : 'on'](node, type, cb, scope);
         }
@@ -1507,7 +1514,7 @@ Magix.Router = Router;
 let Dispatcher_Update = (vframe,  stateKeys,  view, isChanged, cs, c) => {
     if (vframe && vframe['$a'] != Dispatcher_UpdateTag &&
         (view = vframe['$v']) &&
-        view['$a'] > 1) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
+        view['$s'] > 1) { //存在view时才进行广播，对于加载中的可在加载完成后通过调用view.location拿到对应的G_WINDOW.location.href对象，对于销毁的也不需要广播
         
         isChanged = stateKeys ? State_IsObserveChanged(view, stateKeys) : View_IsObserveChanged(view);
         
@@ -1537,7 +1544,7 @@ let Dispatcher_Update = (vframe,  stateKeys,  view, isChanged, cs, c) => {
                 }
             };*/
         if (isChanged) { //检测view所关注的相应的参数是否发生了变化
-            view['$b']();
+            view['$a']();
         }
         cs = vframe.children();
         for (c of cs) {
@@ -1601,7 +1608,7 @@ let Vframe_NotifyAlter = (vframe, e) => {
 let Vframe_TranslateQuery = (pId, src, params, pVf) => {
     pVf = Vframe_Vframes[pId];
     pVf = pVf && pVf['$v'];
-    pVf = pVf ? pVf['$d']['$a'] : {};
+    pVf = pVf ? pVf['$b']['$a'] : {};
     if (src.indexOf(G_SPLITER) > 0) {
         G_TranslateData(pVf, params);
     }
@@ -1810,8 +1817,8 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                             owner: 1,
                             '$l': 1,
                             '$r': 1,
-                            '$a': 1,
-                            '$d': 1
+                            '$s': 1,
+                            '$b': 1
                         };
                         for (let p in view) {
                             if (G_Has(view, p) && viewProto[p]) {
@@ -1821,7 +1828,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                         view = Safeguard(view, null, (key, value) => {
                             if (G_Has(viewProto, key) ||
                                 (G_Has(importantProps, key) &&
-                                    (key != '$a' || !isFinite(value)) &&
+                                    (key != '$s' || !isFinite(value)) &&
                                     (key != 'owner' || value !== 0))) {
                                 throw new Error(`avoid write ${key} at file ${viewPath}!`);
                             }
@@ -1835,10 +1842,10 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                     
                     G_ToTry(view.init, params, view);
                     
-                    view['$b']();
-                    if (!view['$e']) { //无模板
+                    view['$a']();
+                    if (!view['$d']) { //无模板
                         me['$h'] = 0; //不会修改节点，因此销毁时不还原
-                        if (!view['$f']) {
+                        if (!view['$e']) {
                             view.endUpdate();
                         }
                     }
@@ -1868,8 +1875,8 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
             Vframe_NotifyAlter(me, Vframe_GlobalAlter);
 
             me['$v'] = 0; //unmountView时，尽可能早的删除vframe上的$v对象，防止$v销毁时，再调用该 vfrmae的类似unmountZone方法引起的多次created
-            if (v['$a'] > 0) {
-                v['$a'] = 0;
+            if (v['$s'] > 0) {
+                v['$s'] = 0;
                 delete Body_RangeEvents[id];
                 delete Body_RangeVframes[id];
                 
@@ -1882,7 +1889,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
                 View_DelegateEvents(v, 1);
                 v.owner = 0;
             }
-            v['$a']--;
+            v['$s']--;
             node = G_GetById(id);
             if (node && me['$h'] /*&&!keepPreHTML*/) { //如果$v本身是没有模板的，也需要把节点恢复到之前的状态上：只有保留模板且$v有模板的情况下，这条if才不执行，否则均需要恢复节点的html，即$v安装前什么样，销毁后把节点恢复到安装前的情况
                 
@@ -2100,7 +2107,7 @@ G_Assign(Vframe[G_PROTOTYPE], MEvent, {
         let vf = this,
             view, fn, o, list = vf['$f'],
             key;
-        if ((view = vf['$v']) && view['$f']) { //view rendered
+        if ((view = vf['$v']) && view['$e']) { //view rendered
             result = (fn = view[name]) && G_ToTry(fn, args, view);
         } else {
             o = list[key = G_SPLITER + name];
@@ -2309,7 +2316,7 @@ let Body_FindVframeInfo = (current, eventType) => {
                     }
                     //防止跨view选中，到带模板的view时就中止或未指定
                     
-                    if (view['$e'] && !backtrace) {
+                    if (view['$d'] && !backtrace) {
                         
                         if (match && !match.v) match.v = selectorVfId;
                         
@@ -2355,7 +2362,7 @@ let Body_DOMEventProcessor = domEvent => {
                     fn = view[eventName];
                     if (fn) {
                         domEvent.eventTarget = target;
-                        params = i ? G_ParseExpr(i, view['$d']['$a']) : {};
+                        params = i ? G_ParseExpr(i, view['$b']['$a']) : {};
                         domEvent[G_PARAMS] = params;
                         G_ToTry(fn, domEvent, view);
                         //没发现实际的用途
@@ -2607,13 +2614,13 @@ let I_SetChildNodes = (oldParent, newParent, ref, vframe, keys) => {
             nodeKey.push(oldNode);
         }
         oldNode = oldNode.previousSibling;
-        if (newNode) {
-            nodeKey = I_GetCompareKey(newNode);
-            if (nodeKey) {
-                newKeyedNodes[nodeKey] = 1;
-            }
-            newNode = newNode.nextSibling;
-        }
+        // if (newNode) {
+        //     nodeKey = I_GetCompareKey(newNode);
+        //     if (nodeKey) {
+        //         newKeyedNodes[nodeKey] = 1;
+        //     }
+        //     newNode = newNode.nextSibling;
+        // }
     }
     while (newNode) {
         nodeKey = I_GetCompareKey(newNode);
@@ -2713,37 +2720,44 @@ let I_SetNode = (oldNode, newNode, oldParent, ref, vf, keys, hasMXV) => {
                     view,
                     uri = newMxView && G_ParseUri(newMxView),
                     params,
-                    htmlChanged, urlChanged, paramsChanged;
+                    htmlChanged, paramsChanged;
                 if (newMxView && oldVf &&
                     (!newNode.id || newNode.id == oldNode.id) &&
                     oldVf['$j'] == uri[G_PATH] &&
                     (view = oldVf['$v'])) {
                     htmlChanged = newHTML != oldVf['$i'];
-                    urlChanged = newMxView != oldVf[G_PATH];
-                    paramsChanged = urlChanged;
+                    paramsChanged = newMxView != oldVf[G_PATH];
                     assign = oldNode.getAttribute(G_Tag_View_Key);
+                    //如果组件内html没改变，参数也没改变
+                    //我们要检测引用参数是否发生了改变
                     if (!htmlChanged && !paramsChanged && assign) {
+                        //对于mxv属性，带value的必定是组件
+                        //所以对组件，我们只检测参数与html，所以组件的hasMXV=0
+                        hasMXV = 0;
                         params = assign.split(G_COMMA);
                         for (assign of params) {
-                            if (G_Has(keys, assign)) {
+                            //支持模板内使用this获取整个数据对象
+                            //如果使用this来传递数据，我们把this的key处理成#号
+                            //遇到#号则任意的数据改变都需要更新当前这个组件
+                            if (assign == G_HashKey || G_Has(keys, assign)) {
                                 paramsChanged = 1;
                                 break;
                             }
                         }
                     }
                     if (paramsChanged || htmlChanged || hasMXV) {
-                        assign = view['$g'];
+                        assign = view['$e'] && view['$f'];
                         if (assign) {
                             params = uri[G_PARAMS];
                             //处理引用赋值
-                            Vframe_TranslateQuery( oldVf.pId, newMxView, params);
+                            Vframe_TranslateQuery(oldVf.pId, newMxView, params);
                             oldVf['$i'] = newHTML;
                             //oldVf['$o'] = newDataStringify;
                             oldVf[G_PATH] = newMxView;//update ref
                             uri = {
                                 node: newNode,
-                                html: newHTML,
-                                deep: !view['$e'],
+                                //html: newHTML,
+                                deep: !view.tmpl,
                                 mxv: hasMXV,
                                 inner: htmlChanged,
                                 query: paramsChanged,
@@ -2828,8 +2842,8 @@ let Updater_Digest = (updater, digesting) => {
     updater['$k'] = {};
     if (changed &&
         view &&
-        view['$a'] > 0 &&
-        (tmpl = view['$e'])) {
+        view['$s'] > 0 &&
+        (tmpl = view['$d'])) {
         delete Body_RangeEvents[selfId];
         delete Body_RangeVframes[selfId];
         console.time('[updater time:' + selfId + ']');
@@ -2844,9 +2858,9 @@ let Updater_Digest = (updater, digesting) => {
         }
 
         for (vdom of ref.v) {
-            vdom['$b']();
+            vdom['$a']();
         }
-        if (ref.c || !view['$f']) {
+        if (ref.c || !view['$e']) {
             view.endUpdate(selfId);
         }
         
@@ -3102,8 +3116,8 @@ let View_WrapMethod = (prop, fName, short, fn, me) => {
     fn = prop[fName];
     prop[fName] = prop[short] = function (...args) {
         me = this;
-        if (me['$a'] > 0) { //signature
-            me['$a']++;
+        if (me['$s'] > 0) { //signature
+            me['$s']++;
             
             me.fire('rendercall');
             
@@ -3230,12 +3244,12 @@ let View_Prepare = oView => {
             }
         }
         //console.log(prop);
-        View_WrapMethod(prop, 'render', '$b');
+        View_WrapMethod(prop, 'render', '$a');
         prop['$eo'] = eventsObject;
         prop['$el'] = eventsList;
         prop['$so'] = selectorObject;
-        prop['$e'] = prop.tmpl;
-        prop['$g'] = prop.assign;
+        prop['$d'] = prop.tmpl;
+        prop['$f'] = prop.assign;
     }
     
     return oView[G_SPLITER];
@@ -3313,9 +3327,9 @@ function View(id, owner, ops, me) {
     
     me['$r'] = {};
     
-    me['$a'] = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
+    me['$s'] = 1; //标识view是否刷新过，对于托管的函数资源，在回调这个函数时，不但要确保view没有销毁，而且要确保view没有刷新过，如果刷新过则不回调
     
-    me.updater = me['$d'] = new Updater(me.id);
+    me.updater = me['$b'] = new Updater(me.id);
     
     
     G_ToTry(View_Ctors, ops, me);
@@ -3446,7 +3460,7 @@ G_Assign(ViewProto , MEvent, {
      */
     beginUpdate(id, me) {
         me = this;
-        if (me['$a'] > 0 && me['$f']) {
+        if (me['$s'] > 0 && me['$e']) {
             me.owner.unmountZone(id, 1);
             /*me.fire('prerender', {
                 id: id
@@ -3459,7 +3473,7 @@ G_Assign(ViewProto , MEvent, {
      */
     endUpdate(id, inner, me , o, f ) {
         me = this;
-        if (me['$a'] > 0) {
+        if (me['$s'] > 0) {
             id = id || me.id;
             /*me.fire('rendered', {
                 id
@@ -3468,9 +3482,9 @@ G_Assign(ViewProto , MEvent, {
                 f = inner;
             } else {
                 
-                f = me['$f'];
+                f = me['$e'];
                 
-                me['$f'] = 1;
+                me['$e'] = 1;
             }
             
             o = me.owner;
@@ -3502,9 +3516,9 @@ G_Assign(ViewProto , MEvent, {
      */
     wrapAsync(fn, context) {
         let me = this;
-        let sign = me['$a'];
+        let sign = me['$s'];
         return (...a) => {
-            if (sign > 0 && sign == me['$a']) {
+            if (sign > 0 && sign == me['$s']) {
                 return fn.apply(context || me, a);
             }
         };
@@ -3695,7 +3709,7 @@ G_Assign(ViewProto , MEvent, {
         let me = this,
             n, i = me.id;
         me.beginUpdate(id);
-        if (me['$a'] > 0) {
+        if (me['$s'] > 0) {
             n = G_GetById(id);
             if (n) G_HTML(n, View_SetEventOwner(html, i), i);
         }

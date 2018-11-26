@@ -15,9 +15,9 @@ module.exports = function (config) {
       'test/test-code/*.js',
       'test/test-code/shim@1.0.html'
     ],
-    // preprocessors: {
-    //   'dist/kissy-shim/magix-es3-debug.js': ['coverage']
-    // },
+    preprocessors: {
+      'dist/kissy-shim/magix-es3-debug.js': ['coverage']
+    },
     plugins: ['karma-mocha', 'karma-chai', 'karma-coverage', 'karma-spec-reporter', 'karma-chrome-launcher'],
     browsers: ['Chrome'],
     reporters: ['spec', 'coverage'],

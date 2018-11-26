@@ -7,11 +7,9 @@
   <title>KISSY Magix 3.x</title>
 </head>
 <body>
-  <div id="J_app_main"></div>
-  <div id="qunit"></div>
-  <div id="qunit-fixture"></div>
   <script>
     (function(win, S, Test) {
+
       window.isMagix1 = 0;
       window.isMagix3Shim = 0;
       window.isMagix3 = 1;
@@ -62,8 +60,8 @@
 
         Test.Api();
         Test.Event();
-        Test.Vframe();
         Test.Router();
+        Test.Vframe();
       });
     })(window, window.KISSY, window.Test || (window.Test = {}));
   </script>

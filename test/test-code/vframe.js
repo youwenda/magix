@@ -4,9 +4,16 @@
 (function (win, S, Test, EMPTY) {
   const $ = S.all;
   const expect = chai.expect;
+  let TestView;
 
   function Vframe() {
     describe('Vframe', () => {
+      before(done => {
+        KISSY.use('app/view/content2', (S, DView) => {
+          TestView = DView;
+          done();
+        });
+      });
       if (isMagix3Shim) {
         it('vframe.mountView', () => {
           const Vframe = Magix.Vframe;
@@ -111,10 +118,108 @@
           Vframe.prototype.mountZoneVframes = 1
           Vframe.prototype.unmountZoneVframes = 1
 
-          console.log(Object.getOwnPropertyDescriptor(Vframe.prototype, 'mountZoneVframes'));
-
           expect(Vframe.prototype.mountZoneVframes).not.equal(1); // mountZoneVframes方法不能被重写
           expect(Vframe.prototype.unmountZoneVframes).not.equal(1); // unmountZoneVframes方法不能被重写
+        });
+      }
+
+      if (isMagix3) {
+        it('Vframe constructor, all, get and prototype', () => {
+          const $ = S.all;
+          const Vframe = Magix.Vframe;
+          let addVf;
+          const onAdd = data => {
+            addVf = data.vframe;
+          };
+
+          $('body').append('<div id="vframe-container"></div>');
+
+          Vframe.on('add', onAdd);
+
+          const vf = new Vframe('vframe-container', 'pId');
+
+          expect(Vframe.all()['vframe-container']).to.equal(vf);
+          expect(Vframe.get('vframe-container')).to.equal(vf);
+          expect(addVf).to.equal(vf);
+          expect(document.getElementById('vframe-container').vframe).to.equal(vf);
+          expect(vf.id).to.equal('vframe-container');
+          expect(vf.pId).to.equal('pId');
+          expect(vf.mountView).to.be.a('function');
+          expect(vf.unmountView).to.be.a('function');
+          expect(vf.mountVframe).to.be.a('function');
+          expect(vf.mountZone).to.be.a('function');
+          expect(vf.unmountVframe).to.be.a('function');
+          expect(vf.unmountZone).to.be.a('function');
+          expect(vf.parent).to.be.a('function');
+          expect(vf.children).to.be.a('function');
+          expect(vf.invoke).to.be.a('function');
+
+          Vframe.off('add', onAdd);
+        });
+
+        it('mountView', () => {
+          const Vframe = Magix.Vframe;
+          const vf = Vframe.get('vframe-container');
+          const priFun = Magix['$|_attrForTest_|$priFun$|_attrForTest_|$'];
+          const priVar = Magix['$|_attrForTest_|$priVar$|_attrForTest_|$'];
+          let hasUnMountView = false;
+          let hasTransQuery = false;
+          let hasGRequire = false;
+          let hasInvoke$a = false;
+          let hasInvokeViewInit = false;
+          let hasEndUpdate = false;
+          let initParams = { a: 1, b: 2 };
+
+          // mock 要mount的View
+          const MockView = function (id, me, params, ctors) {
+            this.init = extra => {
+              expect(extra).to.deep.equal({ a: 1, b: 2, c: 1 });
+              hasInvokeViewInit = true;
+            };
+
+            this.endUpdate = () => {
+              hasEndUpdate = true;
+            }
+
+            this['$a'] = () => {
+              hasInvoke = true;
+            }
+          }
+
+          //mock 方法
+          let oriVframe_TranslateQuery = priFun['set-Vframe_TranslateQuery']((pId, viewPath, params) => {
+            expect(viewPath).to.equal('app/view/content2?c=1');
+            expect(pId).to.equal(vf.pId);
+            expect(params).to.deep.equal({ c: '1' })
+            hasTransQuery = true;
+          });
+
+          let oriG_Require = priFun['set-G_Require']((name, fn) => {
+            expect(name).to.equal('app/view/content2');
+            fn(MockView);
+            hasGRequire = true;
+          });
+          let oriUnmountView = vf.unmountView;
+
+          vf.unmountView = () => {
+            hasUnMountView = true;
+          }
+
+          vf.mountView('app/view/content2?c=1', initParams);
+
+          expect(hasTransQuery).to.be.ok;
+          expect(hasUnMountView).to.be.ok;
+          expect(hasInvokeViewInit).to.be.ok;
+          expect(hasInvoke$a).to.be.ok;
+          expect(hasGRequire).to.be.ok;
+          expect(hasEndUpdate).to.be.ok;
+          expect(vf['$h']).to.equal(0);
+          expect(vf['$a']).to.equal(priVar.Dispatcher_UpdateTag);
+
+          // mock 方法还原
+          priFun['set-Vframe_TranslateQuery'](oriVframe_TranslateQuery);
+          priFun['set-G_Require'] = oriG_Require;
+          vf.unmountView = oriUnmountView;
         });
       }
     });

@@ -9,8 +9,10 @@ let doc = require('./lib/doc');
 let pkg = require('../package.json');
 let ts = require('typescript');
 let customize = require('./customize');
+let parser = require('@babel/parser');
+let generate = require('@babel/generator').default;
 
-let type = 'kissy-shim'; //打包kissy则type='kissy'
+let type = 'kissy'; //打包kissy则type='kissy'
 let enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM';
 
 //let enableModules = 'style,viewInit,router,viewMerge,tipRouter,updater,autoEndUpdate,linkage,state,updaterDOM,viewProtoMixins';
@@ -21,6 +23,29 @@ let enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttach
 
 // for shim
 enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM,eventEnterLeave,kissy';
+
+function getAllPrivateFunAndVar(tree) {
+  const expression = tree.program.body[0].expression;
+  const functionBody = expression.arguments[1].body;
+  const prFunArr = [];
+  const prVarArr = [];
+
+  functionBody.body.forEach(node => {
+    if (node.type === 'FunctionDeclaration') {
+      prFunArr.push(node.id.name);
+    } else if (node.type === 'VariableDeclaration') {
+      var declaration = node.declarations[0];
+
+      if (declaration.init && declaration.init.type === 'FunctionExpression') {
+        prFunArr.push(declaration.id.name);
+      } else {
+        prVarArr.push(declaration.id.name)
+      }
+    }
+  });
+
+  return { prFunArr, prVarArr };
+}
 
 gulp.task('combine', () => {
   type.split(',').forEach(t => {
@@ -48,7 +73,36 @@ gulp.task('combine', () => {
       str = str.outputText;
       str = str.replace(/^[^#]+/, '//');
       str = str.replace(/__assign\(/g, 'G_Assign(');
+
+      let tree = parser.parse(str, {
+        sourceType: 'script'
+      });
+
+      const tmpArr = str.split('return Magix;');
+      // 输出替换私有方法模块
+      const insertFunArr = [ 'Magix[\'$|_attrForTest_|$priFun$|_attrForTest_|$\']={' ];
+      const { prFunArr, prVarArr } = getAllPrivateFunAndVar(tree);
+      
+      prFunArr.forEach((funName, index) => {
+        insertFunArr.push('\'set-' + funName + '\':function(fun){ var ori=' + funName + ';' + funName + '=fun; return ori;}' + (index === prFunArr.length - 1 ? '' : ',' ));
+      });
+
+      insertFunArr.push('};\n');
+      tmpArr[0] = tmpArr[0] + insertFunArr.join('');
+      // 输出私有变量
+      const insertVarArr = [ '    Magix[\'$|_attrForTest_|$priVar$|_attrForTest_|$\']={' ];
+
+      prVarArr.forEach((varName, index) => {
+        insertVarArr.push(varName + ':' + varName + (index === prVarArr.length - 1 ? '' : ',' ));
+      });
+
+      insertVarArr.push('};\n');
+      tmpArr[0] = tmpArr[0] + insertVarArr.join('');
+
+      testStr = tmpArr.join('    return Magix;');
+
       fs.writeFileSync('../dist/' + t + '/magix-es3-debug.js', str);
+      fs.writeFileSync('../dist/' + t + '/magix-es3-debug-test.js', testStr);
     }
   });
 });

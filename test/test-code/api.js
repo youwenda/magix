@@ -4,8 +4,15 @@
 (function(win, S, Test, EMPTY) {
   function Api() {
     const expect = chai.expect;
+    let TestView;
 
     describe('Api', () => {
+      before(done => {
+        KISSY.use('app/view/content2', (S, DView) => {
+          TestView = DView;
+          done();
+        });
+      });
       // 兼容层API测试
       it('isArray, isFunction, isObject, isRegExp, isString, isNumber', () => {
         if (isMagix1 || isMagix3Shim) {
@@ -17,7 +24,7 @@
         if (isMagix3) {
           S.each('isArray, isFunction, isObject, isRegExp, isString, isNumber'.split(','), fnName => {
             fnName = S.trim(fnName);
-            expect(Magix[fnName]).not.to.be.ok;
+            expect(Magix[fnName]).not.ok;
           });
         }
       });
@@ -27,13 +34,13 @@
           expect(Magix.isNumeric).to.be.ok;
           expect(Magix.isNumeric('1')).to.be.ok;
           expect(Magix.isNumeric('1e6')).to.be.ok;
-          expect(Magix.isNumeric('abcdefg')).not.to.be.ok;
+          expect(Magix.isNumeric('abcdefg')).not.ok;
         } else {
-          expect(Magix.isNumeric).not.to.be.ok;
+          expect(Magix.isNumeric).not.ok;
         }
       });
 
-      it('pathToObject(路径字符串转换为对象)', () => {
+      it('pathToObject', () => {
         const fn = Magix.pathToObject || Magix.parseUrl;
         const uris = [
           ['/xxx/a.b.c.html?a=b&c=d', {
@@ -179,7 +186,7 @@
           const noop = function () {};
           expect(Magix.noop()).to.be.deep.equal(noop());
         } else {
-          expect(Magix.noop).not.to.be.ok;
+          expect(Magix.noop).not.ok;
         }
       });
   
@@ -195,7 +202,7 @@
           expect(Magix.local('userId')).to.be.equal('59067');
           expect(Magix.local()).to.be.deep.equal({ userId: '59067', userName: 'jintai.yzq' });
         } else {
-          expect(Magix.local).not.to.be.ok;
+          expect(Magix.local).not.ok;
         }
       });
   
@@ -219,7 +226,7 @@
         if (isMagix1 || isMagix3Shim) {
           expect(Magix.safeExec).to.be.ok;
         } else {
-          expect(Magix.safeExec).not.to.be.ok;
+          expect(Magix.safeExec).not.ok;
         }
       });
   
@@ -422,13 +429,74 @@
 
           expect(Magix.has(obj,'key1')).to.be.ok;
           expect(Magix.has(obj,'key2')).to.be.ok;
-          expect(Magix.has(obj,'key3')).not.to.be.ok;
+          expect(Magix.has(obj,'key3')).not.ok;
         });
 
         it('keys', () => {
-          const obj = { a: 1, b: 2, c: 3};
+          const obj = { a: 1, b: 2, c: 3 };
 
           expect(Magix.keys(obj)).to.include.members([ 'a', 'b', 'c' ]);
+        });
+
+        it('inside', () => {
+          const $ = S.all;
+          const root = $('html');
+          const body = $('body');
+          
+          expect(Magix.inside(body[0], root[0])).to.be.ok;
+          expect(Magix.inside(root[0], body[0])).not.ok;
+          expect(Magix.inside(root[0], root[0])).to.be.ok;
+        });
+
+        it('node', () => {
+          expect(Magix.node('J_app_main')).to.equal(document.getElementById('J_app_main'));
+        });
+
+        it('nodeId', () => {
+          const a = { id: 1 };
+          const b = {};
+
+          Magix.nodeId(b);
+
+          expect(Magix.nodeId(a)).to.equal(1);
+          expect(b['$a']).to.equal(1);
+          expect(b.id).to.be.ok;
+        })
+
+        it('applyStyle', () => {
+          Magix.applyStyle('testSubway', '#J_app_main { font-size: 20px; }');
+          
+          const fontSize = window.getComputedStyle(document.getElementById('J_app_main')).getPropertyValue('font-size');
+
+          expect(fontSize).to.equal('20px');
+        });
+
+        it('use', done => {
+          Magix.use('app/view/content2', TView => {
+            expect(TView).to.equal(TestView);
+            done();
+          })
+        });
+
+        it('guid', () => {
+          const keyMap = {};
+          let repeat = false;
+          let key = Magix.guid('mx-test-');
+
+          expect(key.indexOf('mx-test-')).to.equal(0);
+
+          keyMap[key] = true;
+
+          for(let i = 0; i < 99999; i ++ ) {
+            key = Magix.guid('mx-test-');
+            repeat = !!keyMap[key];
+
+            if (repeat) break;
+
+            keyMap[key] = true;
+          }
+
+          expect(repeat).not.ok;
         })
       }
     });
