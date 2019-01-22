@@ -1016,8 +1016,7 @@ View.mixin = (props, ctor) => {
 /*#if(modules.router){#*/
 const View_IsObserveChanged = view => {
   let loc = view['@{view#observe.router}'];
-  // TODO view.template来区分是否是新旧Magix的处理比较弱
-  let res = view.template ? 1 : 0; //兼容旧版，旧版对于没有observe参数时，默认是返回true的，然后由`locationChange`决定如何操作，新版则不是
+  let res = (view.template && typeof view.template === 'string' && !loc.k) ? 1 : 0; //兼容旧版，旧版对于没有observe参数时，默认是返回true的，然后由`locationChange`决定如何操作，新版则不是
   let i, params;
   // 调用过observeLocation方法
   if (loc.f) {
@@ -1088,6 +1087,9 @@ G_Assign(View[G_PROTOTYPE], {
     Router.to.apply(Router, arguments);
   },
   manage(...args) {
+    if (args.length === 1) {
+      args.unshift(G_Id('$m'));
+    }
     return this.capture(...args);
   },
   getManaged(key) {

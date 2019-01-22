@@ -5104,8 +5104,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
     };
     var View_IsObserveChanged = function (view) {
         var loc = view['$l'];
-        // TODO view.template来区分是否是新旧Magix的处理比较弱
-        var res = view.template ? 1 : 0; //兼容旧版，旧版对于没有observe参数时，默认是返回true的，然后由`locationChange`决定如何操作，新版则不是
+        var res = (view.template && typeof view.template === 'string' && !loc.k) ? 1 : 0; //兼容旧版，旧版对于没有observe参数时，默认是返回true的，然后由`locationChange`决定如何操作，新版则不是
         var i, params;
         // 调用过observeLocation方法
         if (loc.f) {
@@ -5180,6 +5179,9 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
+            }
+            if (args.length === 1) {
+                args.unshift(G_Id('$m'));
             }
             return this.capture.apply(this, args);
         },
