@@ -5264,6 +5264,11 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             this.setHTML(this.id, html);
         }
     });
+    Object.defineProperties(View[G_PROTOTYPE], {
+        parentView: {
+            writable: false
+        }
+    });
     S.add('magix/magix', function () { return Magix; });
     S.add('magix/event', function () { return Magix.Event; });
     S.add('magix/router', function () { return Router; });

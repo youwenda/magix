@@ -5576,6 +5576,12 @@ G_Assign(View[G_PROTOTYPE], {
   }
 });
 
+Object.defineProperties(View[G_PROTOTYPE], {
+  parentView: {
+    writable: false
+  }
+});
+
 S.add('magix/magix', () => Magix);
 S.add('magix/event', () => Magix.Event);
 S.add('magix/router', () => Router);
