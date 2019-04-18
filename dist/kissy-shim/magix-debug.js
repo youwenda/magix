@@ -5447,6 +5447,34 @@ const PostMessage = function (vframe, args) {
 const View_ScopeReg = /\x1f/g;
 const View_SetEventOwner = (str, id) => (str + G_EMPTY).replace(View_ScopeReg, id || this.id);
 const origObserveLocation = View[G_PROTOTYPE].observeLocation;
+
+// yexi shim
+G_Assign(View, {
+  merge: function () {
+      var args = [];
+      for (var _i = 0; _i < arguments.length; _i++) {
+          args[_i] = arguments[_i];
+      }
+      View_MergeMixins(args, ViewProto, View_Ctors);
+      return this;
+  },
+  extend: function (props, statics) {
+      var me = this;
+      props = props || {};
+      var ctor = props.ctor;
+      var ctors = [];
+      if (ctor)
+          ctors.push(ctor);
+      function NView(d, a, b, c) {
+          me.call(this, d, a, b);
+          G_ToTry(ctors.concat(c), b, this);
+      }
+      NView.extend = me.extend;
+      NView.merge = me.merge;
+      return G_Extend(NView, me, props, statics);
+  }
+});
+
 G_Assign(View[G_PROTOTYPE], {
   vom: Vframe,
   location: G_Location,

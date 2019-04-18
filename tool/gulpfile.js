@@ -12,7 +12,7 @@ let customize = require('./customize');
 let parser = require('@babel/parser');
 let generate = require('@babel/generator').default;
 
-let type = 'kissy'; //打包kissy则type='kissy'
+let type = 'kissy-shim'; //打包kissy则type='kissy'
 let enableModules = 'style,viewInit,service,router,resource,configIni,nodeAttachVframe,viewMerge,tipRouter,updater,viewProtoMixins,base,defaultView,autoEndUpdate,linkage,updateTitleRouter,urlRewriteRouter,state,updaterDOM';
 
 //let enableModules = 'style,viewInit,router,viewMerge,tipRouter,updater,autoEndUpdate,linkage,state,updaterDOM,viewProtoMixins';
