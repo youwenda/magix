@@ -4851,6 +4851,10 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
                     if (match.i.charAt(match.i.length - 1) == ')') {
                         match.i = match.i.slice(0, -1);
                     }
+                    else if (match.i.slice(-2) == ');') {
+                        // yexi shim 兼容mx-click="submit();"这种写法
+                        match.i = match.i.slice(0, -2);
+                    }
                 }
                 Body_EvtInfoCache.set(info, match);
             }
