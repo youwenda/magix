@@ -7,6 +7,7 @@ KISSY.add('magix', (S, SE, Node, DOM) => {
     Inc('../tmpl/cache');
     let G_Require = (name, fn) => {
         S.use(name && (name + G_EMPTY), (S, ...args) => {
+            args = args.map(arg => ((arg && arg.default) ? arg.default : arg));
             if (fn) {
                 fn.apply(S, args);
             }

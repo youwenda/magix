@@ -295,6 +295,7 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             for (var _a = 1; _a < arguments.length; _a++) {
                 args[_a - 1] = arguments[_a];
             }
+            args = args.map(function (arg) { return ((arg && arg["default"]) ? arg["default"] : arg); });
             if (fn) {
                 fn.apply(S, args);
             }
