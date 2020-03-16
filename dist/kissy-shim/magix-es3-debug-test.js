@@ -5153,8 +5153,9 @@ KISSY.add('magix', function (S, SE, Node, DOM) {
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
-            View_MergeMixins(args, ViewProto, View_Ctors);
-            return this;
+            var me = this, _ = me._ || (me._ = []);
+            View_MergeMixins(args, me[G_PROTOTYPE], View_Ctors);
+            return me;
         },
         extend: function (props, statics) {
             var me = this;
