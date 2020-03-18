@@ -4699,6 +4699,8 @@ const Dispatcher_Update = (vframe,  stateKeys,  view, isChanged, cs, c) => {
       if (S.isFunction(view.locationChange)) {
         Magix.deprecated('Deprecated View#locationChange');
         view.locationChange(args);
+      } else if (view.path.match('gallery-plus')) {
+        view['$a']();
       }
       // TODO 判断如果当前view是magix-components(通过view.path即可)下的代码需要进行调用`render`方法
       // 兼容Magix1.0版本代码，如果没有`locationChange`方法，不进行渲染，但实际在Magix3中默认执行`render方法`
